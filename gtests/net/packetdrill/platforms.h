@@ -30,6 +30,7 @@
 
 #ifdef linux
 
+#include <netinet/sctp.h>
 #include <features.h>
 #define HAVE_OPEN_MEMSTREAM     1
 #define HAVE_FMEMOPEN           1
@@ -43,6 +44,7 @@
 
 #if defined(__FreeBSD__)
 
+#include <netinet/sctp.h>
 #include <sys/param.h>
 #define USE_LIBPCAP             1
 #define TUN_PATH                "/dev/tun0"

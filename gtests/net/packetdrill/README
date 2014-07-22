@@ -14,6 +14,7 @@ building
 ========
 
 To build packetdrill, first install flex and bison.
+On Linux you will also need to install the libsctp-dev package.
 
 Then set up the Makefile for your platform:
 

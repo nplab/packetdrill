@@ -480,6 +480,11 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> IPV4 IPV6 ICMP UDP GRE MTU
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
+%token <reserved> SRTO_INITIAL SRTO_MAX SRTO_MIN
+%token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
+%token <reserved> SINIT_MAX_INIT_TIMEO
+%token <reserved> ASSOC_VALUE
+%token <reserved> SACK_DELAY SACK_FREQ
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -512,6 +517,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer
 %type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents linger
+%type <expression> sctp_rtoinfo sctp_initmsg sctp_assocval sctp_sackinfo
 %type <errno_info> opt_errno
 
 %%  /* The grammar follows. */
@@ -1113,6 +1119,18 @@ expression
 | linger            {
 	$$ = $1;
 }
+| sctp_rtoinfo      {
+	$$ = $1;
+}
+| sctp_initmsg      {
+	$$ = $1;
+}
+| sctp_assocval     {
+	$$ = $1;
+}
+| sctp_sackinfo     {
+	$$ = $1;
+}
 ;
 
 decimal_integer
@@ -1236,6 +1254,86 @@ linger
 	$$ = new_expression(EXPR_LINGER);
 	$$->value.linger.l_onoff  = $4;
 	$$->value.linger.l_linger = $8;
+}
+;
+
+sctp_rtoinfo
+: '{' SRTO_INITIAL '=' INTEGER ',' SRTO_MAX '=' INTEGER ',' SRTO_MIN '=' INTEGER '}' {
+#ifdef SCTP_RTOINFO
+	$$ = new_expression(EXPR_SCTP_RTOINFO);
+	if (!is_valid_u32($4)) {
+		semantic_error("srto_initial out of range");
+	}
+	$$->value.sctp_rtoinfo.srto_initial = $4;
+	if (!is_valid_u32($8)) {
+		semantic_error("srto_max out of range");
+	}
+	$$->value.sctp_rtoinfo.srto_max = $8;
+	if (!is_valid_u32($12)) {
+		semantic_error("srto_min out of range");
+	}
+	$$->value.sctp_rtoinfo.srto_min = $12;
+#else
+	$$ = NULL;
+#endif
+}
+;
+
+sctp_initmsg
+: '{' SINIT_NUM_OSTREAMS '=' INTEGER ',' SINIT_MAX_INSTREAMS '=' INTEGER ',' SINIT_MAX_ATTEMPTS '=' INTEGER ',' SINIT_MAX_INIT_TIMEO '=' INTEGER '}' {
+#ifdef SCTP_INITMSG
+	$$ = new_expression(EXPR_SCTP_INITMSG);
+	if (!is_valid_u16($4)) {
+		semantic_error("sinit_num_ostreams out of range");
+	}
+	$$->value.sctp_initmsg.sinit_num_ostreams = $4;
+	if (!is_valid_u16($8)) {
+		semantic_error("sinit_max_instreams out of range");
+	}
+	$$->value.sctp_initmsg.sinit_max_instreams = $8;
+	if (!is_valid_u16($12)) {
+		semantic_error("sinit_max_attempts out of range");
+	}
+	$$->value.sctp_initmsg.sinit_max_attempts = $12;
+	if (!is_valid_u16($16)) {
+		semantic_error("sinit_max_init_timeo out of range");
+	}
+	$$->value.sctp_initmsg.sinit_max_init_timeo = $16;
+#else
+	$$ = NULL;
+#endif
+}
+;
+
+sctp_assocval
+: '{' ASSOC_VALUE '=' INTEGER '}' {
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+	$$ = new_expression(EXPR_SCTP_ASSOCVAL);
+	if (!is_valid_u32($4)) {
+		semantic_error("assoc_value out of range");
+	}
+	$$->value.sctp_assoc_value.assoc_value = $4;
+#else
+	$$ = NULL;
+#endif
+}
+;
+
+sctp_sackinfo
+: '{' SACK_DELAY '=' INTEGER ',' SACK_FREQ '=' INTEGER '}' {
+#ifdef SCTP_DELAYED_SACK
+	$$ = new_expression(EXPR_SCTP_SACKINFO);
+	if (!is_valid_u32($4)) {
+		semantic_error("sack_delay out of range");
+	}
+	$$->value.sctp_sack_info.sack_delay = $4;
+	if (!is_valid_u32($8)) {
+		semantic_error("sack_freq out of range");
+	}
+	$$->value.sctp_sack_info.sack_freq  = $8;
+#else
+	$$ = NULL;
+#endif
 }
 ;
 

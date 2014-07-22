@@ -65,6 +65,18 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_IOVEC,                "iovec" },
 	{ EXPR_MSGHDR,               "msghdr" },
 	{ EXPR_POLLFD,               "pollfd" },
+#ifdef SCTP_RTOINFO
+	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
+#endif
+#ifdef SCTP_INITMSG
+	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
+#endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+	{ EXPR_SCTP_ASSOCVAL,        "sctp_assocvalue"},
+#endif
+#ifdef SCTP_DELAYED_SACK
+	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
+#endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -92,6 +104,9 @@ struct int_symbol cross_platform_symbols[] = {
 	{ IPPROTO_IP,                       "IPPROTO_IP"                      },
 	{ IPPROTO_IPV6,                     "IPPROTO_IPV6"                    },
 	{ IPPROTO_ICMP,                     "IPPROTO_ICMP"                    },
+#ifdef IPPROTO_SCTP
+	{ IPPROTO_SCTP,                     "IPPROTO_SCTP"                    },
+#endif
 	{ IPPROTO_TCP,                      "IPPROTO_TCP"                     },
 	{ IPPROTO_UDP,                      "IPPROTO_UDP"                     },
 
@@ -269,6 +284,18 @@ void free_expression(struct expression *expression)
 	case EXPR_ELLIPSIS:
 	case EXPR_INTEGER:
 	case EXPR_LINGER:
+#ifdef SCTP_RTOINFO
+	case EXPR_SCTP_RTOINFO:
+#endif
+#ifdef SCTP_INITMSG
+	case EXPR_SCTP_INITMSG:
+#endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+	case EXPR_SCTP_ASSOCVAL:
+#endif
+#ifdef SCTP_DELAYED_SACK
+	case EXPR_SCTP_SACKINFO:
+#endif
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -478,6 +505,31 @@ static int evaluate(struct expression *in,
 		memcpy(&out->value.linger, &in->value.linger,
 		       sizeof(in->value.linger));
 		break;
+#ifdef SCTP_RTOINFO
+	case EXPR_SCTP_RTOINFO:		/* copy as-is */
+		memcpy(&out->value.sctp_rtoinfo, &in->value.sctp_rtoinfo,
+		       sizeof(in->value.sctp_rtoinfo));
+		break;
+#endif
+#ifdef SCTP_INITMSG
+	case EXPR_SCTP_INITMSG:		/* copy as-is */
+		memcpy(&out->value.sctp_initmsg, &in->value.sctp_initmsg,
+		       sizeof(in->value.sctp_initmsg));
+		break;
+#endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+	case EXPR_SCTP_ASSOCVAL:	/* copy as-is */
+		memcpy(&out->value.sctp_assoc_value,
+		       &in->value.sctp_assoc_value,
+		       sizeof(in->value.sctp_assoc_value));
+		break;
+#endif
+#ifdef SCTP_DELAYED_SACK
+	case EXPR_SCTP_SACKINFO:	/* copy as-is */
+		memcpy(&out->value.sctp_sack_info, &in->value.sctp_sack_info,
+		       sizeof(in->value.sctp_sack_info));
+		break;
+#endif
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;
 		if (symbol_to_int(in->value.string,

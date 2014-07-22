@@ -45,6 +45,19 @@ enum expression_t {
 	EXPR_IOVEC,		  /* expression tree for an iovec struct */
 	EXPR_MSGHDR,		  /* expression tree for a msghdr struct */
 	EXPR_POLLFD,		  /* expression tree for a pollfd struct */
+#ifdef SCTP_RTOINFO
+	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
+#endif
+#ifdef SCTP_INITMSG
+	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
+#endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+	EXPR_SCTP_ASSOCVAL,	  /* struct sctp_assoc_value */
+#endif
+#ifdef SCTP_DELAYED_SACK
+	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info for
+				   * SCTP_DELAYED_SACK */
+#endif
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -64,6 +77,18 @@ struct expression {
 		struct iovec_expr *iovec;
 		struct msghdr_expr *msghdr;
 		struct pollfd_expr *pollfd;
+#ifdef SCTP_RTOINFO
+		struct sctp_rtoinfo sctp_rtoinfo;
+#endif
+#ifdef SCTP_INITMSG
+		struct sctp_initmsg sctp_initmsg;
+#endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+		struct sctp_assoc_value sctp_assoc_value;
+#endif
+#ifdef SCTP_DELAYED_SACK
+		struct sctp_sack_info sctp_sack_info;
+#endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };

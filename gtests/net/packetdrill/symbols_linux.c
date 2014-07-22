@@ -48,6 +48,9 @@
 struct int_symbol platform_symbols_table[] = {
 	{ SOL_IP,                           "SOL_IP"                          },
 	{ SOL_IPV6,                         "SOL_IPV6"                        },
+#ifdef SOL_SCTP
+	{ SOL_SCTP,                         "SOL_SCTP"                        },
+#endif
 	{ SOL_TCP,                          "SOL_TCP"                         },
 	{ SOL_UDP,                          "SOL_UDP"                         },
 
@@ -94,6 +97,25 @@ struct int_symbol platform_symbols_table[] = {
 #endif
 #ifdef IPV6_MTU
 	{ IPV6_MTU,                         "IPV6_MTU"                        },
+#endif
+
+#ifdef SCTP_RTOINFO
+	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
+#endif
+#ifdef SCTP_INITMSG
+	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
+#endif
+#ifdef SCTP_NODELAY
+	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
+#endif
+#ifdef SCTP_MAXSEG
+	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
+#endif
+#ifdef SCTP_DELAYED_SACK
+	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
+#endif
+#ifdef SCTP_MAX_BURST
+	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 #endif
 
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },

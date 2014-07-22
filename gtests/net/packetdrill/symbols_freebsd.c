@@ -78,6 +78,14 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_SETFIB,                        "SO_SETFIB"                       },
 	{ SO_USER_COOKIE,                   "SO_USER_COOKIE"                  },
 
+	/* /usr/include/netinet/sctp.h */
+	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
+	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
+	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
+	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
+	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
+	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

@@ -152,6 +152,9 @@ static struct expression *get_arg(struct expression_list *args,
 		++current;
 	}
 	if ((args != NULL) && (current == index)) {
+		if (!args->expression)
+			asprintf(error, "Unknown expression at index %d",
+				 index);
 		return args->expression;
 	} else {
 		asprintf(error, "Argument list too short");
@@ -1633,6 +1636,22 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		if (s32_bracketed_arg(args, 3, &optval_s32, error))
 			return STATUS_ERR;
 		optval = &optval_s32;
+#ifdef SCTP_RTOINFO
+	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
+		optval = &val_expression->value.sctp_rtoinfo;
+#endif
+#ifdef SCTP_INITMSG
+	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
+		optval = &val_expression->value.sctp_initmsg;
+#endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+	} else if (val_expression->type == EXPR_SCTP_ASSOCVAL) {
+		optval = &val_expression->value.sctp_assoc_value;
+#endif
+#ifdef SCTP_DELAYED_SACK
+	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
+		optval = &val_expression->value.sctp_sack_info;
+#endif
 	} else {
 		asprintf(error, "unsupported setsockopt value type: %s",
 			 expression_type_to_string(
