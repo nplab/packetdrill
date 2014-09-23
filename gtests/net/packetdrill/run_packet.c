@@ -821,8 +821,8 @@ static int verify_udp(
 	const struct udp *script_udp = script_packet->headers[layer].h.udp;
 
 	if (check_field("udp_len",
-			script_udp->len,
-			actual_udp->len, error))
+			ntohs(script_udp->len),
+			ntohs(actual_udp->len), error))
 		return STATUS_ERR;
 	return STATUS_OK;
 }
