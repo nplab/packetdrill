@@ -541,11 +541,17 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 		}
 	} else if (mode == CHECK_EXACT) {
 		if (actual != expected) {
-			asprintf(error,
-				 "Expected result %d but got %d "
-				 "with errno %d (%s)",
-				 expected,
-				 actual, actual_errno, strerror(actual_errno));
+			if (actual < 0)
+				asprintf(error,
+					 "Expected result %d but got %d "
+					 "with errno %d (%s)",
+					 expected,
+					 actual,
+					 actual_errno, strerror(actual_errno));
+			else
+				asprintf(error,
+					 "Expected result %d but got %d",
+					 expected, actual);
 			return STATUS_ERR;
 		}
 	} else {
@@ -556,13 +562,19 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 	if (syscall->error != NULL) {
 		s64 expected_errno = 0;
 		if (symbol_to_int(syscall->error->errno_macro,
-					  &expected_errno, error))
+				  &expected_errno, error))
 			return STATUS_ERR;
 		if (actual_errno != expected_errno) {
+			char *exp_error, *act_error;
+
+			asprintf(&exp_error, "%s", strerror(expected_errno));
+			asprintf(&act_error, "%s", strerror(actual_errno));
 			asprintf(error,
 				 "Expected errno %d (%s) but got %d (%s)",
-				 (int)expected_errno, strerror(expected_errno),
-				 actual_errno, strerror(actual_errno));
+				 (int)expected_errno, exp_error,
+				 actual_errno, act_error);
+			free(exp_error);
+			free(act_error);
 			return STATUS_ERR;
 		}
 	}
