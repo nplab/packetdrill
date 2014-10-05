@@ -47,7 +47,9 @@
 struct packet_socket {
 	char *name;	/* malloc-allocated copy of interface name */
 
-	pcap_t *pcap;	/* handle for sending, sniffing timestamped packets */
+	pcap_t *pcap_in;	/* handle for sniffing incoming packets */
+	pcap_t *pcap_out;	/* handle for sniffing outgoing packets */
+				/* also used for sending packets */
 	char pcap_error[PCAP_ERRBUF_SIZE];	/* for libpcap errors */
 	int pcap_offset;  /* offset of packet data in pcap buffer */
 };
@@ -74,22 +76,49 @@ static void packet_socket_setup(struct packet_socket *psock)
 	int data_link = -1, bpf_fd = -1, val = -1;
 
 	DEBUGP("calling pcap_create() with %s\n", psock->name);
-	psock->pcap = pcap_create(psock->name, psock->pcap_error);
-	if (psock->pcap == NULL)
-		die_pcap_perror(psock->pcap, "pcap_create");
+	psock->pcap_in = pcap_create(psock->name, psock->pcap_error);
+	if (psock->pcap_in == NULL)
+		die_pcap_perror(psock->pcap_in, "pcap_create");
+	psock->pcap_out = pcap_create(psock->name, psock->pcap_error);
+	if (psock->pcap_out == NULL)
+		die_pcap_perror(psock->pcap_out, "pcap_create");
 
-	if (pcap_set_snaplen(psock->pcap, PACKET_READ_BYTES) != 0)
-		die_pcap_perror(psock->pcap, "pcap_set_snaplen");
+	if (pcap_set_snaplen(psock->pcap_in, PACKET_READ_BYTES) != 0)
+		die_pcap_perror(psock->pcap_in, "pcap_set_snaplen");
+	if (pcap_set_snaplen(psock->pcap_out, PACKET_READ_BYTES) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_set_snaplen");
 
-	if (pcap_activate(psock->pcap) != 0)
-		die_pcap_perror(psock->pcap,
+	if (pcap_activate(psock->pcap_in) != 0)
+		die_pcap_perror(psock->pcap_in,
+				"pcap_activate "
+				"(OpenBSD: another process (tcpdump?) "
+				"using bpf0?)");
+	if (pcap_activate(psock->pcap_out) != 0)
+		die_pcap_perror(psock->pcap_out,
 				"pcap_activate "
 				"(OpenBSD: another process (tcpdump?) "
 				"using bpf0?)");
 
-	bpf_fd = pcap_get_selectable_fd(psock->pcap);
+	if (pcap_setdirection(psock->pcap_in, PCAP_D_IN) != 0)
+		die_pcap_perror(psock->pcap_in, "pcap_setdirection");
+	if (pcap_setdirection(psock->pcap_out, PCAP_D_OUT) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_setdirection");
+
+	bpf_fd = pcap_get_selectable_fd(psock->pcap_in);
 	if (bpf_fd < 0)
-		die_pcap_perror(psock->pcap, "pcap_get_selectable_fd");
+		die_pcap_perror(psock->pcap_in, "pcap_get_selectable_fd");
+
+	/* By default libpcap with BPF waits until a read buffer fills
+	 * up before returning any packets. We use BIOCIMMEDIATE to
+	 * force the BPF device to return the first packet
+	 * immediately.
+	 */
+	val = 1;
+	if (ioctl(bpf_fd, BIOCIMMEDIATE, &val) < 0)
+		die_perror("ioctl BIOCIMMEDIATE on bpf fd");
+	bpf_fd = pcap_get_selectable_fd(psock->pcap_out);
+	if (bpf_fd < 0)
+		die_pcap_perror(psock->pcap_out, "pcap_get_selectable_fd");
 
 	/* By default libpcap with BPF waits until a read buffer fills
 	 * up before returning any packets. We use BIOCIMMEDIATE to
@@ -101,7 +130,7 @@ static void packet_socket_setup(struct packet_socket *psock)
 		die_perror("ioctl BIOCIMMEDIATE on bpf fd");
 
 	/* Find data link type. */
-	data_link = pcap_datalink(psock->pcap);
+	data_link = pcap_datalink(psock->pcap_in);
 	DEBUGP("data_link: %d\n", data_link);
 
 	/* Based on the data_link type, calculate the offset of the
@@ -150,12 +179,15 @@ void packet_socket_set_filter(struct packet_socket *psock,
 
 	DEBUGP("setting BPF filter: %s\n", filter_str);
 
-	if (pcap_compile(psock->pcap, &bpf_code, filter_str, 1, 0) != 0)
-		die_pcap_perror(psock->pcap, "pcap_compile");
-
-	if (pcap_setfilter(psock->pcap, &bpf_code) != 0)
-		die_pcap_perror(psock->pcap, "pcap_setfilter");
-
+	if (pcap_compile(psock->pcap_in, &bpf_code, filter_str, 1, 0) != 0)
+		die_pcap_perror(psock->pcap_in, "pcap_compile");
+	if (pcap_setfilter(psock->pcap_in, &bpf_code) != 0)
+		die_pcap_perror(psock->pcap_in, "pcap_setfilter");
+	pcap_freecode(&bpf_code);
+	if (pcap_compile(psock->pcap_out, &bpf_code, filter_str, 1, 0) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_compile");
+	if (pcap_setfilter(psock->pcap_out, &bpf_code) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_setfilter");
 	pcap_freecode(&bpf_code);
 	free(filter_str);
 }
@@ -176,7 +208,8 @@ void packet_socket_free(struct packet_socket *psock)
 	if (psock->name != NULL)
 		free(psock->name);
 
-	pcap_close(psock->pcap);
+	pcap_close(psock->pcap_in);
+	pcap_close(psock->pcap_out);
 
 	memset(psock, 0, sizeof(*psock));	/* paranoia to catch bugs*/
 	free(psock);
@@ -207,8 +240,8 @@ int packet_socket_writev(struct packet_socket *psock,
 
 	DEBUGP("calling pcap_inject with %d bytes\n", len);
 
-	if (pcap_inject(psock->pcap, buf, len) != len)
-		die_pcap_perror(psock->pcap, "pcap_inject");
+	if (pcap_inject(psock->pcap_out, buf, len) != len)
+		die_pcap_perror(psock->pcap_out, "pcap_inject");
 
 	free(buf);
 	return STATUS_OK;
@@ -221,8 +254,15 @@ int packet_socket_receive(struct packet_socket *psock,
 	int status = 0;
 	struct pcap_pkthdr *pkt_header = NULL;
 	const u8 *pkt_data = NULL;
+	pcap_t *pcap;
 
-	DEBUGP("calling pcap_next_ex()\n");
+	DEBUGP("calling pcap_next_ex() for direction %s\n",
+	       direction == DIRECTION_INBOUND ? "inbound" : "outbound");
+
+	if (direction == DIRECTION_INBOUND)
+		pcap = psock->pcap_in;
+	else
+		pcap = psock->pcap_out;
 
 	/* Something about the way we're doing BIOCIMMEDIATE
 	 * causes libpcap to return 0 if there's no packet
@@ -234,14 +274,13 @@ int packet_socket_receive(struct packet_socket *psock,
 	 * here. TODO(ncardwell): fix this.
 	 */
 	while (1) {
-		status = pcap_next_ex(psock->pcap, &pkt_header,
-				      &pkt_data);
+		status = pcap_next_ex(pcap, &pkt_header, &pkt_data);
 		if (status == 1)
 			break;		/* got a packet */
 		else if (status == 0)
 			return STATUS_ERR;	/* no packet yet */
 		else if (status == -1)
-			die_pcap_perror(psock->pcap, "pcap_next_ex");
+			die_pcap_perror(pcap, "pcap_next_ex");
 		else if (status == -2)
 			die("pcap_next_ex: EOF in save file?!\n");
 		else
