@@ -570,7 +570,7 @@ error_out:
 	return PACKET_BAD;
 }
 
-int parse_mpls(struct packet *packet, u8 *header_start, u8 *packet_end,
+static int parse_mpls(struct packet *packet, u8 *header_start, u8 *packet_end,
 		      char **error)
 {
 	struct header *mpls_header = NULL;
