@@ -63,7 +63,7 @@ extern int packet_socket_writev(struct packet_socket *psock,
  * retry).
  */
 extern int packet_socket_receive(struct packet_socket *psock,
-				 enum direction_t direction,
+				 enum direction_t direction, u16 *ether_type,
 				 struct packet *packet, int *in_bytes);
 
 #endif /* __PACKET_SOCKET_H__ */

@@ -48,6 +48,7 @@ struct packet_socket {
 	int packet_fd;	/* socket for sending, sniffing timestamped packets */
 	char *name;	/* malloc-allocated copy of interface name */
 	int index;	/* interface index from if_nametoindex */
+	bool trim_ethernet_header;
 };
 
 /* Set the receive buffer for a socket to the given size in bytes. */
@@ -178,6 +179,8 @@ void packet_socket_set_filter(struct packet_socket *psock,
 		       &bpfcode, sizeof(bpfcode)) < 0) {
 		die_perror("setsockopt SOL_SOCKET, SO_ATTACH_FILTER");
 	}
+
+	psock->trim_ethernet_header = true;
 }
 
 struct packet_socket *packet_socket_new(const char *device_name)
@@ -186,6 +189,7 @@ struct packet_socket *packet_socket_new(const char *device_name)
 
 	psock->name = strdup(device_name);
 	psock->packet_fd = -1;
+	psock->trim_ethernet_header = false;
 
 	packet_socket_setup(psock);
 
@@ -215,18 +219,39 @@ int packet_socket_writev(struct packet_socket *psock,
 }
 
 int packet_socket_receive(struct packet_socket *psock,
-			  enum direction_t direction,
+			  enum direction_t direction, u16 *ether_type,
 			  struct packet *packet, int *in_bytes)
 {
 	struct sockaddr_ll from;
-	memset(&from, 0, sizeof(from));
-	socklen_t from_len = sizeof(from);
+	struct ether_header ether;
+	struct iovec iov[2];
+	struct msghdr msg;
 
 	/* Read the packet out of our kernel packet socket buffer. */
-	*in_bytes = recvfrom(psock->packet_fd,
-			     packet->buffer, packet->buffer_bytes, 0,
-			     (struct sockaddr *)&from, &from_len);
-	assert(*in_bytes <= packet->buffer_bytes);
+	memset(&from, 0, sizeof(from));
+	if (psock->trim_ethernet_header) {
+		iov[0].iov_base = &ether;
+		iov[0].iov_len = sizeof(struct ether_header);
+		iov[1].iov_base = packet->buffer;
+		iov[1].iov_len = packet->buffer_bytes;
+	} else {
+		iov[0].iov_base = packet->buffer;
+		iov[0].iov_len = packet->buffer_bytes;
+	}
+	msg.msg_name = &from;
+	msg.msg_namelen = (socklen_t)sizeof(struct sockaddr_ll);
+	msg.msg_iov = iov;
+	msg.msg_iovlen = (psock->trim_ethernet_header == 1) ? 2 : 1;
+	msg.msg_control = NULL;
+	msg.msg_controllen = 0;
+	msg.msg_flags = 0;
+	*in_bytes = recvmsg(psock->packet_fd, &msg, 0);
+
+	if (psock->trim_ethernet_header)
+		assert(*in_bytes <=
+		       packet->buffer_bytes + sizeof(struct ether_header));
+	else
+		assert(*in_bytes <= packet->buffer_bytes);
 	if (*in_bytes < 0) {
 		if (errno == EINTR) {
 			DEBUGP("EINTR\n");
@@ -267,6 +292,19 @@ int packet_socket_receive(struct packet_socket *psock,
 	       (u32)tv.tv_sec, (u32)tv.tv_usec,
 	       packet->time_usecs);
 
+	DEBUGP("reported sll_protocol = 0x%04x\n", ntohs(from.sll_protocol));
+	if (psock->trim_ethernet_header) {
+		if (*in_bytes < sizeof(struct ether_header)) {
+			DEBUGP("packet does not contain ethernet header\n");
+			return STATUS_ERR;
+		} else {
+			*ether_type = ntohs(ether.ether_type);
+			*in_bytes -= sizeof(struct ether_header);
+		}
+	} else {
+		*ether_type = ntohs(from.sll_protocol);
+	}
+	DEBUGP("ether_type is 0x%04x\n", *ether_type);
 	return STATUS_OK;
 }
 

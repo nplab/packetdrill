@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ethernet.h"
 #include "packet_parser.h"
 
 static void test_tcp_ipv4_packet_to_string(void)
@@ -56,8 +57,7 @@ static void test_tcp_ipv4_packet_to_string(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
-				     &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -142,8 +142,7 @@ static void test_tcp_ipv6_packet_to_string(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
-				     &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -224,8 +223,7 @@ static void test_gre_mpls_tcp_ipv4_packet_to_string(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
-				     &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 

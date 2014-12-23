@@ -22,6 +22,7 @@
  * Test for parsing IP packets.
  */
 
+#include "ethernet.h"
 #include "packet_parser.h"
 
 #include <assert.h>
@@ -52,7 +53,7 @@ static void test_parse_tcp_ipv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -99,7 +100,7 @@ static void test_parse_tcp_ipv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -139,7 +140,7 @@ static void test_parse_udp_ipv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -183,7 +184,7 @@ static void test_parse_udp_ipv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -233,7 +234,7 @@ static void test_parse_ipv4_gre_ipv4_tcp_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -324,7 +325,7 @@ static void test_parse_ipv4_gre_mpls_ipv4_tcp_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -401,7 +402,7 @@ static void test_parse_icmpv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -454,7 +455,7 @@ static void test_parse_icmpv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);

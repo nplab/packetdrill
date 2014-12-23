@@ -27,12 +27,6 @@
 
 #include "packet.h"
 
-/* What layer of headers is at the head of the packet? */
-enum packet_layer_t {
-	PACKET_LAYER_3_IP = 0,		/* no layer 2 headers */
-	PACKET_LAYER_2_ETHERNET,	/* layer 2 is Ethernet */
-};
-
 enum packet_parse_result_t {
 	PACKET_OK,		/* no errors detected */
 	PACKET_BAD,		/* illegal header */
@@ -48,6 +42,6 @@ enum packet_parse_result_t {
  * error message.
  */
 int parse_packet(struct packet *packet, int in_bytes,
-		 enum packet_layer_t layer, char **error);
+		 u16 ether_type, char **error);
 
 #endif /* __PACKET_PARSER_H__ */

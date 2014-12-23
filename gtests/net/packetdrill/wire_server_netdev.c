@@ -192,9 +192,8 @@ static int wire_server_netdev_receive(struct netdev *a_netdev,
 
 	DEBUGP("wire_server_netdev_receive\n");
 
-	return netdev_receive_loop(netdev->psock, PACKET_LAYER_2_ETHERNET,
-				   DIRECTION_INBOUND, packet, &num_packets,
-				   error);
+	return netdev_receive_loop(netdev->psock, DIRECTION_INBOUND, packet,
+				   &num_packets, error);
 }
 
 struct netdev_ops wire_server_netdev_ops = {

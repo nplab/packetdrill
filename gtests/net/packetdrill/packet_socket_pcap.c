@@ -52,6 +52,7 @@ struct packet_socket {
 				/* also used for sending packets */
 	char pcap_error[PCAP_ERRBUF_SIZE];	/* for libpcap errors */
 	int pcap_offset;  /* offset of packet data in pcap buffer */
+	int data_link;
 };
 
 #if defined(__OpenBSD__)
@@ -73,7 +74,7 @@ extern void die_pcap_perror(pcap_t *pcap, char *message)
 
 static void packet_socket_setup(struct packet_socket *psock)
 {
-	int data_link = -1, bpf_fd = -1, val = -1;
+	int bpf_fd = -1, val = -1;
 
 	DEBUGP("calling pcap_create() with %s\n", psock->name);
 	psock->pcap_in = pcap_create(psock->name, psock->pcap_error);
@@ -130,26 +131,22 @@ static void packet_socket_setup(struct packet_socket *psock)
 		die_perror("ioctl BIOCIMMEDIATE on bpf fd");
 
 	/* Find data link type. */
-	data_link = pcap_datalink(psock->pcap_in);
-	DEBUGP("data_link: %d\n", data_link);
+	psock->data_link = pcap_datalink(psock->pcap_in);
+	DEBUGP("data_link: %d\n", psock->data_link);
 
 	/* Based on the data_link type, calculate the offset of the
 	 * packet data in the buffer.
 	 */
-	switch (data_link) {
+	switch (psock->data_link) {
 	case DLT_EN10MB:
-		psock->pcap_offset = 0;
+		psock->pcap_offset = sizeof(struct ether_header);
 		break;
 	case DLT_LOOP:
 	case DLT_NULL:
-		psock->pcap_offset = 4;
-		break;
-	case DLT_SLIP:
-	case DLT_RAW:
-		psock->pcap_offset = 0;
+		psock->pcap_offset = sizeof(u32);
 		break;
 	default:
-		die("Unknown data_link type %d\n", data_link);
+		die("Unknown data_link type %d\n", psock->data_link);
 		break;
 	}
 }
@@ -248,13 +245,15 @@ int packet_socket_writev(struct packet_socket *psock,
 }
 
 int packet_socket_receive(struct packet_socket *psock,
-			  enum direction_t direction,
+			  enum direction_t direction, u16 *ether_type,
 			  struct packet *packet, int *in_bytes)
 {
 	int status = 0;
 	struct pcap_pkthdr *pkt_header = NULL;
 	const u8 *pkt_data = NULL;
 	pcap_t *pcap;
+	struct ether_header *ether;
+	u32 address_family;
 
 	DEBUGP("calling pcap_next_ex() for direction %s\n",
 	       direction == DIRECTION_INBOUND ? "inbound" : "outbound");
@@ -320,9 +319,37 @@ int packet_socket_receive(struct packet_socket *psock,
 	assert(pkt_header->len <= packet->buffer_bytes);
 
 	assert(pkt_header->len > psock->pcap_offset);
+	switch (psock->data_link) {
+	case DLT_EN10MB:
+		ether = (struct ether_header *)pkt_data;
+		*ether_type = ntohs(ether->ether_type);
+		break;
+	case DLT_LOOP:
+	case DLT_NULL:
+#if defined(__OpenBSD__)
+		address_family = ntohl(*(u32 *)pkt_data);
+#else
+		address_family = *(u32 *)pkt_data;
+#endif
+		switch (address_family) {
+		case AF_INET:
+			*ether_type = ETHERTYPE_IP;
+			break;
+		case AF_INET6:
+			*ether_type = ETHERTYPE_IPV6;
+			break;
+		default:
+			DEBUGP("Unknown address family %d.\n", address_family);
+			return STATUS_ERR;
+		}
+		break;
+	default:
+		assert(!"not reached");
+		break;
+	}
+	DEBUGP("ether_type is 0x%04x\n", *ether_type);
 	*in_bytes = pkt_header->len - psock->pcap_offset;
 	memcpy(packet->buffer, pkt_data + psock->pcap_offset, *in_bytes);
-
 	return STATUS_OK;
 }
 

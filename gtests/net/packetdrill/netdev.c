@@ -399,20 +399,20 @@ static int local_netdev_receive(struct netdev *a_netdev,
 
 	DEBUGP("local_netdev_receive\n");
 
-	status = netdev_receive_loop(netdev->psock, PACKET_LAYER_3_IP,
-				     DIRECTION_OUTBOUND, packet, &num_packets,
-				     error);
+	status = netdev_receive_loop(netdev->psock, DIRECTION_OUTBOUND, packet,
+				     &num_packets, error);
 	local_netdev_read_queue(netdev, num_packets);
 	return status;
 }
 
 int netdev_receive_loop(struct packet_socket *psock,
-			enum packet_layer_t layer,
 			enum direction_t direction,
 			struct packet **packet,
 			int *num_packets,
 			char **error)
 {
+	u16 ether_type;
+
 	assert(*packet == NULL);	/* should be no packet yet */
 
 	*num_packets = 0;
@@ -423,11 +423,12 @@ int netdev_receive_loop(struct packet_socket *psock,
 		*packet = packet_new(PACKET_READ_BYTES);
 
 		/* Sniff the next outbound packet from the kernel under test. */
-		if (packet_socket_receive(psock, direction, *packet, &in_bytes))
+		if (packet_socket_receive(psock, direction, &ether_type,
+					  *packet, &in_bytes))
 			continue;
 
 		++*num_packets;
-		result = parse_packet(*packet, in_bytes, layer, error);
+		result = parse_packet(*packet, in_bytes, ether_type, error);
 
 		if (result == PACKET_OK)
 			return STATUS_OK;

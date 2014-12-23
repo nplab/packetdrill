@@ -32,11 +32,8 @@
  */
 static u64 ip_checksum_partial(const void *p, size_t len, u64 sum)
 {
-	/* Main loop: 32 bits at a time.
-	 * We take advantage of intel's ability to do unaligned memory
-	 * accesses with minimal additional cost. Other architectures
-	 * probably want to be more careful here.
-	 */
+	assert(((uintptr_t)p & 0x03) == 0);
+	/* Main loop: 32 bits at a time. */
 	const u32 *p32 = (const u32 *)(p);
 	for (; len >= sizeof(*p32); len -= sizeof(*p32))
 		sum += *p32++;

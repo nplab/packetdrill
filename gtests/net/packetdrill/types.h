@@ -49,6 +49,9 @@
 #ifndef __packed
 #define __packed __attribute__ ((packed))
 #endif
+#ifndef __aligned
+#define __aligned(x) __attribute__ ((aligned(x)))
+#endif
 
 /* We use kernel-style names for standard integer types. */
 typedef unsigned char u8;

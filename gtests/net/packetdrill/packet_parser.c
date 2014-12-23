@@ -57,29 +57,6 @@ static int parse_layer4(struct packet *packet, u8 *header_start,
 			int layer4_protocol, int layer4_bytes,
 			u8 *packet_end, bool *is_inner, char **error);
 
-static int parse_layer2_packet(struct packet *packet,
-			       u8 *header_start, u8 *packet_end,
-			       char **error)
-{
-	u8 *p = header_start;
-	struct ether_header *ether = NULL;
-
-	/* Find Ethernet header */
-	if (p + sizeof(*ether) > packet_end) {
-		asprintf(error, "Ethernet header overflows packet");
-		goto error_out;
-	}
-	ether = (struct ether_header *)p;
-	p += sizeof(*ether);
-	packet->l2_header_bytes = sizeof(*ether);
-
-	return parse_layer3_packet_by_proto(packet, ntohs(ether->ether_type),
-					    p, packet_end, error);
-
-error_out:
-	return PACKET_BAD;
-}
-
 static int parse_layer3_packet_by_proto(struct packet *packet,
 					u16 proto, u8 *header_start,
 					u8 *packet_end, char **error)
@@ -163,7 +140,7 @@ static int parse_layer3_packet(struct packet *packet,
 }
 
 int parse_packet(struct packet *packet, int in_bytes,
-			 enum packet_layer_t layer, char **error)
+		 u16 ether_type, char **error)
 {
 	assert(in_bytes <= packet->buffer_bytes);
 	char *message = NULL;		/* human-readable error summary */
@@ -173,14 +150,8 @@ int parse_packet(struct packet *packet, int in_bytes,
 	/* packet_end points to the byte beyond the end of packet. */
 	u8 *packet_end = packet->buffer + in_bytes;
 
-	if (layer == PACKET_LAYER_2_ETHERNET)
-		result = parse_layer2_packet(packet, header_start, packet_end,
-					     error);
-	else if (layer == PACKET_LAYER_3_IP)
-		result = parse_layer3_packet(packet, header_start, packet_end,
-					     error);
-	else
-		assert(!"bad layer");
+	result = parse_layer3_packet_by_proto(packet, ether_type,
+					      header_start, packet_end, error);
 
 	if (result != PACKET_BAD)
 		return result;
