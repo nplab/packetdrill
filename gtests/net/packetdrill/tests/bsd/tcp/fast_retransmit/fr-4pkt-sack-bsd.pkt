@@ -35,4 +35,4 @@
 +0  > . 1001:2001(1000) ack 1
 
 // Receiver ACKs all data.
-+.1 < . 1:1(0) ack 6001 win 257
++.1 < . 1:1(0) ack 5001 win 257
