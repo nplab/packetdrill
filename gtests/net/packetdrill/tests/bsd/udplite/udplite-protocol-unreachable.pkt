@@ -1,0 +1,14 @@
+// Test handling of incoming ICMP packets.
+
+// Connect the socket.
+ 0.000 socket(..., SOCK_DGRAM, IPPROTO_UDPLITE) = 3
++0.000 bind(3, ..., ...) = 0
++0.000 connect(3, ..., ...) = 0
+// Trigger the ICMP message.
++0.050 write(3, ..., 1000) = 1000 
++0.000 > udplite(1000, 0)
++0.100 < [udplite(1000, 0)] icmp unreachable protocol_unreachable
+// Check if applications get notified.
++0.050 write(3, ..., 1000) = -1 ECONNREFUSED (Connection refused) 
+// Termination of the test.
++0.000 close(3) = 0

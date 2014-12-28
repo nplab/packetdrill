@@ -1,0 +1,53 @@
+ 0.000 socket(..., SOCK_DGRAM, IPPROTO_UDPLITE) = 3
++0.000 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.000 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+//
++0.100 sendto(3, ..., 1000, 0, ..., ...) = 1000
++0.000 > udplite(1000, 0)
+//
++0.000 getsockopt(3, IPPROTO_UDPLITE, UDPLITE_RECV_CSCOV, [0], [4]) = 0
++0.000 < udplite(1280, 0)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 1280
++0.000 < udplite(1280, 1288)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 1280
++0.000 < udplite(1280, 8)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 setsockopt(3, IPPROTO_UDPLITE, UDPLITE_RECV_CSCOV, [8], 4) = 0
++0.000 getsockopt(3, IPPROTO_UDPLITE, UDPLITE_RECV_CSCOV, [8], [4]) = 0
++0.000 < udplite(1280, 8)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 1280
+//
++0.000 setsockopt(3, IPPROTO_UDPLITE, UDPLITE_RECV_CSCOV, [10], 4) = 0
++0.000 < udplite(1280, 0)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 1280
++0.000 < udplite(1280, 1)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 2)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 3)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 4)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 5)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 6)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 7)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 8)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 9) 
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.000 < udplite(1280, 10)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 1280
++0.000 < udplite(0, 0)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 0
++0.000 < udplite(0, 8)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 0
++0.000 < udplite(1, 0)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 1
++0.000 < udplite(1, 9)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = 1
++0.000 < udplite(1, 10)
++0.100 recvfrom(3, ..., 1280, 0, ..., ...) = -1 EWOULDBLOCK (Operation would block)
++0.100 close(3) = 0
