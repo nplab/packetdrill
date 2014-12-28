@@ -114,7 +114,7 @@ static void test_tcp_ipv4_packet_to_string(void)
 
 static void test_tcp_ipv6_packet_to_string(void)
 {
-	/* An IPv6/GRE/TCP/IPv6 packet. */
+	/* An IPv6/GRE/IPv6/TCP packet. */
 	u8 data[] = {
 		/* IPv6: */
 		0x60, 0x00, 0x00, 0x00, 0x00, 0x4c, 0x2f, 0xff,
@@ -246,10 +246,166 @@ static void test_gre_mpls_tcp_ipv4_packet_to_string(void)
 	free(dump);
 }
 
+static void test_udplite_ipv4_packet_to_string(void)
+{
+	/* An IPv4/GRE/IPv4/UDPLite packet. */
+	u8 data[] = {
+		/* IPv4: */
+		0x45, 0x00, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x2f, 0xb5, 0x92, 0x02, 0x02, 0x02, 0x02,
+		0x01, 0x01, 0x01, 0x01,
+		/* GRE: */
+		0x00, 0x00, 0x08, 0x00,
+		/* IPv4, UDPLite: */
+		0x45, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x88, 0xf8, 0xab, 0x01, 0x01, 0x01, 0x01,
+		0xc0, 0xa8, 0x00, 0x01, 0x04, 0xd2, 0xeb, 0x35,
+		0x00, 0x09, 0x86, 0xaf, 0xc6, 0x45, 0x46
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+				     &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	int status = 0;
+	char *dump = NULL, *expected = NULL;
+
+	/* Test a DUMP_SHORT dump */
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"ipv4 2.2.2.2 > 1.1.1.1: gre: "
+		"udplite (3, 9)";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_FULL dump */
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"ipv4 2.2.2.2 > 1.1.1.1: gre: "
+		"1.1.1.1:1234 > 192.168.0.1:60213 "
+		"udplite (3, 9)";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_VERBOSE dump */
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"ipv4 2.2.2.2 > 1.1.1.1: gre: "
+		"1.1.1.1:1234 > 192.168.0.1:60213 "
+		"udplite (3, 9)"
+		"\n"
+		"0x0000: 45 00 00 37 00 00 00 00 ff 2f b5 92 02 02 02 02 " "\n"
+		"0x0010: 01 01 01 01 00 00 08 00 45 00 00 1f 00 00 00 00 " "\n"
+		"0x0020: ff 88 f8 ab 01 01 01 01 c0 a8 00 01 04 d2 eb 35 " "\n"
+		"0x0030: 00 09 86 af c6 45 46 " "\n";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	packet_free(packet);
+}
+
+static void test_udplite_ipv6_packet_to_string(void)
+{
+	/* An IPv6/GRE/IPv6/UDPLite packet. */
+	u8 data[] = {
+		/* IPv6: */
+		0x60, 0x00, 0x00, 0x00, 0x00, 0x37, 0x2f, 0xff,
+		0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0x22,
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11,
+		/* GRE: */
+		0x00, 0x00, 0x86, 0xdd,
+		/* IPv6, UDPLite: */
+		0x60, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x88, 0xff,
+		0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0xfd, 0x3d, 0xfa, 0x7b, 0xd1, 0x7d, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0xd3, 0xe2, 0x1f, 0x90, 0x00, 0x09, 0x4e, 0xfd,
+		0xc6, 0x45, 0x46
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+				     &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	int status = 0;
+	char *dump = NULL, *expected = NULL;
+
+	/* Test a DUMP_SHORT dump */
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"ipv6 2::2222 > 1::1111: gre: "
+		"udplite (3, 9)";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_FULL dump */
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"ipv6 2::2222 > 1::1111: gre: "
+		"2001:db8::1:54242 > fd3d:fa7b:d17d::1:8080 "
+		"udplite (3, 9)";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_VERBOSE dump */
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"ipv6 2::2222 > 1::1111: gre: "
+		"2001:db8::1:54242 > fd3d:fa7b:d17d::1:8080 "
+		"udplite (3, 9)\n"
+		"0x0000: 60 00 00 00 00 37 2f ff 00 02 00 00 00 00 00 00 " "\n"
+		"0x0010: 00 00 00 00 00 00 22 22 00 01 00 00 00 00 00 00 " "\n"
+		"0x0020: 00 00 00 00 00 00 11 11 00 00 86 dd 60 00 00 00 " "\n"
+		"0x0030: 00 0b 88 ff 20 01 0d b8 00 00 00 00 00 00 00 00 " "\n"
+		"0x0040: 00 00 00 01 fd 3d fa 7b d1 7d 00 00 00 00 00 00 " "\n"
+		"0x0050: 00 00 00 01 d3 e2 1f 90 00 09 4e fd c6 45 46 " "\n";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	packet_free(packet);
+}
+
 int main(void)
 {
 	test_tcp_ipv4_packet_to_string();
 	test_tcp_ipv6_packet_to_string();
 	test_gre_mpls_tcp_ipv4_packet_to_string();
+	test_udplite_ipv4_packet_to_string();
+	test_udplite_ipv6_packet_to_string();
 	return 0;
 }

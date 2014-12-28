@@ -109,6 +109,7 @@ struct int_symbol cross_platform_symbols[] = {
 #endif
 	{ IPPROTO_TCP,                      "IPPROTO_TCP"                     },
 	{ IPPROTO_UDP,                      "IPPROTO_UDP"                     },
+	{ IPPROTO_UDPLITE,                  "IPPROTO_UDPLITE"                 },
 
 	{ SHUT_RD,                          "SHUT_RD"                         },
 	{ SHUT_WR,                          "SHUT_WR"                         },

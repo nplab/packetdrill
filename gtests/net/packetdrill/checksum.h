@@ -39,12 +39,23 @@ extern __be16 ipv4_checksum(void *ip_header, size_t ip_header_bytes);
 extern __be16 tcp_udp_v4_checksum(struct in_addr src_ip, struct in_addr dst_ip,
 				  u8 protocol, const void *payload, u16 len);
 
+/* Calculates UDPLite checksum for IPv4 (in network byte order). */
+extern __be16 udplite_v4_checksum(struct in_addr src_ip, struct in_addr dst_ip,
+				  u8 protocol, const void *payload,
+				  u16 len, u16 cov);
+
 /* IPv6 ... */
 
 /* Calculates TCP, UDP, or ICMP checksum for IPv6 (in network byte order). */
 extern __be16 tcp_udp_v6_checksum(const struct in6_addr *src_ip,
 				  const struct in6_addr *dst_ip,
 				  u8 protocol, const void *payload, u32 len);
+
+/* Calculates UDPLite checksum for IPv6 (in network byte order). */
+extern __be16 udplite_v6_checksum(const struct in6_addr *src_ip,
+				  const struct in6_addr *dst_ip,
+				  u8 protocol, const void *payload,
+				  u32 len, u16 cov);
 
 /* SCTP ... */
 

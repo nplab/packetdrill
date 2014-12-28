@@ -280,8 +280,9 @@ struct packet *new_icmp_packet(int address_family,
 				const char *type_string,
 				const char *code_string,
 				int protocol,
+				u16 payload_bytes,
 				u32 tcp_start_sequence,
-				u32 payload_bytes,
+				u16 udplite_checksum_coverage,
 				s64 mtu,
 				char **error)
 {
@@ -354,6 +355,17 @@ struct packet *new_icmp_packet(int address_family,
 	if (protocol == IPPROTO_TCP) {
 		u32 *seq = packet_echoed_tcp_seq(packet);
 		*seq = htonl(tcp_start_sequence);
+	}
+	if (protocol == IPPROTO_UDP) {
+		u16 *cov = packet_echoed_udp_len(packet);
+		*cov = htons(payload_bytes + sizeof(struct udp));
+	}
+	if (protocol == IPPROTO_UDPLITE) {
+		u16 *cov = packet_echoed_udplite_cov(packet);
+		u16 *checksum = packet_echoed_udplite_checksum(packet);
+		*cov = htons(udplite_checksum_coverage);
+		/* Zero checksum is not allowed, so choose some valid value */
+		*checksum = htons(0xffff);
 	}
 
 	packet->ip_bytes = ip_bytes;

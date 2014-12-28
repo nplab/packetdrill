@@ -95,6 +95,12 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_INFO,                         "TCP_INFO"                        },
 	{ TCP_CONGESTION,                   "TCP_CONGESTION"                  },
 
+#if __FreeBSD_version >= 1100000
+	/* /usr/include/netinet/udplite.h */
+	{ UDPLITE_RECV_CSCOV,               "UDPLITE_RECV_CSCOV"              },
+	{ UDPLITE_SEND_CSCOV,               "UDPLITE_SEND_CSCOV"              },
+#endif
+
 	/* /usr/include/sys/fcntl.h */
 	{ O_RDONLY,                         "O_RDONLY"                        },
 	{ O_WRONLY,                         "O_WRONLY"                        },

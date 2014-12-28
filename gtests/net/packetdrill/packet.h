@@ -38,6 +38,7 @@
 #include "ipv6.h"
 #include "tcp.h"
 #include "udp.h"
+#include "udplite.h"
 #include "unaligned.h"
 
 /* The data offset field is 4 bits, and specifies the length of the TCP header,
@@ -47,6 +48,7 @@
 
 #define MAX_TCP_DATAGRAM_BYTES (64*1024)	/* for sanity-checking */
 #define MAX_UDP_DATAGRAM_BYTES (64*1024)	/* for sanity-checking */
+#define MAX_UDPLITE_DATAGRAM_BYTES (64*1024)	/* for sanity-checking */
 
 /* We allow reading pretty big packets, since some interface MTUs can
  * be pretty big (the Linux loopback MTU, for example, is typically
@@ -92,6 +94,7 @@ struct packet {
 	/* Layer 4 */
 	struct tcp *tcp;	/* start of TCP header, if present */
 	struct udp *udp;	/* start of UDP header, if present */
+	struct udplite *udplite;/* start of UDPLite header, if present */
 	struct icmpv4 *icmpv4;	/* start of ICMPv4 header, if present */
 	struct icmpv6 *icmpv6;	/* start of ICMPv6 header, if present */
 
@@ -221,6 +224,8 @@ static inline int layer4_header_len(int protocol)
 		return sizeof(struct tcp);
 	if (protocol == IPPROTO_UDP)
 		return sizeof(struct udp);
+	if (protocol == IPPROTO_UDPLITE)
+		return sizeof(struct udplite);
 	assert(!"bad protocol");
 	return 0;
 }
@@ -237,6 +242,13 @@ static inline int packet_udp_header_len(const struct packet *packet)
 {
 	assert(packet->udp);
 	return sizeof(struct udp);
+}
+
+/* Return the length of the UDPLite header. */
+static inline int packet_udplite_header_len(const struct packet *packet)
+{
+	assert(packet->udplite);
+	return sizeof(struct udplite);
 }
 
 /* Return the length of the TCP options. */
@@ -280,7 +292,10 @@ static inline u8 *packet_payload(struct packet *packet)
 		return ((u8 *) packet->tcp) + packet_tcp_header_len(packet);
 	if (packet->udp)
 		return ((u8 *) packet->udp) + packet_udp_header_len(packet);
-	assert(!"no valid payload; not TCP or UDP!?");
+	if (packet->udplite)
+		return ((u8 *) packet->udplite) +
+		       packet_udplite_header_len(packet);
+	assert(!"no valid payload; not TCP or UDP or UDPLite!?");
 	return NULL;
 }
 
@@ -369,6 +384,15 @@ static inline struct udp *packet_echoed_udp_header(struct packet *packet)
 	return NULL;
 }
 
+/* Return the location of the UDPLITE header echoed by an ICMP message. */
+static inline struct
+udplite *packet_echoed_udplite_header(struct packet *packet)
+{
+	if (packet_echoed_ip_protocol(packet) == IPPROTO_UDPLITE)
+		return (struct udplite *)(packet_echoed_layer4_header(packet));
+	return NULL;
+}
+
 /* Return the location of the TCP sequence number echoed by an ICMP message. */
 static inline u32 *packet_echoed_tcp_seq(struct packet *packet)
 {
@@ -380,6 +404,50 @@ static inline u32 *packet_echoed_tcp_seq(struct packet *packet)
 	 */
 	assert((char *) (seq + 1) <= (char *) echoed_tcp + ICMP_ECHO_BYTES);
 	return seq;
+}
+
+/* Return the location of the UDP length echoed by an ICMP message. */
+static inline u16 *packet_echoed_udp_len(struct packet *packet)
+{
+	struct udp *echoed_udp = packet_echoed_udp_header(packet);
+
+	assert(echoed_udp);
+	u16 *len = &(echoed_udp->len);
+	/* Check that the len field is actually in the space we
+	 * reserved for the echoed prefix of the UDP header.
+	 */
+	assert((char *) (len + 1) <= (char *) echoed_udp + ICMP_ECHO_BYTES);
+	return len;
+}
+
+/* Return the location of the UDPLite checksum coverage echoed by an ICMP
+   message. */
+static inline u16 *packet_echoed_udplite_cov(struct packet *packet)
+{
+	struct udplite *echoed_udplite = packet_echoed_udplite_header(packet);
+
+	assert(echoed_udplite);
+	u16 *cov = &(echoed_udplite->cov);
+	/* Check that the len field is actually in the space we
+	 * reserved for the echoed prefix of the UDPlite header.
+	 */
+	assert((char *) (cov + 1) <= (char *) echoed_udplite + ICMP_ECHO_BYTES);
+	return cov;
+}
+
+/* Return the location of the UDPLite checksum echoed by an ICMP message. */
+static inline u16 *packet_echoed_udplite_checksum(struct packet *packet)
+{
+	struct udplite *echoed_udplite = packet_echoed_udplite_header(packet);
+
+	assert(echoed_udplite);
+	u16 *checksum = &(echoed_udplite->check);
+	/* Check that the len field is actually in the space we
+	 * reserved for the echoed prefix of the UDPlite header.
+	 */
+	assert((char *) (checksum + 1) <=
+	       (char *) echoed_udplite + ICMP_ECHO_BYTES);
+	return checksum;
 }
 
 #endif /* __PACKET_H__ */

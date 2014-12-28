@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:	Packetdrill
 " Maintainer:	Barath Raghavan <barath@google.com>
-" Last Change:	2013 Jul 27
+" Last Change:	2014 Sep 22
 
 " Quit when a (custom) syntax file was already loaded
 if exists("b:current_syntax")

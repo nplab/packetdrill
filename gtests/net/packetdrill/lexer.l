@@ -175,6 +175,7 @@ ipv4			return IPV4;
 ipv6			return IPV6;
 icmp			return ICMP;
 udp			return UDP;
+udplite			return UDPLITE;
 gre			return GRE;
 mpls			return MPLS;
 label			return LABEL;

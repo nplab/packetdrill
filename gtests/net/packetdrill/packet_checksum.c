@@ -57,12 +57,25 @@ static void checksum_ipv4_packet(struct packet *packet)
 		udp->check = tcp_udp_v4_checksum(ipv4->src_ip,
 						 ipv4->dst_ip,
 						 IPPROTO_UDP, udp, l4_bytes);
+	} else if (packet->udplite != NULL) {
+		struct udplite *udplite = packet->udplite;
+		u16 coverage;
+
+		coverage = ntohs(udplite->cov);
+		if ((coverage == 0) || (coverage > l4_bytes))
+			coverage = l4_bytes;
+		udplite->check = 0;
+		udplite->check = udplite_v4_checksum(ipv4->src_ip,
+						     ipv4->dst_ip,
+						     IPPROTO_UDPLITE,
+						     udplite,
+						     l4_bytes, coverage);
 	} else if (packet->icmpv4 != NULL) {
 		struct icmpv4 *icmpv4 = packet->icmpv4;
 		icmpv4->checksum = 0;
 		icmpv4->checksum = ipv4_checksum(icmpv4, l4_bytes);
 	} else {
-		assert(!"not TCP or ICMP");
+		assert(!"not TCP or UDP or UDPLite or ICMP");
 	}
 }
 
@@ -91,6 +104,19 @@ static void checksum_ipv6_packet(struct packet *packet)
 		udp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
 						 &ipv6->dst_ip,
 						 IPPROTO_UDP, udp, l4_bytes);
+	} else if (packet->udplite != NULL) {
+		struct udplite *udplite = packet->udplite;
+		u16 coverage;
+
+		coverage = ntohs(udplite->cov);
+		if ((coverage == 0) || (coverage > l4_bytes))
+			coverage = l4_bytes;
+		udplite->check = 0;
+		udplite->check = udplite_v6_checksum(&ipv6->src_ip,
+						     &ipv6->dst_ip,
+						     IPPROTO_UDPLITE,
+						     udplite,
+						     l4_bytes, coverage);
 	} else if (packet->icmpv6 != NULL) {
 		/* IPv6 ICMP has a pseudo-header checksum, like TCP. */
 		struct icmpv6 *icmpv6 = packet->icmpv6;
@@ -100,7 +126,7 @@ static void checksum_ipv6_packet(struct packet *packet)
 					    &ipv6->dst_ip,
 					    IPPROTO_ICMPV6, icmpv6, l4_bytes);
 	} else {
-		assert(!"not TCP or ICMP");
+		assert(!"not TCP or UDP or UDPLite or ICMP");
 	}
 }
 

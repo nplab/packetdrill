@@ -36,15 +36,16 @@
 
 /* Info for all types of header we support. */
 struct header_type_info header_types[HEADER_NUM_TYPES] = {
-	{ "NONE",   0,			0,		NULL },
-	{ "IPV4",   IPPROTO_IPIP,	ETHERTYPE_IP,	ipv4_header_finish },
-	{ "IPV6",   IPPROTO_IPV6,	ETHERTYPE_IPV6, ipv6_header_finish },
-	{ "GRE",    IPPROTO_GRE,	0,		gre_header_finish },
-	{ "MPLS",   0,			ETHERTYPE_MPLS_UC, mpls_header_finish },
-	{ "TCP",    IPPROTO_TCP,	0,		NULL },
-	{ "UDP",    IPPROTO_UDP,	0,		NULL },
-	{ "ICMPV4", IPPROTO_ICMP,	0,		NULL },
-	{ "ICMPV6", IPPROTO_ICMPV6,	0,		NULL },
+	{ "NONE",    0,			0,		NULL },
+	{ "IPV4",    IPPROTO_IPIP,	ETHERTYPE_IP,	ipv4_header_finish },
+	{ "IPV6",    IPPROTO_IPV6,	ETHERTYPE_IPV6, ipv6_header_finish },
+	{ "GRE",     IPPROTO_GRE,	0,		gre_header_finish },
+	{ "MPLS",    0,			ETHERTYPE_MPLS_UC, mpls_header_finish },
+	{ "TCP",     IPPROTO_TCP,	0,		NULL },
+	{ "UDP",     IPPROTO_UDP,	0,		NULL },
+	{ "UDPLITE", IPPROTO_UDPLITE,	0,		NULL },
+	{ "ICMPV4",  IPPROTO_ICMP,	0,		NULL },
+	{ "ICMPV6",  IPPROTO_ICMPV6,	0,		NULL },
 };
 
 struct packet *packet_new(u32 buffer_bytes)
@@ -159,6 +160,7 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	packet->ipv6	= offset_ptr(old_base, new_base, old_packet->ipv6);
 	packet->tcp	= offset_ptr(old_base, new_base, old_packet->tcp);
 	packet->udp	= offset_ptr(old_base, new_base, old_packet->udp);
+	packet->udplite	= offset_ptr(old_base, new_base, old_packet->udplite);
 	packet->icmpv4	= offset_ptr(old_base, new_base, old_packet->icmpv4);
 	packet->icmpv6	= offset_ptr(old_base, new_base, old_packet->icmpv6);
 

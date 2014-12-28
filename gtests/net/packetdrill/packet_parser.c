@@ -413,6 +413,46 @@ error_out:
 	return PACKET_BAD;
 }
 
+/* Parse the UDPLite header. Return a packet_parse_result_t. */
+static int parse_udplite(struct packet *packet, u8 *layer4_start,
+			 int layer4_bytes, u8 *packet_end, char **error)
+{
+	struct header *udplite_header = NULL;
+	u8 *p = layer4_start;
+
+	assert(layer4_bytes >= 0);
+	if (layer4_bytes < sizeof(struct udplite)) {
+		asprintf(error, "Truncated UDPLite header");
+		goto error_out;
+	}
+	packet->udplite = (struct udplite *) p;
+	const int udplite_header_len = sizeof(struct udplite);
+
+	if (layer4_bytes < udplite_header_len) {
+		asprintf(error,
+			 "UDPLITE datagram length too small for UDPLite header");
+		goto error_out;
+	}
+
+	udplite_header = packet_append_header(packet, HEADER_UDPLITE,
+					      udplite_header_len);
+	if (udplite_header == NULL) {
+		asprintf(error, "Too many nested headers at UDPLite header");
+		goto error_out;
+	}
+	udplite_header->total_bytes = layer4_bytes;
+
+	p += layer4_bytes;
+	assert(p <= packet_end);
+
+	DEBUGP("UDPLite src port: %d\n", ntohs(packet->udplite->src_port));
+	DEBUGP("UDPLite dst port: %d\n", ntohs(packet->udplite->dst_port));
+	return PACKET_OK;
+
+error_out:
+	return PACKET_BAD;
+}
+
 /* Parse the ICMPv4 header. Return a packet_parse_result_t. */
 static int parse_icmpv4(struct packet *packet, u8 *layer4_start,
 			int layer4_bytes, u8 *packet_end, char **error)
@@ -594,6 +634,10 @@ static int parse_layer4(struct packet *packet, u8 *layer4_start,
 		*is_inner = true;	/* found inner-most layer 4 */
 		return parse_udp(packet, layer4_start, layer4_bytes, packet_end,
 				 error);
+	} else if (layer4_protocol == IPPROTO_UDPLITE) {
+		*is_inner = true;	/* found inner-most layer 4 */
+		return parse_udplite(packet, layer4_start, layer4_bytes,
+				     packet_end, error);
 	} else if (layer4_protocol == IPPROTO_ICMP) {
 		*is_inner = true;	/* found inner-most layer 4 */
 		return parse_icmpv4(packet, layer4_start, layer4_bytes,

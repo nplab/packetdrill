@@ -194,6 +194,25 @@ static int udp_packet_to_string(FILE *s, struct packet *packet,
 	return result;
 }
 
+static int udplite_packet_to_string(FILE *s, struct packet *packet,
+				    enum dump_format_t format, char **error)
+{
+	int result = STATUS_OK;       /* return value */
+
+	if ((format == DUMP_FULL) || (format == DUMP_VERBOSE)) {
+		endpoints_to_string(s, packet);
+		fputc(' ', s);
+	}
+
+	fprintf(s, "udplite (%u, %u)",
+		packet_payload_len(packet), ntohs(packet->udplite->cov));
+
+	if (format == DUMP_VERBOSE)
+		packet_buffer_to_string(s, packet);
+
+	return result;
+}
+
 static int icmpv4_packet_to_string(FILE *s, struct packet *packet,
 				   enum dump_format_t format, char **error)
 {
@@ -261,6 +280,9 @@ int packet_to_string(struct packet *packet,
 		} else if (packet->udp != NULL) {
 			if (udp_packet_to_string(s, packet, format, error))
 				goto out;
+		} else if (packet->udplite != NULL) {
+			if (udplite_packet_to_string(s, packet, format, error))
+				goto out;
 		} else if (packet->icmpv4 != NULL) {
 			if (icmpv4_packet_to_string(s, packet, format, error))
 				goto out;
@@ -268,7 +290,7 @@ int packet_to_string(struct packet *packet,
 			if (icmpv6_packet_to_string(s, packet, format, error))
 				goto out;
 		} else {
-			fprintf(s, "[NO TCP OR ICMP HEADER]");
+			fprintf(s, "[No TCP or UDP or UDPLite or ICMP header]");
 		}
 	}
 

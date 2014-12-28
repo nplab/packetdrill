@@ -53,6 +53,11 @@
 #define __aligned(x) __attribute__ ((aligned(x)))
 #endif
 
+/* Make sure we have the following constant on all platforms */
+#ifndef IPPROTO_UDPLITE
+#define IPPROTO_UDPLITE 136
+#endif
+
 /* We use kernel-style names for standard integer types. */
 typedef unsigned char u8;
 typedef unsigned short u16;

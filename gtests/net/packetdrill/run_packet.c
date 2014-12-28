@@ -331,11 +331,15 @@ static struct socket *find_connect_for_live_packet(
 		(packet->udp &&
 		 (socket->protocol == IPPROTO_UDP) &&
 		 (socket->state == SOCKET_ACTIVE_CONNECTING));
+	bool is_udplite_match =
+		(packet->udplite &&
+		 (socket->protocol == IPPROTO_UDPLITE) &&
+		 (socket->state == SOCKET_ACTIVE_CONNECTING));
 	bool is_tcp_match =
 		(packet->tcp && packet->tcp->syn && !packet->tcp->ack &&
 		 (socket->protocol == IPPROTO_TCP) &&
 		 (socket->state == SOCKET_ACTIVE_SYN_SENT));
-	if (!is_udp_match && !is_tcp_match)
+	if (!is_udp_match && !is_tcp_match && !is_udplite_match)
 		return NULL;
 
 	if (!is_equal_ip(&tuple.dst.ip, &socket->live.remote.ip) ||
@@ -456,6 +460,13 @@ static int map_inbound_icmp_udp_packet(
 	return STATUS_OK;
 }
 
+/* UDPLite headers echoed by ICMP messages need no special rewriting. */
+static int map_inbound_icmp_udplite_packet(
+	struct socket *socket, struct packet *live_packet, char **error)
+{
+	return STATUS_OK;
+}
+
 static int map_inbound_icmp_packet(
 	struct socket *socket, struct packet *live_packet, char **error)
 {
@@ -463,6 +474,9 @@ static int map_inbound_icmp_packet(
 		return map_inbound_icmp_tcp_packet(socket, live_packet, error);
 	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_UDP)
 		return map_inbound_icmp_udp_packet(socket, live_packet, error);
+	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_UDPLITE)
+		return map_inbound_icmp_udplite_packet(socket, live_packet,
+						       error);
 	else
 		assert(!"unsupported layer 4 protocol echoed in ICMP packet");
 	return STATUS_ERR;
@@ -827,6 +841,24 @@ static int verify_udp(
 	return STATUS_OK;
 }
 
+/* Verify that required actual UDPLite header fields are as the script
+   expected. */
+static int verify_udplite(
+	const struct packet *actual_packet,
+	const struct packet *script_packet,
+	int layer, char **error)
+{
+	const struct udplite *actual_udplite =
+	    actual_packet->headers[layer].h.udplite;
+	const struct udplite *script_udplite =
+	    script_packet->headers[layer].h.udplite;
+	if (check_field("udplite_cov",
+			ntohs(script_udplite->cov),
+			ntohs(actual_udplite->cov), error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
 /* Verify that required actual GRE header fields are as the script expected. */
 static int verify_gre(
 	const struct packet *actual_packet,
@@ -886,12 +918,13 @@ static int verify_header(
 	int layer, char **error)
 {
 	verifier_func verifiers[HEADER_NUM_TYPES] = {
-		[HEADER_IPV4]	= verify_ipv4,
-		[HEADER_IPV6]	= verify_ipv6,
-		[HEADER_GRE]	= verify_gre,
-		[HEADER_MPLS]	= verify_mpls,
-		[HEADER_TCP]	= verify_tcp,
-		[HEADER_UDP]	= verify_udp,
+		[HEADER_IPV4]		= verify_ipv4,
+		[HEADER_IPV6]		= verify_ipv6,
+		[HEADER_GRE]		= verify_gre,
+		[HEADER_MPLS]		= verify_mpls,
+		[HEADER_TCP]		= verify_tcp,
+		[HEADER_UDP]		= verify_udp,
+		[HEADER_UDPLITE]	= verify_udplite,
 	};
 	verifier_func verifier = NULL;
 	const struct header *actual_header = &actual_packet->headers[layer];
@@ -924,7 +957,9 @@ static int verify_outbound_live_headers(
 	int i;
 
 	assert((actual_packet->ipv4 != NULL) || (actual_packet->ipv6 != NULL));
-	assert((actual_packet->tcp != NULL) || (actual_packet->udp != NULL));
+	assert((actual_packet->tcp != NULL) ||
+	       (actual_packet->udp != NULL) ||
+	       (actual_packet->udplite != NULL));
 
 	if (actual_headers != script_headers) {
 		asprintf(error, "live packet header layers: "
@@ -1154,6 +1189,8 @@ static bool is_script_packet_match_for_socket(
 		return packet->tcp || is_packet_icmp;
 	else if (socket->protocol == IPPROTO_UDP)
 		return packet->udp || is_packet_icmp;
+	else if (socket->protocol == IPPROTO_UDPLITE)
+		return packet->udplite || is_packet_icmp;
 	else
 		assert(!"unsupported layer 4 protocol in socket");
 	return false;
@@ -1260,8 +1297,9 @@ static int send_live_ip_packet(struct netdev *netdev,
 	assert(packet->ip_bytes > 0);
 	/* We do IPv4 and IPv6 */
 	assert(packet->ipv4 || packet->ipv6);
-	/* We only do TCP, UDP, and ICMP */
-	assert(packet->tcp || packet->udp || packet->icmpv4 || packet->icmpv6);
+	/* We only do TCP, UDP, UDPLite and ICMP */
+	assert(packet->tcp || packet->udp || packet->udplite ||
+	       packet->icmpv4 || packet->icmpv6);
 
 	/* Fill in layer 3 and layer 4 checksums */
 	checksum_packet(packet);

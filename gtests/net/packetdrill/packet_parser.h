@@ -30,7 +30,7 @@
 enum packet_parse_result_t {
 	PACKET_OK,		/* no errors detected */
 	PACKET_BAD,		/* illegal header */
-	PACKET_UNKNOWN_L4,	/* not TCP or UDP */
+	PACKET_UNKNOWN_L4,	/* not TCP or UDP or UDPLite */
 };
 
 /* Given an input packet of length 'in_bytes' stored in the buffer

@@ -99,6 +99,14 @@ __be16 tcp_udp_v4_checksum(struct in_addr src_ip, struct in_addr dst_ip,
 	sum = ip_checksum_partial(payload, len, sum);
 	return ip_checksum_fold(sum);
 }
+__be16 udplite_v4_checksum(struct in_addr src_ip, struct in_addr dst_ip,
+			   u8 protocol, const void *payload, u16 len, u16 cov)
+{
+	u64 sum = tcp_udp_v4_header_checksum_partial(
+		src_ip, dst_ip, protocol, len);
+	sum = ip_checksum_partial(payload, cov, sum);
+	return ip_checksum_fold(sum);
+}
 
 /* Calculates and returns IPv4 header checksum. */
 __be16 ipv4_checksum(void *ip_header, size_t ip_header_bytes)
@@ -145,6 +153,16 @@ __be16 tcp_udp_v6_checksum(const struct in6_addr *src_ip,
 	u64 sum = tcp_udp_v6_header_checksum_partial(
 		src_ip, dst_ip, protocol, len);
 	sum = ip_checksum_partial(payload, len, sum);
+	return ip_checksum_fold(sum);
+}
+
+__be16 udplite_v6_checksum(const struct in6_addr *src_ip,
+			   const struct in6_addr *dst_ip,
+			   u8 protocol, const void *payload, u32 len, u16 cov)
+{
+	u64 sum = tcp_udp_v6_header_checksum_partial(
+		src_ip, dst_ip, protocol, len);
+	sum = ip_checksum_partial(payload, cov, sum);
 	return ip_checksum_fold(sum);
 }
 

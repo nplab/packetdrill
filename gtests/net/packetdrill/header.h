@@ -41,6 +41,7 @@
 #include "mpls.h"
 #include "tcp.h"
 #include "udp.h"
+#include "udplite.h"
 
 struct packet;
 
@@ -53,6 +54,7 @@ enum header_t {
 	HEADER_MPLS,
 	HEADER_TCP,
 	HEADER_UDP,
+	HEADER_UDPLITE,
 	HEADER_ICMPV4,
 	HEADER_ICMPV6,
 	HEADER_NUM_TYPES
@@ -71,6 +73,7 @@ struct header {
 		struct mpls *mpls;
 		struct tcp *tcp;
 		struct udp *udp;
+		struct udplite *udplite;
 		struct icmpv4 *icmpv4;
 		struct icmpv6 *icmpv6;
 	} h;

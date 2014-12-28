@@ -30,6 +30,7 @@
 #include "ipv6.h"
 #include "sctp.h"
 #include "tcp.h"
+#include "udplite.h"
 
 static void test_tcp_udp_v4_checksum(void)
 {
@@ -130,11 +131,70 @@ static void test_sctp_crc32c(void)
 	assert(crc32c == 0xdad73774);
 }
 
+static void test_udplite_v4_checksum(void)
+{
+	u8 data[] = {
+		0x45, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x88, 0xf8, 0xab, 0x01, 0x01, 0x01, 0x01,
+		0xc0, 0xa8, 0x00, 0x01, 0x04, 0xd2, 0xeb, 0x35,
+		0x00, 0x09, 0x86, 0xaf, 0xc6, 0x45, 0x46
+	};
+	struct ipv4 *ip = (struct ipv4 *)data;
+	struct udplite *udplite;
+	int len = sizeof(data) - sizeof(struct ipv4);
+	u16 cov = 9;
+	u16 checksum;
+
+	udplite = (struct udplite *)(data + sizeof(struct ipv4));
+	checksum =
+	    ntohs(udplite_v4_checksum(ip->src_ip, ip->dst_ip,
+				      IPPROTO_UDPLITE, udplite, len, cov));
+	assert(checksum == 0);
+
+	udplite->check = 0;
+	checksum =
+	    ntohs(udplite_v4_checksum(ip->src_ip, ip->dst_ip,
+				      IPPROTO_UDPLITE, udplite, len, cov));
+	assert(checksum == 0x86af);
+}
+
+static void test_udplite_v6_checksum(void)
+{
+	u8 data[] = {
+		0x60, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x88, 0xff,
+		0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0xfd, 0x3d, 0xfa, 0x7b, 0xd1, 0x7d, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0xd3, 0xe2, 0x1f, 0x90, 0x00, 0x09, 0x4e, 0xfd,
+		0xc6, 0x45, 0x46
+	};
+	struct ipv6 *ipv6 = (struct ipv6 *)data;
+	struct udplite *udplite;
+	int len = sizeof(data) - sizeof(struct ipv6);
+	u16 cov = 9;
+	u16 checksum;
+
+	udplite = (struct udplite *)(data + sizeof(struct ipv6));
+	checksum =
+	    ntohs(udplite_v6_checksum(&ipv6->src_ip, &ipv6->dst_ip,
+				      IPPROTO_UDPLITE, udplite, len, cov));
+	assert(checksum == 0);
+
+	udplite->check = 0;
+	checksum =
+	    ntohs(udplite_v6_checksum(&ipv6->src_ip, &ipv6->dst_ip,
+				      IPPROTO_UDPLITE, udplite, len, cov));
+	assert(checksum == 0x4efd);
+}
+
 int main(void)
 {
 	test_tcp_udp_v4_checksum();
 	test_tcp_udp_v6_checksum();
 	test_ipv4_checksum();
 	test_sctp_crc32c();
+	test_udplite_v4_checksum();
+	test_udplite_v6_checksum();
 	return 0;
 }

@@ -66,6 +66,7 @@ static void test_parse_tcp_ipv4_packet(void)
 	assert(packet->ipv6		== NULL);
 	assert(packet->tcp		== expected_tcp);
 	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
 	assert(packet->icmpv4		== NULL);
 	assert(packet->icmpv6		== NULL);
 
@@ -113,6 +114,7 @@ static void test_parse_tcp_ipv6_packet(void)
 	assert(packet->ipv6		== expected_ipv6);
 	assert(packet->tcp		== expected_tcp);
 	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
 	assert(packet->icmpv4		== NULL);
 	assert(packet->icmpv6		== NULL);
 
@@ -127,7 +129,7 @@ static void test_parse_udp_ipv4_packet(void)
 {
 	/* A UDP/IPv4 packet. */
 	u8 data[] = {
-		/* 192.0.2.1.8080 > 192.168.0.1.57845: UDP, length 4 */
+		/* 192.0.2.1:8080 > 192.168.0.1:57845: UDP, length 4 */
 		0x45, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00,
 		0xff, 0x11, 0x39, 0x22, 0xc0, 0x00, 0x02, 0x01,
 		0xc0, 0xa8, 0x00, 0x01, 0x1f, 0x90, 0xe1, 0xf5,
@@ -153,6 +155,7 @@ static void test_parse_udp_ipv4_packet(void)
 	assert(packet->ipv6		== NULL);
 	assert(packet->tcp		== NULL);
 	assert(packet->udp		== expected_udp);
+	assert(packet->udplite		== NULL);
 	assert(packet->icmpv4		== NULL);
 	assert(packet->icmpv6		== NULL);
 
@@ -163,12 +166,11 @@ static void test_parse_udp_ipv4_packet(void)
 	packet_free(packet);
 }
 
-
 static void test_parse_udp_ipv6_packet(void)
 {
 	/* A UDP/IPv6 packet. */
 	u8 data[] = {
-		/* 2001:db8::1.8080 > fd3d:fa7b:d17d::1.51557: UDP, length 4 */
+		/* 2001:db8::1:8080 > fd3d:fa7b:d17d::1:51557: UDP, length 4 */
 		0x60, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x11, 0xff,
 		0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
@@ -197,6 +199,96 @@ static void test_parse_udp_ipv6_packet(void)
 	assert(packet->ipv6		== expected_ipv6);
 	assert(packet->tcp		== NULL);
 	assert(packet->udp		== expected_udp);
+	assert(packet->udplite		== NULL);
+	assert(packet->icmpv4		== NULL);
+	assert(packet->icmpv6		== NULL);
+
+	assert(packet->time_usecs	== 0);
+	assert(packet->flags		== 0);
+	assert(packet->ecn		== 0);
+
+	packet_free(packet);
+}
+
+static void test_parse_udplite_ipv4_packet(void)
+{
+	/* A UDPLite/IPv4 packet. */
+	u8 data[] = {
+		/* 1.1.1.1:1234 > 192.168.0.1:60213
+		 * UDPLite, length 3, coverage 9 */
+		0x45, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x88, 0xf8, 0xab, 0x01, 0x01, 0x01, 0x01,
+		0xc0, 0xa8, 0x00, 0x01, 0x04, 0xd2, 0xeb, 0x35,
+		0x00, 0x09, 0x86, 0xaf, 0xc6, 0x45, 0x46
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+				     &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	struct ipv4 *expected_ipv4 = (struct ipv4 *)(packet->buffer);
+	struct udplite *expected_udplite =
+		(struct udplite *)(expected_ipv4 + 1);
+
+	assert(packet->ip_bytes		== sizeof(data));
+	assert(packet->ipv4		== expected_ipv4);
+	assert(packet->ipv6		== NULL);
+	assert(packet->tcp		== NULL);
+	assert(packet->udp		== NULL);
+	assert(packet->udplite		== expected_udplite);
+	assert(packet->icmpv4		== NULL);
+	assert(packet->icmpv6		== NULL);
+
+	assert(packet->time_usecs	== 0);
+	assert(packet->flags		== 0);
+	assert(packet->ecn		== 0);
+
+	packet_free(packet);
+}
+
+static void test_parse_udplite_ipv6_packet(void)
+{
+	/* A UDPLite/IPv6 packet. */
+	u8 data[] = {
+		/* 2001:db8::1:54242 > fd3d:fa7b:d17d::1:8080
+		 * UDPLITE, length 3, coverage 9 */
+		0x60, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x88, 0xff,
+		0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0xfd, 0x3d, 0xfa, 0x7b, 0xd1, 0x7d, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0xd3, 0xe2, 0x1f, 0x90, 0x00, 0x09, 0x4e, 0xfd,
+		0xc6, 0x45, 0x46
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+				     &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	struct ipv6 *expected_ipv6 = (struct ipv6 *)(packet->buffer);
+	struct udplite *expected_udplite =
+		(struct udplite *)(expected_ipv6 + 1);
+
+	assert(packet->ip_bytes		== sizeof(data));
+	assert(packet->ipv4		== NULL);
+	assert(packet->ipv6		== expected_ipv6);
+	assert(packet->tcp		== NULL);
+	assert(packet->udp		== NULL);
+	assert(packet->udplite		== expected_udplite);
 	assert(packet->icmpv4		== NULL);
 	assert(packet->icmpv6		== NULL);
 
@@ -215,7 +307,7 @@ static void test_parse_ipv4_gre_ipv4_tcp_packet(void)
 	/* An IPv4/GRE/IPv4/TCP packet. */
 	u8 data[] = {
 		/* IP 2.2.2.2 > 1.1.1.1: GREv0, length 48:
-		   IP 192.0.2.1.47078 > 192.168.0.1.8080:
+		   IP 192.0.2.1:47078 > 192.168.0.1:8080:
 		   . 2:6(4) ack 1 win 123 */
 		0x45, 0x00, 0x00, 0x44, 0x00, 0x00, 0x00, 0x00,
 		0xff, 0x2f, 0xb5, 0x85, 0x02, 0x02, 0x02, 0x02,
@@ -275,6 +367,7 @@ static void test_parse_ipv4_gre_ipv4_tcp_packet(void)
 	assert(packet->ipv6		== NULL);
 	assert(packet->tcp		== expected_tcp);
 	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
 	assert(packet->icmpv4		== NULL);
 	assert(packet->icmpv6		== NULL);
 
@@ -373,6 +466,7 @@ static void test_parse_ipv4_gre_mpls_ipv4_tcp_packet(void)
 	assert(packet->ipv6		== NULL);
 	assert(packet->tcp		== expected_tcp);
 	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
 	assert(packet->icmpv4		== NULL);
 	assert(packet->icmpv6		== NULL);
 
@@ -415,6 +509,7 @@ static void test_parse_icmpv4_packet(void)
 	assert(packet->ipv6		== NULL);
 	assert(packet->tcp		== NULL);
 	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
 	assert(packet->icmpv4		== expected_icmpv4);
 	assert(packet->icmpv6		== NULL);
 
@@ -468,6 +563,7 @@ static void test_parse_icmpv6_packet(void)
 	assert(packet->ipv6		== expected_ipv6);
 	assert(packet->tcp		== NULL);
 	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
 	assert(packet->icmpv4		== NULL);
 	assert(packet->icmpv6		== expected_icmpv6);
 
@@ -484,6 +580,8 @@ int main(void)
 	test_parse_tcp_ipv6_packet();
 	test_parse_udp_ipv4_packet();
 	test_parse_udp_ipv6_packet();
+	test_parse_udplite_ipv4_packet();
+	test_parse_udplite_ipv6_packet();
 	test_parse_ipv4_gre_ipv4_tcp_packet();
 	test_parse_ipv4_gre_mpls_ipv4_tcp_packet();
 	test_parse_icmpv4_packet();

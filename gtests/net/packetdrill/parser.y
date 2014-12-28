@@ -99,6 +99,7 @@
 #include "mpls_packet.h"
 #include "tcp_packet.h"
 #include "udp_packet.h"
+#include "udplite_packet.h"
 #include "parse.h"
 #include "script.h"
 #include "tcp.h"
@@ -449,10 +450,15 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	s32 window;
 	u32 sequence_number;
 	struct {
-		int protocol;		/* IPPROTO_TCP or IPPROTO_UDP */
 		u32 start_sequence;
 		u16 payload_bytes;
 	} tcp_sequence_info;
+	struct {
+		int protocol;
+		u16 payload_bytes;
+		u32 start_sequence;	/* used for TCP */
+		u16 checksum_coverage;	/* used for UDPLite */
+	} transport_info;
 	struct option_list *option;
 	struct event *event;
 	struct packet *packet;
@@ -477,7 +483,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> ACK ECR EOL MSS NOP SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> FAST_OPEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
-%token <reserved> IPV4 IPV6 ICMP UDP GRE MTU
+%token <reserved> IPV4 IPV6 ICMP UDP UDPLITE GRE MTU
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
 %token <reserved> SRTO_INITIAL SRTO_MAX SRTO_MIN
@@ -494,7 +500,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <option> option options opt_options
 %type <event> event events event_time action
 %type <time_usecs> time opt_end_time
-%type <packet> packet_spec tcp_packet_spec udp_packet_spec icmp_packet_spec
+%type <packet> packet_spec tcp_packet_spec udp_packet_spec udplite_packet_spec
+%type <packet> icmp_packet_spec
 %type <packet> packet_prefix
 %type <syscall> syscall_spec
 %type <command> command_spec
@@ -509,7 +516,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <string> option_flag option_value script
 %type <window> opt_window
 %type <sequence_number> opt_ack
-%type <tcp_sequence_info> seq opt_icmp_echoed
+%type <tcp_sequence_info> seq
+%type <transport_info> opt_icmp_echoed
 %type <tcp_options> opt_tcp_options tcp_option_list
 %type <tcp_option> tcp_option sack_block_list sack_block
 %type <string> function_name
@@ -676,9 +684,10 @@ action
 ;
 
 packet_spec
-: tcp_packet_spec  { $$ = $1; }
-| udp_packet_spec  { $$ = $1; }
-| icmp_packet_spec { $$ = $1; }
+: tcp_packet_spec     { $$ = $1; }
+| udp_packet_spec     { $$ = $1; }
+| udplite_packet_spec { $$ = $1; }
+| icmp_packet_spec    { $$ = $1; }
 ;
 
 tcp_packet_spec
@@ -730,6 +739,31 @@ udp_packet_spec
 }
 ;
 
+udplite_packet_spec
+: packet_prefix UDPLITE '(' INTEGER ',' INTEGER ')' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	if (!is_valid_u16($4)) {
+		semantic_error("UDPLite payload size out of range");
+	}
+	if (!is_valid_u16($6)) {
+		semantic_error("UDPLite checksum coverage out of range");
+	}
+
+	inner = new_udplite_packet(in_config->wire_protocol, direction, $4, $6,
+				   &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+;
+
 icmp_packet_spec
 : packet_prefix opt_icmp_echoed ICMP icmp_type opt_icmp_code opt_icmp_mtu {
 	char *error = NULL;
@@ -737,8 +771,9 @@ icmp_packet_spec
 	enum direction_t direction = outer->direction;
 
 	inner = new_icmp_packet(in_config->wire_protocol, direction, $4, $5,
-				$2.protocol, $2.start_sequence,
-				$2.payload_bytes, $6, &error);
+				$2.protocol, $2.payload_bytes,
+				$2.start_sequence, $2.checksum_coverage,
+				$6, &error);
 	free($4);
 	free($5);
 	if (inner == NULL) {
@@ -847,17 +882,24 @@ opt_icmp_code
 /* This specifies the relevant details about the packet echoed by ICMP. */
 opt_icmp_echoed
 :			{
-	$$.start_sequence	= 0;
-	$$.payload_bytes	= 0;
 	$$.protocol		= IPPROTO_TCP;
+	$$.payload_bytes	= 0;
+	$$.start_sequence	= 0;
 }
 | '[' UDP '(' INTEGER ')' ']'	{
-	$$.start_sequence	= 0;
-	$$.payload_bytes	= $4;
 	$$.protocol		= IPPROTO_UDP;
+	$$.payload_bytes	= $4;
+	$$.start_sequence	= 0;
+}
+| '[' UDPLITE '(' INTEGER ',' INTEGER ')' ']'	{
+	$$.protocol		= IPPROTO_UDPLITE;
+	$$.payload_bytes	= $4;
+	$$.checksum_coverage	= $6;
 }
 | '[' seq ']'		{
-	$$ = $2;
+	$$.protocol		= IPPROTO_TCP;
+	$$.payload_bytes	= $2.payload_bytes;
+	$$.start_sequence	= $2.start_sequence;
 }
 ;
 
@@ -908,7 +950,6 @@ seq
 	}
 	$$.start_sequence = $1;
 	$$.payload_bytes = $5;
-	$$.protocol = IPPROTO_TCP;
 }
 ;
 

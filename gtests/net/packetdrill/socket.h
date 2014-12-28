@@ -172,6 +172,9 @@ static inline void get_packet_tuple(const struct packet *packet,
 	} else if (packet->udp != NULL) {
 		tuple->src.port	= packet->udp->src_port;
 		tuple->dst.port	= packet->udp->dst_port;
+	} else if (packet->udplite != NULL) {
+		tuple->src.port	= packet->udplite->src_port;
+		tuple->dst.port	= packet->udplite->dst_port;
 	}
 }
 
@@ -180,6 +183,7 @@ static inline void set_headers_tuple(struct ipv4 *ipv4,
 				     struct ipv6 *ipv6,
 				     struct tcp *tcp,
 				     struct udp *udp,
+				     struct udplite *udplite,
 				     const struct tuple *tuple)
 {
 	if (ipv4 != NULL) {
@@ -197,6 +201,9 @@ static inline void set_headers_tuple(struct ipv4 *ipv4,
 	} else if (udp != NULL) {
 		udp->src_port = tuple->src.port;
 		udp->dst_port = tuple->dst.port;
+	} else if (udplite != NULL) {
+		udplite->src_port = tuple->src.port;
+		udplite->dst_port = tuple->dst.port;
 	}
 }
 
@@ -221,6 +228,7 @@ static inline void set_icmp_echoed_tuple(struct packet *packet,
 			  packet_echoed_ipv6_header(packet),
 			  packet_echoed_tcp_header(packet),
 			  packet_echoed_udp_header(packet),
+			  packet_echoed_udplite_header(packet),
 			  &echoed_tuple);
 }
 
@@ -228,8 +236,8 @@ static inline void set_icmp_echoed_tuple(struct packet *packet,
 static inline void set_packet_tuple(struct packet *packet,
 				    const struct tuple *tuple)
 {
-	set_headers_tuple(packet->ipv4, packet->ipv6, packet->tcp, packet->udp,
-			  tuple);
+	set_headers_tuple(packet->ipv4, packet->ipv6, packet->tcp,
+			  packet->udp, packet->udplite, tuple);
 	if ((packet->icmpv4 != NULL) || (packet->icmpv6 != NULL))
 		set_icmp_echoed_tuple(packet, tuple);
 }

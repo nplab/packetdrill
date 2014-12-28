@@ -53,6 +53,7 @@ struct int_symbol platform_symbols_table[] = {
 #endif
 	{ SOL_TCP,                          "SOL_TCP"                         },
 	{ SOL_UDP,                          "SOL_UDP"                         },
+	{ SOL_UDPLITE,                      "SOL_UDPLITE"                     },
 
 	{ SO_ACCEPTCONN,                    "SO_ACCEPTCONN"                   },
 	{ SO_ATTACH_FILTER,                 "SO_ATTACH_FILTER"                },
@@ -136,6 +137,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_THIN_LINEAR_TIMEOUTS,         "TCP_THIN_LINEAR_TIMEOUTS"        },
 	{ TCP_THIN_DUPACK,                  "TCP_THIN_DUPACK"                 },
 	{ TCP_USER_TIMEOUT,                 "TCP_USER_TIMEOUT"                },
+
+	{ UDPLITE_RECV_CSCOV,               "UDPLITE_RECV_CSCOV"              },
+	{ UDPLITE_SEND_CSCOV,               "UDPLITE_SEND_CSCOV"              },
 
 	{ O_RDONLY,                         "O_RDONLY"                        },
 	{ O_WRONLY,                         "O_WRONLY"                        },
