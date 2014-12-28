@@ -269,7 +269,7 @@ static void test_udplite_ipv4_packet_to_string(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
@@ -348,7 +348,7 @@ static void test_udplite_ipv6_packet_to_string(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), PACKET_LAYER_3_IP,
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6,
 				     &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);

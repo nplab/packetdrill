@@ -30,7 +30,10 @@
 
 #ifdef linux
 
-#include <netinet/sctp.h>
++/* It seems that Linux does not provide netinet/udplite.h */
+#define SOL_UDPLITE            IPPROTO_UDPLITE
+#define UDPLITE_SEND_CSCOV     10
+#define UDPLITE_RECV_CSCOV     11
 #include <features.h>
 #define HAVE_OPEN_MEMSTREAM     1
 #define HAVE_FMEMOPEN           1
