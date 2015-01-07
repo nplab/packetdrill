@@ -53,7 +53,10 @@
 #define __aligned(x) __attribute__ ((aligned(x)))
 #endif
 
-/* Make sure we have the following constant on all platforms */
+/* Make sure we have the following constants on all platforms */
+#ifndef IPPROTO_SCTP
+#define IPPROTO_SCTP 132
+#endif
 #ifndef IPPROTO_UDPLITE
 #define IPPROTO_UDPLITE 136
 #endif

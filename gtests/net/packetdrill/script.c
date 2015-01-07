@@ -104,9 +104,7 @@ struct int_symbol cross_platform_symbols[] = {
 	{ IPPROTO_IP,                       "IPPROTO_IP"                      },
 	{ IPPROTO_IPV6,                     "IPPROTO_IPV6"                    },
 	{ IPPROTO_ICMP,                     "IPPROTO_ICMP"                    },
-#ifdef IPPROTO_SCTP
 	{ IPPROTO_SCTP,                     "IPPROTO_SCTP"                    },
-#endif
 	{ IPPROTO_TCP,                      "IPPROTO_TCP"                     },
 	{ IPPROTO_UDP,                      "IPPROTO_UDP"                     },
 	{ IPPROTO_UDPLITE,                  "IPPROTO_UDPLITE"                 },

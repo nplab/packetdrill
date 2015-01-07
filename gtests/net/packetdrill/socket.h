@@ -166,7 +166,10 @@ static inline void get_packet_tuple(const struct packet *packet,
 	} else {
 		assert(!"bad IP version in packet");
 	}
-	if (packet->tcp != NULL) {
+	if (packet->sctp != NULL) {
+		tuple->src.port	= packet->sctp->src_port;
+		tuple->dst.port	= packet->sctp->dst_port;
+	} else if (packet->tcp != NULL) {
 		tuple->src.port	= packet->tcp->src_port;
 		tuple->dst.port	= packet->tcp->dst_port;
 	} else if (packet->udp != NULL) {
@@ -181,6 +184,7 @@ static inline void get_packet_tuple(const struct packet *packet,
 /* Set the tuple inside some TCP/IPv4 or TCP/IPv6 headers. */
 static inline void set_headers_tuple(struct ipv4 *ipv4,
 				     struct ipv6 *ipv6,
+				     struct sctp_common_header *sctp,
 				     struct tcp *tcp,
 				     struct udp *udp,
 				     struct udplite *udplite,
@@ -195,7 +199,10 @@ static inline void set_headers_tuple(struct ipv4 *ipv4,
 	} else {
 		assert(!"bad IP version in packet");
 	}
-	if (tcp != NULL) {
+	if (sctp != NULL) {
+		sctp->src_port = tuple->src.port;
+		sctp->dst_port = tuple->dst.port;
+	} else if (tcp != NULL) {
 		tcp->src_port = tuple->src.port;
 		tcp->dst_port = tuple->dst.port;
 	} else if (udp != NULL) {
@@ -226,6 +233,7 @@ static inline void set_icmp_echoed_tuple(struct packet *packet,
 	reverse_tuple(tuple, &echoed_tuple);
 	set_headers_tuple(packet_echoed_ipv4_header(packet),
 			  packet_echoed_ipv6_header(packet),
+			  packet_echoed_sctp_header(packet),
 			  packet_echoed_tcp_header(packet),
 			  packet_echoed_udp_header(packet),
 			  packet_echoed_udplite_header(packet),
@@ -236,7 +244,7 @@ static inline void set_icmp_echoed_tuple(struct packet *packet,
 static inline void set_packet_tuple(struct packet *packet,
 				    const struct tuple *tuple)
 {
-	set_headers_tuple(packet->ipv4, packet->ipv6, packet->tcp,
+	set_headers_tuple(packet->ipv4, packet->ipv6, packet->sctp, packet->tcp,
 			  packet->udp, packet->udplite, tuple);
 	if ((packet->icmpv4 != NULL) || (packet->icmpv6 != NULL))
 		set_icmp_echoed_tuple(packet, tuple);

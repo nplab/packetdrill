@@ -30,6 +30,399 @@
 #include "ethernet.h"
 #include "packet_parser.h"
 
+static void test_sctp_ipv4_packet_to_string(void)
+{
+	/* An IPv4/SCTP packet. */
+	u8 data[] = {
+		/* IPv4: */
+		0x45, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x84, 0xb5, 0x50, 0x02, 0x02, 0x02, 0x02,
+		0x01, 0x01, 0x01, 0x01,
+		/* SCTP Common Header: */
+		0x04, 0xd2, 0x1f, 0x90, 0x01, 0x02, 0x03, 0x04,
+		0x3d, 0x99, 0xbf, 0xe3,
+		/* SCTP ABORT Chunk: */
+		0x06, 0x01, 0x00, 0x04
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	int status = 0;
+	char *dump = NULL, *expected = NULL;
+
+	/* Test a DUMP_SHORT dump */
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"sctp: ABORT[flags=T]";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_FULL dump */
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"2.2.2.2:1234 > 1.1.1.1:8080 "
+		"sctp: ABORT[flags=T]";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_VERBOSE dump */
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"2.2.2.2:1234 > 1.1.1.1:8080 "
+		"sctp: ABORT[flags=T]"
+		"\n"
+		"0x0000: 45 00 00 24 00 00 00 00 ff 84 b5 50 02 02 02 02 " "\n"
+		"0x0010: 01 01 01 01 04 d2 1f 90 01 02 03 04 3d 99 bf e3 " "\n"
+		"0x0020: 06 01 00 04 " "\n";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	packet_free(packet);
+}
+
+static void test_sctp_ipv6_packet_to_string(void)
+{
+	/* An IPv6/SCTP packet. */
+	u8 data[] = {
+		/* IPv6 Base Header: */
+		0x60, 0x00, 0x00, 0x00, 0x01, 0x78, 0x84, 0xff,
+		0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0x22,
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x11,
+		/* SCTP Common Header: */
+		0x04, 0xd2, 0x1f, 0x90,
+		0x01, 0x02, 0x03, 0x04,
+		0x1b, 0x68, 0x75, 0x8e,
+		/* SCTP DATA Chunk */
+		0x00, 0x0f, 0x00, 0x13,
+		0x01, 0x02, 0x03, 0x04,
+		0x00, 0xff, 0x01, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x01, 0x02, 0x00,
+		/* SCTP INIT Chunk */
+		0x01, 0x00, 0x00, 0x50,
+		0x00, 0x00, 0x00, 0x01,
+		0x00, 0x01, 0x00, 0x00,
+		0x00, 0x0f, 0x00, 0x0f,
+		0x01, 0x02, 0x03, 0x04,
+		0x00, 0x05, 0x00, 0x08,
+		0x01, 0x02, 0x03, 0x04,
+		0x00, 0x06, 0x00, 0x14,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x01,
+		0x00, 0x09, 0x00, 0x08,
+		0x00, 0x01, 0x00, 0x00,
+		0x00, 0x0b, 0x00, 0x06,
+		0x40, 0x41, 0x00, 0x00,
+		0x00, 0x0c, 0x00, 0x0a,
+		0x00, 0x05, 0x00, 0x06,
+		0x00, 0x0b, 0x00, 0x00,
+		0x80, 0x00, 0x00, 0x04,
+		/* SCTP INIT_ACK Chunk */
+		0x02, 0x00, 0x00, 0x24,
+		0x00, 0x00, 0x00, 0x01,
+		0x00, 0x01, 0x00, 0x00,
+		0x00, 0x0f, 0x00, 0x0f,
+		0x01, 0x02, 0x03, 0x04,
+		0x00, 0x07, 0x00, 0x07,
+		0x01, 0x02, 0x03, 0x00,
+		0x00, 0x08, 0x00, 0x08,
+		0x80, 0x01, 0x00, 0x04,
+		/* SCTP SACK Chunk */
+		0x03, 0x00, 0x00, 0x20,
+		0x01, 0x02, 0x03, 0x04,
+		0x00, 0x01, 0x00, 0x00,
+		0x00, 0x03, 0x00, 0x01,
+		0x00, 0x01, 0x00, 0x03,
+		0x00, 0x05, 0x00, 0x0f,
+		0x10, 0x00, 0x10, 0x14,
+		0x01, 0x02, 0x03, 0x04,
+		/* SCTP HEARTBEAT Chunk */
+		0x04, 0x00, 0x00, 0x06,
+		0x01, 0x02, 0x00, 0x00,
+		/* SCTP HEARTBEAT-ACK Chunk */
+		0x05, 0x00, 0x00, 0x06,
+		0x01, 0x02, 0x00, 0x00,
+		/* SCTP ABORT Chunk: */
+		0x06, 0x01, 0x00, 0x04,
+		/* SCTP ABORT Chunk: */
+		0x06, 0x00, 0x00, 0x80,
+		0x00, 0x01, 0x00, 0x08,
+		0x00, 0xff, 0x00, 0x00,
+		0x00, 0x02, 0x00, 0x0a,
+		0x00, 0x00, 0x00, 0x01,
+		0x00, 0x07, 0x00, 0x00,
+		0x00, 0x03, 0x00, 0x08,
+		0x00, 0x01, 0x00, 0x00,
+		0x00, 0x04, 0x00, 0x04,
+		0x00, 0x05, 0x00, 0x0c,
+		0x00, 0x0b, 0x00, 0x06,
+		0x40, 0x41, 0x00, 0x00,
+		0x00, 0x06, 0x00, 0x0c,
+		0xfe, 0x05, 0x00, 0x05,
+		0x01, 0x00, 0x00, 0x00,
+		0x00, 0x07, 0x00, 0x04,
+		0x00, 0x08, 0x00, 0x10,
+		0x80, 0x0a, 0x00, 0x04,
+		0x80, 0x0b, 0x00, 0x05,
+		0x01, 0x00, 0x00, 0x00,
+		0x00, 0x09, 0x00, 0x08,
+		0x01, 0x02, 0x03, 0x04,
+		0x00, 0x0a, 0x00, 0x04,
+		0x00, 0x0b, 0x00, 0x14,
+		0x00, 0x05, 0x00, 0x08,
+		0x01, 0x02, 0x03, 0x04,
+		0x00, 0x05, 0x00, 0x08,
+		0x02, 0x03, 0x04, 0x05,
+		0x00, 0x0c, 0x00, 0x07,
+		0x42, 0x59, 0x45, 0x00,
+		0x00, 0x0d, 0x00, 0x06,
+		0x40, 0x40, 0x00, 0x00,
+		/* SCTP SHUTDOWN Chunk */
+		0x07, 0x00, 0x00, 0x08,
+		0x01, 0x02, 0x03, 0x04,
+		/* SCTP SHUTDOWN_ACK Chunk */
+		0x08, 0x00, 0x00, 0x04,
+		/* SCTP ERROR Chunk */
+		0x09, 0x00, 0x00, 0x04,
+		/* SCTP COOKIE_ECHO Chunk */
+		0x0a, 0x00, 0x00, 0x05,
+		0x45, 0x00, 0x00, 0x00,
+		/* SCTP COOKIE_ACK Chunk */
+		0x0b, 0x00, 0x00, 0x04,
+		/* SCTP ECNE Chunk */
+		0x0c, 0x00, 0x00, 0x08,
+		0x01, 0x02, 0x03, 0x04,
+		/* SCTP CWR Chunk */
+		0x0d, 0x00, 0x00, 0x08,
+		0x01, 0x02, 0x03, 0x04,
+		/* SCTP SHUTDOWN_COMPLETE Chunk */
+		0x0e, 0x01, 0x00, 0x04
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	int status = 0;
+	char *dump = NULL, *expected = NULL;
+
+	/* Test a DUMP_SHORT dump */
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"sctp: "
+		"DATA[flags=IUBE, tsn=16909060, sid=255, ssn=256, ppid=0, "
+		     "payload_len=3]; "
+		"INIT[tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
+		     "IPV4_ADDRESS[1.2.3.4], "
+		     "IPV6_ADDRESS[::1], "
+		     "COOKIE_PRESERVATIVE[65536], "
+		     "HOSTNAME[@A], "
+		     "SUPPORTED_ADDRESS_TYPES[IPV4, IPV6, HOSTNAME], "
+		     "ECN_CAPABLE[]]; "
+		"INIT_ACK[tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
+			 "STATE_COOKIE[cookie_len=3], "
+			 "UNRECOGNIZED_PARAMETER["
+			   "PARAMETER[type=0x8001, value=[]]]]; "
+		"SACK[cum_tsn=16909060, a_rwnd=65536, "
+		     "gaps=[1-3, 5-15, 4096-4116], dups=[16909060]]; "
+		"HEARTBEAT[info_len=2]; "
+		"HEARTBEAT_ACK[info_len=2]; "
+		"ABORT[flags=T]; "
+		"ABORT[INVALID_STREAM_IDENTIFIER[sid=255], "
+		      "MISSING_MANDATORY_PARAMETER[STATE_COOKIE], "
+		      "STALE_COOKIE_ERROR[staleness=65536], "
+		      "OUT_OF_RESOURCES[], "
+		      "UNRESOLVABLE_ADDRESS[HOSTNAME[@A]], "
+		      "UNRECOGNIZED_CHUNK["
+			"CHUNK[type=0xfe, flags=0x05, value=[0x01]]], "
+		      "INVALID_MANDATORY_PARAMETER[], "
+		      "UNRECOGNIZED_PARAMETERS["
+			"PARAMETER[type=0x800a, value=[]], "
+			"PARAMETER[type=0x800b, value=[0x01]]], "
+		      "NO_USER_DATA[tsn=16909060], "
+		      "COOKIE_RECEIVED_WHILE_SHUTDOWN[], "
+		      "RESTART_WITH_NEW_ADDRESSES[IPV4_ADDRESS[1.2.3.4], "
+						 "IPV4_ADDRESS[2.3.4.5]], "
+		      "USER_INITIATED_ABORT[BYE], "
+		      "PROTOCOL_VIOLATION[@@]]; "
+		"SHUTDOWN[tsn=16909060]; "
+		"SHUTDOWN_ACK[]; "
+		"ERROR[]; "
+		"COOKIE_ECHO[cookie_len=1]; "
+		"COOKIE_ACK[]; "
+		"ECNE[tsn=16909060]; "
+		"CWR[tsn=16909060]; "
+		"SHUTDOWN_COMPLETE[flags=T]";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_FULL dump */
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"2::2222:1234 > 1::1111:8080 "
+		"sctp: "
+		"DATA[flags=IUBE, tsn=16909060, sid=255, ssn=256, ppid=0, "
+		     "payload_len=3]; "
+		"INIT[tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
+		     "IPV4_ADDRESS[1.2.3.4], "
+		     "IPV6_ADDRESS[::1], "
+		     "COOKIE_PRESERVATIVE[65536], "
+		     "HOSTNAME[@A], "
+		     "SUPPORTED_ADDRESS_TYPES[IPV4, IPV6, HOSTNAME], "
+		     "ECN_CAPABLE[]]; "
+		"INIT_ACK[tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
+			 "STATE_COOKIE[cookie_len=3], "
+			 "UNRECOGNIZED_PARAMETER["
+			   "PARAMETER[type=0x8001, value=[]]]]; "
+		"SACK[cum_tsn=16909060, a_rwnd=65536, "
+		     "gaps=[1-3, 5-15, 4096-4116], dups=[16909060]]; "
+		"HEARTBEAT[info_len=2]; "
+		"HEARTBEAT_ACK[info_len=2]; "
+		"ABORT[flags=T]; "
+		"ABORT[INVALID_STREAM_IDENTIFIER[sid=255], "
+		      "MISSING_MANDATORY_PARAMETER[STATE_COOKIE], "
+		      "STALE_COOKIE_ERROR[staleness=65536], "
+		      "OUT_OF_RESOURCES[], "
+		      "UNRESOLVABLE_ADDRESS[HOSTNAME[@A]], "
+		      "UNRECOGNIZED_CHUNK["
+			"CHUNK[type=0xfe, flags=0x05, value=[0x01]]], "
+		      "INVALID_MANDATORY_PARAMETER[], "
+		      "UNRECOGNIZED_PARAMETERS["
+			"PARAMETER[type=0x800a, value=[]], "
+			"PARAMETER[type=0x800b, value=[0x01]]], "
+		      "NO_USER_DATA[tsn=16909060], "
+		      "COOKIE_RECEIVED_WHILE_SHUTDOWN[], "
+		      "RESTART_WITH_NEW_ADDRESSES[IPV4_ADDRESS[1.2.3.4], "
+						 "IPV4_ADDRESS[2.3.4.5]], "
+		      "USER_INITIATED_ABORT[BYE], "
+		      "PROTOCOL_VIOLATION[@@]]; "
+		"SHUTDOWN[tsn=16909060]; "
+		"SHUTDOWN_ACK[]; "
+		"ERROR[]; "
+		"COOKIE_ECHO[cookie_len=1]; "
+		"COOKIE_ACK[]; "
+		"ECNE[tsn=16909060]; "
+		"CWR[tsn=16909060]; "
+		"SHUTDOWN_COMPLETE[flags=T]";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	/* Test a DUMP_VERBOSE dump */
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"2::2222:1234 > 1::1111:8080 "
+		"sctp: "
+		"DATA[flags=IUBE, tsn=16909060, sid=255, ssn=256, ppid=0, "
+		     "payload_len=3]; "
+		"INIT[tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
+		     "IPV4_ADDRESS[1.2.3.4], "
+		     "IPV6_ADDRESS[::1], "
+		     "COOKIE_PRESERVATIVE[65536], "
+		     "HOSTNAME[@A], "
+		     "SUPPORTED_ADDRESS_TYPES[IPV4, IPV6, HOSTNAME], "
+		     "ECN_CAPABLE[]]; "
+		"INIT_ACK[tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
+			 "STATE_COOKIE[cookie_len=3], "
+			 "UNRECOGNIZED_PARAMETER["
+			   "PARAMETER[type=0x8001, value=[]]]]; "
+		"SACK[cum_tsn=16909060, a_rwnd=65536, "
+		     "gaps=[1-3, 5-15, 4096-4116], dups=[16909060]]; "
+		"HEARTBEAT[info_len=2]; "
+		"HEARTBEAT_ACK[info_len=2]; "
+		"ABORT[flags=T]; "
+		"ABORT[INVALID_STREAM_IDENTIFIER[sid=255], "
+		      "MISSING_MANDATORY_PARAMETER[STATE_COOKIE], "
+		      "STALE_COOKIE_ERROR[staleness=65536], "
+		      "OUT_OF_RESOURCES[], "
+		      "UNRESOLVABLE_ADDRESS[HOSTNAME[@A]], "
+		      "UNRECOGNIZED_CHUNK["
+			"CHUNK[type=0xfe, flags=0x05, value=[0x01]]], "
+		      "INVALID_MANDATORY_PARAMETER[], "
+		      "UNRECOGNIZED_PARAMETERS["
+			"PARAMETER[type=0x800a, value=[]], "
+			"PARAMETER[type=0x800b, value=[0x01]]], "
+		      "NO_USER_DATA[tsn=16909060], "
+		      "COOKIE_RECEIVED_WHILE_SHUTDOWN[], "
+		      "RESTART_WITH_NEW_ADDRESSES[IPV4_ADDRESS[1.2.3.4], "
+						 "IPV4_ADDRESS[2.3.4.5]], "
+		      "USER_INITIATED_ABORT[BYE], "
+		      "PROTOCOL_VIOLATION[@@]]; "
+		"SHUTDOWN[tsn=16909060]; "
+		"SHUTDOWN_ACK[]; "
+		"ERROR[]; "
+		"COOKIE_ECHO[cookie_len=1]; "
+		"COOKIE_ACK[]; "
+		"ECNE[tsn=16909060]; "
+		"CWR[tsn=16909060]; "
+		"SHUTDOWN_COMPLETE[flags=T]"
+		"\n"
+		"0x0000: 60 00 00 00 01 78 84 ff 00 02 00 00 00 00 00 00 " "\n"
+		"0x0010: 00 00 00 00 00 00 22 22 00 01 00 00 00 00 00 00 " "\n"
+		"0x0020: 00 00 00 00 00 00 11 11 04 d2 1f 90 01 02 03 04 " "\n"
+		"0x0030: 1b 68 75 8e 00 0f 00 13 01 02 03 04 00 ff 01 00 " "\n"
+		"0x0040: 00 00 00 00 00 01 02 00 01 00 00 50 00 00 00 01 " "\n"
+		"0x0050: 00 01 00 00 00 0f 00 0f 01 02 03 04 00 05 00 08 " "\n"
+		"0x0060: 01 02 03 04 00 06 00 14 00 00 00 00 00 00 00 00 " "\n"
+		"0x0070: 00 00 00 00 00 00 00 01 00 09 00 08 00 01 00 00 " "\n"
+		"0x0080: 00 0b 00 06 40 41 00 00 00 0c 00 0a 00 05 00 06 " "\n"
+		"0x0090: 00 0b 00 00 80 00 00 04 02 00 00 24 00 00 00 01 " "\n"
+		"0x00a0: 00 01 00 00 00 0f 00 0f 01 02 03 04 00 07 00 07 " "\n"
+		"0x00b0: 01 02 03 00 00 08 00 08 80 01 00 04 03 00 00 20 " "\n"
+		"0x00c0: 01 02 03 04 00 01 00 00 00 03 00 01 00 01 00 03 " "\n"
+		"0x00d0: 00 05 00 0f 10 00 10 14 01 02 03 04 04 00 00 06 " "\n"
+		"0x00e0: 01 02 00 00 05 00 00 06 01 02 00 00 06 01 00 04 " "\n"
+		"0x00f0: 06 00 00 80 00 01 00 08 00 ff 00 00 00 02 00 0a " "\n"
+		"0x0100: 00 00 00 01 00 07 00 00 00 03 00 08 00 01 00 00 " "\n"
+		"0x0110: 00 04 00 04 00 05 00 0c 00 0b 00 06 40 41 00 00 " "\n"
+		"0x0120: 00 06 00 0c fe 05 00 05 01 00 00 00 00 07 00 04 " "\n"
+		"0x0130: 00 08 00 10 80 0a 00 04 80 0b 00 05 01 00 00 00 " "\n"
+		"0x0140: 00 09 00 08 01 02 03 04 00 0a 00 04 00 0b 00 14 " "\n"
+		"0x0150: 00 05 00 08 01 02 03 04 00 05 00 08 02 03 04 05 " "\n"
+		"0x0160: 00 0c 00 07 42 59 45 00 00 0d 00 06 40 40 00 00 " "\n"
+		"0x0170: 07 00 00 08 01 02 03 04 08 00 00 04 09 00 00 04 " "\n"
+		"0x0180: 0a 00 00 05 45 00 00 00 0b 00 00 04 0c 00 00 08 " "\n"
+		"0x0190: 01 02 03 04 0d 00 00 08 01 02 03 04 0e 01 00 04 " "\n";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+	packet_free(packet);
+}
+
 static void test_tcp_ipv4_packet_to_string(void)
 {
 	/* An IPv4/GRE/IPv4/TCP packet. */
@@ -133,7 +526,7 @@ static void test_tcp_ipv6_packet_to_string(void)
 		0xd3, 0xe2, 0x1f, 0x90, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x80, 0x02, 0x80, 0x18,
 		0x06, 0x60, 0x00, 0x00, 0x02, 0x04, 0x03, 0xe8,
-		0x04, 0x02, 0x01, 0x01, 0x01, 0x03, 0x03, 0x07,
+		0x04, 0x02, 0x01, 0x01, 0x01, 0x03, 0x03, 0x07
 	};
 
 	struct packet *packet = packet_new(sizeof(data));
@@ -244,6 +637,8 @@ static void test_gre_mpls_tcp_ipv4_packet_to_string(void)
 		"<nop,nop,TS val 117573699 ecr 5>";
 	assert(strcmp(dump, expected) == 0);
 	free(dump);
+
+	packet_free(packet);
 }
 
 static void test_udplite_ipv4_packet_to_string(void)
@@ -269,8 +664,7 @@ static void test_udplite_ipv4_packet_to_string(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP,
-				     &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -348,8 +742,7 @@ static void test_udplite_ipv6_packet_to_string(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6,
-				     &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -402,6 +795,8 @@ static void test_udplite_ipv6_packet_to_string(void)
 
 int main(void)
 {
+	test_sctp_ipv4_packet_to_string();
+	test_sctp_ipv6_packet_to_string();
 	test_tcp_ipv4_packet_to_string();
 	test_tcp_ipv6_packet_to_string();
 	test_gre_mpls_tcp_ipv4_packet_to_string();

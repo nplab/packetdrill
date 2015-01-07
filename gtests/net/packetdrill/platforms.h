@@ -30,7 +30,7 @@
 
 #ifdef linux
 
-+/* It seems that Linux does not provide netinet/udplite.h */
+/* It seems that Linux does not provide netinet/udplite.h */
 #define SOL_UDPLITE            IPPROTO_UDPLITE
 #define UDPLITE_SEND_CSCOV     10
 #define UDPLITE_RECV_CSCOV     11

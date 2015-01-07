@@ -41,6 +41,7 @@ struct header_type_info header_types[HEADER_NUM_TYPES] = {
 	{ "IPV6",    IPPROTO_IPV6,	ETHERTYPE_IPV6, ipv6_header_finish },
 	{ "GRE",     IPPROTO_GRE,	0,		gre_header_finish },
 	{ "MPLS",    0,			ETHERTYPE_MPLS_UC, mpls_header_finish },
+	{ "SCTP",    IPPROTO_SCTP,	0,		NULL },
 	{ "TCP",     IPPROTO_TCP,	0,		NULL },
 	{ "UDP",     IPPROTO_UDP,	0,		NULL },
 	{ "UDPLITE", IPPROTO_UDPLITE,	0,		NULL },
@@ -158,6 +159,7 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	/* Set up layer 3 header pointer. */
 	packet->ipv4	= offset_ptr(old_base, new_base, old_packet->ipv4);
 	packet->ipv6	= offset_ptr(old_base, new_base, old_packet->ipv6);
+	packet->sctp	= offset_ptr(old_base, new_base, old_packet->sctp);
 	packet->tcp	= offset_ptr(old_base, new_base, old_packet->tcp);
 	packet->udp	= offset_ptr(old_base, new_base, old_packet->udp);
 	packet->udplite	= offset_ptr(old_base, new_base, old_packet->udplite);

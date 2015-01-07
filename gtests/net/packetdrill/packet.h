@@ -36,6 +36,7 @@
 #include "icmpv6.h"
 #include "ip.h"
 #include "ipv6.h"
+#include "sctp.h"
 #include "tcp.h"
 #include "udp.h"
 #include "udplite.h"
@@ -47,6 +48,7 @@
 #define MAX_TCP_HEADER_BYTES (15*4)
 
 #define MAX_TCP_DATAGRAM_BYTES (64*1024)	/* for sanity-checking */
+#define MAX_SCTP_DATAGRAM_BYTES (64*1024)	/* for sanity-checking */
 #define MAX_UDP_DATAGRAM_BYTES (64*1024)	/* for sanity-checking */
 #define MAX_UDPLITE_DATAGRAM_BYTES (64*1024)	/* for sanity-checking */
 
@@ -92,6 +94,8 @@ struct packet {
 	struct ipv6 *ipv6;	/* start of IPv6 header, if present */
 
 	/* Layer 4 */
+	struct sctp_common_header *sctp;
+				/* start of SCTP common header, if present */
 	struct tcp *tcp;	/* start of TCP header, if present */
 	struct udp *udp;	/* start of UDP header, if present */
 	struct udplite *udplite;/* start of UDPLite header, if present */
@@ -220,6 +224,8 @@ static inline int packet_ip_protocol(const struct packet *packet)
 /* Return the length of an optionless TCP or UDP header. */
 static inline int layer4_header_len(int protocol)
 {
+	if (protocol == IPPROTO_SCTP)
+		return sizeof(struct sctp_common_header);
 	if (protocol == IPPROTO_TCP)
 		return sizeof(struct tcp);
 	if (protocol == IPPROTO_UDP)
@@ -228,6 +234,13 @@ static inline int layer4_header_len(int protocol)
 		return sizeof(struct udplite);
 	assert(!"bad protocol");
 	return 0;
+}
+
+/* Return the length of the SCTP common header. */
+static inline int packet_sctp_header_len(const struct packet *packet)
+{
+	assert(packet->sctp);
+	return sizeof(struct sctp_common_header);
 }
 
 /* Return the length of the TCP header, including options. */
@@ -288,6 +301,8 @@ static inline void packet_set_tcp_ts_ecr(struct packet *packet, u32 ts_ecr)
 /* Return a pointer to the TCP/UDP data payload. */
 static inline u8 *packet_payload(struct packet *packet)
 {
+	if (packet->sctp)
+		return ((u8 *) packet->sctp) + packet_sctp_header_len(packet);
 	if (packet->tcp)
 		return ((u8 *) packet->tcp) + packet_tcp_header_len(packet);
 	if (packet->udp)
@@ -295,7 +310,7 @@ static inline u8 *packet_payload(struct packet *packet)
 	if (packet->udplite)
 		return ((u8 *) packet->udplite) +
 		       packet_udplite_header_len(packet);
-	assert(!"no valid payload; not TCP or UDP or UDPLite!?");
+	assert(!"no valid payload; not SCTP or TCP or UDP or UDPLite!?");
 	return NULL;
 }
 
@@ -360,12 +375,22 @@ static inline int packet_echoed_ip_protocol(struct packet *packet)
 	return 0;
 }
 
-/* Return the location of the TCP or UDP header echoed by an ICMP message. */
+/* Return the location of the transport header echoed by an ICMP message. */
 static inline u8 *packet_echoed_layer4_header(struct packet *packet)
 {
 	u8 *echoed_ip = packet_echoed_ip_header(packet);
 	int ip_header_len = packet_echoed_ip_header_len(packet);
 	return echoed_ip + ip_header_len;
+}
+
+/* Return the location of the SCTP common header echoed by an ICMP message. */
+static inline struct sctp_common_header *
+packet_echoed_sctp_header(struct packet *packet)
+{
+	if (packet_echoed_ip_protocol(packet) == IPPROTO_SCTP)
+		return (struct sctp_common_header *)
+		       (packet_echoed_layer4_header(packet));
+	return NULL;
 }
 
 /* Return the location of the TCP header echoed by an ICMP message. */

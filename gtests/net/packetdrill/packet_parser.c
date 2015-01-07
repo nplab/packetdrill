@@ -210,7 +210,14 @@ static int parse_ipv4(struct packet *packet, u8 *header_start, u8 *packet_end,
 	}
 	const u16 checksum = ipv4_checksum(ipv4, ip_header_bytes);
 	if (checksum != 0) {
-		asprintf(error, "Bad IP checksum");
+		u16 received_checksum, computed_checksum;
+
+		received_checksum = ntohs(ipv4->check);
+		ipv4->check = 0;
+		computed_checksum = ntohs(ipv4_checksum(ipv4, ip_header_bytes));
+		ipv4->check = htons(received_checksum);
+		asprintf(error, "Bad IP checksum 0x%04x (expected 0x%04x)",
+			 received_checksum, computed_checksum);
 		goto error_out;
 	}
 
@@ -321,6 +328,49 @@ static int parse_ipv6(struct packet *packet, u8 *header_start, u8 *packet_end,
 		packet->ip_bytes = ip_total_bytes;
 
 	return result;
+
+error_out:
+	return PACKET_BAD;
+}
+
+/* Parse the SCTP header. Return a packet_parse_result_t. */
+static int parse_sctp(struct packet *packet, u8 *layer4_start, int layer4_bytes,
+		      u8 *packet_end, char **error)
+{
+	u32 received_crc32c, computed_crc32c;
+	struct header *sctp_header = NULL;
+	u8 *p = layer4_start;
+
+	assert(layer4_bytes >= 0);
+	if (layer4_bytes < sizeof(struct sctp_common_header)) {
+		asprintf(error, "Truncated SCTP common header");
+		goto error_out;
+	}
+	packet->sctp = (struct sctp_common_header *) p;
+
+	received_crc32c = ntohl(packet->sctp->crc32c);
+	packet->sctp->crc32c = htonl(0);
+	computed_crc32c = ntohl(sctp_crc32c(packet->sctp, layer4_bytes));
+	packet->sctp->crc32c = htonl(received_crc32c);
+	if (received_crc32c != computed_crc32c) {
+		asprintf(error, "Bad SCTP checksum 0x%08x (expected 0x%08x)",
+			 received_crc32c, computed_crc32c);
+		goto error_out;
+	}
+	const int sctp_header_len = sizeof(struct sctp_common_header);
+	sctp_header = packet_append_header(packet, HEADER_SCTP,
+					   sctp_header_len);
+	if (sctp_header == NULL) {
+		asprintf(error, "Too many nested headers at SCTP header");
+		goto error_out;
+	}
+	sctp_header->total_bytes = layer4_bytes;
+	p += layer4_bytes;
+	assert(p <= packet_end);
+
+	DEBUGP("SCTP src port: %d\n", ntohs(packet->sctp->src_port));
+	DEBUGP("SCTP dst port: %d\n", ntohs(packet->sctp->dst_port));
+	return PACKET_OK;
 
 error_out:
 	return PACKET_BAD;
@@ -626,7 +676,11 @@ static int parse_layer4(struct packet *packet, u8 *layer4_start,
 			int layer4_protocol, int layer4_bytes,
 			u8 *packet_end, bool *is_inner, char **error)
 {
-	if (layer4_protocol == IPPROTO_TCP) {
+	if (layer4_protocol == IPPROTO_SCTP) {
+		*is_inner = true;	/* found inner-most layer 4 */
+		return parse_sctp(packet, layer4_start, layer4_bytes,
+				  packet_end, error);
+	} else if (layer4_protocol == IPPROTO_TCP) {
 		*is_inner = true;	/* found inner-most layer 4 */
 		return parse_tcp(packet, layer4_start, layer4_bytes, packet_end,
 				 error);
