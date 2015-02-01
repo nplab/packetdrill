@@ -1,5 +1,6 @@
 /*
  * Copyright 2013 Google Inc.
+ * Copyright 2015 Michael Tuexen
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,7 +18,7 @@
  * 02110-1301, USA.
  */
 /*
- * Author: ncardwell@google.com (Neal Cardwell)
+ * Author: tuexen@fh-muenster.de (Michael Tuexen)
  *
  * Implementation for module to allow iteration over SCTP chunks and
  * parameters in wire format.
@@ -80,7 +81,10 @@ struct sctp_chunk *sctp_chunks_next(struct sctp_chunks_iterator *iter,
 	assert(chunk_length >= sizeof(struct sctp_chunk));
 	assert(padding_length < 4);
 	iter->current_chunk += chunk_length;
-	iter->current_chunk += padding_length;
+	if (iter->packet_end - iter->current_chunk < padding_length)
+		iter->current_chunk = iter->packet_end;
+	else
+		iter->current_chunk += padding_length;
 	return get_current_chunk(iter, error);
 }
 
@@ -139,7 +143,10 @@ sctp_parameters_next(struct sctp_parameters_iterator *iter,
 	assert(parameter_length >= sizeof(struct sctp_parameter));
 	assert(padding_length < 4);
 	iter->current_parameter += parameter_length;
-	iter->current_parameter += padding_length;
+	if (iter->end - iter->current_parameter < padding_length)
+		iter->current_parameter = iter->end;
+	else
+		iter->current_parameter += padding_length;
 	return get_current_parameter(iter, error);
 }
 
@@ -195,6 +202,9 @@ struct sctp_cause *sctp_causes_next(struct sctp_causes_iterator *iter,
 	assert(cause_length >= sizeof(struct sctp_cause));
 	assert(padding_length < 4);
 	iter->current_cause += cause_length;
-	iter->current_cause += padding_length;
+	if (iter->chunk_end - iter->current_cause < padding_length)
+		iter->current_cause = iter->chunk_end;
+	else
+		iter->current_cause += padding_length;
 	return get_current_cause(iter, error);
 }
