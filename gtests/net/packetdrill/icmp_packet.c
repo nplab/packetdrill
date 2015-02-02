@@ -357,8 +357,8 @@ struct packet *new_icmp_packet(int address_family,
 		*seq = htonl(tcp_start_sequence);
 	}
 	if (protocol == IPPROTO_UDP) {
-		u16 *cov = packet_echoed_udp_len(packet);
-		*cov = htons(payload_bytes + sizeof(struct udp));
+		u16 *len = packet_echoed_udp_len(packet);
+		*len = htons(payload_bytes + sizeof(struct udp));
 	}
 	if (protocol == IPPROTO_UDPLITE) {
 		u16 *cov = packet_echoed_udplite_cov(packet);
