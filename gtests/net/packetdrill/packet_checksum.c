@@ -45,7 +45,11 @@ static void checksum_ipv4_packet(struct packet *packet)
 	assert(l4_bytes > 0);
 
 	/* Fill in IPv4-based layer 4 checksum. */
-	if (packet->tcp != NULL) {
+	if (packet->sctp != NULL) {
+		struct sctp_common_header *sctp = packet->sctp;
+		sctp->crc32c = 0;
+		sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+	} else if (packet->tcp != NULL) {
 		struct tcp *tcp = packet->tcp;
 		tcp->check = 0;
 		tcp->check = tcp_udp_v4_checksum(ipv4->src_ip,
@@ -75,7 +79,7 @@ static void checksum_ipv4_packet(struct packet *packet)
 		icmpv4->checksum = 0;
 		icmpv4->checksum = ipv4_checksum(icmpv4, l4_bytes);
 	} else {
-		assert(!"not TCP or UDP or UDPLite or ICMP");
+		assert(!"not SCTP or TCP or UDP or UDPLite or ICMP");
 	}
 }
 
@@ -92,7 +96,11 @@ static void checksum_ipv6_packet(struct packet *packet)
 	assert(l4_bytes > 0);
 
 	/* Fill in IPv6-based layer 4 checksum. */
-	if (packet->tcp != NULL) {
+	if (packet->sctp != NULL) {
+		struct sctp_common_header *sctp = packet->sctp;
+		sctp->crc32c = 0;
+		sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+	} else if (packet->tcp != NULL) {
 		struct tcp *tcp = packet->tcp;
 		tcp->check = 0;
 		tcp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
