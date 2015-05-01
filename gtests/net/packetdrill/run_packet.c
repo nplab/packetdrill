@@ -39,6 +39,8 @@
 #include "packet_to_string.h"
 #include "run.h"
 #include "script.h"
+#include "sctp_iterator.h"
+#include "sctp_packet.h"
 #include "tcp_options_iterator.h"
 #include "tcp_options_to_string.h"
 #include "tcp_packet.h"
@@ -146,6 +148,7 @@ static struct socket *find_socket_for_live_packet(
 	enum direction_t *direction)
 {
 	struct socket *socket = state->socket_under_test;	/* shortcut */
+
 	if (socket == NULL)
 		return NULL;
 
@@ -188,6 +191,8 @@ static struct socket *handle_listen_for_script_packet(
 	 */
 	struct config *config = state->config;
 	struct socket *socket = state->socket_under_test;	/* shortcut */
+	struct sctp_init_chunk *init;
+	struct sctp_chunk_list_item *item;
 
 	bool match = (direction == DIRECTION_INBOUND);
 	if (!match)
@@ -206,6 +211,17 @@ static struct socket *handle_listen_for_script_packet(
 	if (!match)
 		return NULL;
 
+	if (packet->sctp != NULL) {
+		assert(packet->chunk_list != NULL);
+		item = packet->chunk_list->first;
+		if ((item != NULL) &&
+		    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+			init = (struct sctp_init_chunk *)item->chunk;
+		} else {
+			return NULL;
+		}
+	}
+
 	/* Create a child passive socket for this incoming SYN packet.
 	 * Any further packets in the test script will be directed to
 	 * this child socket.
@@ -222,7 +238,12 @@ static struct socket *handle_listen_for_script_packet(
 	get_packet_tuple(packet, &tuple);
 	socket->script.remote		= tuple.src;
 	socket->script.local		= tuple.dst;
-	socket->script.remote_isn	= ntohl(packet->tcp->seq);
+	if (packet->tcp != NULL) {
+		socket->script.remote_isn = ntohl(packet->tcp->seq);
+	} else {
+		socket->script.remote_initiate_tag = ntohl(init->initiate_tag);
+		socket->script.remote_initial_tsn = ntohl(init->initial_tsn);
+	}
 	socket->script.fd		= -1;
 
 	/* Set up the live info for this socket based
@@ -232,7 +253,12 @@ static struct socket *handle_listen_for_script_packet(
 	socket->live.remote.port	= htons(next_ephemeral_port(state));
 	socket->live.local.ip		= config->live_local_ip;
 	socket->live.local.port		= htons(config->live_bind_port);
-	socket->live.remote_isn		= ntohl(packet->tcp->seq);
+	if (packet->tcp != NULL) {
+		socket->live.remote_isn = ntohl(packet->tcp->seq);
+	} else {
+		socket->live.remote_initiate_tag = ntohl(init->initiate_tag);
+		socket->live.remote_initial_tsn = ntohl(init->initial_tsn);
+	}
 	socket->live.fd			= -1;
 
 	if (DEBUG_LOGGING) {
@@ -244,7 +270,12 @@ static struct socket *handle_listen_for_script_packet(
 		DEBUGP("live: remote: %s.%d\n",
 		       ip_to_string(&socket->live.remote.ip, remote_string),
 		       ntohs(socket->live.remote.port));
-		DEBUGP("live: ISN: %u\n", socket->live.remote_isn);
+		if (packet->tcp != NULL) {
+			DEBUGP("live: ISN: %u\n", socket->live.remote_isn);
+		} else {
+			DEBUGP("live: initiate tag: %u\n", socket->live.remote_initiate_tag);
+			DEBUGP("live: initial tsn: %u\n", socket->live.remote_initial_tsn);
+		}
 	}
 
 	return socket;
@@ -266,9 +297,28 @@ static struct socket *handle_connect_for_script_packet(
 	 */
 	struct config *config = state->config;
 	struct socket *socket = state->socket_under_test;	/* shortcut */
+	struct sctp_init_chunk *init;
+	struct sctp_chunk_list_item *item;
+	bool match;
 
-	bool match = ((direction == DIRECTION_OUTBOUND) &&
-		      packet->tcp->syn && !packet->tcp->ack);
+	DEBUGP("handle_connect_for_script_packet\n");
+	assert(packet->tcp != NULL || packet->sctp != NULL);
+	if (direction != DIRECTION_OUTBOUND)
+		return NULL;
+	if (packet->tcp != NULL) {
+		match = (packet->tcp->syn && !packet->tcp->ack);
+	} else {
+		assert(packet->chunk_list != NULL);
+		item = packet->chunk_list->first;
+		if ((item != NULL) &&
+		    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+			init = (struct sctp_init_chunk *)item->chunk;
+			match = true;
+		} else {
+			init = NULL;
+			match = false;
+		}
+	}
 	if (!match)
 		return NULL;
 
@@ -306,11 +356,17 @@ static struct socket *handle_connect_for_script_packet(
 	/* Fill in the new info about this connection. */
 	struct tuple tuple;
 	get_packet_tuple(packet, &tuple);
-	socket->state			= SOCKET_ACTIVE_SYN_SENT;
 	socket->script.remote		= tuple.dst;
 	socket->script.local		= tuple.src;
-	socket->script.local_isn	= ntohl(packet->tcp->seq);
-
+	if (packet->tcp) {
+		socket->state = SOCKET_ACTIVE_SYN_SENT;
+		socket->script.local_isn = ntohl(packet->tcp->seq);
+	} else {
+		DEBUGP("Moving socket in SOCKET_ACTIVE_INIT_SENT\n");
+		socket->state = SOCKET_ACTIVE_INIT_SENT;
+		socket->script.local_initial_tsn = ntohl(init->initial_tsn);
+		socket->script.local_initiate_tag = ntohl(init->initiate_tag);
+	}
 	return socket;
 }
 
@@ -319,7 +375,13 @@ static struct socket *find_connect_for_live_packet(
 	struct state *state, struct packet *packet,
 	enum direction_t *direction)
 {
+	struct sctp_chunks_iterator iter;
+	struct sctp_chunk *chunk;
+	struct sctp_init_chunk *init;
 	struct tuple tuple;
+	char *error;
+
+	DEBUGP("find_connect_for_live_packet\n");
 	get_packet_tuple(packet, &tuple);
 
 	*direction = DIRECTION_INVALID;
@@ -327,6 +389,14 @@ static struct socket *find_connect_for_live_packet(
 	if (!socket)
 		return NULL;
 
+	bool is_sctp_match =
+		(packet->sctp &&
+		 (socket->protocol == IPPROTO_SCTP) &&
+		 (socket->state == SOCKET_ACTIVE_INIT_SENT));
+	bool is_tcp_match =
+		(packet->tcp && packet->tcp->syn && !packet->tcp->ack &&
+		 (socket->protocol == IPPROTO_TCP) &&
+		 (socket->state == SOCKET_ACTIVE_SYN_SENT));
 	bool is_udp_match =
 		(packet->udp &&
 		 (socket->protocol == IPPROTO_UDP) &&
@@ -335,11 +405,8 @@ static struct socket *find_connect_for_live_packet(
 		(packet->udplite &&
 		 (socket->protocol == IPPROTO_UDPLITE) &&
 		 (socket->state == SOCKET_ACTIVE_CONNECTING));
-	bool is_tcp_match =
-		(packet->tcp && packet->tcp->syn && !packet->tcp->ack &&
-		 (socket->protocol == IPPROTO_TCP) &&
-		 (socket->state == SOCKET_ACTIVE_SYN_SENT));
-	if (!is_udp_match && !is_tcp_match && !is_udplite_match)
+	if (!is_sctp_match && !is_tcp_match &&
+	    !is_udp_match && !is_udplite_match)
 		return NULL;
 
 	if (!is_equal_ip(&tuple.dst.ip, &socket->live.remote.ip) ||
@@ -356,6 +423,17 @@ static struct socket *find_connect_for_live_packet(
 
 	if (packet->tcp)
 		socket->live.local_isn	= ntohl(packet->tcp->seq);
+	if (packet->sctp) {
+		error = NULL;
+		chunk = sctp_chunks_begin(packet, &iter, &error);
+		if ((error == NULL) &&
+		    (chunk != NULL) &&
+		    (chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+			init = (struct sctp_init_chunk *)chunk;
+			socket->live.local_initiate_tag = ntohl(init->initiate_tag);
+			socket->live.local_initial_tsn = ntohl(init->initial_tsn);
+		}
+	}
 
 	return socket;
 }
@@ -482,6 +560,85 @@ static int map_inbound_icmp_packet(
 	return STATUS_ERR;
 }
 
+static int map_inbound_sctp_packet(
+	struct socket *socket, struct packet *live_packet, char **error)
+{
+	struct sctp_chunks_iterator iter;
+	struct sctp_chunk *chunk;
+	struct sctp_data_chunk *data;
+	struct sctp_init_chunk *init;
+	struct sctp_init_ack_chunk *init_ack;
+	struct sctp_sack_chunk *sack;
+	struct sctp_shutdown_chunk *shutdown;
+	struct sctp_ecne_chunk *ecne;
+	struct sctp_cwr_chunk *cwr;
+	u32 local_diff, remote_diff;
+	u16 nr_gap_blocks, nr_dup_tsns, i;
+
+	live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+	for (chunk = sctp_chunks_begin(live_packet, &iter, error);
+	     chunk != NULL;
+	     chunk = sctp_chunks_next(&iter, error)) {
+		if (*error != NULL) {
+			return STATUS_ERR;
+		}
+		DEBUGP("live remote tsn %d, scripte remote tsn %d\n",
+		       socket->live.remote_initial_tsn, socket->script.remote_initial_tsn);
+		DEBUGP("live local tsn %d, scripte local tsn %d\n",
+		       socket->live.local_initial_tsn, socket->script.local_initial_tsn);
+		remote_diff = socket->live.remote_initial_tsn - socket->script.remote_initial_tsn;
+		local_diff = socket->live.local_initial_tsn - socket->script.local_initial_tsn;
+		switch (chunk->type) {
+		case SCTP_DATA_CHUNK_TYPE:
+			data = (struct sctp_data_chunk *)chunk;
+			data->tsn = htonl(ntohl(data->tsn) + remote_diff);
+			break;
+		case SCTP_INIT_CHUNK_TYPE:
+			init = (struct sctp_init_chunk *)chunk;
+			init->initial_tsn = htonl(ntohl(init->initial_tsn) + remote_diff);
+			/* XXX: Does this work in all cases? */
+			if (ntohl(init->initiate_tag) == socket->script.local_initiate_tag) {
+				init->initiate_tag = htonl(socket->live.local_initiate_tag);
+			}
+			break;
+		case SCTP_INIT_ACK_CHUNK_TYPE:
+			init_ack = (struct sctp_init_ack_chunk *)chunk;
+			init_ack->initial_tsn = htonl(ntohl(init_ack->initial_tsn) + remote_diff);
+			/* XXX: Does this work in all cases? */
+			if (ntohl(init_ack->initiate_tag) == socket->script.local_initiate_tag) {
+				init_ack->initiate_tag = htonl(socket->live.local_initiate_tag);
+			}
+			break;
+		case SCTP_SACK_CHUNK_TYPE:
+			sack = (struct sctp_sack_chunk *)chunk;
+			DEBUGP("Old SACK cum TSN %d\n", ntohl(sack->cum_tsn));
+			sack->cum_tsn = htonl(ntohl(sack->cum_tsn) + local_diff);
+			DEBUGP("New SACK cum TSN %d\n", ntohl(sack->cum_tsn));
+			nr_gap_blocks = ntohs(sack->nr_gap_blocks);
+			nr_dup_tsns = ntohs(sack->nr_dup_tsns);
+			for (i = 0; i < nr_dup_tsns; i++) {
+				sack->block[i].tsn = htonl(ntohl(sack->block[i].tsn) + local_diff);
+			}
+			break;
+		case SCTP_SHUTDOWN_CHUNK_TYPE:
+			shutdown = (struct sctp_shutdown_chunk *)chunk;
+			shutdown->cum_tsn = htonl(ntohl(shutdown->cum_tsn) + local_diff);
+			break;
+		case SCTP_ECNE_CHUNK_TYPE:
+			ecne = (struct sctp_ecne_chunk *)chunk;
+			ecne->lowest_tsn = htonl(ntohl(ecne->lowest_tsn) + local_diff);
+			break;
+		case SCTP_CWR_CHUNK_TYPE:
+			cwr = (struct sctp_cwr_chunk *)chunk;
+			cwr->lowest_tsn = htonl(ntohl(cwr->lowest_tsn) + local_diff);
+			break;
+		default:
+			break;
+		}
+	}
+	return STATUS_OK;
+}
+
 /* Rewrite the IP and TCP, UDP, or ICMP fields in 'live_packet', mapping
  * inbound packet values (address 4-tuple and sequence numbers in seq,
  * ACK, SACK blocks) from script values to live values, so that we can
@@ -501,6 +658,10 @@ static int map_inbound_packet(
 
 	if ((live_packet->icmpv4 != NULL) || (live_packet->icmpv6 != NULL))
 		return map_inbound_icmp_packet(socket, live_packet, error);
+
+	if (live_packet->sctp) {
+		return map_inbound_sctp_packet(socket, live_packet, error);
+	}
 
 	/* If no TCP headers to rewrite, then we're done. */
 	if (live_packet->tcp == NULL)
@@ -547,6 +708,85 @@ static int map_inbound_packet(
 	return STATUS_OK;
 }
 
+static int map_outbound_live_sctp_packet(
+	struct socket *socket,
+	struct packet *live_packet,
+	struct packet *actual_packet,
+	struct packet *script_packet,
+	char **error)
+{
+	struct sctp_chunks_iterator iter;
+	struct sctp_chunk *chunk;
+	struct sctp_data_chunk *data;
+	struct sctp_init_chunk *init;
+	struct sctp_init_ack_chunk *init_ack;
+	struct sctp_sack_chunk *sack;
+	struct sctp_shutdown_chunk *shutdown;
+	struct sctp_ecne_chunk *ecne;
+	struct sctp_cwr_chunk *cwr;
+	u32 local_diff, remote_diff;
+	u16 nr_gap_blocks, nr_dup_tsns, i;
+
+	/* FIXME: transform v-tag in the common header*/
+	DEBUGP("map_outbound_live_sctp_packet\n");
+	for (chunk = sctp_chunks_begin(actual_packet, &iter, error);
+	     chunk != NULL;
+	     chunk = sctp_chunks_next(&iter, error)) {
+		if (*error != NULL) {
+			return STATUS_ERR;
+		}
+		local_diff = socket->script.local_initial_tsn - socket->live.local_initial_tsn;
+		remote_diff = socket->script.remote_initial_tsn - socket->live.remote_initial_tsn;
+		DEBUGP("Chunk type: 0x%02x\n", chunk->type);
+		switch (chunk->type) {
+		case SCTP_DATA_CHUNK_TYPE:
+			data = (struct sctp_data_chunk *)chunk;
+			data->tsn = htonl(ntohl(data->tsn) + local_diff);
+			break;
+		case SCTP_INIT_CHUNK_TYPE:
+			init = (struct sctp_init_chunk *)chunk;
+			init->initial_tsn = htonl(ntohl(init->initial_tsn) + local_diff);
+			/* XXX: Does this work in all cases? */
+			if (ntohl(init->initiate_tag) == socket->live.local_initiate_tag) {
+				init->initiate_tag = htonl(socket->script.local_initiate_tag);
+			}
+			break;
+		case SCTP_INIT_ACK_CHUNK_TYPE:
+			init_ack = (struct sctp_init_ack_chunk *)chunk;
+			init_ack->initial_tsn = htonl(ntohl(init_ack->initial_tsn) + local_diff);
+			/* XXX: Does this work in all cases? */
+			if (ntohl(init_ack->initiate_tag) == socket->live.local_initiate_tag) {
+				init_ack->initiate_tag = htonl(socket->script.local_initiate_tag);
+			}
+			break;
+		case SCTP_SACK_CHUNK_TYPE:
+			sack = (struct sctp_sack_chunk *)chunk;
+			sack->cum_tsn = htonl(ntohl(sack->cum_tsn) + remote_diff);
+			nr_gap_blocks = ntohs(sack->nr_gap_blocks);
+			nr_dup_tsns = ntohs(sack->nr_dup_tsns);
+			for (i = 0; i < nr_dup_tsns; i++) {
+				sack->block[i].tsn = htonl(ntohl(sack->block[i].tsn) + remote_diff);
+			}
+			break;
+		case SCTP_SHUTDOWN_CHUNK_TYPE:
+			shutdown = (struct sctp_shutdown_chunk *)chunk;
+			shutdown->cum_tsn = htonl(ntohl(shutdown->cum_tsn) + remote_diff);
+			break;
+		case SCTP_ECNE_CHUNK_TYPE:
+			ecne = (struct sctp_ecne_chunk *)chunk;
+			ecne->lowest_tsn = htonl(ntohl(ecne->lowest_tsn) + remote_diff);
+			break;
+		case SCTP_CWR_CHUNK_TYPE:
+			cwr = (struct sctp_cwr_chunk *)chunk;
+			cwr->lowest_tsn = htonl(ntohl(cwr->lowest_tsn) + remote_diff);
+			break;
+		default:
+			break;
+		}
+	}
+	return STATUS_OK;
+}
+
 /* Transforms values in the 'actual_packet' by mapping outbound packet
  * values in the sniffed 'live_packet' (address 4-tuple, sequence
  * number in seq, timestamp value) from live values to script values
@@ -572,6 +812,10 @@ static int map_outbound_live_packet(
 	/* Rewrite 4-tuple to be outbound script values. */
 	socket_get_outbound(&socket->script, &script_outbound);
 	set_packet_tuple(actual_packet, &script_outbound);
+
+	if (live_packet->sctp) {
+		return map_outbound_live_sctp_packet(socket, live_packet, actual_packet, script_packet, error);
+	}
 
 	/* If no TCP headers to rewrite, then we're done. */
 	if (live_packet->tcp == NULL)
@@ -718,13 +962,27 @@ static int verify_ipv4(
 			actual_ipv4->protocol, error) ||
 	    check_field("ipv4_header_length",
 			script_ipv4->ihl,
-			actual_ipv4->ihl, error) ||
-	    check_field("ipv4_total_length",
-			(ntohs(script_ipv4->tot_len) +
-			 tcp_options_allowance(actual_packet,
-					       script_packet)),
-			ntohs(actual_ipv4->tot_len), error))
+			actual_ipv4->ihl, error))
 		return STATUS_ERR;
+	switch (script_ipv4->protocol) {
+	case IPPROTO_SCTP:
+		/* FIXME */;
+		break;
+	case IPPROTO_TCP:
+		if (check_field("ipv4_total_length",
+				(ntohs(script_ipv4->tot_len) +
+				tcp_options_allowance(actual_packet,
+						      script_packet)),
+				ntohs(actual_ipv4->tot_len), error))
+			return STATUS_ERR;
+		break;
+	default:
+		if (check_field("ipv4_total_length",
+				ntohs(script_ipv4->tot_len),
+				ntohs(actual_ipv4->tot_len), error))
+			return STATUS_ERR;
+		break;
+	}
 
 	if (verify_outbound_live_ecn(script_packet->ecn,
 				     ipv4_ecn_bits(actual_ipv4),
@@ -763,6 +1021,465 @@ static int verify_ipv6(
 				     error))
 		return STATUS_ERR;
 
+	return STATUS_OK;
+}
+
+static int verify_data_chunk(struct sctp_data_chunk *actual_chunk,
+                             struct sctp_data_chunk *script_chunk,
+                             u32 flags, char **error)
+{
+	if (check_field("sctp_data_chunk_tsn",
+		        ntohl(script_chunk->tsn),
+		        ntohl(actual_chunk->tsn),
+		        error) ||
+	    (flags & FLAG_DATA_CHUNK_SID_NOCHECK ? STATUS_OK :
+	        check_field("sctp_data_chunk_sid",
+		            ntohs(script_chunk->sid),
+		            ntohs(actual_chunk->sid),
+		            error)) ||
+	    (flags & FLAG_DATA_CHUNK_SSN_NOCHECK? STATUS_OK :
+		check_field("sctp_data_chunk_ssn",
+		            ntohs(script_chunk->ssn),
+		            ntohs(actual_chunk->ssn),
+		            error)) ||
+	    (flags & FLAG_DATA_CHUNK_PPID_NOCHECK? STATUS_OK :
+		check_field("sctp_data_chunk_ppid",
+		            ntohl(script_chunk->ppid),
+		            ntohl(actual_chunk->ppid),
+		            error))) {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+static int verify_init_chunk(struct sctp_init_chunk *actual_chunk,
+                             struct sctp_init_chunk *script_chunk,
+                             u32 flags, char **error)
+{
+	if (check_field("sctp_init_chunk_tag",
+		        ntohl(script_chunk->initiate_tag),
+		        ntohl(actual_chunk->initiate_tag),
+		        error) ||
+	    (flags & FLAG_INIT_CHUNK_A_RWND_NOCHECK ? STATUS_OK :
+	        check_field("sctp_init_chunk_a_rwnd",
+		            ntohl(script_chunk->a_rwnd),
+		            ntohl(actual_chunk->a_rwnd),
+		            error)) ||
+	    (flags & FLAG_INIT_CHUNK_OS_NOCHECK? STATUS_OK :
+		check_field("sctp_init_chunk_os",
+		            ntohs(script_chunk->os),
+		            ntohs(actual_chunk->os),
+		            error)) ||
+	    (flags & FLAG_INIT_CHUNK_IS_NOCHECK? STATUS_OK :
+		check_field("sctp_init_chunk_is",
+		            ntohs(script_chunk->is),
+		            ntohs(actual_chunk->is),
+		            error)) ||
+	    check_field("sctp_init_chunk_tsn",
+		        ntohl(script_chunk->initial_tsn),
+		        ntohl(actual_chunk->initial_tsn),
+		        error)) {
+		return STATUS_ERR;
+	}
+	/* FIXME: Validate parameters */
+	return STATUS_OK;
+}
+
+static int verify_init_ack_chunk(struct sctp_init_ack_chunk *actual_chunk,
+                                 struct sctp_init_ack_chunk *script_chunk,
+                                 u32 flags, char **error)
+{
+	if (check_field("sctp_init_ack_chunk_tag",
+		        ntohl(script_chunk->initiate_tag),
+		        ntohl(actual_chunk->initiate_tag),
+		        error) ||
+	    (flags & FLAG_INIT_ACK_CHUNK_A_RWND_NOCHECK ? STATUS_OK :
+	        check_field("sctp_init_ack_chunk_a_rwnd",
+		            ntohl(script_chunk->a_rwnd),
+		            ntohl(actual_chunk->a_rwnd),
+		            error)) ||
+	    (flags & FLAG_INIT_ACK_CHUNK_OS_NOCHECK? STATUS_OK :
+		check_field("sctp_init_ack_chunk_os",
+		            ntohs(script_chunk->os),
+		            ntohs(actual_chunk->os),
+		            error)) ||
+	    (flags & FLAG_INIT_ACK_CHUNK_IS_NOCHECK? STATUS_OK :
+		check_field("sctp_init_ack_chunk_is",
+		            ntohs(script_chunk->is),
+		            ntohs(actual_chunk->is),
+		            error)) ||
+	    check_field("sctp_init_ack_chunk_tsn",
+		        ntohl(script_chunk->initial_tsn),
+		        ntohl(actual_chunk->initial_tsn),
+		        error)) {
+		return STATUS_ERR;
+	}
+	/* FIXME: Validate parameters */
+	return STATUS_OK;
+}
+
+static int verify_sack_chunk(struct sctp_sack_chunk *actual_chunk,
+                             struct sctp_sack_chunk *script_chunk,
+                             u32 flags, char **error)
+{
+	u16 actual_nr_gap_blocks, actual_nr_dup_tsns;
+	u16 script_nr_gap_blocks, script_nr_dup_tsns;
+	u16 i, actual_base, script_base;
+
+	actual_nr_gap_blocks = ntohs(actual_chunk->nr_gap_blocks);
+	actual_nr_dup_tsns = ntohs(actual_chunk->nr_dup_tsns);
+	script_nr_gap_blocks = ntohs(script_chunk->nr_gap_blocks);
+	script_nr_dup_tsns = ntohs(script_chunk->nr_dup_tsns);
+
+	if ((flags & FLAG_SACK_CHUNK_CUM_TSN_NOCHECK ? STATUS_OK :
+	        check_field("sctp_sack_chunk_cum_tsn",
+		            ntohl(script_chunk->cum_tsn),
+		            ntohl(actual_chunk->cum_tsn),
+		            error)) ||
+	    (flags & FLAG_SACK_CHUNK_A_RWND_NOCHECK ? STATUS_OK :
+	        check_field("sctp_sack_chunk_a_rwnd",
+		            ntohl(script_chunk->a_rwnd),
+		            ntohl(actual_chunk->a_rwnd),
+		            error)) ||
+	    (flags & FLAG_SACK_CHUNK_GAP_BLOCKS_NOCHECK? STATUS_OK :
+		check_field("sctp_sack_chunk_nr_gap_blocks",
+		            script_nr_gap_blocks,
+		            actual_nr_gap_blocks,
+		            error)) ||
+	    (flags & FLAG_SACK_CHUNK_DUP_TSNS_NOCHECK? STATUS_OK :
+		check_field("sctp_sack_chunk_nr_dup_tsns",
+		            script_nr_dup_tsns,
+		            actual_nr_dup_tsns,
+		            error))) {
+		return STATUS_ERR;
+	}
+
+	if ((flags & FLAG_SACK_CHUNK_GAP_BLOCKS_NOCHECK) == 0) {
+		for (i = 0; i < script_nr_gap_blocks; i++) {
+			if (check_field("sctp_sack_chunk_gap_block_start",
+		                        ntohs(script_chunk->block[i].gap.start),
+		                        ntohs(actual_chunk->block[i].gap.start),
+		                        error) ||
+		            check_field("sctp_sack_chunk_gap_block_end",
+		                        ntohs(script_chunk->block[i].gap.end),
+		                        ntohs(actual_chunk->block[i].gap.end),
+		                        error)) {
+				return STATUS_ERR;
+			}
+		}
+	}
+	if ((flags & FLAG_SACK_CHUNK_DUP_TSNS_NOCHECK) == 0) {
+		for (i = 0; i < script_nr_dup_tsns; i++) {
+			actual_base = actual_nr_gap_blocks;
+			if ((flags & FLAG_SACK_CHUNK_GAP_BLOCKS_NOCHECK) == 0) {
+				script_base = actual_nr_gap_blocks;
+			} else {
+				script_base = 0;
+			}
+			if (check_field("sctp_sack_chunk_dup_tsn",
+		                        ntohl(script_chunk->block[script_base + i].tsn),
+		                        ntohl(actual_chunk->block[actual_base + i].tsn),
+		                        error)) {
+				return STATUS_ERR;
+			}
+		}
+	}
+	return STATUS_OK;
+}
+
+static int verify_heartbeat_chunk(struct sctp_heartbeat_chunk *actual_chunk,
+                                  struct sctp_heartbeat_chunk *script_chunk,
+                                  u32 flags, char **error)
+{
+	u16 length;
+
+	if (flags & FLAG_CHUNK_VALUE_NOCHECK) {
+		return STATUS_OK;
+	} else {
+		assert((flags & FLAG_CHUNK_LENGTH_NOCHECK) == 0);
+		length = ntohs(actual_chunk->length);
+		assert(length >= sizeof(struct sctp_heartbeat_chunk));
+		if (memcmp(actual_chunk->value,
+		           script_chunk->value,
+		           length - sizeof(struct sctp_heartbeat_chunk)) == 0) {
+		        return STATUS_OK;
+		} else {
+			return STATUS_ERR;
+		}
+	}
+}
+
+static int verify_heartbeat_ack_chunk(struct sctp_heartbeat_ack_chunk *actual_chunk,
+                                      struct sctp_heartbeat_ack_chunk *script_chunk,
+                                      u32 flags, char **error)
+{
+	u16 length;
+
+	if (flags & FLAG_CHUNK_VALUE_NOCHECK) {
+		return STATUS_OK;
+	} else {
+		assert((flags & FLAG_CHUNK_LENGTH_NOCHECK) == 0);
+		length = ntohs(actual_chunk->length);
+		assert(length >= sizeof(struct sctp_heartbeat_ack_chunk));
+		if (memcmp(actual_chunk->value,
+		           script_chunk->value,
+		           length - sizeof(struct sctp_heartbeat_ack_chunk)) == 0) {
+		        return STATUS_OK;
+		} else {
+			return STATUS_ERR;
+		}
+	}
+}
+
+static int verify_abort_chunk(struct sctp_abort_chunk *actual_chunk,
+                              struct sctp_abort_chunk *script_chunk,
+                              u32 flags, char **error)
+{
+	/* FIXME: Validate causes */
+	return STATUS_OK;
+}
+
+static int verify_shutdown_chunk(struct sctp_shutdown_chunk *actual_chunk,
+                                 struct sctp_shutdown_chunk *script_chunk,
+                                 u32 flags, char **error)
+{
+	return (flags & FLAG_SHUTDOWN_CHUNK_CUM_TSN_NOCHECK) ? STATUS_OK :
+	        check_field("sctp_shutdown_chunk_cum_tsn",
+		            ntohl(script_chunk->cum_tsn),
+		            ntohl(actual_chunk->cum_tsn),
+		            error);
+}
+
+static int verify_shutdown_ack_chunk(struct sctp_shutdown_ack_chunk *actual_chunk,
+                                     struct sctp_shutdown_ack_chunk *script_chunk,
+                                     u32 flags, char **error)
+{
+	/* Nothing to check */
+	return STATUS_OK;
+}
+
+static int verify_error_chunk(struct sctp_error_chunk *actual_chunk,
+                              struct sctp_error_chunk *script_chunk,
+                              u32 flags, char **error)
+{
+	/* FIXME: Validate causes */
+	return STATUS_OK;
+}
+
+static int verify_cookie_echo_chunk(struct sctp_cookie_echo_chunk *actual_chunk,
+                                    struct sctp_cookie_echo_chunk *script_chunk,
+                                    u32 flags, char **error)
+{
+	u16 length;
+
+	if (flags & FLAG_CHUNK_VALUE_NOCHECK) {
+		return STATUS_OK;
+	} else {
+		assert((flags & FLAG_CHUNK_LENGTH_NOCHECK) == 0);
+		length = ntohs(actual_chunk->length);
+		assert(length >= sizeof(struct sctp_cookie_echo_chunk));
+		if (memcmp(actual_chunk->cookie,
+		           script_chunk->cookie,
+		           length - sizeof(struct sctp_cookie_echo_chunk)) == 0) {
+		        return STATUS_OK;
+		} else {
+			return STATUS_ERR;
+		}
+	}
+}
+
+static int verify_cookie_ack_chunk(struct sctp_cookie_ack_chunk *actual_chunk,
+                                   struct sctp_cookie_ack_chunk *script_chunk,
+                                   u32 flags, char **error)
+{
+	/* Nothing to check */
+	return STATUS_OK;
+}
+
+static int verify_ecne_chunk(struct sctp_ecne_chunk *actual_chunk,
+                             struct sctp_ecne_chunk *script_chunk,
+                             u32 flags, char **error)
+{
+	return (flags & FLAG_ECNE_CHUNK_LOWEST_TSN_NOCHECK ? STATUS_OK :
+	        check_field("sctp_ecne_chunk_lowest_tsn",
+		            ntohl(script_chunk->lowest_tsn),
+		            ntohl(actual_chunk->lowest_tsn),
+		            error));
+}
+
+static int verify_cwr_chunk(struct sctp_cwr_chunk *actual_chunk,
+                            struct sctp_cwr_chunk *script_chunk,
+                            u32 flags, char **error)
+{
+	return (flags & FLAG_CWR_CHUNK_LOWEST_TSN_NOCHECK ? STATUS_OK :
+	        check_field("sctp_cwr_chunk_lowest_tsn",
+		            ntohl(script_chunk->lowest_tsn),
+		            ntohl(actual_chunk->lowest_tsn),
+		            error));
+}
+
+static int verify_shutdown_complete_chunk(struct sctp_shutdown_complete_chunk *actual_chunk,
+                                          struct sctp_shutdown_complete_chunk *script_chunk,
+                                          u32 flags, char **error)
+{
+	/* Nothing to check */
+	return STATUS_OK;
+}
+
+/* Verify that required actual SCTP packet fields are as the script expected. */
+static int verify_sctp(
+	const struct packet *actual_packet,
+	const struct packet *script_packet,
+	int layer, char **error)
+{
+	struct sctp_chunks_iterator iter;
+	struct sctp_chunk *actual_chunk;
+	struct sctp_chunk *script_chunk;
+	struct sctp_chunk_list_item *script_chunk_item;
+	u32 flags;
+	int result;
+
+	DEBUGP("Verifying SCTP packet\n")
+	DEBUGP("script packet: src port %05u, dst port %05u, v-tag 0x%08x\n",
+	       ntohs(script_packet->sctp->src_port),
+	       ntohs(script_packet->sctp->dst_port),
+	       ntohl(script_packet->sctp->v_tag));
+	DEBUGP("actual packet: src port %05u, dst port %05u, v-tag 0x%08x\n",
+	       ntohs(actual_packet->sctp->src_port),
+	       ntohs(actual_packet->sctp->dst_port),
+	       ntohl(actual_packet->sctp->v_tag));
+	for (actual_chunk = sctp_chunks_begin((struct packet *)actual_packet, &iter, error),
+	     script_chunk_item = script_packet->chunk_list->first;
+	     actual_chunk != NULL && script_chunk_item != NULL;
+	     actual_chunk = sctp_chunks_next(&iter, error),
+	     script_chunk_item = script_chunk_item->next) {
+		if (*error != NULL) {
+			DEBUGP("Error during iteration\n");
+			return STATUS_ERR;
+		}
+		script_chunk = script_chunk_item->chunk;
+		flags = script_chunk_item->flags;
+		assert(script_chunk != NULL);
+		DEBUGP("script chunk: type %02d, flags 0x%02x, length %04d\n",
+		       script_chunk->type,
+		       script_chunk->flags,
+		       ntohs(script_chunk->length));
+		DEBUGP("actual chunk: type %02d, flags 0x%02x, length %04d\n",
+		       actual_chunk->type,
+		       actual_chunk->flags,
+		       ntohs(actual_chunk->length));
+		if (check_field("sctp_chunk_type",
+		                script_chunk->type,
+		                actual_chunk->type,
+		                error) ||
+		    (flags & FLAG_CHUNK_FLAGS_NOCHECK ? STATUS_OK :
+		        check_field("sctp_chunk_flags",
+		                    script_chunk->flags,
+		                    actual_chunk->flags,
+		                    error)) ||
+		    (flags & FLAG_CHUNK_LENGTH_NOCHECK ? STATUS_OK :
+		        check_field("sctp_chunk_length",
+		                    ntohs(script_chunk->length),
+		                    ntohs(actual_chunk->length),
+		                    error))) {
+			return STATUS_ERR;
+		}
+		switch (actual_chunk->type) {
+		case SCTP_DATA_CHUNK_TYPE:
+			result = verify_data_chunk((struct sctp_data_chunk *)actual_chunk,
+			                           (struct sctp_data_chunk *)script_chunk,
+			                           flags, error);
+			break;
+		case SCTP_INIT_CHUNK_TYPE:
+			result = verify_init_chunk((struct sctp_init_chunk *)actual_chunk,
+			                           (struct sctp_init_chunk *)script_chunk,
+			                           flags, error);
+			break;
+		case SCTP_INIT_ACK_CHUNK_TYPE:
+			result = verify_init_ack_chunk((struct sctp_init_ack_chunk *)actual_chunk,
+			                               (struct sctp_init_ack_chunk *)script_chunk,
+			                               flags, error);
+			break;
+		case SCTP_SACK_CHUNK_TYPE:
+			result = verify_sack_chunk((struct sctp_sack_chunk *)actual_chunk,
+			                           (struct sctp_sack_chunk *)script_chunk,
+			                           flags, error);
+			break;
+		case SCTP_HEARTBEAT_CHUNK_TYPE:
+			result = verify_heartbeat_chunk((struct sctp_heartbeat_chunk *)actual_chunk,
+			                                (struct sctp_heartbeat_chunk *)script_chunk,
+			                                flags, error);
+			break;
+		case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
+			result = verify_heartbeat_ack_chunk((struct sctp_heartbeat_ack_chunk *)actual_chunk,
+			                                    (struct sctp_heartbeat_ack_chunk *)script_chunk,
+			                                    flags, error);
+			break;
+		case SCTP_ABORT_CHUNK_TYPE:
+			result = verify_abort_chunk((struct sctp_abort_chunk *)actual_chunk,
+			                            (struct sctp_abort_chunk *)script_chunk,
+			                            flags, error);
+			break;
+		case SCTP_SHUTDOWN_CHUNK_TYPE:
+			result = verify_shutdown_chunk((struct sctp_shutdown_chunk *)actual_chunk,
+			                               (struct sctp_shutdown_chunk *)script_chunk,
+			                               flags, error);
+			break;
+		case SCTP_SHUTDOWN_ACK_CHUNK_TYPE:
+			result = verify_shutdown_ack_chunk((struct sctp_shutdown_ack_chunk *)actual_chunk,
+			                                   (struct sctp_shutdown_ack_chunk *)script_chunk,
+			                                   flags, error);
+			break;
+		case SCTP_ERROR_CHUNK_TYPE:
+			result = verify_error_chunk((struct sctp_error_chunk *)actual_chunk,
+			                            (struct sctp_error_chunk *)script_chunk,
+			                            flags, error);
+			break;
+		case SCTP_COOKIE_ECHO_CHUNK_TYPE:
+			result = verify_cookie_echo_chunk((struct sctp_cookie_echo_chunk *)actual_chunk,
+			                                  (struct sctp_cookie_echo_chunk *)script_chunk,
+			                                  flags, error);
+			break;
+		case SCTP_COOKIE_ACK_CHUNK_TYPE:
+			result = verify_cookie_ack_chunk((struct sctp_cookie_ack_chunk *)actual_chunk,
+			                                 (struct sctp_cookie_ack_chunk *)script_chunk,
+			                                 flags, error);
+			break;
+		case SCTP_ECNE_CHUNK_TYPE:
+			result = verify_ecne_chunk((struct sctp_ecne_chunk *)actual_chunk,
+			                           (struct sctp_ecne_chunk *)script_chunk,
+			                           flags, error);
+			break;
+		case SCTP_CWR_CHUNK_TYPE:
+			result = verify_cwr_chunk((struct sctp_cwr_chunk *)actual_chunk,
+			                          (struct sctp_cwr_chunk *)script_chunk,
+			                          flags, error);
+			break;
+		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
+			result = verify_shutdown_complete_chunk((struct sctp_shutdown_complete_chunk *)actual_chunk,
+			                                        (struct sctp_shutdown_complete_chunk *)script_chunk,
+			                                        flags, error);
+			break;
+		default:
+			result = STATUS_ERR;
+			assert(!"unsupported SCTP chunk type");
+			break;
+		}
+		if (result == STATUS_ERR) {
+			return STATUS_ERR;
+		}
+	}
+	if (actual_chunk != NULL) {
+		DEBUGP("actual packet contains more chunks than script packet\n");
+	}
+	if (script_chunk_item != NULL) {
+		DEBUGP("script packet contains more chunks than actual packet\n");
+	}
+	if ((actual_chunk != NULL) || (script_chunk_item != NULL)) {
+		asprintf(error,
+		         "live packet and expected packet have not the same number of chunks");
+		return STATUS_ERR;
+	}
 	return STATUS_OK;
 }
 
@@ -922,6 +1639,7 @@ static int verify_header(
 		[HEADER_IPV6]		= verify_ipv6,
 		[HEADER_GRE]		= verify_gre,
 		[HEADER_MPLS]		= verify_mpls,
+		[HEADER_SCTP]		= verify_sctp,
 		[HEADER_TCP]		= verify_tcp,
 		[HEADER_UDP]		= verify_udp,
 		[HEADER_UDPLITE]	= verify_udplite,
@@ -956,8 +1674,11 @@ static int verify_outbound_live_headers(
 	const int script_headers = packet_header_count(script_packet);
 	int i;
 
+	DEBUGP("verify_outbound_live_headers\n");
+
 	assert((actual_packet->ipv4 != NULL) || (actual_packet->ipv6 != NULL));
-	assert((actual_packet->tcp != NULL) ||
+	assert((actual_packet->sctp != NULL) ||
+	       (actual_packet->tcp != NULL) ||
 	       (actual_packet->udp != NULL) ||
 	       (actual_packet->udplite != NULL));
 
@@ -1044,6 +1765,8 @@ static int verify_outbound_live_payload(
 	struct packet *actual_packet,
 	struct packet *script_packet, char **error)
 {
+	if (actual_packet->sctp != NULL)
+		return STATUS_OK;
 	/* Diff the TCP/UDP data payloads. We've already implicitly
 	 * checked their length by checking the IP and TCP/UDP headers.
 	 */
@@ -1185,7 +1908,9 @@ static bool is_script_packet_match_for_socket(
 {
 	const bool is_packet_icmp = (packet->icmpv4 || packet->icmpv6);
 
-	if (socket->protocol == IPPROTO_TCP)
+	if (socket->protocol == IPPROTO_SCTP)
+		return packet->sctp || is_packet_icmp;
+	else if (socket->protocol == IPPROTO_TCP)
 		return packet->tcp || is_packet_icmp;
 	else if (socket->protocol == IPPROTO_UDP)
 		return packet->udp || is_packet_icmp;
@@ -1206,7 +1931,7 @@ static int find_or_create_socket_for_script_packet(
 
 	DEBUGP("find_or_create_socket_for_script_packet\n");
 
-	if (packet->tcp != NULL) {
+	if ((packet->tcp != NULL) || (packet->sctp != NULL)) {
 		/* Is this an inbound packet matching a listening
 		 * socket? If so, this call will create a new child
 		 * socket object.
@@ -1243,33 +1968,112 @@ static int do_outbound_script_packet(
 	struct state *state, struct packet *packet,
 	struct socket *socket,	char **error)
 {
-	DEBUGP("do_outbound_script_packet\n");
+	struct sctp_chunk_list_item *item;
+	struct sctp_chunks_iterator chunk_iter;
+	struct sctp_parameters_iterator param_iter;
+	struct sctp_chunk *chunk;
+	struct sctp_init_ack_chunk *init_ack;
+	struct sctp_cookie_echo_chunk *cookie_echo;
+	struct sctp_parameter *parameter;
+	struct sctp_state_cookie_parameter *state_cookie;
 	int result = STATUS_ERR;		/* return value */
 	struct packet *live_packet = NULL;
+	u16 cookie_length, chunk_length, parameter_length, parameters_length;
+	u16 padding_length;
 
+	DEBUGP("do_outbound_script_packet\n");
 	if ((packet->icmpv4 != NULL) || (packet->icmpv6 != NULL)) {
 		asprintf(error, "outbound ICMP packets are not supported");
 		goto out;
 	}
 
-	if ((socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) &&
-	    packet->tcp && packet->tcp->syn && packet->tcp->ack) {
-		/* Script says we should see an outbound server SYNACK. */
-		socket->script.local_isn = ntohl(packet->tcp->seq);
-		DEBUGP("SYNACK script.local_isn: %u\n",
-		       socket->script.local_isn);
+	if (socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) {
+		if (packet->tcp && packet->tcp->syn && packet->tcp->ack) {
+			/* Script says we should see an outbound server SYNACK. */
+			socket->script.local_isn = ntohl(packet->tcp->seq);
+			DEBUGP("SYNACK script.local_isn: %u\n",
+			       socket->script.local_isn);
+		}
+		if (packet->sctp) {
+			assert(packet->chunk_list != NULL);
+			item = packet->chunk_list->first;
+			if ((item != NULL) &&
+			    (item->chunk->type == SCTP_INIT_ACK_CHUNK_TYPE)) {
+				init_ack = (struct sctp_init_ack_chunk *)item->chunk;
+				socket->script.local_initiate_tag = ntohl(init_ack->initiate_tag);
+				socket->script.local_initial_tsn = ntohl(init_ack->initial_tsn);
+				DEBUGP("INIT_ACK: script.local_initiate_tag: %u\n",
+				       socket->script.local_initiate_tag);
+				DEBUGP("INIT_ACK: script.local_initial_tsn: %u\n",
+				       socket->script.local_initial_tsn);
+			}
+		}
 	}
 
 	/* Sniff outbound live packet and verify it's for the right socket. */
 	if (sniff_outbound_live_packet(state, socket, &live_packet, error))
 		goto out;
 
-	if ((socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) &&
-	    packet->tcp && packet->tcp->syn && packet->tcp->ack) {
-		socket->state = SOCKET_PASSIVE_SYNACK_SENT;
-		socket->live.local_isn = ntohl(live_packet->tcp->seq);
-		DEBUGP("SYNACK live.local_isn: %u\n",
-		       socket->live.local_isn);
+	if (socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) {
+		if (packet->tcp && packet->tcp->syn && packet->tcp->ack) {
+			socket->state = SOCKET_PASSIVE_SYNACK_SENT;
+			socket->live.local_isn = ntohl(live_packet->tcp->seq);
+			DEBUGP("SYNACK live.local_isn: %u\n",
+			       socket->live.local_isn);
+		}
+		if (live_packet->sctp) {
+			chunk = sctp_chunks_begin(live_packet, &chunk_iter, error);
+			if ((*error == NULL) &&
+			    (chunk != NULL) &&
+			    (chunk->type == SCTP_INIT_ACK_CHUNK_TYPE)) {
+				chunk_length = ntohs(chunk->length);
+				if (chunk_length < sizeof(struct sctp_init_ack_chunk)) {
+					asprintf(error, "INIT chunk too short (length=%u)", chunk_length);
+					goto out;
+				}
+				parameters_length = chunk_length - sizeof(struct sctp_init_chunk);
+				init_ack = (struct sctp_init_ack_chunk *)chunk;
+
+				for (parameter = sctp_parameters_begin(init_ack->parameter,
+				                                       parameters_length,
+				                                       &param_iter, error);
+				     parameter != NULL;
+				     parameter = sctp_parameters_next(&param_iter, error)) {
+					if (*error != NULL)
+						goto out;
+					if (ntohs(parameter->type) == SCTP_STATE_COOKIE_PARAMETER_TYPE) {
+						state_cookie = (struct sctp_state_cookie_parameter *)parameter;
+						parameter_length = ntohs(state_cookie->length);
+						if (parameter_length < sizeof(struct sctp_state_cookie_parameter)) {
+							asprintf(error, "State Cookie parameter too short (length=%u)", parameter_length);
+							goto out;
+						}
+						cookie_length = parameter_length - 4;
+						padding_length = cookie_length % 4;
+						if (padding_length > 0) {
+							padding_length = 4 - padding_length;
+						}
+						chunk_length = sizeof(struct sctp_cookie_echo_chunk) + cookie_length;
+						cookie_echo = (struct sctp_cookie_echo_chunk *)malloc(chunk_length + padding_length);
+						cookie_echo->type = SCTP_COOKIE_ECHO_CHUNK_TYPE;
+						cookie_echo->flags = 0;
+						cookie_echo->length = htons(chunk_length);
+						memcpy(cookie_echo->cookie, state_cookie->cookie, cookie_length);
+						memset(cookie_echo->cookie + cookie_length, 0, padding_length);
+						socket->prepared_state_cookie = cookie_echo;
+						socket->prepared_state_cookie_length = chunk_length + padding_length;
+						break;
+					}
+				}
+				socket->live.local_initiate_tag = ntohl(init_ack->initiate_tag);
+				socket->live.local_initial_tsn = ntohl(init_ack->initial_tsn);
+				socket->state = SOCKET_PASSIVE_INIT_ACK_SENT;
+				DEBUGP("INIT_ACK: live.local_initiate_tag: %u\n",
+				       socket->live.local_initiate_tag);
+				DEBUGP("INIT_ACK: live.local_initial_tsn: %u\n",
+				       socket->live.local_initial_tsn);
+			}
+		}
 	}
 
 	verbose_packet_dump(state, "outbound sniffed", live_packet,
@@ -1298,7 +2102,7 @@ static int send_live_ip_packet(struct netdev *netdev,
 	/* We do IPv4 and IPv6 */
 	assert(packet->ipv4 || packet->ipv6);
 	/* We only do TCP, UDP, UDPLite and ICMP */
-	assert(packet->tcp || packet->udp || packet->udplite ||
+	assert(packet->sctp || packet->tcp || packet->udp || packet->udplite ||
 	       packet->icmpv4 || packet->icmpv6);
 
 	/* Fill in layer 3 and layer 4 checksums */
@@ -1312,19 +2116,74 @@ static int do_inbound_script_packet(
 	struct state *state, struct packet *packet,
 	struct socket *socket,	char **error)
 {
-	DEBUGP("do_inbound_script_packet\n");
+	struct sctp_init_ack_chunk *init_ack;
+	struct sctp_chunk_list_item *item;
 	int result = STATUS_ERR;	/* return value */
+	u16 offset;
+	bool cooie_echo_replaced = false;
+	u16 i;
 
-	if ((socket->state == SOCKET_PASSIVE_SYNACK_SENT) &&
-	    packet->tcp && packet->tcp->ack) {
-		/* Received the ACK that completes the 3-way handshake. */
-		socket->state = SOCKET_PASSIVE_SYNACK_ACKED;
-	} else if ((socket->state == SOCKET_ACTIVE_SYN_SENT) &&
-		   packet->tcp && packet->tcp->syn && packet->tcp->ack) {
-		/* Received the server's SYNACK, which ACKs our SYN. */
-		socket->state = SOCKET_ACTIVE_SYN_ACKED;
-		socket->script.remote_isn	= ntohl(packet->tcp->seq);
-		socket->live.remote_isn		= ntohl(packet->tcp->seq);
+	DEBUGP("do_inbound_script_packet\n");
+	if (packet->tcp) {
+		if ((socket->state == SOCKET_PASSIVE_SYNACK_SENT) &&
+		    packet->tcp->ack) {
+			/* Received the ACK that completes the 3-way handshake. */
+			socket->state = SOCKET_PASSIVE_SYNACK_ACKED;
+		} else if ((socket->state == SOCKET_ACTIVE_SYN_SENT) &&
+		           packet->tcp->syn && packet->tcp->ack) {
+			/* Received the server's SYNACK, which ACKs our SYN. */
+			socket->state = SOCKET_ACTIVE_SYN_ACKED;
+			socket->script.remote_isn = ntohl(packet->tcp->seq);
+			socket->live.remote_isn = ntohl(packet->tcp->seq);
+		}
+	}
+	if (packet->sctp) {
+		item = packet->chunk_list->first;
+		if ((socket->state == SOCKET_ACTIVE_INIT_SENT) &&
+		    (item != NULL) &&
+		    (item->chunk->type == SCTP_INIT_ACK_CHUNK_TYPE)) {
+			init_ack = (struct sctp_init_ack_chunk *)item->chunk;
+			DEBUGP("Moving socket in SOCKET_ACTIVE_INIT_ACK_RECEIVED\n");
+			socket->state = SOCKET_ACTIVE_INIT_ACK_RECEIVED;
+			socket->script.remote_initiate_tag = ntohl(init_ack->initiate_tag);
+			socket->script.remote_initial_tsn = ntohl(init_ack->initial_tsn);
+			socket->live.remote_initiate_tag = ntohl(init_ack->initiate_tag);
+			socket->live.remote_initial_tsn = ntohl(init_ack->initial_tsn);
+			DEBUGP("remote_initiate_tag %d, remote_initial_tsn %d\n", ntohl(init_ack->initiate_tag), ntohl(init_ack->initial_tsn));
+		}
+		if (socket->state == SOCKET_PASSIVE_INIT_ACK_SENT) {
+			for (; item != NULL; item = item->next) {
+				if (item->chunk->type == SCTP_COOKIE_ECHO_CHUNK_TYPE) {
+					assert(item->next == NULL); /*FIXME: Handle chunks after the COOKIE_ECHO */
+					offset = socket->prepared_state_cookie_length - item->length;
+					memcpy(item->chunk, socket->prepared_state_cookie, socket->prepared_state_cookie_length);
+					item->length = socket->prepared_state_cookie_length;
+					packet->buffer_bytes += offset;
+					packet->ip_bytes += offset;
+					if (packet->ipv4) {
+						packet->ipv4->tot_len = htons(ntohs(packet->ipv4->tot_len) + offset);
+					}
+					if (packet->ipv6) {
+						packet->ipv6->payload_len = htons(ntohs(packet->ipv6->payload_len) + offset);
+					}
+					for (i = 0; i < PACKET_MAX_HEADERS; i++) {
+						if ((packet->ipv4 != NULL && packet->headers[i].h.ipv4 == packet->ipv4) ||
+						    (packet->ipv6 != NULL && packet->headers[i].h.ipv6 == packet->ipv6)) {
+							break;
+						}
+					}
+					assert(packet->headers[i + 1].type == HEADER_SCTP);
+					packet->headers[i].total_bytes += offset;
+					packet->headers[i + 1].total_bytes += offset;
+					cooie_echo_replaced = true;
+					socket->state = SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED;
+				} else {
+					if (cooie_echo_replaced) {
+						item->chunk = (struct sctp_chunk *)((char *)item->chunk + offset);
+					}
+				}
+			}
+		}
 	}
 
 	/* Start with a bit-for-bit copy of the packet from the script. */
@@ -1453,6 +2312,52 @@ int reset_connection(struct state *state, struct socket *socket)
 	/* Rewrite addresses and port to match inbound live traffic. */
 	socket_get_inbound(&socket->live, &live_inbound);
 	set_packet_tuple(packet, &live_inbound);
+
+	/* Inject live packet into kernel. */
+	result = send_live_ip_packet(state->netdev, packet);
+
+	packet_free(packet);
+
+	return result;
+}
+
+/* Inject an SCTP packet containing an ABORT chunk to clear the
+ * association state out of the kernel, so the association does not
+ * continue to retransmit packets that may be sniffed during later test
+ * executions and cause false negatives.
+ */
+int abort_association(struct state *state, struct socket *socket)
+{
+	char *error = NULL;
+	struct packet *packet;
+	struct sctp_chunk_list *chunk_list;
+	struct tuple live_inbound;
+	int result = 0;
+
+	if ((socket->live.local_initiate_tag == 0) &&
+	    (socket->live.remote_initiate_tag == 0)) {
+		return STATUS_OK;
+	}
+		chunk_list = sctp_chunk_list_new();
+	if (socket->live.local_initiate_tag != 0) {
+		sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(0));
+	} else {
+		sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(0x01));
+	}
+	packet = new_sctp_packet(socket->address_family,
+				 DIRECTION_INBOUND, ECN_NONE,
+				 chunk_list, &error);
+	if (packet == NULL)
+		die("%s", error);
+	/* Rewrite addresses and port to match inbound live traffic. */
+	socket_get_inbound(&socket->live, &live_inbound);
+	set_packet_tuple(packet, &live_inbound);
+	/* Rewrite the verification tag in the SCTP common header */
+	if (socket->live.local_initiate_tag != 0) {
+		packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+	} else {
+		packet->sctp->v_tag = htonl(socket->live.remote_initiate_tag);
+	}
 
 	/* Inject live packet into kernel. */
 	result = send_live_ip_packet(state->netdev, packet);

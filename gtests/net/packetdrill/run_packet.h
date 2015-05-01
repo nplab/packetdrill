@@ -58,4 +58,10 @@ extern int run_packet_event(struct state *state,
 extern int reset_connection(struct state *state,
 			    struct socket *socket);
 
+/* Inject an SCTP packet containing an ABORT chunk to clear the association
+ * state out of the kernel.
+ */
+extern int abort_association(struct state *state,
+			     struct socket *socket);
+
 #endif /* __RUN_PACKET_H__ */

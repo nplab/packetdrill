@@ -32,6 +32,7 @@
 #include "gre_packet.h"
 #include "ip_packet.h"
 #include "mpls_packet.h"
+#include "sctp_packet.h"
 
 
 /* Info for all types of header we support. */
@@ -54,11 +55,13 @@ struct packet *packet_new(u32 buffer_bytes)
 	struct packet *packet = calloc(1, sizeof(struct packet));
 	packet->buffer = malloc(buffer_bytes);
 	packet->buffer_bytes = buffer_bytes;
+	packet->chunk_list = sctp_chunk_list_new();
 	return packet;
 }
 
 void packet_free(struct packet *packet)
 {
+	sctp_chunk_list_free(packet->chunk_list);
 	free(packet->buffer);
 	memset(packet, 0, sizeof(*packet));  /* paranoia to help catch bugs */
 	free(packet);
@@ -142,9 +145,11 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	const int bytes_used = packet_end(old_packet) - old_packet->buffer;
 	assert(bytes_used >= 0);
 	assert(bytes_used <= 128*1024);
-	struct packet *packet = packet_new(bytes_headroom + bytes_used);
+	struct packet *packet = packet_new(max(bytes_headroom + bytes_used, old_packet->buffer_bytes));
 	u8 *old_base = old_packet->buffer;
 	u8 *new_base = packet->buffer + bytes_headroom;
+	struct sctp_chunk_list_item *old_item, *new_item;
+	struct sctp_chunk *new_chunk;
 
 	memcpy(new_base, old_base, bytes_used);
 
@@ -159,12 +164,23 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	/* Set up layer 3 header pointer. */
 	packet->ipv4	= offset_ptr(old_base, new_base, old_packet->ipv4);
 	packet->ipv6	= offset_ptr(old_base, new_base, old_packet->ipv6);
+	/* Set up layer 4 header pointer. */
 	packet->sctp	= offset_ptr(old_base, new_base, old_packet->sctp);
 	packet->tcp	= offset_ptr(old_base, new_base, old_packet->tcp);
 	packet->udp	= offset_ptr(old_base, new_base, old_packet->udp);
 	packet->udplite	= offset_ptr(old_base, new_base, old_packet->udplite);
 	packet->icmpv4	= offset_ptr(old_base, new_base, old_packet->icmpv4);
 	packet->icmpv6	= offset_ptr(old_base, new_base, old_packet->icmpv6);
+
+	for (old_item = old_packet->chunk_list->first;
+	     old_item != NULL;
+	     old_item = old_item->next) {
+		new_chunk = offset_ptr(old_base, new_base, old_item->chunk);
+		new_item = sctp_chunk_list_item_new(new_chunk,
+		                                    old_item->length,
+		                                    old_item->flags);
+		sctp_chunk_list_append(packet->chunk_list, new_item);
+	}
 
 	packet->tcp_ts_val	= offset_ptr(old_base, new_base,
 					     old_packet->tcp_ts_val);

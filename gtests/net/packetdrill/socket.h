@@ -43,9 +43,13 @@ enum socket_state_t {
 	SOCKET_PASSIVE_PACKET_RECEIVED,	/* after receiving first packet */
 	SOCKET_PASSIVE_SYNACK_SENT,	/* after sending SYNACK */
 	SOCKET_PASSIVE_SYNACK_ACKED,	/* after server's SYN is ACKed */
+	SOCKET_PASSIVE_INIT_ACK_SENT,
+	SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED,
 	SOCKET_ACTIVE_CONNECTING,	/* after connect() call */
 	SOCKET_ACTIVE_SYN_SENT,		/* after sending client's SYN */
 	SOCKET_ACTIVE_SYN_ACKED,	/* after client's SYN is ACKed */
+	SOCKET_ACTIVE_INIT_SENT,	/* after sending client's INIT */
+	SOCKET_ACTIVE_INIT_ACK_RECEIVED	/* after receiving server's INIT-ACK */
 };
 
 /* A TCP/UDP/IP address for an endpoint. */
@@ -64,9 +68,17 @@ struct tuple {
 struct socket_state {
 	int fd;				/* file descriptor for this socket */
 	struct endpoint local;		/* local endpoint address */
+	/* TCP specific */
 	u32 local_isn;			/* initial TCP sequence (host order) */
+	/* SCTP specific (in host byte order ) */
+	u32 local_initial_tsn;		/* initial TSN */
+	u32 local_initiate_tag;		/* v-tag expected from the peer */
 	struct endpoint remote;		/* remote endpoint address */
+	/* TCP specific */
 	u32 remote_isn;			/* initial TCP sequence (host order) */
+	/* SCTP specific (in host byte order) */
+	u32 remote_initial_tsn;		/* initial TSN */
+	u32 remote_initiate_tag;	/* v-tag expected by the peer */
 };
 
 /* The runtime state for a socket */
@@ -103,6 +115,9 @@ struct socket {
 	struct tcp last_outbound_tcp_header;
 	struct tcp last_injected_tcp_header;
 	u32 last_injected_tcp_payload_len;
+
+	struct sctp_cookie_echo_chunk *prepared_state_cookie;
+	u16 prepared_state_cookie_length;
 
 	struct socket *next;	/* next in linked list of sockets */
 };

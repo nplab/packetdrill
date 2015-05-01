@@ -108,6 +108,11 @@ static void close_all_sockets(struct state *state)
 		    reset_connection(state, socket)) {
 			die("error reseting connection\n");
 		}
+		if (socket->protocol == IPPROTO_SCTP &&
+		    !state->config->is_wire_client &&
+		    abort_association(state, socket)) {
+			die("error aborting association\n");
+		}
 		struct socket *dead_socket = socket;
 		socket = socket->next;
 		socket_free(dead_socket);

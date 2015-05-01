@@ -96,6 +96,7 @@ struct packet {
 	/* Layer 4 */
 	struct sctp_common_header *sctp;
 				/* start of SCTP common header, if present */
+	struct sctp_chunk_list *chunk_list;
 	struct tcp *tcp;	/* start of TCP header, if present */
 	struct udp *udp;	/* start of UDP header, if present */
 	struct udplite *udplite;/* start of UDPLite header, if present */

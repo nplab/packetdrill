@@ -788,7 +788,8 @@ static int run_syscall_accept(struct state *state,
 		}
 
 		if ((socket->state == SOCKET_PASSIVE_SYNACK_SENT) ||  /* TFO */
-		    (socket->state == SOCKET_PASSIVE_SYNACK_ACKED)) {
+		    (socket->state == SOCKET_PASSIVE_SYNACK_ACKED) ||
+		    (socket->state == SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED)) {
 			assert(is_equal_ip(&socket->live.remote.ip, &ip));
 			assert(is_equal_port(socket->live.remote.port,
 					     htons(port)));

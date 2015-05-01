@@ -347,8 +347,8 @@ static int local_netdev_send(struct netdev *a_netdev,
 	assert(packet->ip_bytes > 0);
 	/* We do IPv4 and IPv6 */
 	assert(packet->ipv4 || packet->ipv6);
-	/* We only do TCP, UDP, UDPLite and ICMP */
-	assert(packet->tcp || packet->udp || packet->udplite ||
+	/* We only do SCTP, TCP, UDP, UDPLite and ICMP */
+	assert(packet->sctp || packet->tcp || packet->udp || packet->udplite ||
 	       packet->icmpv4 || packet->icmpv6);
 
 	DEBUGP("local_netdev_send\n");

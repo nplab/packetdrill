@@ -97,6 +97,7 @@
 #include "logging.h"
 #include "mpls.h"
 #include "mpls_packet.h"
+#include "sctp_packet.h"
 #include "tcp_packet.h"
 #include "udp_packet.h"
 #include "udplite_packet.h"
@@ -462,6 +463,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct option_list *option;
 	struct event *event;
 	struct packet *packet;
+	struct sctp_chunk_list_item *chunk_list_item;
+	struct sctp_chunk_list *chunk_list;
 	struct syscall_spec *syscall;
 	struct command_spec *command;
 	struct code_spec *code;
@@ -483,7 +486,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> ACK ECR EOL MSS NOP SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> FAST_OPEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
-%token <reserved> IPV4 IPV6 ICMP UDP UDPLITE GRE MTU
+%token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
 %token <reserved> SRTO_INITIAL SRTO_MAX SRTO_MIN
@@ -491,6 +494,10 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_VALUE
 %token <reserved> SACK_DELAY SACK_FREQ
+%token <reserved> DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
+%token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
+%token <reserved> SHUTDOWN_COMPLETE
+%token <reserved> TAG A_RWND OS IS TSN SID SSN PPID
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -500,7 +507,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <option> option options opt_options
 %type <event> event events event_time action
 %type <time_usecs> time opt_end_time
-%type <packet> packet_spec tcp_packet_spec udp_packet_spec udplite_packet_spec
+%type <packet> packet_spec
+%type <packet> sctp_packet_spec tcp_packet_spec
+%type <packet> udp_packet_spec udplite_packet_spec
 %type <packet> icmp_packet_spec
 %type <packet> packet_prefix
 %type <syscall> syscall_spec
@@ -527,6 +536,20 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents linger
 %type <expression> sctp_rtoinfo sctp_initmsg sctp_assocval sctp_sackinfo
 %type <errno_info> opt_errno
+%type <chunk_list> sctp_chunk_list_spec
+%type <chunk_list_item> sctp_chunk_spec
+%type <chunk_list_item> sctp_data_chunk_spec
+%type <chunk_list_item> sctp_init_chunk_spec sctp_init_ack_chunk_spec
+%type <chunk_list_item> sctp_sack_chunk_spec
+%type <chunk_list_item> sctp_heartbeat_chunk_spec sctp_heartbeat_ack_chunk_spec
+%type <chunk_list_item> sctp_abort_chunk_spec
+%type <chunk_list_item> sctp_shutdown_chunk_spec
+%type <chunk_list_item> sctp_shutdown_ack_chunk_spec
+%type <chunk_list_item> sctp_error_chunk_spec
+%type <chunk_list_item> sctp_cookie_echo_chunk_spec sctp_cookie_ack_chunk_spec
+%type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
+%type <chunk_list_item> sctp_shutdown_complete_chunk_spec
+%type <integer> opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn opt_ppid
 
 %%  /* The grammar follows. */
 
@@ -684,11 +707,206 @@ action
 ;
 
 packet_spec
-: tcp_packet_spec     { $$ = $1; }
+: sctp_packet_spec    { $$ = $1; }
+| tcp_packet_spec     { $$ = $1; }
 | udp_packet_spec     { $$ = $1; }
 | udplite_packet_spec { $$ = $1; }
 | icmp_packet_spec    { $$ = $1; }
 ;
+
+sctp_packet_spec
+: packet_prefix opt_ip_info SCTP ':' sctp_chunk_list_spec {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	inner = new_sctp_packet(in_config->wire_protocol, direction, $2, $5,
+				&error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+;
+
+sctp_chunk_list_spec
+:                                          { $$ = sctp_chunk_list_new(); }
+| sctp_chunk_spec                          { $$ = sctp_chunk_list_new();
+                                             sctp_chunk_list_append($$, $1); }
+| sctp_chunk_list_spec ';' sctp_chunk_spec { $$ = $1;
+                                             sctp_chunk_list_append($1, $3); }
+;
+
+sctp_chunk_spec
+: sctp_data_chunk_spec              { $$ = $1; }
+| sctp_init_chunk_spec              { $$ = $1; }
+| sctp_init_ack_chunk_spec          { $$ = $1; }
+| sctp_sack_chunk_spec              { $$ = $1; }
+| sctp_heartbeat_chunk_spec         { $$ = $1; }
+| sctp_heartbeat_ack_chunk_spec     { $$ = $1; }
+| sctp_abort_chunk_spec             { $$ = $1; }
+| sctp_shutdown_chunk_spec          { $$ = $1; }
+| sctp_shutdown_ack_chunk_spec      { $$ = $1; }
+| sctp_error_chunk_spec             { $$ = $1; }
+| sctp_cookie_echo_chunk_spec       { $$ = $1; }
+| sctp_cookie_ack_chunk_spec        { $$ = $1; }
+| sctp_ecne_chunk_spec              { $$ = $1; }
+| sctp_cwr_chunk_spec               { $$ = $1; }
+| sctp_shutdown_complete_chunk_spec { $$ = $1; }
+;
+
+opt_a_rwnd
+:		{ $$ = -1; }
+| A_RWND '=' INTEGER	{
+	if (!is_valid_u32($3)) {
+		semantic_error("a_rwnd value out of range");
+	}
+	$$ = $3;
+}
+
+opt_os
+:		{ $$ = -1; }
+| OS '=' INTEGER	{
+	if (!is_valid_u16($3)) {
+		semantic_error("os value out of range");
+	}
+	$$ = $3;
+}
+
+opt_is
+:		{ $$ = -1; }
+| IS '=' INTEGER	{
+	if (!is_valid_u16($3)) {
+		semantic_error("is value out of range");
+	}
+	$$ = $3;
+}
+
+opt_tsn
+:		{ $$ = -1; }
+| TSN '=' INTEGER	{
+	if (!is_valid_u32($3)) {
+		semantic_error("tsn value out of range");
+	}
+	$$ = $3;
+}
+
+opt_sid
+:		{ $$ = -1; }
+| SID '=' INTEGER	{
+	if (!is_valid_u16($3)) {
+		semantic_error("sid value out of range");
+	}
+	$$ = $3;
+}
+
+opt_ssn
+:		{ $$ = -1; }
+| SSN '=' INTEGER	{
+	if (!is_valid_u16($3)) {
+		semantic_error("ssn value out of range");
+	}
+	$$ = $3;
+}
+
+opt_ppid
+:		{ $$ = -1; }
+| PPID '=' INTEGER	{
+	if (!is_valid_u32($3)) {
+		semantic_error("ppid value out of range");
+	}
+	$$ = $3;
+}
+
+sctp_data_chunk_spec
+: DATA '[' opt_tsn opt_sid opt_ssn opt_ppid ']' {
+	$$ = sctp_data_chunk_new($3, $4, $5, $6);
+}
+
+sctp_init_chunk_spec
+: INIT '[' TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
+	if (!is_valid_u32($5)) {
+		semantic_error("tag value out of range");
+	}
+	if (!is_valid_u32($11)) {
+		semantic_error("tsn value out of range");
+	}
+	$$ = sctp_init_chunk_new($5, $6, $7, $8, $11);
+}
+
+sctp_init_ack_chunk_spec
+: INIT_ACK '[' TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
+	if (!is_valid_u32($5)) {
+		semantic_error("tag value out of range");
+	}
+	if (!is_valid_u32($11)) {
+		semantic_error("tsn value out of range");
+	}
+	$$ = sctp_init_ack_chunk_new($5, $6, $7, $8, $11);
+}
+
+sctp_sack_chunk_spec
+: SACK '[' opt_tsn opt_a_rwnd']' {
+	$$ = sctp_sack_chunk_new($3, $4);
+}
+
+sctp_heartbeat_chunk_spec
+: HEARTBEAT '[' ']' {
+	$$ = sctp_heartbeat_chunk_new(0);
+}
+
+sctp_heartbeat_ack_chunk_spec
+: HEARTBEAT_ACK '[' ']' {
+	$$ = sctp_heartbeat_ack_chunk_new(0);
+}
+
+sctp_abort_chunk_spec
+: ABORT '[' ']' {
+	$$ = sctp_abort_chunk_new(0);
+}
+
+sctp_shutdown_chunk_spec
+: SHUTDOWN '[' opt_tsn ']' {
+	$$ = sctp_shutdown_chunk_new($3);
+}
+
+sctp_shutdown_ack_chunk_spec
+: SHUTDOWN_ACK '[' ']' {
+	$$ = sctp_shutdown_ack_chunk_new(0);
+}
+
+sctp_error_chunk_spec
+: ERROR '[' ']' {
+	$$ = sctp_error_chunk_new(0);
+}
+
+sctp_cookie_echo_chunk_spec
+: COOKIE_ECHO '[' ']' {
+	$$ = sctp_cookie_echo_chunk_new(0);
+}
+
+sctp_cookie_ack_chunk_spec
+: COOKIE_ACK '[' ']' {
+	$$ = sctp_cookie_ack_chunk_new(0);
+}
+
+sctp_ecne_chunk_spec
+: ECNE '[' opt_tsn ']' {
+	$$ = sctp_ecne_chunk_new($3);
+}
+
+sctp_cwr_chunk_spec
+: CWR '[' opt_tsn ']' {
+	$$ = sctp_cwr_chunk_new($3);
+}
+
+sctp_shutdown_complete_chunk_spec
+: SHUTDOWN_COMPLETE '[' ']' {
+	$$ = sctp_shutdown_complete_chunk_new(0);
+}
 
 tcp_packet_spec
 : packet_prefix opt_ip_info flags seq opt_ack opt_window opt_tcp_options {

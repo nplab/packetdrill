@@ -1,0 +1,26 @@
+ 0.0 `sysctl -w net.inet.sctp.ecn_enable=0`
++0.0 `sysctl -w net.inet.sctp.pr_enable=0`
++0.0 `sysctl -w net.inet.sctp.asconf_enable=0`
++0.0 `sysctl -w net.inet.sctp.auth_enable=0`
++0.0 `sysctl -w net.inet.sctp.reconfig_enable=0`
++0.0 `sysctl -w net.inet.sctp.nrsack_enable=0`
++0.0 `sysctl -w net.inet.sctp.pktdrop_enable=0`
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=800, srto_min=100}, 16) = 0
++0.0 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
+// Check the number and the timing of the restransmissions
++0.0 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...]
++0.1 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...] 
++0.2 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...] 
++0.4 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...]
++0.8 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...]
++0.8 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...]
++0.8 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...]
++0.8 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...] 
++0.8 > sctp: INIT[tag=..., a_rwnd=..., is=10, os=2048, tsn=0, ...]
+// Look as if we don't send a final ABORT. Shouldn't we?
+// +1.0 > sctp: ABORT[]
++1.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [ETIMEDOUT], [4]) = 0
++0.0 close(3) = 0
