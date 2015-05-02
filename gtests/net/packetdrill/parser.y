@@ -465,6 +465,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct packet *packet;
 	struct sctp_chunk_list_item *chunk_list_item;
 	struct sctp_chunk_list *chunk_list;
+	struct sctp_sack_block_list_item *sack_block_list_item;
+	struct sctp_sack_block_list *sack_block_list;
 	struct syscall_spec *syscall;
 	struct command_spec *command;
 	struct code_spec *code;
@@ -497,7 +499,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE
-%token <reserved> TAG A_RWND OS IS TSN SID SSN PPID
+%token <reserved> TAG A_RWND OS IS TSN SID SSN PPID GAPS DUPS
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -550,6 +552,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
 %type <integer> opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn opt_ppid
+%type <sack_block_list> opt_gaps gap_list opt_dups dup_list
+%type <sack_block_list_item> gap dup
 
 %%  /* The grammar follows. */
 
@@ -821,6 +825,49 @@ opt_ppid
 	$$ = $3;
 }
 
+opt_gaps
+:                           { $$ = NULL; }
+| GAPS '=' '[' gap_list ']' { $$ = $4; }
+;
+
+gap_list
+:                  { $$ = sctp_sack_block_list_new(); }
+| gap              { $$ = sctp_sack_block_list_new();
+                     sctp_sack_block_list_append($$, $1); }
+| gap_list ',' gap { $$ = $1;
+                     sctp_sack_block_list_append($1, $3); }
+;
+
+gap
+: INTEGER ':' INTEGER   { if (!is_valid_u32($1)) {
+                            semantic_error("start value out of range");
+	                  }
+	                  if (!is_valid_u32($3)) {
+                            semantic_error("end value out of range");
+	                  }
+	                  $$ = sctp_sack_block_list_item_gap_new($1, $3); }
+;
+
+opt_dups
+:                           { $$ = NULL; }
+| DUPS '=' '[' dup_list ']' { $$ = $4; }
+;
+
+dup_list
+:                  { $$ = sctp_sack_block_list_new(); }
+| dup              { $$ = sctp_sack_block_list_new();
+                     sctp_sack_block_list_append($$, $1); }
+| dup_list ',' dup { $$ = $1;
+                     sctp_sack_block_list_append($1, $3); }
+;
+
+dup
+: INTEGER   { if (!is_valid_u32($1)) {
+                semantic_error("tsn value out of range");
+	      }
+	      $$ = sctp_sack_block_list_item_dup_new($1); }
+;
+
 sctp_data_chunk_spec
 : DATA '[' opt_tsn opt_sid opt_ssn opt_ppid ']' {
 	$$ = sctp_data_chunk_new($3, $4, $5, $6);
@@ -849,8 +896,8 @@ sctp_init_ack_chunk_spec
 }
 
 sctp_sack_chunk_spec
-: SACK '[' opt_tsn opt_a_rwnd']' {
-	$$ = sctp_sack_chunk_new($3, $4);
+: SACK '[' opt_tsn opt_a_rwnd opt_gaps opt_dups']' {
+	$$ = sctp_sack_chunk_new($3, $4, $5, $6);
 }
 
 sctp_heartbeat_chunk_spec

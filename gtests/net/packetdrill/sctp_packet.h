@@ -29,6 +29,33 @@
 #include "packet.h"
 #include "sctp.h"
 
+struct sctp_sack_block_list_item {
+	struct sctp_sack_block_list_item *next;
+	union sctp_sack_block block;
+};
+
+struct sctp_sack_block_list {
+	struct sctp_sack_block_list_item *first;
+	struct sctp_sack_block_list_item *last;
+	u16 nr_entries;
+};
+
+struct sctp_sack_block_list *
+sctp_sack_block_list_new(void);
+
+void
+sctp_sack_block_list_append(struct sctp_sack_block_list *list,
+			    struct sctp_sack_block_list_item *item);
+
+void
+sctp_sctp_sack_block_list_free(struct sctp_sack_block_list *list);
+
+struct sctp_sack_block_list_item *
+sctp_sack_block_list_item_gap_new(u16 start, u16 end);
+
+struct sctp_sack_block_list_item *
+sctp_sack_block_list_item_dup_new(u32 tsn);
+
 struct sctp_chunk_list_item {
 	struct sctp_chunk_list_item *next;
 	struct sctp_chunk *chunk;
@@ -81,7 +108,9 @@ sctp_init_ack_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn);
 #define FLAG_SACK_CHUNK_DUP_TSNS_NOCHECK        0x00000800
 
 struct sctp_chunk_list_item *
-sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd);
+sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd,
+                    struct sctp_sack_block_list *gaps,
+                    struct sctp_sack_block_list *dups);
 
 struct sctp_chunk_list_item *
 sctp_heartbeat_chunk_new(u8 flags);

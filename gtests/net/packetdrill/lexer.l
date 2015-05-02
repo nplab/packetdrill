@@ -235,6 +235,8 @@ tsn			return TSN;
 sid			return SID;
 ssn			return SSN;
 ppid			return PPID;
+gaps			return GAPS;
+dups			return DUPS;
 --[a-zA-Z0-9_]+		yylval.string	= option(yytext); return OPTION;
 [-]?[0-9]*[.][0-9]+	yylval.floating	= atof(yytext);   return FLOAT;
 [-]?[0-9]+		yylval.integer	= atoll(yytext);  return INTEGER;

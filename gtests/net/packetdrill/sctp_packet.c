@@ -34,7 +34,83 @@
  * - Add support for parameters (fix hard coded state cookie in INIT-ACK)
  * - Add support for error causes
  */
- 
+
+struct sctp_sack_block_list *
+sctp_sack_block_list_new(void)
+{
+	struct sctp_sack_block_list *list;
+
+	list = malloc(sizeof(struct sctp_sack_block_list));
+	assert(list != NULL);
+	list->first = NULL;
+	list->last = NULL;
+	list->nr_entries = 0;
+	return list;
+}
+
+void
+sctp_sack_block_list_append(struct sctp_sack_block_list *list,
+                            struct sctp_sack_block_list_item *item)
+{
+	assert(item->next == NULL);
+	if (list->last == NULL) {
+		assert(list->first == NULL);
+		assert(list->nr_entries == 0);
+		list->first = item;
+	} else {
+		assert(list->first != NULL);
+		list->last->next = item;
+	}
+	list->last = item;
+	list->nr_entries++;
+}
+
+void
+sctp_sctp_sack_block_list_free(struct sctp_sack_block_list *list)
+{
+	struct sctp_sack_block_list_item *current_item, *next_item;
+
+	if (list == NULL) {
+		return;
+	}
+	current_item = list->first;
+	while (current_item != NULL) {
+		assert(list->nr_entries > 0);
+		next_item = current_item->next;
+		assert(next_item != NULL || current_item == list->last);
+		free(current_item);
+		current_item = next_item;
+		list->nr_entries--;
+	}
+	assert(list->nr_entries == 0);
+	free(list);
+}
+
+struct sctp_sack_block_list_item *
+sctp_sack_block_list_item_gap_new(u16 start, u16 end)
+{
+	struct sctp_sack_block_list_item *item;
+
+	item = malloc(sizeof(struct sctp_sack_block_list_item));
+	assert(item != NULL);
+	item->next = NULL;
+	item->block.gap.start = start;
+	item->block.gap.end = end;
+	return item;
+}
+
+struct sctp_sack_block_list_item *
+sctp_sack_block_list_item_dup_new(u32 tsn)
+{
+	struct sctp_sack_block_list_item *item;
+
+	item = malloc(sizeof(struct sctp_sack_block_list_item));
+	assert(item != NULL);
+	item->next = NULL;
+	item->block.tsn = tsn;
+	return item;
+}
+
 struct sctp_chunk_list_item *
 sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags)
 {
@@ -182,18 +258,41 @@ sctp_init_ack_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
 }
 
 struct sctp_chunk_list_item *
-sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd)
+sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd,
+                    struct sctp_sack_block_list *gaps,
+                    struct sctp_sack_block_list *dups)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_sack_chunk *chunk;
+	struct sctp_sack_block_list_item *item;
 	u32 flags;
+	u32 length;
+	u16 i, nr_gaps, nr_dups;
 
 	flags = 0;
-	chunk = malloc(sizeof(struct sctp_sack_chunk));
+	length = sizeof(struct sctp_sack_chunk);
+	if (gaps == NULL) {
+		nr_gaps = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_SACK_CHUNK_GAP_BLOCKS_NOCHECK;
+	} else {
+		nr_gaps = gaps->nr_entries;
+		length += nr_gaps * sizeof(union sctp_sack_block);
+	}
+	if (dups == NULL) {
+		nr_dups = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_SACK_CHUNK_DUP_TSNS_NOCHECK;
+	} else {
+		nr_dups = dups->nr_entries;
+		length += nr_dups * sizeof(union sctp_sack_block);
+	}
+	assert(is_valid_u16(length));
+	assert(length % 4 == 0);
+	chunk = malloc(length);
 	assert(chunk != NULL);
 	chunk->type = SCTP_SACK_CHUNK_TYPE;
 	chunk->flags = 0;
-	chunk->length = htons(sizeof(struct sctp_sack_chunk));
+	chunk->length = htons(length);
 	if (cum_tsn == -1) {
 		chunk->cum_tsn = htonl(0);
 		flags |= FLAG_SACK_CHUNK_CUM_TSN_NOCHECK;
@@ -206,12 +305,28 @@ sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd)
 	} else {
 		chunk->a_rwnd = htonl((u32)a_rwnd);
 	}
-	chunk->nr_gap_blocks = htons(0);
-	chunk->nr_dup_tsns = htons(0);
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
-	                                (u32)sizeof(struct sctp_sack_chunk), 
-	                                flags);
-	return item;
+	chunk->nr_gap_blocks = htons(nr_gaps);
+	chunk->nr_dup_tsns = htons(nr_dups);
+
+	if (gaps != NULL) {
+		for (i = 0, item = gaps->first;
+		     (i < nr_gaps) && (item != NULL);
+		     i++, item = item->next) {
+			chunk->block[i].gap.start = htons(item->block.gap.start);
+			chunk->block[i].gap.end = htons(item->block.gap.end);
+		}
+		assert((i == nr_gaps) && (item == NULL));
+	}
+	if (dups != NULL) {
+		for (i = 0, item = dups->first;
+		     (i < nr_dups) && (item != NULL);
+		     i++, item = item->next) {
+			chunk->block[i + nr_gaps].tsn= htonl(item->block.tsn);
+		}
+		assert((i == nr_dups) && (item == NULL));
+	}
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	                                length,  flags);
 }
 
 struct sctp_chunk_list_item *
@@ -428,7 +543,8 @@ sctp_shutdown_complete_chunk_new(u8 flags)
 	return item;
 }
 
-struct sctp_chunk_list *sctp_chunk_list_new(void)
+struct sctp_chunk_list *
+sctp_chunk_list_new(void)
 {
 	struct sctp_chunk_list *list;
 
@@ -440,8 +556,9 @@ struct sctp_chunk_list *sctp_chunk_list_new(void)
 	return list;
 }
 
-void sctp_chunk_list_append(struct sctp_chunk_list *list,
-			    struct sctp_chunk_list_item *item)
+void
+sctp_chunk_list_append(struct sctp_chunk_list *list,
+                       struct sctp_chunk_list_item *item)
 {
 	assert(item->next == NULL);
 	if (list->last == NULL) {
@@ -456,7 +573,8 @@ void sctp_chunk_list_append(struct sctp_chunk_list *list,
 	list->length += item->length;
 }
 
-void sctp_chunk_list_free(struct sctp_chunk_list *list)
+void
+sctp_chunk_list_free(struct sctp_chunk_list *list)
 {
 	struct sctp_chunk_list_item *current_item, *next_item;
 
@@ -472,11 +590,12 @@ void sctp_chunk_list_free(struct sctp_chunk_list *list)
 	free(list);
 }
 
-struct packet *new_sctp_packet(int address_family,
-			       enum direction_t direction,
-			       enum ip_ecn_t ecn,
-			       struct sctp_chunk_list *list,
-			       char **error)
+struct packet *
+new_sctp_packet(int address_family,
+                enum direction_t direction,
+                enum ip_ecn_t ecn,
+                struct sctp_chunk_list *list,
+                char **error)
 {
 	struct packet *packet;  /* the newly-allocated result packet */
 	struct header *sctp_header;  /* the SCTP header info */
