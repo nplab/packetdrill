@@ -2154,8 +2154,11 @@ static int do_inbound_script_packet(
 		if (socket->state == SOCKET_PASSIVE_INIT_ACK_SENT) {
 			for (; item != NULL; item = item->next) {
 				if (item->chunk->type == SCTP_COOKIE_ECHO_CHUNK_TYPE) {
-					assert(item->next == NULL); /*FIXME: Handle chunks after the COOKIE_ECHO */
 					offset = socket->prepared_state_cookie_length - item->length;
+					assert(packet->ip_bytes + offset <= packet->buffer_bytes);
+					memmove((u8 *)item->chunk + item->length + offset,
+					        (u8 *)item->chunk + item->length,
+					        packet_end(packet) - ((u8 *)item->chunk + item->length));
 					memcpy(item->chunk, socket->prepared_state_cookie, socket->prepared_state_cookie_length);
 					item->length = socket->prepared_state_cookie_length;
 					packet->buffer_bytes += offset;
