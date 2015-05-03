@@ -11,7 +11,7 @@
 // Send some data.
 +1.0 write(3, ..., 1000) = 1000
 +0.0 > sctp: DATA[tsn=0 sid=0 ssn=0 ppid=0]
-+0.1 < sctp: SACK[tsn=0 a_rwnd=1500]
++0.1 < sctp: SACK[tsn=0 a_rwnd=1500 gaps=[] dups=[]]
 // Receive some data
 +1.0 < sctp: DATA[tsn=3 sid=0 ssn=0 ppid=0] // How to handle
 +0.0 read(3, ..., 2000) = 1000
