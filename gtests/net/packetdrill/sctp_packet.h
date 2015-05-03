@@ -86,21 +86,21 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags);
 #define FLAG_DATA_CHUNK_PPID_NOCHECK            0x00000800
 
 struct sctp_chunk_list_item *
-sctp_data_chunk_new(s64 tsn, s64 sid, s64 ssn, s64 ppid);
+sctp_data_chunk_new(s64 flgs, s64 tsn, s64 sid, s64 ssn, s64 ppid);
 
 #define FLAG_INIT_CHUNK_A_RWND_NOCHECK          0x00000100
 #define FLAG_INIT_CHUNK_OS_NOCHECK              0x00000200
 #define FLAG_INIT_CHUNK_IS_NOCHECK              0x00000400
 
 struct sctp_chunk_list_item *
-sctp_init_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn);
+sctp_init_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn);
 
 #define FLAG_INIT_ACK_CHUNK_A_RWND_NOCHECK      0x00000100
 #define FLAG_INIT_ACK_CHUNK_OS_NOCHECK          0x00000200
 #define FLAG_INIT_ACK_CHUNK_IS_NOCHECK          0x00000400
 
 struct sctp_chunk_list_item *
-sctp_init_ack_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn);
+sctp_init_ack_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn);
 
 #define FLAG_SACK_CHUNK_CUM_TSN_NOCHECK         0x00000100
 #define FLAG_SACK_CHUNK_A_RWND_NOCHECK          0x00000200
@@ -108,48 +108,48 @@ sctp_init_ack_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn);
 #define FLAG_SACK_CHUNK_DUP_TSNS_NOCHECK        0x00000800
 
 struct sctp_chunk_list_item *
-sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd,
+sctp_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
                     struct sctp_sack_block_list *gaps,
                     struct sctp_sack_block_list *dups);
 
 struct sctp_chunk_list_item *
-sctp_heartbeat_chunk_new(u8 flags);
+sctp_heartbeat_chunk_new(s64 flgs);
 
 struct sctp_chunk_list_item *
-sctp_heartbeat_ack_chunk_new(u8 flags);
+sctp_heartbeat_ack_chunk_new(s64 flgs);
 
 struct sctp_chunk_list_item *
-sctp_abort_chunk_new(u8 flags);
+sctp_abort_chunk_new(s64 flgs);
 
 #define FLAG_SHUTDOWN_CHUNK_CUM_TSN_NOCHECK     0x00000100
 
 struct sctp_chunk_list_item *
-sctp_shutdown_chunk_new(s64 cum_tsn);
+sctp_shutdown_chunk_new(s64 flgs, s64 cum_tsn);
 
 struct sctp_chunk_list_item *
-sctp_shutdown_ack_chunk_new(u8 flags);
+sctp_shutdown_ack_chunk_new(s64 flgs);
 
 struct sctp_chunk_list_item *
-sctp_error_chunk_new(u8 flags);
+sctp_error_chunk_new(s64 flgs);
 
 struct sctp_chunk_list_item *
-sctp_cookie_echo_chunk_new(u8 flags);
+sctp_cookie_echo_chunk_new(s64 flgs);
 
 struct sctp_chunk_list_item *
-sctp_cookie_ack_chunk_new(u8 flags);
+sctp_cookie_ack_chunk_new(s64 flgs);
 
 #define FLAG_ECNE_CHUNK_LOWEST_TSN_NOCHECK      0x00000100
 
 struct sctp_chunk_list_item *
-sctp_ecne_chunk_new(s64 lowest_tsn);
+sctp_ecne_chunk_new(s64 flgs, s64 lowest_tsn);
 
 #define FLAG_CWR_CHUNK_LOWEST_TSN_NOCHECK       0x00000100
 
 struct sctp_chunk_list_item *
-sctp_cwr_chunk_new(s64 lowest_tsn);
+sctp_cwr_chunk_new(s64 flgs, s64 lowest_tsn);
 
 struct sctp_chunk_list_item *
-sctp_shutdown_complete_chunk_new(u8 flags);
+sctp_shutdown_complete_chunk_new(s64 flgs);
 
 struct sctp_chunk_list *sctp_chunk_list_new(void);
 

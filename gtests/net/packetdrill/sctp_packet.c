@@ -126,9 +126,8 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags)
 }
 
 struct sctp_chunk_list_item *
-sctp_data_chunk_new(s64 tsn, s64 sid, s64 ssn, s64 ppid)
+sctp_data_chunk_new(s64 flgs, s64 tsn, s64 sid, s64 ssn, s64 ppid)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_data_chunk *chunk;
 	u32 flags;
 	u16 payload_len = 1000;
@@ -137,7 +136,12 @@ sctp_data_chunk_new(s64 tsn, s64 sid, s64 ssn, s64 ppid)
 	chunk = malloc(sizeof(struct sctp_data_chunk) + payload_len);
 	assert(chunk != NULL);
 	chunk->type = SCTP_DATA_CHUNK_TYPE;
-	chunk->flags = 0x03; /* FIXME */
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_data_chunk) + payload_len);
 	if (tsn == -1) {
 		chunk->tsn = htonl(0);
@@ -164,16 +168,14 @@ sctp_data_chunk_new(s64 tsn, s64 sid, s64 ssn, s64 ppid)
 		chunk->ppid = htons((u32)ppid);
 	}
 	memset(chunk->data, 0, payload_len);
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_data_chunk) + payload_len,
 	                                flags);
-	return item;
 }
 
 struct sctp_chunk_list_item *
-sctp_init_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
+sctp_init_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_init_chunk *chunk;
 	u32 flags;
 
@@ -181,7 +183,12 @@ sctp_init_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
 	chunk = malloc(sizeof(struct sctp_init_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_INIT_CHUNK_TYPE;
-	chunk->flags = 0;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	/* FIXME */
 	flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 	chunk->length = htons(sizeof(struct sctp_init_chunk));
@@ -205,17 +212,15 @@ sctp_init_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
 		chunk->is = htons((u16)is);
 	}
 	chunk->initial_tsn = htonl((u32)tsn);
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_init_chunk),
 	                                flags);
-	return item;
 }
 
 /* FIXME: Don't fake the cookie that way... */
 struct sctp_chunk_list_item *
-sctp_init_ack_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
+sctp_init_ack_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_init_ack_chunk *chunk;
 	struct sctp_state_cookie_parameter state_cookie_parameter;
 	u32 flags;
@@ -224,7 +229,12 @@ sctp_init_ack_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
 	chunk = malloc(sizeof(struct sctp_init_ack_chunk) + sizeof(struct sctp_state_cookie_parameter));
 	assert(chunk != NULL);
 	chunk->type = SCTP_INIT_ACK_CHUNK_TYPE;
-	chunk->flags = 0;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	/* FIXME */
 	flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 	chunk->length = htons(sizeof(struct sctp_init_ack_chunk) + sizeof(struct sctp_state_cookie_parameter));
@@ -251,14 +261,13 @@ sctp_init_ack_chunk_new(s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn)
 	state_cookie_parameter.type = htons(SCTP_STATE_COOKIE_PARAMETER_TYPE);
 	state_cookie_parameter.length = htons(sizeof(struct sctp_state_cookie_parameter));
 	memcpy(chunk->parameter, &state_cookie_parameter, sizeof(struct sctp_state_cookie_parameter));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_init_ack_chunk) + sizeof(struct sctp_state_cookie_parameter),
 	                                flags);
-	return item;
 }
 
 struct sctp_chunk_list_item *
-sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd,
+sctp_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
                     struct sctp_sack_block_list *gaps,
                     struct sctp_sack_block_list *dups)
 {
@@ -291,7 +300,12 @@ sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd,
 	chunk = malloc(length);
 	assert(chunk != NULL);
 	chunk->type = SCTP_SACK_CHUNK_TYPE;
-	chunk->flags = 0;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(length);
 	if (cum_tsn == -1) {
 		chunk->cum_tsn = htonl(0);
@@ -330,60 +344,74 @@ sctp_sack_chunk_new(s64 cum_tsn, s64 a_rwnd,
 }
 
 struct sctp_chunk_list_item *
-sctp_heartbeat_chunk_new(u8 flags)
+sctp_heartbeat_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_heartbeat_chunk *chunk;
+	u32 flags;
 
+	flags = FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK;
 	chunk = malloc(sizeof(struct sctp_heartbeat_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_HEARTBEAT_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_heartbeat_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_heartbeat_chunk), 
-	                                FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list_item *
-sctp_heartbeat_ack_chunk_new(u8 flags)
+sctp_heartbeat_ack_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_heartbeat_ack_chunk *chunk;
+	u32 flags;
 
+	flags = FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK;
 	chunk = malloc(sizeof(struct sctp_heartbeat_ack_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_HEARTBEAT_ACK_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_heartbeat_ack_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_heartbeat_ack_chunk), 
-	                                FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list_item *
-sctp_abort_chunk_new(u8 flags)
+sctp_abort_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_abort_chunk *chunk;
+	u32 flags;
 
+	flags = 0;
 	chunk = malloc(sizeof(struct sctp_abort_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_ABORT_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_abort_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_abort_chunk), 
-	                                0);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list_item *
-sctp_shutdown_chunk_new(s64 cum_tsn)
+sctp_shutdown_chunk_new(s64 flgs, s64 cum_tsn)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_shutdown_chunk *chunk;
 	u32 flags;
 
@@ -391,7 +419,12 @@ sctp_shutdown_chunk_new(s64 cum_tsn)
 	chunk = malloc(sizeof(struct sctp_shutdown_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_SHUTDOWN_CHUNK_TYPE;
-	chunk->flags = 0;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_shutdown_chunk));
 	if (cum_tsn == -1) {
 		chunk->cum_tsn = htonl(0);
@@ -400,84 +433,102 @@ sctp_shutdown_chunk_new(s64 cum_tsn)
 		chunk->cum_tsn = htonl((u32)cum_tsn);
 	}
 
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_shutdown_chunk), 
 	                                flags);
-	return item;
 }
 
 struct sctp_chunk_list_item *
-sctp_shutdown_ack_chunk_new(u8 flags)
+sctp_shutdown_ack_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_shutdown_ack_chunk *chunk;
+	u32 flags;
 
+	flags = 0;
 	chunk = malloc(sizeof(struct sctp_shutdown_ack_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_SHUTDOWN_ACK_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_shutdown_ack_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_shutdown_ack_chunk), 
-	                                0);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list_item *
-sctp_error_chunk_new(u8 flags)
+sctp_error_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_error_chunk *chunk;
+	u32 flags;
 
+	flags = FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK;
 	chunk = malloc(sizeof(struct sctp_error_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_ERROR_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_error_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_error_chunk), 
-	                                FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list_item *
-sctp_cookie_echo_chunk_new(u8 flags)
+sctp_cookie_echo_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_cookie_echo_chunk *chunk;
+	u32 flags;
 
+	flags = FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK;
 	chunk = malloc(sizeof(struct sctp_cookie_echo_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_COOKIE_ECHO_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_cookie_echo_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_cookie_echo_chunk), 
-	                                FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list_item *
-sctp_cookie_ack_chunk_new(u8 flags)
+sctp_cookie_ack_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_cookie_ack_chunk *chunk;
+	u32 flags;
 
+	flags = 0;
 	chunk = malloc(sizeof(struct sctp_cookie_ack_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_COOKIE_ACK_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_cookie_ack_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_cookie_ack_chunk), 
-	                                0);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list_item *
-sctp_ecne_chunk_new(s64 lowest_tsn)
+sctp_ecne_chunk_new(s64 flgs, s64 lowest_tsn)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_ecne_chunk *chunk;
 	u32 flags;
 
@@ -485,7 +536,12 @@ sctp_ecne_chunk_new(s64 lowest_tsn)
 	chunk = malloc(sizeof(struct sctp_ecne_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_ECNE_CHUNK_TYPE;
-	chunk->flags = 0;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_ecne_chunk));
 	if (lowest_tsn == -1) {
 		chunk->lowest_tsn = htonl(0);
@@ -494,16 +550,14 @@ sctp_ecne_chunk_new(s64 lowest_tsn)
 		chunk->lowest_tsn = htonl((u32)lowest_tsn);
 	}
 
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_ecne_chunk), 
 	                                flags);
-	return item;
 }
 
 struct sctp_chunk_list_item *
-sctp_cwr_chunk_new(s64 lowest_tsn)
+sctp_cwr_chunk_new(s64 flgs, s64 lowest_tsn)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_cwr_chunk *chunk;
 	u32 flags;
 
@@ -511,7 +565,12 @@ sctp_cwr_chunk_new(s64 lowest_tsn)
 	chunk = malloc(sizeof(struct sctp_cwr_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_CWR_CHUNK_TYPE;
-	chunk->flags = 0;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_cwr_chunk));
 	if (lowest_tsn == -1) {
 		chunk->lowest_tsn = htonl(0);
@@ -520,27 +579,31 @@ sctp_cwr_chunk_new(s64 lowest_tsn)
 		chunk->lowest_tsn = htonl((u32)lowest_tsn);
 	}
 
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_cwr_chunk), 
 	                                flags);
-	return item;
 }
 
 struct sctp_chunk_list_item *
-sctp_shutdown_complete_chunk_new(u8 flags)
+sctp_shutdown_complete_chunk_new(s64 flgs)
 {
-	struct sctp_chunk_list_item *item;
 	struct sctp_shutdown_complete_chunk *chunk;
+	u32 flags;
 
+	flags = 0;
 	chunk = malloc(sizeof(struct sctp_shutdown_complete_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE;
-	chunk->flags = flags;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
 	chunk->length = htons(sizeof(struct sctp_shutdown_complete_chunk));
-	item = sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                (u32)sizeof(struct sctp_shutdown_complete_chunk), 
-	                                0);
-	return item;
+	                                flags);
 }
 
 struct sctp_chunk_list *

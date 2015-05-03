@@ -499,7 +499,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE
-%token <reserved> TAG A_RWND OS IS TSN SID SSN PPID GAPS DUPS
+%token <reserved> FLAGS TAG A_RWND OS IS TSN SID SSN PPID GAPS DUPS
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -551,6 +551,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_cookie_echo_chunk_spec sctp_cookie_ack_chunk_spec
 %type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
+%type <integer> opt_flags
 %type <integer> opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn opt_ppid
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
@@ -762,6 +763,14 @@ sctp_chunk_spec
 | sctp_shutdown_complete_chunk_spec { $$ = $1; }
 ;
 
+opt_flags
+:                        { $$ = -1; }
+| FLAGS '=' HEX_INTEGER  {if (!is_valid_u8($3)) {
+                            semantic_error("flags value out of range");
+                          }
+                          $$ = $3;}
+;
+
 opt_a_rwnd
 :		{ $$ = -1; }
 | A_RWND '=' INTEGER	{
@@ -869,90 +878,90 @@ dup
 ;
 
 sctp_data_chunk_spec
-: DATA '[' opt_tsn opt_sid opt_ssn opt_ppid ']' {
-	$$ = sctp_data_chunk_new($3, $4, $5, $6);
+: DATA '[' opt_flags opt_tsn opt_sid opt_ssn opt_ppid ']' {
+	$$ = sctp_data_chunk_new($3, $4, $5, $6, $7);
 }
 
 sctp_init_chunk_spec
-: INIT '[' TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
-	if (!is_valid_u32($5)) {
+: INIT '[' opt_flags TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
+	if (!is_valid_u32($6)) {
 		semantic_error("tag value out of range");
 	}
-	if (!is_valid_u32($11)) {
+	if (!is_valid_u32($12)) {
 		semantic_error("tsn value out of range");
 	}
-	$$ = sctp_init_chunk_new($5, $6, $7, $8, $11);
+	$$ = sctp_init_chunk_new($3, $6, $7, $8, $9, $12);
 }
 
 sctp_init_ack_chunk_spec
-: INIT_ACK '[' TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
-	if (!is_valid_u32($5)) {
+: INIT_ACK '[' opt_flags TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
+	if (!is_valid_u32($6)) {
 		semantic_error("tag value out of range");
 	}
-	if (!is_valid_u32($11)) {
+	if (!is_valid_u32($12)) {
 		semantic_error("tsn value out of range");
 	}
-	$$ = sctp_init_ack_chunk_new($5, $6, $7, $8, $11);
+	$$ = sctp_init_ack_chunk_new($3, $6, $7, $8, $9, $12);
 }
 
 sctp_sack_chunk_spec
-: SACK '[' opt_tsn opt_a_rwnd opt_gaps opt_dups']' {
-	$$ = sctp_sack_chunk_new($3, $4, $5, $6);
+: SACK '[' opt_flags opt_tsn opt_a_rwnd opt_gaps opt_dups']' {
+	$$ = sctp_sack_chunk_new($3, $4, $5, $6, $7);
 }
 
 sctp_heartbeat_chunk_spec
-: HEARTBEAT '[' ']' {
-	$$ = sctp_heartbeat_chunk_new(0);
+: HEARTBEAT '[' opt_flags ']' {
+	$$ = sctp_heartbeat_chunk_new($3);
 }
 
 sctp_heartbeat_ack_chunk_spec
-: HEARTBEAT_ACK '[' ']' {
-	$$ = sctp_heartbeat_ack_chunk_new(0);
+: HEARTBEAT_ACK '[' opt_flags ']' {
+	$$ = sctp_heartbeat_ack_chunk_new($3);
 }
 
 sctp_abort_chunk_spec
-: ABORT '[' ']' {
-	$$ = sctp_abort_chunk_new(0);
+: ABORT '[' opt_flags ']' {
+	$$ = sctp_abort_chunk_new($3);
 }
 
 sctp_shutdown_chunk_spec
-: SHUTDOWN '[' opt_tsn ']' {
-	$$ = sctp_shutdown_chunk_new($3);
+: SHUTDOWN '[' opt_flags opt_tsn ']' {
+	$$ = sctp_shutdown_chunk_new($3, $4);
 }
 
 sctp_shutdown_ack_chunk_spec
-: SHUTDOWN_ACK '[' ']' {
-	$$ = sctp_shutdown_ack_chunk_new(0);
+: SHUTDOWN_ACK '[' opt_flags ']' {
+	$$ = sctp_shutdown_ack_chunk_new($3);
 }
 
 sctp_error_chunk_spec
-: ERROR '[' ']' {
-	$$ = sctp_error_chunk_new(0);
+: ERROR '[' opt_flags ']' {
+	$$ = sctp_error_chunk_new($3);
 }
 
 sctp_cookie_echo_chunk_spec
-: COOKIE_ECHO '[' ']' {
-	$$ = sctp_cookie_echo_chunk_new(0);
+: COOKIE_ECHO '[' opt_flags ']' {
+	$$ = sctp_cookie_echo_chunk_new($3);
 }
 
 sctp_cookie_ack_chunk_spec
-: COOKIE_ACK '[' ']' {
-	$$ = sctp_cookie_ack_chunk_new(0);
+: COOKIE_ACK '[' opt_flags ']' {
+	$$ = sctp_cookie_ack_chunk_new($3);
 }
 
 sctp_ecne_chunk_spec
-: ECNE '[' opt_tsn ']' {
-	$$ = sctp_ecne_chunk_new($3);
+: ECNE '[' opt_flags opt_tsn ']' {
+	$$ = sctp_ecne_chunk_new($3, $4);
 }
 
 sctp_cwr_chunk_spec
-: CWR '[' opt_tsn ']' {
-	$$ = sctp_cwr_chunk_new($3);
+: CWR '[' opt_flags opt_tsn ']' {
+	$$ = sctp_cwr_chunk_new($3, $4);
 }
 
 sctp_shutdown_complete_chunk_spec
-: SHUTDOWN_COMPLETE '[' ']' {
-	$$ = sctp_shutdown_complete_chunk_new(0);
+: SHUTDOWN_COMPLETE '[' opt_flags ']' {
+	$$ = sctp_shutdown_complete_chunk_new($3);
 }
 
 tcp_packet_spec
