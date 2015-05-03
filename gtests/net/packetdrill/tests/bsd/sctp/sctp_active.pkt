@@ -13,15 +13,15 @@
 +0.0 > sctp: DATA[tsn=0 sid=0 ssn=0 ppid=0]
 +0.1 < sctp: SACK[tsn=0 a_rwnd=1500 gaps=[] dups=[]]
 // Receive some data
-+1.0 < sctp: DATA[flgs=0x3 tsn=3 sid=0 ssn=0 ppid=0] // How to handle
++1.0 < sctp: DATA[flgs=0x3 len=1016 tsn=3 sid=0 ssn=0 ppid=0] // How to handle
 +0.0 read(3, ..., 2000) = 1000
 +0.0 > sctp: SACK[tsn=3]
 // Receive more data, observe delayed SACK
-+1.0 < sctp: DATA[flgs=0x0b tsn=4 sid=0 ssn=1 ppid=0]
++1.0 < sctp: DATA[flgs=0x0b len=1016 tsn=4 sid=0 ssn=1 ppid=0]
 +0.0 read(3, ..., 2000) = 1000
 +0.0 > sctp: SACK[tsn=4]
 // Tear down the association
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[tsn=4]
 +0.1 < sctp: SHUTDOWN_ACK[]
-+0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0x01]
++0.0 > sctp: SHUTDOWN_COMPLETE[]

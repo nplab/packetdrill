@@ -228,6 +228,7 @@ ECNE			return ECNE;
 CWR			return CWR;
 SHUTDOWN_COMPLETE	return SHUTDOWN_COMPLETE;
 flgs			return FLAGS;
+len			return LEN;
 tag			return TAG;
 a_rwnd			return A_RWND;
 is			return IS;

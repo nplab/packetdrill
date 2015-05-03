@@ -126,23 +126,36 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags)
 }
 
 struct sctp_chunk_list_item *
-sctp_data_chunk_new(s64 flgs, s64 tsn, s64 sid, s64 ssn, s64 ppid)
+sctp_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 ssn, s64 ppid)
 {
 	struct sctp_data_chunk *chunk;
 	u32 flags;
-	u16 payload_len = 1000;
+	u16 length, padding_length;
 
 	flags = 0;
-	chunk = malloc(sizeof(struct sctp_data_chunk) + payload_len);
+	if (len == -1) {
+		length = (u16)sizeof(struct sctp_data_chunk);
+	} else {
+		length = (u16)len;
+	}
+	padding_length = length % 4;
+	if (padding_length > 0) {
+		padding_length = 4 - padding_length;
+	}
+	chunk = malloc(length + padding_length);
 	assert(chunk != NULL);
 	chunk->type = SCTP_DATA_CHUNK_TYPE;
 	if (flgs == -1) {
 		chunk->flags = 0;
 		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
 	} else {
-		chunk->flags = (u8)flgs;
+		 chunk->flags = (u8)flgs;
 	}
-	chunk->length = htons(sizeof(struct sctp_data_chunk) + payload_len);
+	chunk->length = htons(length);
+	if (len == -1) {
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_CHUNK_VALUE_NOCHECK;
+	}
 	if (tsn == -1) {
 		chunk->tsn = htonl(0);
 		flags |= FLAG_DATA_CHUNK_TSN_NOCHECK;
@@ -167,10 +180,10 @@ sctp_data_chunk_new(s64 flgs, s64 tsn, s64 sid, s64 ssn, s64 ppid)
 	} else {
 		chunk->ppid = htons((u32)ppid);
 	}
-	memset(chunk->data, 0, payload_len);
+	memset(chunk->data, 0,
+	       length + padding_length - sizeof(struct sctp_data_chunk));
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
-	                                (u32)sizeof(struct sctp_data_chunk) + payload_len,
-	                                flags);
+	                                length, flags);
 }
 
 struct sctp_chunk_list_item *

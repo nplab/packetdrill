@@ -86,7 +86,7 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags);
 #define FLAG_DATA_CHUNK_PPID_NOCHECK            0x00000800
 
 struct sctp_chunk_list_item *
-sctp_data_chunk_new(s64 flgs, s64 tsn, s64 sid, s64 ssn, s64 ppid);
+sctp_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 ssn, s64 ppid);
 
 #define FLAG_INIT_CHUNK_A_RWND_NOCHECK          0x00000100
 #define FLAG_INIT_CHUNK_OS_NOCHECK              0x00000200

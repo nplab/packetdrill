@@ -499,7 +499,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE
-%token <reserved> FLAGS TAG A_RWND OS IS TSN SID SSN PPID GAPS DUPS
+%token <reserved> FLAGS LEN TAG A_RWND OS IS TSN SID SSN PPID GAPS DUPS
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -551,7 +551,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_cookie_echo_chunk_spec sctp_cookie_ack_chunk_spec
 %type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
-%type <integer> opt_flags
+%type <integer> opt_flags opt_data_chunk_len
 %type <integer> opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn opt_ppid
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
@@ -763,13 +763,22 @@ sctp_chunk_spec
 | sctp_shutdown_complete_chunk_spec { $$ = $1; }
 ;
 
+opt_data_chunk_len
+:                  { $$ = -1; }
+| LEN '=' INTEGER  {if (!is_valid_u16($3) ||
+                        $3 < sizeof(struct sctp_data_chunk)) {
+                      semantic_error("length value out of range");
+                    }
+                    $$ = $3;
+}
+
 opt_flags
 :                        { $$ = -1; }
 | FLAGS '=' HEX_INTEGER  {if (!is_valid_u8($3)) {
                             semantic_error("flags value out of range");
                           }
-                          $$ = $3;}
-;
+                          $$ = $3;
+}
 
 opt_a_rwnd
 :		{ $$ = -1; }
@@ -878,8 +887,8 @@ dup
 ;
 
 sctp_data_chunk_spec
-: DATA '[' opt_flags opt_tsn opt_sid opt_ssn opt_ppid ']' {
-	$$ = sctp_data_chunk_new($3, $4, $5, $6, $7);
+: DATA '[' opt_flags opt_data_chunk_len opt_tsn opt_sid opt_ssn opt_ppid ']' {
+	$$ = sctp_data_chunk_new($3, $4, $5, $6, $7, $8);
 }
 
 sctp_init_chunk_spec
