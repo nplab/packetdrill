@@ -551,7 +551,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_cookie_echo_chunk_spec sctp_cookie_ack_chunk_spec
 %type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
-%type <integer> opt_flags opt_data_chunk_len
+%type <integer> opt_flags opt_data_flags opt_abort_flags
+%type <integer> opt_shutdown_complete_flags opt_data_chunk_len
 %type <integer> opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn opt_ppid
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
@@ -780,6 +781,123 @@ opt_flags
                           $$ = $3;
 }
 
+opt_data_flags
+:                       {
+	$$ = -1;
+}
+| FLAGS '=' HEX_INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+	}
+	$$ = $3;
+}
+| FLAGS '=' WORD        {
+	u64 flags;
+	char *c;
+
+	flags = 0;
+	for (c = $3; *c != '\0'; c++) {
+		switch (*c) {
+		case 'I':
+			if (flags & SCTP_DATA_CHUNK_I_BIT) {
+				semantic_error("Specifying the I-bit multiple times");
+			} else {
+				flags |= SCTP_DATA_CHUNK_I_BIT;
+			}
+			break;
+		case 'U':
+			if (flags & SCTP_DATA_CHUNK_U_BIT) {
+				semantic_error("Specifying the U-bit multiple times");
+			} else {
+				flags |= SCTP_DATA_CHUNK_U_BIT;
+			}
+			break;
+		case 'B':
+			if (flags & SCTP_DATA_CHUNK_B_BIT) {
+				semantic_error("Specifying the B-bit multiple times");
+			} else {
+				flags |= SCTP_DATA_CHUNK_B_BIT;
+			}
+			break;
+		case 'E':
+			if (flags & SCTP_DATA_CHUNK_E_BIT) {
+				semantic_error("Specifying the E-bit multiple times");
+			} else {
+				flags |= SCTP_DATA_CHUNK_E_BIT;
+			}
+			break;
+		default:
+			semantic_error("Only expecting IUBE as flags");
+			break;
+		}
+	}
+	$$ = flags;
+}
+
+opt_abort_flags
+:                       {
+	$$ = -1;
+}
+| FLAGS '=' HEX_INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+	}
+	$$ = $3;
+}
+| FLAGS '=' WORD        {
+	u64 flags;
+	char *c;
+
+	flags = 0;
+	for (c = $3; *c != '\0'; c++) {
+		switch (*c) {
+		case 'T':
+			if (flags & SCTP_ABORT_CHUNK_T_BIT) {
+				semantic_error("Specifying the T-bit multiple times");
+			} else {
+				flags |= SCTP_ABORT_CHUNK_T_BIT;
+			}
+			break;
+		default:
+			semantic_error("Only expecting T as flags");
+			break;
+		}
+	}
+	$$ = flags;
+}
+
+opt_shutdown_complete_flags
+:                       {
+	$$ = -1;
+}
+| FLAGS '=' HEX_INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+	}
+	$$ = $3;
+}
+| FLAGS '=' WORD        {
+	u64 flags;
+	char *c;
+
+	flags = 0;
+	for (c = $3; *c != '\0'; c++) {
+		switch (*c) {
+		case 'T':
+			if (flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT) {
+				semantic_error("Specifying the T-bit multiple times");
+			} else {
+				flags |= SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT;
+			}
+			break;
+		default:
+			semantic_error("Only expecting T as flags");
+			break;
+		}
+	}
+	$$ = flags;
+}
+
 opt_a_rwnd
 :		{ $$ = -1; }
 | A_RWND '=' INTEGER	{
@@ -887,7 +1005,7 @@ dup
 ;
 
 sctp_data_chunk_spec
-: DATA '[' opt_flags opt_data_chunk_len opt_tsn opt_sid opt_ssn opt_ppid ']' {
+: DATA '[' opt_data_flags opt_data_chunk_len opt_tsn opt_sid opt_ssn opt_ppid ']' {
 	$$ = sctp_data_chunk_new($3, $4, $5, $6, $7, $8);
 }
 
@@ -929,7 +1047,7 @@ sctp_heartbeat_ack_chunk_spec
 }
 
 sctp_abort_chunk_spec
-: ABORT '[' opt_flags ']' {
+: ABORT '[' opt_abort_flags ']' {
 	$$ = sctp_abort_chunk_new($3);
 }
 
@@ -969,7 +1087,7 @@ sctp_cwr_chunk_spec
 }
 
 sctp_shutdown_complete_chunk_spec
-: SHUTDOWN_COMPLETE '[' opt_flags ']' {
+: SHUTDOWN_COMPLETE '[' opt_shutdown_complete_flags ']' {
 	$$ = sctp_shutdown_complete_chunk_new($3);
 }
 
