@@ -765,7 +765,7 @@ static int map_outbound_live_sctp_packet(
 			nr_gap_blocks = ntohs(sack->nr_gap_blocks);
 			nr_dup_tsns = ntohs(sack->nr_dup_tsns);
 			for (i = 0; i < nr_dup_tsns; i++) {
-				sack->block[i].tsn = htonl(ntohl(sack->block[i].tsn) + remote_diff);
+				sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + remote_diff);
 			}
 			break;
 		case SCTP_SHUTDOWN_CHUNK_TYPE:
