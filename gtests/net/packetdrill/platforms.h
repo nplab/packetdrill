@@ -35,6 +35,7 @@
 #define UDPLITE_SEND_CSCOV     10
 #define UDPLITE_RECV_CSCOV     11
 #include <features.h>
+#include <netinet/sctp.h>
 #define HAVE_OPEN_MEMSTREAM     1
 #define HAVE_FMEMOPEN           1
 #define TUN_PATH                "/dev/net/tun"
