@@ -1,0 +1,22 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
+// Check the handshake with en empty(!) cookie
++0.0 bind(3, ..., ...) = 0
++0.0 listen(3, 1) = 0
++0.0 < sctp: INIT[tag=1 a_rwnd=4500 os=1 is=1 tsn=0]
++0.0 > sctp: INIT_ACK[tag=2 tsn=0] // faked cookie
++0.1 < sctp: COOKIE_ECHO[]
++0.0 > sctp: COOKIE_ACK[]
++0.0 accept(3, ..., ...) = 4
++0.0 close(3) = 0
+// Reduce the PMTU.
++0.5 < [sctp(1)] icmp unreachable frag_needed mtu 1500
+// Send some data and get it acknowledged.
++0.5 write(4, ..., 2000) = 2000
++0.0 > sctp: DATA[flgs=B len=1468 tsn=0 sid=0 ssn=0 ppid=0]
++0.0 > sctp: DATA[flgs=E len=564  tsn=1 sid=0 ssn=0 ppid=0]
++0.1 < sctp: SACK[tsn=1 a_rwnd=4500 gaps=[] dups=[]]
+// Tear down the association
++0.0 close(4) = 0
++0.0 > sctp: SHUTDOWN[tsn=2]
++0.1 < sctp: SHUTDOWN_ACK[]
++0.0 > sctp: SHUTDOWN_COMPLETE[]

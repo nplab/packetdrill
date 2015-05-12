@@ -48,6 +48,7 @@ extern struct packet *new_icmp_packet(int address_family,
 				      u16 payload_bytes,
 				      u32 tcp_start_sequence,
 				      u16 udplite_checksum_coverage,
+				      u32 sctp_verification_tag,
 				      s64 mtu,
 				      char **error);
 

@@ -457,6 +457,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct {
 		int protocol;
 		u16 payload_bytes;
+		u32 verification_tag;	/* used for SCTP */
 		u32 start_sequence;	/* used for TCP */
 		u16 checksum_coverage;	/* used for UDPLite */
 	} transport_info;
@@ -1174,7 +1175,7 @@ icmp_packet_spec
 	inner = new_icmp_packet(in_config->wire_protocol, direction, $4, $5,
 				$2.protocol, $2.payload_bytes,
 				$2.start_sequence, $2.checksum_coverage,
-				$6, &error);
+				$2.verification_tag, $6, &error);
 	free($4);
 	free($5);
 	if (inner == NULL) {
@@ -1286,6 +1287,11 @@ opt_icmp_echoed
 	$$.protocol		= IPPROTO_TCP;
 	$$.payload_bytes	= 0;
 	$$.start_sequence	= 0;
+}
+| '[' SCTP '(' INTEGER ')' ']'	{
+	$$.protocol		= IPPROTO_SCTP;
+	$$.payload_bytes	= 0;
+	$$.verification_tag	= $4;
 }
 | '[' UDP '(' INTEGER ')' ']'	{
 	$$.protocol		= IPPROTO_UDP;

@@ -517,6 +517,13 @@ static int offset_sack_blocks(struct packet *packet,
 	return *error ? STATUS_ERR : STATUS_OK;
 }
 
+static int map_inbound_icmp_sctp_packet(
+	struct socket *socket, struct packet *live_packet, char **error)
+{
+	u32 *v_tag = packet_echoed_sctp_v_tag(live_packet);
+	*v_tag = htonl(socket->live.remote_initiate_tag);
+	return STATUS_OK;
+}
 
 /* Rewrite the TCP sequence number echoed by the ICMP packet.
  * The Linux TCP layer ignores ICMP messages with bogus sequence numbers.
@@ -548,7 +555,9 @@ static int map_inbound_icmp_udplite_packet(
 static int map_inbound_icmp_packet(
 	struct socket *socket, struct packet *live_packet, char **error)
 {
-	if (packet_echoed_ip_protocol(live_packet) == IPPROTO_TCP)
+	if (packet_echoed_ip_protocol(live_packet) == IPPROTO_SCTP)
+		return map_inbound_icmp_sctp_packet(socket, live_packet, error);
+	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_TCP)
 		return map_inbound_icmp_tcp_packet(socket, live_packet, error);
 	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_UDP)
 		return map_inbound_icmp_udp_packet(socket, live_packet, error);

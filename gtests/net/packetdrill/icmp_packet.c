@@ -283,6 +283,7 @@ struct packet *new_icmp_packet(int address_family,
 				u16 payload_bytes,
 				u32 tcp_start_sequence,
 				u16 udplite_checksum_coverage,
+				u32 sctp_verification_tag,
 				s64 mtu,
 				char **error)
 {
@@ -352,6 +353,10 @@ struct packet *new_icmp_packet(int address_family,
 				     payload_bytes);
 	set_ip_header(echoed_ip, address_family, echoed_ip_bytes,
 		      ecn, protocol);
+	if (protocol == IPPROTO_SCTP) {
+		u32 *v_tag = packet_echoed_sctp_v_tag(packet);
+		*v_tag = htonl(sctp_verification_tag);
+	}
 	if (protocol == IPPROTO_TCP) {
 		u32 *seq = packet_echoed_tcp_seq(packet);
 		*seq = htonl(tcp_start_sequence);

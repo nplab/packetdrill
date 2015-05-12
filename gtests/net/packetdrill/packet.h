@@ -394,6 +394,19 @@ packet_echoed_sctp_header(struct packet *packet)
 	return NULL;
 }
 
+/* Return the location of the SCTP verification tag echoed by an ICMP message. */
+static inline u32 *packet_echoed_sctp_v_tag(struct packet *packet)
+{
+	struct sctp_common_header *echoed_sctp = packet_echoed_sctp_header(packet);
+	assert(echoed_sctp);
+	u32 *v_tag = &(echoed_sctp->v_tag);
+	/* Check that the v_tag field is actually in the space we
+	 * reserved for the echoed prefix of the SCTP common header.
+	 */
+	assert((char *) (v_tag + 1) <= (char *) echoed_sctp + ICMP_ECHO_BYTES);
+	return v_tag;
+}
+
 /* Return the location of the TCP header echoed by an ICMP message. */
 static inline struct tcp *packet_echoed_tcp_header(struct packet *packet)
 {
