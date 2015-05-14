@@ -980,8 +980,8 @@ static int verify_ipv4(
 	case IPPROTO_TCP:
 		if (check_field("ipv4_total_length",
 				(ntohs(script_ipv4->tot_len) +
-				tcp_options_allowance(actual_packet,
-						      script_packet)),
+				 tcp_options_allowance(actual_packet,
+						       script_packet)),
 				ntohs(actual_ipv4->tot_len), error))
 			return STATUS_ERR;
 		break;
@@ -1014,15 +1014,29 @@ static int verify_ipv6(
 	if (check_field("ipv6_version",
 			script_ipv6->version,
 			actual_ipv6->version, error) ||
-	    check_field("ipv6_payload_len",
-			(ntohs(script_ipv6->payload_len) +
-			 tcp_options_allowance(actual_packet,
-					       script_packet)),
-			ntohs(actual_ipv6->payload_len), error) ||
 	    check_field("ipv6_next_header",
 			script_ipv6->next_header,
 			actual_ipv6->next_header, error))
 		return STATUS_ERR;
+	switch (script_ipv6->next_header) {
+	case IPPROTO_SCTP:
+		/* FIXME */
+		break;
+	case IPPROTO_TCP:
+		if (check_field("ipv6_payload_len",
+				(ntohs(script_ipv6->payload_len) +
+				 tcp_options_allowance(actual_packet,
+						       script_packet)),
+				ntohs(actual_ipv6->payload_len), error))
+			return STATUS_ERR;
+		break;
+	default:
+		if (check_field("ipv6_payload_len",
+				ntohs(script_ipv6->payload_len),
+				ntohs(actual_ipv6->payload_len), error))
+			return STATUS_ERR;
+		break;
+	}
 
 	if (verify_outbound_live_ecn(script_packet->ecn,
 				     ipv6_ecn_bits(actual_ipv6),
