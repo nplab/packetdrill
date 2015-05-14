@@ -44,6 +44,9 @@
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #include <net/if_tun.h>
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#if defined(linux)
+#include <linux/version.h>
+#endif
 
 #include "ip.h"
 #include "ipv6.h"
@@ -201,8 +204,11 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 static void set_device_offload_flags(struct local_netdev *netdev)
 {
 #ifdef linux
-	const u32 offload =
-	    TUN_F_CSUM | TUN_F_TSO4 | TUN_F_TSO6 | TUN_F_TSO_ECN | TUN_F_UFO;
+	u32 offload = TUN_F_CSUM | TUN_F_TSO4 | TUN_F_TSO6 | TUN_F_TSO_ECN;
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,18,0)) || (LINUX_VERSION_CODE >= KERNEL_VERSION(3,19,0))
+	offload |= TUN_F_UFO;
+#endif
 	if (ioctl(netdev->tun_fd, TUNSETOFFLOAD, offload) != 0)
 		die_perror("TUNSETOFFLOAD");
 #endif
