@@ -2350,11 +2350,11 @@ int abort_association(struct state *state, struct socket *socket)
 	    (socket->live.remote_initiate_tag == 0)) {
 		return STATUS_OK;
 	}
-		chunk_list = sctp_chunk_list_new();
+	chunk_list = sctp_chunk_list_new();
 	if (socket->live.local_initiate_tag != 0) {
 		sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(0));
 	} else {
-		sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(0x01));
+		sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(SCTP_ABORT_CHUNK_T_BIT));
 	}
 	packet = new_sctp_packet(socket->address_family,
 				 DIRECTION_INBOUND, ECN_NONE,
