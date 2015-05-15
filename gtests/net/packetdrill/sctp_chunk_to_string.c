@@ -966,7 +966,7 @@ static int sctp_abort_chunk_to_string(FILE *s,
 				       &iter, error);
 	     cause != NULL;
 	     cause = sctp_causes_next(&iter, error)) {
-		if (index > 0)
+		if (((index == 0) && (flags != 0x00)) || (index > 0))
 			fputs(", ", s);
 		if (*error != NULL)
 			break;
@@ -1049,7 +1049,7 @@ static int sctp_error_chunk_to_string(FILE *s,
 				       &iter, error);
 	     cause != NULL;
 	     cause = sctp_causes_next(&iter, error)) {
-		if (index > 0)
+		if (((index == 0) && (flags != 0x00)) || (index > 0))
 			fputs(", ", s);
 		if (*error != NULL)
 			break;
