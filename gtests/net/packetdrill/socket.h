@@ -116,8 +116,10 @@ struct socket {
 	struct tcp last_injected_tcp_header;
 	u32 last_injected_tcp_payload_len;
 
-	struct sctp_cookie_echo_chunk *prepared_state_cookie;
-	u16 prepared_state_cookie_length;
+	struct sctp_cookie_echo_chunk *prepared_cookie_echo;
+	u16 prepared_cookie_echo_length;
+	struct sctp_heartbeat_ack_chunk *prepared_heartbeat_ack;
+	u16 prepared_heartbeat_ack_length;
 
 	struct socket *next;	/* next in linked list of sockets */
 };

@@ -40,6 +40,13 @@ struct socket *socket_new(struct state *state)
 void socket_free(struct socket *socket)
 {
 	hash_map_free(socket->ts_val_map);
-	memset(socket, 0, sizeof(*socket));  /* paranoia to help catch bugs */
+	 /* paranoia to help catch bugs */
+	memset(socket->prepared_cookie_echo, 0, socket->prepared_cookie_echo_length);
+	free(socket->prepared_cookie_echo);
+	 /* paranoia to help catch bugs */
+	memset(socket->prepared_heartbeat_ack, 0, socket->prepared_heartbeat_ack_length);
+	free(socket->prepared_heartbeat_ack);
+	 /* paranoia to help catch bugs */
+	memset(socket, 0, sizeof(*socket));
 	free(socket);
 }

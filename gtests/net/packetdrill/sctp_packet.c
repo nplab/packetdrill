@@ -794,6 +794,7 @@ new_sctp_packet(int address_family,
 			case SCTP_HEARTBEAT_CHUNK_TYPE:
 				break;
 			case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
+				overbook = true;
 				break;
 			case SCTP_ABORT_CHUNK_TYPE:
 				if (item->flags & FLAG_CHUNK_LENGTH_NOCHECK) {
