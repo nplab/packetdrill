@@ -1192,13 +1192,13 @@ static int verify_sack_chunk(struct sctp_sack_chunk *actual_chunk,
 		}
 	}
 	if ((flags & FLAG_SACK_CHUNK_DUP_TSNS_NOCHECK) == 0) {
+		actual_base = actual_nr_gap_blocks;
+		if ((flags & FLAG_SACK_CHUNK_GAP_BLOCKS_NOCHECK) == 0) {
+			script_base = actual_nr_gap_blocks;
+		} else {
+			script_base = 0;
+		}
 		for (i = 0; i < script_nr_dup_tsns; i++) {
-			actual_base = actual_nr_gap_blocks;
-			if ((flags & FLAG_SACK_CHUNK_GAP_BLOCKS_NOCHECK) == 0) {
-				script_base = actual_nr_gap_blocks;
-			} else {
-				script_base = 0;
-			}
 			if (check_field("sctp_sack_chunk_dup_tsn",
 		                        ntohl(script_chunk->block[script_base + i].tsn),
 		                        ntohl(actual_chunk->block[actual_base + i].tsn),
