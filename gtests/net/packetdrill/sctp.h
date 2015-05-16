@@ -53,6 +53,8 @@ struct sctp_common_header {
 #define SCTP_CWR_CHUNK_TYPE				0x0d
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE		0x0e
 
+#define MAX_SCTP_CHUNK_BYTES	0xffff
+
 struct sctp_chunk {
 	__u8 type;
 	__u8 flags;
@@ -202,6 +204,7 @@ struct sctp_shutdown_complete_chunk {
 	__be16 length;
 } __packed;
 
+#define SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE	0x0001
 #define SCTP_IPV4_ADDRESS_PARAMETER_TYPE		0x0005
 #define SCTP_IPV6_ADDRESS_PARAMETER_TYPE		0x0006
 #define SCTP_STATE_COOKIE_PARAMETER_TYPE		0x0007
@@ -211,10 +214,18 @@ struct sctp_shutdown_complete_chunk {
 #define SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	0x000c
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
 
+#define MAX_SCTP_PARAMETER_BYTES	0xffff
+
 struct sctp_parameter {
 	__be16 type;
 	__be16 length;
 	__u8 value[];
+} __packed;
+
+struct sctp_heartbeat_information_parameter {
+	__be16 type;
+	__be16 length;
+	__u8 information[];
 } __packed;
 
 struct sctp_ipv4_address_parameter {
@@ -250,7 +261,7 @@ struct sctp_cookie_preservative_parameter {
 struct sctp_hostname_address_parameter {
 	__be16 type;
 	__be16 length;
-	__u8 hostname[];
+	char hostname[];
 } __packed;
 
 struct sctp_supported_address_types_parameter {
