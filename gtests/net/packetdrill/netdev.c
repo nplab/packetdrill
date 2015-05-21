@@ -111,6 +111,8 @@ static void check_remote_address(struct config *config,
 /* Create a tun device for the lifetime of this test. */
 static void create_device(struct config *config, struct local_netdev *netdev)
 {
+	char *command;
+
 	/* Open the tun device, which "clones" it for our purposes. */
 	int tun_fd = open(TUN_PATH, O_RDWR);
 	if (tun_fd < 0)
@@ -177,14 +179,10 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		free(command);
 	}
 
-	if (config->mtu != TUN_DRIVER_DEFAULT_MTU) {
-		char *command;
-		asprintf(&command, "ifconfig %s mtu %d",
-			 netdev->name, config->mtu);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
-		free(command);
-	}
+	asprintf(&command, "ifconfig %s mtu %d", netdev->name, config->mtu);
+	if (system(command) < 0)
+		die("Error executing %s\n", command);
+	free(command);
 
 	/* Open a socket we can use to configure the tun interface.
 	 * We only open up an AF_INET6 socket on-demand as needed,
