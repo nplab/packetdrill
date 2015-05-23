@@ -468,6 +468,10 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct sctp_chunk_list *chunk_list;
 	struct sctp_sack_block_list_item *sack_block_list_item;
 	struct sctp_sack_block_list *sack_block_list;
+	struct sctp_address_type_list_item *address_type_list_item;
+	struct sctp_address_type_list *address_type_list;
+	struct sctp_parameter_list_item *parameter_list_item;
+	struct sctp_parameter_list *parameter_list;
 	struct syscall_spec *syscall;
 	struct command_spec *command;
 	struct code_spec *code;
@@ -500,7 +504,12 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE
-%token <reserved> FLAGS LEN TAG A_RWND OS IS TSN SID SSN PPID GAPS DUPS
+%token <reserved> FLAGS LEN TAG A_RWND OS IS TSN SID SSN PPID CUM_TSN GAPS DUPS
+%token <reserved> HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS STATE_COOKIE
+%token <reserved> UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE HOSTNAME_ADDRESS
+%token <reserved> SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
+%token <reserved> ADDR INCR TYPES PARAMS
+%token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -552,11 +561,26 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_cookie_echo_chunk_spec sctp_cookie_ack_chunk_spec
 %type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
+%type <parameter_list> opt_parameter_list_spec sctp_parameter_list_spec
+%type <parameter_list_item> sctp_parameter_spec
+%type <parameter_list_item> sctp_heartbeat_information_parameter_spec
+%type <parameter_list_item> sctp_ipv4_address_parameter_spec
+%type <parameter_list_item> sctp_ipv6_address_parameter_spec
+%type <parameter_list_item> sctp_state_cookie_parameter_spec
+%type <parameter_list_item> sctp_unrecognized_parameter_parameter_spec
+%type <parameter_list_item> sctp_cookie_preservative_parameter_spec
+%type <parameter_list_item> sctp_hostname_address_parameter_spec
+%type <parameter_list_item> sctp_supported_address_types_parameter_spec
+%type <parameter_list_item> sctp_ecn_capable_parameter_spec
+
 %type <integer> opt_flags opt_data_flags opt_abort_flags
-%type <integer> opt_shutdown_complete_flags opt_data_chunk_len
-%type <integer> opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn opt_ppid
+%type <integer> opt_shutdown_complete_flags opt_chunk_len
+%type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
+%type <integer> opt_cum_tsn opt_ppid
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
+%type <address_type_list> address_types_list
+%type <address_type_list_item> address_type
 
 %%  /* The grammar follows. */
 
@@ -765,31 +789,44 @@ sctp_chunk_spec
 | sctp_shutdown_complete_chunk_spec { $$ = $1; }
 ;
 
-opt_data_chunk_len
-:                  { $$ = -1; }
-| LEN '=' INTEGER  {if (!is_valid_u16($3) ||
-                        $3 < sizeof(struct sctp_data_chunk)) {
-                      semantic_error("length value out of range");
-                    }
-                    $$ = $3;
+opt_chunk_len
+: LEN '=' ELLIPSIS { $$ = -1; }
+| LEN '=' INTEGER  {
+	if (!is_valid_u16($3)) {
+		semantic_error("length value out of range");
+        }
+        $$ = $3;
 }
+;
 
 opt_flags
-:                        { $$ = -1; }
-| FLAGS '=' HEX_INTEGER  {if (!is_valid_u8($3)) {
-                            semantic_error("flags value out of range");
-                          }
-                          $$ = $3;
+: FLAGS '=' ELLIPSIS    { $$ = -1; }
+| FLAGS '=' HEX_INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+        }
+	$$ = $3;
 }
+| FLAGS '=' INTEGER     {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+        }
+	$$ = $3;
+}
+;
 
 opt_data_flags
-:                       {
-	$$ = -1;
-}
+: FLAGS '=' ELLIPSIS    { $$ = -1; }
 | FLAGS '=' HEX_INTEGER {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
 	}
+	$$ = $3;
+}
+| FLAGS '=' INTEGER     {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+        }
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -801,28 +838,28 @@ opt_data_flags
 		switch (*c) {
 		case 'I':
 			if (flags & SCTP_DATA_CHUNK_I_BIT) {
-				semantic_error("Specifying the I-bit multiple times");
+				semantic_error("I-bit specified multiple times");
 			} else {
 				flags |= SCTP_DATA_CHUNK_I_BIT;
 			}
 			break;
 		case 'U':
 			if (flags & SCTP_DATA_CHUNK_U_BIT) {
-				semantic_error("Specifying the U-bit multiple times");
+				semantic_error("U-bit specified multiple times");
 			} else {
 				flags |= SCTP_DATA_CHUNK_U_BIT;
 			}
 			break;
 		case 'B':
 			if (flags & SCTP_DATA_CHUNK_B_BIT) {
-				semantic_error("Specifying the B-bit multiple times");
+				semantic_error("B-bit specified multiple times");
 			} else {
 				flags |= SCTP_DATA_CHUNK_B_BIT;
 			}
 			break;
 		case 'E':
 			if (flags & SCTP_DATA_CHUNK_E_BIT) {
-				semantic_error("Specifying the E-bit multiple times");
+				semantic_error("E-bit specified multiple times");
 			} else {
 				flags |= SCTP_DATA_CHUNK_E_BIT;
 			}
@@ -834,15 +871,20 @@ opt_data_flags
 	}
 	$$ = flags;
 }
+;
 
 opt_abort_flags
-:                       {
-	$$ = -1;
-}
+: FLAGS '=' ELLIPSIS    { $$ = -1; }
 | FLAGS '=' HEX_INTEGER {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
 	}
+	$$ = $3;
+}
+| FLAGS '=' INTEGER     {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+        }
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -854,7 +896,7 @@ opt_abort_flags
 		switch (*c) {
 		case 'T':
 			if (flags & SCTP_ABORT_CHUNK_T_BIT) {
-				semantic_error("Specifying the T-bit multiple times");
+				semantic_error("T-bit specified multiple times");
 			} else {
 				flags |= SCTP_ABORT_CHUNK_T_BIT;
 			}
@@ -866,15 +908,20 @@ opt_abort_flags
 	}
 	$$ = flags;
 }
+;
 
 opt_shutdown_complete_flags
-:                       {
-	$$ = -1;
-}
+: FLAGS '=' ELLIPSIS    { $$ = -1; }
 | FLAGS '=' HEX_INTEGER {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
 	}
+	$$ = $3;
+}
+| FLAGS '=' INTEGER     {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+        }
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -886,7 +933,7 @@ opt_shutdown_complete_flags
 		switch (*c) {
 		case 'T':
 			if (flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT) {
-				semantic_error("Specifying the T-bit multiple times");
+				semantic_error("T-bit specified multiple times");
 			} else {
 				flags |= SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT;
 			}
@@ -898,72 +945,100 @@ opt_shutdown_complete_flags
 	}
 	$$ = flags;
 }
+;
+
+opt_tag
+: TAG '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("tag value out of range");
+	}
+	$$ = $3;
+}
+;
 
 opt_a_rwnd
-:		{ $$ = -1; }
-| A_RWND '=' INTEGER	{
+: A_RWND '=' ELLIPSIS   { $$ = -1; }
+| A_RWND '=' INTEGER    {
 	if (!is_valid_u32($3)) {
 		semantic_error("a_rwnd value out of range");
 	}
 	$$ = $3;
 }
+;
 
 opt_os
-:		{ $$ = -1; }
-| OS '=' INTEGER	{
+: OS '=' ELLIPSIS { $$ = -1; }
+| OS '=' INTEGER  {
 	if (!is_valid_u16($3)) {
 		semantic_error("os value out of range");
 	}
 	$$ = $3;
 }
+;
 
 opt_is
-:		{ $$ = -1; }
-| IS '=' INTEGER	{
+: IS '=' ELLIPSIS { $$ = -1; }
+| IS '=' INTEGER  {
 	if (!is_valid_u16($3)) {
 		semantic_error("is value out of range");
 	}
 	$$ = $3;
 }
+;
 
 opt_tsn
-:		{ $$ = -1; }
-| TSN '=' INTEGER	{
+: TSN '=' ELLIPSIS { $$ = -1; }
+| TSN '=' INTEGER  {
 	if (!is_valid_u32($3)) {
 		semantic_error("tsn value out of range");
 	}
 	$$ = $3;
 }
+;
 
 opt_sid
-:		{ $$ = -1; }
-| SID '=' INTEGER	{
+: SID '=' ELLIPSIS { $$ = -1; }
+| SID '=' INTEGER  {
 	if (!is_valid_u16($3)) {
 		semantic_error("sid value out of range");
 	}
 	$$ = $3;
 }
+;
 
 opt_ssn
-:		{ $$ = -1; }
-| SSN '=' INTEGER	{
+: SSN '=' ELLIPSIS { $$ = -1; }
+| SSN '=' INTEGER  {
 	if (!is_valid_u16($3)) {
 		semantic_error("ssn value out of range");
 	}
 	$$ = $3;
 }
+;
 
 opt_ppid
-:		{ $$ = -1; }
-| PPID '=' INTEGER	{
+: PPID '=' ELLIPSIS { $$ = -1; }
+| PPID '=' INTEGER  {
 	if (!is_valid_u32($3)) {
 		semantic_error("ppid value out of range");
 	}
 	$$ = $3;
 }
+;
+
+opt_cum_tsn
+: CUM_TSN '=' ELLIPSIS { $$ = -1; }
+| CUM_TSN '=' INTEGER  {
+	if (!is_valid_u32($3)) {
+		semantic_error("cum_tsn value out of range");
+	}
+	$$ = $3;
+}
+;
 
 opt_gaps
-:                           { $$ = NULL; }
+: GAPS '=' ELLIPSIS         { $$ = NULL; }
+| GAPS '=' '[' ELLIPSIS ']' { $$ = NULL; }
 | GAPS '=' '[' gap_list ']' { $$ = $4; }
 ;
 
@@ -976,17 +1051,20 @@ gap_list
 ;
 
 gap
-: INTEGER ':' INTEGER   { if (!is_valid_u32($1)) {
-                            semantic_error("start value out of range");
-	                  }
-	                  if (!is_valid_u32($3)) {
-                            semantic_error("end value out of range");
-	                  }
-	                  $$ = sctp_sack_block_list_item_gap_new($1, $3); }
+: INTEGER ':' INTEGER {
+	if (!is_valid_u16($1)) {
+		semantic_error("start value out of range");
+	}
+	if (!is_valid_u16($3)) {
+		semantic_error("end value out of range");
+	}
+	$$ = sctp_sack_block_list_item_gap_new($1, $3);
+}
 ;
 
 opt_dups
-:                           { $$ = NULL; }
+: DUPS '=' ELLIPSIS         { $$ = NULL; }
+| DUPS '=' '[' ELLIPSIS ']' { $$ = NULL; }
 | DUPS '=' '[' dup_list ']' { $$ = $4; }
 ;
 
@@ -999,52 +1077,57 @@ dup_list
 ;
 
 dup
-: INTEGER   { if (!is_valid_u32($1)) {
-                semantic_error("tsn value out of range");
-	      }
-	      $$ = sctp_sack_block_list_item_dup_new($1); }
+: INTEGER {
+	if (!is_valid_u32($1)) {
+		semantic_error("tsn value out of range");
+	}
+	$$ = sctp_sack_block_list_item_dup_new($1);
+}
 ;
 
 sctp_data_chunk_spec
-: DATA '[' opt_data_flags opt_data_chunk_len opt_tsn opt_sid opt_ssn opt_ppid ']' {
-	$$ = sctp_data_chunk_new($3, $4, $5, $6, $7, $8);
+: DATA '[' opt_data_flags ',' opt_chunk_len ',' opt_tsn ',' opt_sid ',' opt_ssn ',' opt_ppid ']' {
+	if (($5 != -1) && ($5 < sizeof(struct sctp_data_chunk))) {
+		semantic_error("length value out of range");
+	}
+	$$ = sctp_data_chunk_new($3, $5, $7, $9, $11, $13);
 }
 
 sctp_init_chunk_spec
-: INIT '[' opt_flags TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
-	if (!is_valid_u32($6)) {
-		semantic_error("tag value out of range");
+: INIT '[' opt_flags ',' opt_tag ',' opt_a_rwnd ',' opt_os ',' opt_is ',' opt_tsn opt_parameter_list_spec ']' {
+	if ($5 == -1) {
+		semantic_error("tag value must be specified");
 	}
-	if (!is_valid_u32($12)) {
-		semantic_error("tsn value out of range");
+	if ($13 == -1) {
+		semantic_error("tsn value must be specified");
 	}
-	$$ = sctp_init_chunk_new($3, $6, $7, $8, $9, $12);
+	$$ = sctp_init_chunk_new($3, $5, $7, $9, $11, $13, $14);
 }
 
 sctp_init_ack_chunk_spec
-: INIT_ACK '[' opt_flags TAG '=' INTEGER opt_a_rwnd opt_os opt_is TSN '=' INTEGER ']' {
-	if (!is_valid_u32($6)) {
-		semantic_error("tag value out of range");
+: INIT_ACK '[' opt_flags ',' opt_tag ',' opt_a_rwnd ',' opt_os ',' opt_is ',' opt_tsn opt_parameter_list_spec ']' {
+	if ($5 == -1) {
+		semantic_error("tag value must be specified");
 	}
-	if (!is_valid_u32($12)) {
-		semantic_error("tsn value out of range");
+	if ($13 == -1) {
+		semantic_error("tsn value must be specified");
 	}
-	$$ = sctp_init_ack_chunk_new($3, $6, $7, $8, $9, $12);
+	$$ = sctp_init_ack_chunk_new($3, $5, $7, $9, $11, $13, $14);
 }
 
 sctp_sack_chunk_spec
-: SACK '[' opt_flags opt_tsn opt_a_rwnd opt_gaps opt_dups']' {
-	$$ = sctp_sack_chunk_new($3, $4, $5, $6, $7);
+: SACK '[' opt_flags ',' opt_cum_tsn ',' opt_a_rwnd ',' opt_gaps ',' opt_dups']' {
+	$$ = sctp_sack_chunk_new($3, $5, $7, $9, $11);
 }
 
 sctp_heartbeat_chunk_spec
-: HEARTBEAT '[' opt_flags ']' {
-	$$ = sctp_heartbeat_chunk_new($3);
+: HEARTBEAT '[' opt_flags ',' sctp_heartbeat_information_parameter_spec ']' {
+	$$ = sctp_heartbeat_chunk_new($3, $5);
 }
 
 sctp_heartbeat_ack_chunk_spec
-: HEARTBEAT_ACK '[' opt_flags ']' {
-	$$ = sctp_heartbeat_ack_chunk_new($3);
+: HEARTBEAT_ACK '[' opt_flags ',' sctp_heartbeat_information_parameter_spec ']' {
+	$$ = sctp_heartbeat_ack_chunk_new($3, $5);
 }
 
 sctp_abort_chunk_spec
@@ -1053,8 +1136,8 @@ sctp_abort_chunk_spec
 }
 
 sctp_shutdown_chunk_spec
-: SHUTDOWN '[' opt_flags opt_tsn ']' {
-	$$ = sctp_shutdown_chunk_new($3, $4);
+: SHUTDOWN '[' opt_flags ',' opt_cum_tsn ']' {
+	$$ = sctp_shutdown_chunk_new($3, $5);
 }
 
 sctp_shutdown_ack_chunk_spec
@@ -1068,8 +1151,8 @@ sctp_error_chunk_spec
 }
 
 sctp_cookie_echo_chunk_spec
-: COOKIE_ECHO '[' opt_flags ']' {
-	$$ = sctp_cookie_echo_chunk_new($3);
+: COOKIE_ECHO '[' opt_flags ',' opt_chunk_len ',' VAL '=' ELLIPSIS ']' {
+	$$ = sctp_cookie_echo_chunk_new($3, $5, NULL);
 }
 
 sctp_cookie_ack_chunk_spec
@@ -1090,6 +1173,146 @@ sctp_cwr_chunk_spec
 sctp_shutdown_complete_chunk_spec
 : SHUTDOWN_COMPLETE '[' opt_shutdown_complete_flags ']' {
 	$$ = sctp_shutdown_complete_chunk_new($3);
+}
+
+opt_parameter_list_spec
+: ',' ELLIPSIS                 { $$ = NULL; }
+|                              { $$ = sctp_parameter_list_new(); }
+| ',' sctp_parameter_list_spec { $$ = $2; }
+;
+
+sctp_parameter_list_spec
+: sctp_parameter_spec                              { $$ = sctp_parameter_list_new();
+                                                     sctp_parameter_list_append($$, $1); }
+| sctp_parameter_list_spec ',' sctp_parameter_spec { $$ = $1;
+                                                     sctp_parameter_list_append($1, $3); }
+;
+
+sctp_parameter_spec
+: sctp_heartbeat_information_parameter_spec   { $$ = $1; }
+| sctp_ipv4_address_parameter_spec            { $$ = $1; }
+| sctp_ipv6_address_parameter_spec            { $$ = $1; }
+| sctp_state_cookie_parameter_spec            { $$ = $1; }
+| sctp_unrecognized_parameter_parameter_spec  { $$ = $1; }
+| sctp_cookie_preservative_parameter_spec     { $$ = $1; }
+| sctp_hostname_address_parameter_spec        { $$ = $1; }
+| sctp_supported_address_types_parameter_spec { $$ = $1; }
+| sctp_ecn_capable_parameter_spec             { $$ = $1; }
+;
+
+sctp_heartbeat_information_parameter_spec
+: HEARTBEAT_INFORMATION '[' ELLIPSIS ']' {
+	$$ = sctp_heartbeat_information_parameter_new(-1, NULL);
+}
+| HEARTBEAT_INFORMATION '[' LEN '=' ELLIPSIS ',' VAL '=' ELLIPSIS ']' {
+	$$ = sctp_heartbeat_information_parameter_new(-1, NULL);
+}
+| HEARTBEAT_INFORMATION '[' LEN '=' INTEGER ',' VAL '=' ELLIPSIS ']' {
+	if (($5 < sizeof(struct sctp_heartbeat_information_parameter)) ||
+	    !is_valid_u16($5)) {
+		semantic_error("len value out of range");
+	}
+	$$ = sctp_heartbeat_information_parameter_new($5, NULL);
+}
+
+sctp_ipv4_address_parameter_spec
+: IPV4_ADDRESS '[' ADDR '=' IPV4_ADDR ']' {
+	struct in_addr addr;
+
+	if (inet_pton(AF_INET, $5, &addr) != 1) {
+		semantic_error("Invalid address");
+	}
+	$$ = sctp_ipv4_address_parameter_new(&addr);
+}
+| IPV4_ADDRESS '[' ADDR '=' ELLIPSIS ']' {
+	$$ = sctp_ipv4_address_parameter_new(NULL);
+}
+
+sctp_ipv6_address_parameter_spec
+: IPV6_ADDRESS '[' ADDR '=' IPV6_ADDR ']' {
+	struct in6_addr addr;
+
+	if (inet_pton(AF_INET6, $5, &addr) != 1) {
+		semantic_error("Invalid address");
+	}
+	$$ = sctp_ipv6_address_parameter_new(&addr);
+}
+| IPV6_ADDRESS '[' ADDR '=' ELLIPSIS ']' {
+	$$ = sctp_ipv6_address_parameter_new(NULL);
+}
+
+sctp_state_cookie_parameter_spec
+: STATE_COOKIE '[' ELLIPSIS ']' {
+	$$ = sctp_state_cookie_parameter_new(-1, NULL);
+}
+| STATE_COOKIE '[' LEN '=' ELLIPSIS ',' VAL '=' ELLIPSIS ']' {
+	$$ = sctp_state_cookie_parameter_new(-1, NULL);
+}
+| STATE_COOKIE '[' LEN '=' INTEGER ',' VAL '=' ELLIPSIS ']' {
+	if (($5 < sizeof(struct sctp_state_cookie_parameter)) ||
+	    !is_valid_u32($5)) {
+		semantic_error("len value out of range");
+	}
+	$$ = sctp_state_cookie_parameter_new($5, NULL);
+}
+
+sctp_unrecognized_parameter_parameter_spec
+: UNRECOGNIZED_PARAMETER '[' PARAMS '=' ELLIPSIS ']' {
+	$$ = sctp_unrecognized_parameters_parameter_new(NULL);
+}
+| UNRECOGNIZED_PARAMETER '[' PARAMS '=' '[' sctp_parameter_list_spec ']' ']' {
+	$$ = sctp_unrecognized_parameters_parameter_new($6);
+}
+
+sctp_cookie_preservative_parameter_spec
+: COOKIE_PRESERVATIVE '[' INCR '=' INTEGER ']' {
+	if (!is_valid_u32($5)) {
+		semantic_error("increment value out of range");
+	}
+	$$ = sctp_cookie_preservative_parameter_new($5);
+}
+| COOKIE_PRESERVATIVE '[' INCR '=' ELLIPSIS ']' {
+	$$ = sctp_cookie_preservative_parameter_new(-1);
+}
+
+sctp_hostname_address_parameter_spec
+: HOSTNAME_ADDRESS '[' ADDR '=' STRING ']' {
+	$$ = sctp_hostname_address_parameter_new($5);
+}
+| HOSTNAME_ADDRESS '[' ADDR '=' ELLIPSIS ']' {
+	$$ = sctp_hostname_address_parameter_new(NULL);
+}
+
+address_types_list
+:                                     { $$ = sctp_address_type_list_new(); }
+| address_type                        { $$ = sctp_address_type_list_new();
+                                        sctp_address_type_list_append($$, $1); }
+| address_types_list ',' address_type { $$ = $1;
+                                        sctp_address_type_list_append($1, $3); }
+;
+
+address_type
+: INTEGER       { if (!is_valid_u16($1)) {
+                  semantic_error("address type value out of range");
+	          }
+	          $$ = sctp_address_type_list_item_new($1); }
+| IPV4_TYPE     { $$ = sctp_address_type_list_item_new(SCTP_IPV4_ADDRESS_PARAMETER_TYPE); }
+| IPV6_TYPE     { $$ = sctp_address_type_list_item_new(SCTP_IPV6_ADDRESS_PARAMETER_TYPE); }
+| HOSTNAME_TYPE { $$ = sctp_address_type_list_item_new(SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE); }
+;
+
+sctp_supported_address_types_parameter_spec
+: SUPPORTED_ADDRESS_TYPES '[' TYPES '=' ELLIPSIS ']' {
+	$$ = sctp_supported_address_types_parameter_new(NULL);
+}
+| SUPPORTED_ADDRESS_TYPES '[' TYPES '=' '[' address_types_list ']' ']' {
+	$$ = sctp_supported_address_types_parameter_new($6);
+}
+
+
+sctp_ecn_capable_parameter_spec
+: ECN_CAPABLE '[' ']' {
+	$$ = sctp_ecn_capable_parameter_new();
 }
 
 tcp_packet_spec

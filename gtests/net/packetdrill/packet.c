@@ -148,8 +148,11 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	struct packet *packet = packet_new(max(bytes_headroom + bytes_used, old_packet->buffer_bytes));
 	u8 *old_base = old_packet->buffer;
 	u8 *new_base = packet->buffer + bytes_headroom;
-	struct sctp_chunk_list_item *old_item, *new_item;
+	struct sctp_chunk_list_item *old_chunk_item, *new_chunk_item;
 	struct sctp_chunk *new_chunk;
+	struct sctp_parameter_list_item *old_parameter_item, *new_parameter_item;
+	struct sctp_parameter *new_parameter;
+	struct sctp_parameter_list *new_parameter_list;
 
 	memcpy(new_base, old_base, bytes_used);
 
@@ -172,14 +175,28 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	packet->icmpv4	= offset_ptr(old_base, new_base, old_packet->icmpv4);
 	packet->icmpv6	= offset_ptr(old_base, new_base, old_packet->icmpv6);
 
-	for (old_item = old_packet->chunk_list->first;
-	     old_item != NULL;
-	     old_item = old_item->next) {
-		new_chunk = offset_ptr(old_base, new_base, old_item->chunk);
-		new_item = sctp_chunk_list_item_new(new_chunk,
-		                                    old_item->length,
-		                                    old_item->flags);
-		sctp_chunk_list_append(packet->chunk_list, new_item);
+	/* Go through the SCTP specific lists */
+	for (old_chunk_item = old_packet->chunk_list->first;
+	     old_chunk_item != NULL;
+	     old_chunk_item = old_chunk_item->next) {
+		new_parameter_list = sctp_parameter_list_new();
+		for (old_parameter_item = old_chunk_item->parameter_list->first;
+		     old_parameter_item != NULL;
+		     old_parameter_item = old_parameter_item->next) {
+			new_parameter = offset_ptr(old_base,
+			                           new_base,
+			                           old_parameter_item->parameter);
+			new_parameter_item = sctp_parameter_list_item_new(new_parameter,
+			                                                  old_parameter_item->length,
+			                                                  old_parameter_item->flags);
+			sctp_parameter_list_append(new_parameter_list, new_parameter_item);
+		}
+		new_chunk = offset_ptr(old_base, new_base, old_chunk_item->chunk);
+		new_chunk_item = sctp_chunk_list_item_new(new_chunk,
+		                                          old_chunk_item->length,
+		                                          old_chunk_item->flags,
+		                                          new_parameter_list);
+		sctp_chunk_list_append(packet->chunk_list, new_chunk_item);
 	}
 
 	packet->tcp_ts_val	= offset_ptr(old_base, new_base,

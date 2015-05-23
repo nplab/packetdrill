@@ -2,6 +2,6 @@
 +0.0  bind(3, ..., ...) = 0
 +0.0  listen(3, 1) = 0
 // The initiate tag in the INIT chunk MUST NOT be zero.
-+0.1 < sctp: INIT[tag=0, a_rwnd=1500, is=1, os=1, tsn=0]
-+0.0 > sctp: ABORT[INVALID_MANDATORY_PARAMETER[]]
++0.1 < sctp: INIT[flgs=0, tag=0, a_rwnd=1500, os=1, is=1, tsn=0]
++0.0 > sctp: ABORT[flgs=T]
 +0.0 close(3) = 0

@@ -1047,6 +1047,70 @@ static int verify_ipv6(
 	return STATUS_OK;
 }
 
+static int verify_sctp_parameters(u8 *begin, u16 length,
+                                  struct sctp_chunk_list_item *script_chunk_item,
+                                  char **error)
+{
+	struct sctp_parameters_iterator iter;
+	struct sctp_parameter *actual_parameter;
+	struct sctp_parameter *script_parameter;
+	struct sctp_parameter_list_item *script_parameter_item;
+	u32 flags;
+
+	for (actual_parameter = sctp_parameters_begin(begin, length, &iter, error),
+	     script_parameter_item = script_chunk_item->parameter_list->first;
+	     actual_parameter != NULL && script_parameter_item != NULL;
+	     actual_parameter = sctp_parameters_next(&iter, error),
+	     script_parameter_item = script_parameter_item->next) {
+		if (*error != NULL) {
+			DEBUGP("Error during iteration\n");
+			return STATUS_ERR;
+		}
+		script_parameter = script_parameter_item->parameter;
+		flags = script_parameter_item->flags;
+		assert(script_parameter != NULL);
+		DEBUGP("script parameter: type %04d, length %04d\n",
+		       ntohs(script_parameter->type),
+		       ntohs(script_parameter->length));
+		DEBUGP("actual parameter: type %04d, length %04d\n",
+		       ntohs(actual_parameter->type),
+		       ntohs(actual_parameter->length));
+		if ((flags & FLAG_PARAMETER_TYPE_NOCHECK ? STATUS_OK :
+		        check_field("sctp_parameter_type",
+		                    ntohs(script_parameter->type),
+		                    ntohs(actual_parameter->type),
+		                    error)) ||
+		    (flags & FLAG_PARAMETER_LENGTH_NOCHECK ? STATUS_OK :
+		        check_field("sctp_chunk_length",
+		                    ntohs(script_parameter->length),
+		                    ntohs(actual_parameter->length),
+		                    error))) {
+			return STATUS_ERR;
+		}
+		if ((flags & FLAG_PARAMETER_VALUE_NOCHECK) == 0) {
+			assert((flags & FLAG_PARAMETER_LENGTH_NOCHECK) == 0);
+			if (memcmp(script_parameter->value,
+			           actual_parameter->value,
+			           ntohs(actual_parameter->length) - sizeof(struct sctp_parameter))) {
+				asprintf(error, "live packet parameter value not as expected");
+				return STATUS_ERR;
+			}
+		}
+	}
+	if (actual_parameter != NULL) {
+		DEBUGP("actual chunk contains more parameters than script chunk\n");
+	}
+	if (script_parameter_item != NULL) {
+		DEBUGP("script chunk contains more parameters than actual chunk\n");
+	}
+	if ((actual_parameter != NULL) || (script_parameter_item != NULL)) {
+		asprintf(error,
+		         "live chunk and expected chunk have not the same number of parameters");
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
 static int verify_data_chunk(struct sctp_data_chunk *actual_chunk,
                              struct sctp_data_chunk *script_chunk,
                              u32 flags, char **error)
@@ -1076,9 +1140,18 @@ static int verify_data_chunk(struct sctp_data_chunk *actual_chunk,
 }
 
 static int verify_init_chunk(struct sctp_init_chunk *actual_chunk,
-                             struct sctp_init_chunk *script_chunk,
-                             u32 flags, char **error)
+                             struct sctp_chunk_list_item *script_chunk_item,
+                             char **error)
 {
+	struct sctp_init_chunk *script_chunk;
+	u32 flags;
+
+	script_chunk = (struct sctp_init_chunk *)script_chunk_item->chunk;
+	flags = script_chunk_item->flags;
+	u16 parameters_length;
+
+	assert(ntohs(actual_chunk->length) >= sizeof(struct sctp_init_chunk));
+	parameters_length = ntohs(actual_chunk->length) - sizeof(struct sctp_init_chunk);
 	if (check_field("sctp_init_chunk_tag",
 		        ntohl(script_chunk->initiate_tag),
 		        ntohl(actual_chunk->initiate_tag),
@@ -1101,10 +1174,14 @@ static int verify_init_chunk(struct sctp_init_chunk *actual_chunk,
 	    check_field("sctp_init_chunk_tsn",
 		        ntohl(script_chunk->initial_tsn),
 		        ntohl(actual_chunk->initial_tsn),
-		        error)) {
+		        error) ||
+	    (flags & FLAG_INIT_CHUNK_OPT_PARAM_NOCHECK? STATUS_OK :
+	        verify_sctp_parameters(actual_chunk->parameter,
+	                               parameters_length,
+	                               script_chunk_item,
+	                               error))) {
 		return STATUS_ERR;
 	}
-	/* FIXME: Validate parameters */
 	return STATUS_OK;
 }
 
@@ -1415,8 +1492,7 @@ static int verify_sctp(
 			break;
 		case SCTP_INIT_CHUNK_TYPE:
 			result = verify_init_chunk((struct sctp_init_chunk *)actual_chunk,
-			                           (struct sctp_init_chunk *)script_chunk,
-			                           flags, error);
+			                           script_chunk_item, error);
 			break;
 		case SCTP_INIT_ACK_CHUNK_TYPE:
 			result = verify_init_ack_chunk((struct sctp_init_ack_chunk *)actual_chunk,

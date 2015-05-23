@@ -27,6 +27,23 @@
 
 static int sctp_parameter_to_string(FILE *, struct sctp_parameter *, char **);
 
+static int sctp_heartbeat_information_parameter_to_string(
+	FILE *s,
+	struct sctp_heartbeat_information_parameter *parameter,
+	char **error)
+{
+	u16 length;
+
+	length = ntohs(parameter->length);
+	if (length < sizeof(struct sctp_heartbeat_information_parameter)) {
+		asprintf(error, "HEARTBEAT_INFORMATION parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
+	fprintf(s, "HEARTBEAT_INFORMATION[len=%u, val=...]", length);
+	return STATUS_OK;
+}
+
 static int sctp_ipv4_address_parameter_to_string(
 	FILE *s,
 	struct sctp_ipv4_address_parameter *parameter,
@@ -42,7 +59,7 @@ static int sctp_ipv4_address_parameter_to_string(
 		return STATUS_ERR;
 	}
 	inet_ntop(AF_INET, &parameter->addr, buffer, INET_ADDRSTRLEN);
-	fprintf(s, "IPV4_ADDRESS[%s]", buffer);
+	fprintf(s, "IPV4_ADDRESS[addr=%s]", buffer);
 	return STATUS_OK;
 }
 
@@ -61,7 +78,7 @@ static int sctp_ipv6_address_parameter_to_string(
 		return STATUS_ERR;
 	}
 	inet_ntop(AF_INET6, &parameter->addr, buffer, INET6_ADDRSTRLEN);
-	fprintf(s, "IPV6_ADDRESS[%s]", buffer);
+	fprintf(s, "IPV6_ADDRESS[addr=%s]", buffer);
 	return STATUS_OK;
 }
 
@@ -70,7 +87,7 @@ static int sctp_state_cookie_parameter_to_string(
 	struct sctp_state_cookie_parameter *parameter,
 	char **error)
 {
-	u16 length, cookie_length;
+	u16 length;
 
 	length = ntohs(parameter->length);
 	if (length < sizeof(struct sctp_state_cookie_parameter)) {
@@ -78,8 +95,7 @@ static int sctp_state_cookie_parameter_to_string(
 			 length);
 		return STATUS_ERR;
 	}
-	cookie_length = length - sizeof(struct sctp_state_cookie_parameter);
-	fprintf(s, "STATE_COOKIE[cookie_len=%d]", cookie_length);
+	fprintf(s, "STATE_COOKIE[len=%d, val=...]", length);
 	return STATUS_OK;
 }
 
@@ -99,10 +115,10 @@ static int sctp_unrecognized_parameter_parameter_to_string(
 			 length);
 		return STATUS_ERR;
 	}
-	fputs("UNRECOGNIZED_PARAMETER[", s);
+	fputs("UNRECOGNIZED_PARAMETER[params=[", s);
 	result = sctp_parameter_to_string(s,
 		(struct sctp_parameter *)parameter->value, error);
-	fputc(']', s);
+	fputs("]]", s);
 	return result;
 }
 
@@ -120,7 +136,7 @@ static int sctp_cookie_preservative_parameter_to_string(
 			 length);
 		return STATUS_ERR;
 	}
-	fputs("COOKIE_PRESERVATIVE[", s);
+	fputs("COOKIE_PRESERVATIVE[incr=", s);
 	fprintf(s, "%u", ntohl(parameter->increment));
 	fputc(']', s);
 	return STATUS_OK;
@@ -139,7 +155,7 @@ static int sctp_hostname_parameter_to_string(
 			 length);
 		return STATUS_ERR;
 	}
-	fprintf(s, "HOSTNAME[%.*s]",
+	fprintf(s, "HOSTNAME[addr=\"%.*s\"]",
 		(int)(length - sizeof(struct sctp_hostname_address_parameter)),
 		(char *)parameter->hostname);
 	return STATUS_OK;
@@ -163,16 +179,16 @@ static int sctp_supported_address_types_parameter_to_string(
 	nr_address_types =
 		(length - sizeof(struct sctp_supported_address_types_parameter))
 		/ sizeof(u16);
-	fputs("SUPPORTED_ADDRESS_TYPES[", s);
+	fputs("SUPPORTED_ADDRESS_TYPES[types=[", s);
 	for (i = 0; i < nr_address_types; i++) {
 		if (i > 0)
 			fputs(", ", s);
 		switch (ntohs(parameter->address_type[i])) {
 		case SCTP_IPV4_ADDRESS_PARAMETER_TYPE:
-			fputs("IPV4", s);
+			fputs("IPv4", s);
 			break;
 		case SCTP_IPV6_ADDRESS_PARAMETER_TYPE:
-			fputs("IPV6", s);
+			fputs("IPv6", s);
 			break;
 		case SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE:
 			fputs("HOSTNAME", s);
@@ -182,7 +198,7 @@ static int sctp_supported_address_types_parameter_to_string(
 			break;
 		}
 	}
-	fputs("]", s);
+	fputs("]]", s);
 	return STATUS_OK;
 }
 
@@ -235,6 +251,10 @@ static int sctp_parameter_to_string(FILE *s,
 	int result;
 
 	switch (ntohs(parameter->type)) {
+	case SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE:
+		result = sctp_heartbeat_information_parameter_to_string(s,
+			(struct sctp_heartbeat_information_parameter *)parameter, error);
+		break;
 	case SCTP_IPV4_ADDRESS_PARAMETER_TYPE:
 		result = sctp_ipv4_address_parameter_to_string(s,
 			(struct sctp_ipv4_address_parameter *)parameter, error);
@@ -740,31 +760,28 @@ static int sctp_data_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("DATA[", s);
-	if (flags != 0x00) {
-		fputs("flags=", s);
-		if (flags & ~(SCTP_DATA_CHUNK_I_BIT |
-			      SCTP_DATA_CHUNK_U_BIT |
-			      SCTP_DATA_CHUNK_B_BIT |
-			      SCTP_DATA_CHUNK_E_BIT))
-			fprintf(s, "0x%02x", chunk->flags);
-		else {
-			if (flags & SCTP_DATA_CHUNK_I_BIT)
-				fputc('I', s);
-			if (flags & SCTP_DATA_CHUNK_U_BIT)
-				fputc('U', s);
-			if (flags & SCTP_DATA_CHUNK_B_BIT)
-				fputc('B', s);
-			if (flags & SCTP_DATA_CHUNK_E_BIT)
-				fputc('E', s);
-		}
-		fputs(", ", s);
+	fputs("flgs=", s);
+	if (flags & ~(SCTP_DATA_CHUNK_I_BIT |
+		      SCTP_DATA_CHUNK_U_BIT |
+		      SCTP_DATA_CHUNK_B_BIT |
+		      SCTP_DATA_CHUNK_E_BIT))
+		fprintf(s, "0x%02x", chunk->flags);
+	else {
+		if (flags & SCTP_DATA_CHUNK_I_BIT)
+			fputc('I', s);
+		if (flags & SCTP_DATA_CHUNK_U_BIT)
+			fputc('U', s);
+		if (flags & SCTP_DATA_CHUNK_B_BIT)
+			fputc('B', s);
+		if (flags & SCTP_DATA_CHUNK_E_BIT)
+			fputc('E', s);
 	}
+	fputs(", ", s);
+	fprintf(s, "len=%u, ", length);
 	fprintf(s, "tsn=%u, ", ntohl(chunk->tsn));
 	fprintf(s, "sid=%d, ", ntohs(chunk->sid));
 	fprintf(s, "ssn=%u, ", ntohs(chunk->ssn));
-	fprintf(s, "ppid=%u, ", ntohl(chunk->ppid));
-	fprintf(s, "payload_len=%u]",
-		length - (u16)sizeof(struct sctp_data_chunk));
+	fprintf(s, "ppid=%u]", ntohl(chunk->ppid));
 	return STATUS_OK;
 }
 
@@ -787,8 +804,7 @@ static int sctp_init_chunk_to_string(FILE *s,
 	}
 	parameters_length = length - sizeof(struct sctp_init_chunk);
 	fputs("INIT[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", chunk->flags);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "tag=%u, ", ntohl(chunk->initiate_tag));
 	fprintf(s, "a_rwnd=%d, ", ntohl(chunk->a_rwnd));
 	fprintf(s, "os=%u, ", ntohs(chunk->os));
@@ -831,8 +847,7 @@ static int sctp_init_ack_chunk_to_string(FILE *s,
 	}
 	parameters_length = length - sizeof(struct sctp_init_ack_chunk);
 	fputs("INIT_ACK[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", chunk->flags);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "tag=%u, ", ntohl(chunk->initiate_tag));
 	fprintf(s, "a_rwnd=%d, ", ntohl(chunk->a_rwnd));
 	fprintf(s, "os=%u, ", ntohs(chunk->os));
@@ -879,13 +894,12 @@ static int sctp_sack_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("SACK[", s);
-	if (flags != 0)
-		fprintf(s, "flags=0x%02x, ", flags);
+	fprintf(s, "flgs=0x%02x, ", flags);
 	fprintf(s, "cum_tsn=%u, ", ntohl(chunk->cum_tsn));
 	fprintf(s, "a_rwnd=%u, ", ntohl(chunk->a_rwnd));
 	fputs("gaps=[", s);
 	for (i = 0; i < nr_gaps; i++)
-		fprintf(s, "%s%u-%u",
+		fprintf(s, "%s%u:%u",
 			   i > 0 ? ", " : "",
 			   ntohs(chunk->block[i].gap.start),
 			   ntohs(chunk->block[i].gap.end));
@@ -902,18 +916,37 @@ static int sctp_heartbeat_chunk_to_string(FILE *s,
 					  struct sctp_heartbeat_chunk *chunk,
 					  char **error)
 {
-	u16 length;
+	u16 chunk_length, parameter_length, chunk_padding, parameter_padding;
+	struct sctp_parameter *parameter;
+	int result;
 	u8 flags;
 
 	flags = chunk->flags;
-	length = ntohs(chunk->length);
+	chunk_length = ntohs(chunk->length);
+	if (chunk_length < sizeof(struct sctp_heartbeat_chunk) +
+	                   sizeof(struct sctp_heartbeat_information_parameter)) {
+		asprintf(error, "HEARTBEAT chunk too short");
+		return STATUS_ERR;
+	}
+	chunk_padding = chunk_length & 0x0003;
+	if (chunk_padding != 0)
+		chunk_padding = 4 - chunk_padding;
+	parameter = (struct sctp_parameter *)chunk->value;
+	parameter_length = ntohs(parameter->length);
+	parameter_padding = parameter_length & 0x0003;
+	if (parameter_padding != 0)
+		parameter_padding = 4 - parameter_padding;
+	if (chunk_length + chunk_padding !=
+	    sizeof(struct sctp_heartbeat_chunk) +
+	    parameter_length + parameter_padding) {
+		asprintf(error, "HEARTBEAT chunk inconsistent");
+		return STATUS_ERR;
+	}
 	fputs("HEARTBEAT[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", flags);
-	fprintf(s, "info_len=%u",
-		length - (u16)sizeof(struct sctp_heartbeat_chunk));
+	fprintf(s, "flgs=0x%02x, ", flags);
+	result = sctp_parameter_to_string(s, parameter, error);
 	fputc(']', s);
-	return STATUS_OK;
+	return result;
 }
 
 static int sctp_heartbeat_ack_chunk_to_string(
@@ -921,18 +954,37 @@ static int sctp_heartbeat_ack_chunk_to_string(
 	struct sctp_heartbeat_ack_chunk *chunk,
 	char **error)
 {
-	u16 length;
+	u16 chunk_length, parameter_length, chunk_padding, parameter_padding;
+	struct sctp_parameter *parameter;
+	int result;
 	u8 flags;
 
 	flags = chunk->flags;
-	length = ntohs(chunk->length);
+	chunk_length = ntohs(chunk->length);
+	if (chunk_length < sizeof(struct sctp_heartbeat_ack_chunk) +
+	                   sizeof(struct sctp_heartbeat_information_parameter)) {
+		asprintf(error, "HEARTBEAT_ACK chunk too short");
+		return STATUS_ERR;
+	}
+	chunk_padding = chunk_length & 0x0003;
+	if (chunk_padding != 0)
+		chunk_padding = 4 - chunk_padding;
+	parameter = (struct sctp_parameter *)chunk->value;
+	parameter_length = ntohs(parameter->length);
+	parameter_padding = parameter_length & 0x0003;
+	if (parameter_padding != 0)
+		parameter_padding = 4 - parameter_padding;
+	if (chunk_length + chunk_padding !=
+	    sizeof(struct sctp_heartbeat_chunk) +
+	    parameter_length + parameter_padding) {
+		asprintf(error, "HEARTBEAT_ACK chunk inconsistent");
+		return STATUS_ERR;
+	}
 	fputs("HEARTBEAT_ACK[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", flags);
-	fprintf(s, "info_len=%u",
-		length - (u16)sizeof(struct sctp_heartbeat_chunk));
+	fprintf(s, "flgs=0x%02x, ", flags);
+	result = sctp_parameter_to_string(s, parameter, error);
 	fputc(']', s);
-	return STATUS_OK;
+	return result;
 }
 
 static int sctp_abort_chunk_to_string(FILE *s,
@@ -952,22 +1004,19 @@ static int sctp_abort_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("ABORT[", s);
-	if (flags != 0x00) {
-		fputs("flags=", s);
-		if (flags & ~SCTP_ABORT_CHUNK_T_BIT)
-			fprintf(s, "0x%02x", chunk->flags);
-		else
-			if (flags & SCTP_ABORT_CHUNK_T_BIT)
-				fputc('T', s);
-	}
+	fputs("flgs=", s);
+	if ((flags & ~SCTP_ABORT_CHUNK_T_BIT) || (flags == 0x00))
+		fprintf(s, "0x%02x", flags);
+	else
+		if (flags & SCTP_ABORT_CHUNK_T_BIT)
+			fputc('T', s);
 	index = 0;
 	for (cause = sctp_causes_begin((struct sctp_chunk *)chunk,
 				       SCTP_ABORT_CHUNK_CAUSE_OFFSET,
 				       &iter, error);
 	     cause != NULL;
 	     cause = sctp_causes_next(&iter, error)) {
-		if (((index == 0) && (flags != 0x00)) || (index > 0))
-			fputs(", ", s);
+		fputs(", ", s);
 		if (*error != NULL)
 			break;
 		result = sctp_cause_to_string(s, cause, error);
@@ -995,9 +1044,8 @@ static int sctp_shutdown_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("SHUTDOWN[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", chunk->flags);
-	fprintf(s, "tsn=%u", ntohl(chunk->cum_tsn));
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
+	fprintf(s, "cum_tsn=%u", ntohl(chunk->cum_tsn));
 	fputc(']', s);
 	return STATUS_OK;
 }
@@ -1018,8 +1066,7 @@ static int sctp_shutdown_ack_chunk_to_string(
 		return STATUS_ERR;
 	}
 	fputs("SHUTDOWN_ACK[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", chunk->flags);
+	fprintf(s, "flgs=0x%02x", chunk->flags);
 	fputc(']', s);
 	return STATUS_OK;
 }
@@ -1041,16 +1088,14 @@ static int sctp_error_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("ERROR[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x", chunk->flags);
+	fprintf(s, "flgs=0x%02x", chunk->flags);
 	index = 0;
 	for (cause = sctp_causes_begin((struct sctp_chunk *)chunk,
 				       SCTP_ERROR_CHUNK_CAUSE_OFFSET,
 				       &iter, error);
 	     cause != NULL;
 	     cause = sctp_causes_next(&iter, error)) {
-		if (((index == 0) && (flags != 0x00)) || (index > 0))
-			fputs(", ", s);
+		fputs(", ", s);
 		if (*error != NULL)
 			break;
 		result = sctp_cause_to_string(s, cause, error);
@@ -1075,10 +1120,8 @@ static int sctp_cookie_echo_chunk_to_string(
 	flags = chunk->flags;
 	length = ntohs(chunk->length);
 	fputs("COOKIE_ECHO[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", flags);
-	fprintf(s, "cookie_len=%u",
-		length - (u16)sizeof(struct sctp_cookie_echo_chunk));
+	fprintf(s, "flgs=0x%02x, ", flags);
+	fprintf(s, "len=%u", length);
 	fputc(']', s);
 	return STATUS_OK;
 }
@@ -1098,8 +1141,7 @@ static int sctp_cookie_ack_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("COOKIE_ACK[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x", chunk->flags);
+	fprintf(s, "flgs=0x%02x", chunk->flags);
 	fputc(']', s);
 	return STATUS_OK;
 }
@@ -1118,8 +1160,7 @@ static int sctp_ecne_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("ECNE[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", chunk->flags);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "tsn=%u", ntohl(chunk->lowest_tsn));
 	fputc(']', s);
 	return STATUS_OK;
@@ -1139,8 +1180,7 @@ static int sctp_cwr_chunk_to_string(FILE *s,
 		return STATUS_ERR;
 	}
 	fputs("CWR[", s);
-	if (flags != 0x00)
-		fprintf(s, "flags=0x%02x, ", chunk->flags);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "tsn=%u", ntohl(chunk->lowest_tsn));
 	fputc(']', s);
 	return STATUS_OK;
@@ -1162,14 +1202,12 @@ static int sctp_shutdown_complete_chunk_to_string(
 		return STATUS_ERR;
 	}
 	fputs("SHUTDOWN_COMPLETE[", s);
-	if (flags != 0x00) {
-		fputs("flags=", s);
-		if (flags & ~SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT)
-			fprintf(s, "0x%02x", chunk->flags);
-		else
-			if (flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT)
-				fputc('T', s);
-	}
+	fputs("flgs=", s);
+	if ((flags & ~SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT) || (flags == 0x00))
+		fprintf(s, "0x%02x", flags);
+	else
+		if (flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT)
+			fputc('T', s);
 	fputc(']', s);
 	return STATUS_OK;
 }

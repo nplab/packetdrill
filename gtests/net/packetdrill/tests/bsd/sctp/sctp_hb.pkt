@@ -4,18 +4,18 @@
 +0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
 +0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
 +0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
-+0.0 > sctp: INIT[tag=1 tsn=1]                            // FIXME
-+0.0 < sctp: INIT_ACK[tag=2 a_rwnd=1500 os=1 is =1 tsn=1] // FIXME 
-+0.0 > sctp: COOKIE_ECHO[]                                // FIXME 
-+0.0 < sctp: COOKIE_ACK[]
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.0 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is =1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.0 < sctp: COOKIE_ACK[flgs=0]
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 // then respond to two HEARTBEATs
- *   > sctp: HEARTBEAT[]
-+0.0 < sctp: HEARTBEAT_ACK[]
- *   > sctp: HEARTBEAT[]
-+0.0 < sctp: HEARTBEAT_ACK[]
+ *   > sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
++0.0 < sctp: HEARTBEAT_ACK[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+ *   > sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
++0.0 < sctp: HEARTBEAT_ACK[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
 // and finally perform a graceful shutdown
 +0.0 close(3) = 0
-+0.0 > sctp: SHUTDOWN[tsn=0]
-+0.0 < sctp: SHUTDOWN_ACK[]
-+0.0 > sctp: SHUTDOWN_COMPLETE[]
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
++0.0 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
