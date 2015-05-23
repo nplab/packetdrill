@@ -111,8 +111,6 @@ static void check_remote_address(struct config *config,
 /* Create a tun device for the lifetime of this test. */
 static void create_device(struct config *config, struct local_netdev *netdev)
 {
-	char *command;
-
 	/* Open the tun device, which "clones" it for our purposes. */
 	int tun_fd = open(TUN_PATH, O_RDWR);
 	if (tun_fd < 0)
@@ -161,6 +159,23 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 
 	DEBUGP("tun index: '%d'\n", netdev->index);
 
+#ifdef __FreeBSD__
+	struct tuninfo tuninfo;
+
+	if (ioctl(netdev->tun_fd, TUNGIFINFO, &tuninfo, sizeof(tuninfo)) < 0)
+		die_perror("TUNGIFINFO");
+	DEBUGP("Interface baudrate: %d bps, mtu: %d\n",
+	        tuninfo.baudrate, tuninfo.mtu);
+	DEBUGP("Requested baudrate: %ju bps, mtu: %d\n",
+	       IF_Mbps(config->speed), config->mtu);
+	if ((tuninfo.baudrate != IF_Mbps(config->speed)) ||
+	    (tuninfo.mtu != config->mtu)) {
+		tuninfo.baudrate = IF_Mbps(config->speed);
+		tuninfo.mtu = config->mtu;
+		if (ioctl(netdev->tun_fd, TUNSIFINFO, &tuninfo, sizeof(tuninfo)) < 0)
+			die_perror("TUNSIFINFO");
+	}
+#else
 	if (config->speed != TUN_DRIVER_SPEED_CUR) {
 		char *command;
 		asprintf(&command, "ethtool -s %s speed %u autoneg off",
@@ -179,10 +194,15 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		free(command);
 	}
 
-	asprintf(&command, "ifconfig %s mtu %d", netdev->name, config->mtu);
-	if (system(command) < 0)
-		die("Error executing %s\n", command);
-	free(command);
+	if (config->mtu != TUN_DRIVER_DEFAULT_MTU) {
+		char *command;
+		asprintf(&command, "ifconfig %s mtu %d",
+			 netdev->name, config->mtu);
+		if (system(command) < 0)
+			die("Error executing %s\n", command);
+		free(command);
+	}
+#endif
 
 	/* Open a socket we can use to configure the tun interface.
 	 * We only open up an AF_INET6 socket on-demand as needed,
