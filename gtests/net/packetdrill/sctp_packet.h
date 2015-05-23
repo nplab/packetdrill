@@ -197,6 +197,9 @@ sctp_cwr_chunk_new(s64 flgs, s64 lowest_tsn);
 struct sctp_chunk_list_item *
 sctp_shutdown_complete_chunk_new(s64 flgs);
 
+struct sctp_chunk_list_item *
+sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding);
+
 struct sctp_chunk_list *
 sctp_chunk_list_new(void);
 
@@ -241,6 +244,9 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list);
 
 struct sctp_parameter_list_item *
 sctp_ecn_capable_parameter_new(void);
+
+struct sctp_parameter_list_item *
+sctp_pad_parameter_new(s64 len, u8 *padding);
 
 struct sctp_parameter_list *
 sctp_parameter_list_new(void);

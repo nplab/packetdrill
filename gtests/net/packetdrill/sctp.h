@@ -52,6 +52,7 @@ struct sctp_common_header {
 #define SCTP_ECNE_CHUNK_TYPE				0x0c
 #define SCTP_CWR_CHUNK_TYPE				0x0d
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE		0x0e
+#define SCTP_PAD_CHUNK_TYPE				0x84
 
 #define MAX_SCTP_CHUNK_BYTES	0xffff
 
@@ -204,6 +205,13 @@ struct sctp_shutdown_complete_chunk {
 	__be16 length;
 } __packed;
 
+struct sctp_pad_chunk {
+	__u8 type;
+	__u8 flags;
+	__be16 length;
+	__u8 padding_data[];
+} __packed;
+
 #define SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE	0x0001
 #define SCTP_IPV4_ADDRESS_PARAMETER_TYPE		0x0005
 #define SCTP_IPV6_ADDRESS_PARAMETER_TYPE		0x0006
@@ -213,6 +221,7 @@ struct sctp_shutdown_complete_chunk {
 #define SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE		0x000b
 #define SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	0x000c
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
+#define SCTP_PAD_PARAMETER_TYPE				0x8005
 
 #define MAX_SCTP_PARAMETER_BYTES	0xffff
 
@@ -273,6 +282,12 @@ struct sctp_supported_address_types_parameter {
 struct sctp_ecn_capable_parameter {
 	__be16 type;
 	__be16 length;
+} __packed;
+
+struct sctp_pad_parameter {
+	__be16 type;
+	__be16 length;
+	__be16 padding_data[];
 } __packed;
 
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001

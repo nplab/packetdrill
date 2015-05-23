@@ -16,7 +16,7 @@
 +0.1 < sctp: COOKIE_ACK[flgs=0]
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 // Send some data
-+0.5 < sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=9, val=...]]
++0.5 < sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=9, val=...]]; PAD[flgs=0, len=1300, val=...]
 +0.0 > sctp: HEARTBEAT_ACK[flgs=0, HEARTBEAT_INFORMATION[len=9, val=...]]
 +1.0 write(3, ..., 1000) = 1000
 +0.0 > sctp: DATA[flgs=BE, len=1016, tsn=0, sid=0, ssn=0, ppid=0]

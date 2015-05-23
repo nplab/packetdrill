@@ -219,6 +219,20 @@ static int sctp_ecn_capable_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_pad_parameter_to_string(
+	FILE *s,
+	struct sctp_pad_parameter *parameter,
+	char **error)
+{
+	u16 length;
+
+	length = ntohs(parameter->length);
+	fputs("PAD[", s);
+	fprintf(s, "len=%u, ", length);
+	fputs("val=...]", s);
+	return STATUS_OK;
+}
+
 static int sctp_unknown_parameter_to_string(
 	FILE *s,
 	struct sctp_parameter *parameter,
@@ -290,6 +304,10 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_ECN_CAPABLE_PARAMETER_TYPE:
 		result = sctp_ecn_capable_parameter_to_string(s,
 			(struct sctp_ecn_capable_parameter *)parameter, error);
+		break;
+	case SCTP_PAD_PARAMETER_TYPE:
+		result = sctp_pad_parameter_to_string(s,
+			(struct sctp_pad_parameter *)parameter, error);
 		break;
 	default:
 		result = sctp_unknown_parameter_to_string(s, parameter, error);
@@ -1212,6 +1230,23 @@ static int sctp_shutdown_complete_chunk_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_pad_chunk_to_string(
+	FILE *s,
+	struct sctp_pad_chunk *chunk,
+	char **error)
+{
+	u8 flags;
+	u16 length;
+
+	flags = chunk->flags;
+	length = ntohs(chunk->length);
+	fputs("PAD[", s);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
+	fprintf(s, "len=%u, ", length);
+	fputs("val=...]", s);
+	return STATUS_OK;
+}
+
 static int sctp_unknown_chunk_to_string(FILE *s,
 					struct sctp_chunk *chunk,
 					char **error)
@@ -1221,7 +1256,7 @@ static int sctp_unknown_chunk_to_string(FILE *s,
 	length = ntohs(chunk->length);
 	fputs("CHUNK[", s);
 	fprintf(s, "type=0x%02x, ", chunk->type);
-	fprintf(s, "flags=0x%02x, ", chunk->flags);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fputs("value=[", s);
 	for (i = 0; i < length - sizeof(struct sctp_chunk); i++)
 		fprintf(s, "%s0x%02x",
@@ -1295,6 +1330,10 @@ int sctp_chunk_to_string(FILE *s, struct sctp_chunk *chunk, char **error)
 	case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
 		result = sctp_shutdown_complete_chunk_to_string(s,
 			(struct sctp_shutdown_complete_chunk *)chunk, error);
+		break;
+	case SCTP_PAD_CHUNK_TYPE:
+		result = sctp_pad_chunk_to_string(s,
+			(struct sctp_pad_chunk *)chunk, error);
 		break;
 	default:
 		result = sctp_unknown_chunk_to_string(s, chunk, error);

@@ -1426,6 +1426,14 @@ static int verify_shutdown_complete_chunk(struct sctp_shutdown_complete_chunk *a
 	return STATUS_OK;
 }
 
+static int verify_pad_chunk(struct sctp_pad_chunk *actual_chunk,
+                            struct sctp_pad_chunk *script_chunk,
+                            u32 flags, char **error)
+{
+	/* Nothing to check */
+	return STATUS_OK;
+}
+
 /* Verify that required actual SCTP packet fields are as the script expected. */
 static int verify_sctp(
 	const struct packet *actual_packet,
@@ -1558,6 +1566,11 @@ static int verify_sctp(
 			result = verify_shutdown_complete_chunk((struct sctp_shutdown_complete_chunk *)actual_chunk,
 			                                        (struct sctp_shutdown_complete_chunk *)script_chunk,
 			                                        flags, error);
+			break;
+		case SCTP_PAD_CHUNK_TYPE:
+			result = verify_pad_chunk((struct sctp_pad_chunk *)actual_chunk,
+			                          (struct sctp_pad_chunk *)script_chunk,
+			                          flags, error);
 			break;
 		default:
 			result = STATUS_ERR;

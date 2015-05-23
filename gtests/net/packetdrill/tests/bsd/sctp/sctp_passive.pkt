@@ -9,9 +9,9 @@
 // Check the handshake with en empty(!) cookie
 +0.0 bind(3, ..., ...) = 0
 +0.0 listen(3, 1) = 0
-+0.0 < sctp: INIT[flgs=0, tag=1, a_rwnd=1500, os=1, is=1, tsn=0, ECN_CAPABLE[], COOKIE_PRESERVATIVE[incr=12345], SUPPORTED_ADDRESS_TYPES[types=[IPv4]]]
++0.0 < sctp: INIT[flgs=0, tag=1, a_rwnd=1500, os=1, is=1, tsn=0, ECN_CAPABLE[], COOKIE_PRESERVATIVE[incr=12345], SUPPORTED_ADDRESS_TYPES[types=[IPv4]], PAD[len=500, val=...], PAD[len=500, val=...]]
 +0.0 > sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=..., os=..., is=..., tsn=10, STATE_COOKIE[len=..., val=...]]
-+0.1 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]; DATA[flgs=BE, len=1016, tsn=0, sid=0, ssn=0, ppid=0]
++0.1 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]; PAD[flgs=0, len=10, val=...]; DATA[flgs=BE, len=1016, tsn=0, sid=0, ssn=0, ppid=0]
 +0.0 > sctp: COOKIE_ACK[flgs=0]; SACK[flgs=0, cum_tsn=0, a_rwnd=..., gaps=..., dups=...]
 +0.0 accept(3, ..., ...) = 4
 +0.0 read(4, ..., 1000) = 1000

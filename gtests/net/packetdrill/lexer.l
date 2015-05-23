@@ -227,6 +227,7 @@ COOKIE_ACK		return COOKIE_ACK;
 ECNE			return ECNE;
 CWR			return CWR;
 SHUTDOWN_COMPLETE	return SHUTDOWN_COMPLETE;
+PAD			return PAD;
 flgs			return FLAGS;
 len			return LEN;
 tag			return TAG;

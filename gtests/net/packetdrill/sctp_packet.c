@@ -808,6 +808,51 @@ sctp_shutdown_complete_chunk_new(s64 flgs)
 	                                flags, sctp_parameter_list_new());
 }
 
+struct sctp_chunk_list_item *
+sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding)
+{
+	struct sctp_pad_chunk *chunk;
+	u32 flags;
+	u16 chunk_length, padding_length, chunk_padding_length;
+
+	assert((len == -1) || is_valid_u16(len));
+	assert((len != -1) || (padding == NULL));
+	flags = 0;
+	if (len == -1) {
+		padding_length = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+	} else {
+		assert(len <= MAX_SCTP_CHUNK_BYTES - sizeof(struct sctp_pad_chunk));
+		padding_length = len - sizeof(struct sctp_pad_chunk);
+	}
+	chunk_length = padding_length + sizeof(struct sctp_pad_chunk);
+	chunk_padding_length = chunk_length % 4;
+	if (chunk_padding_length > 0) {
+		chunk_padding_length = 4 - chunk_padding_length;
+	}
+	chunk = malloc(chunk_length + chunk_padding_length);
+	assert(chunk != NULL);
+	chunk->type = SCTP_PAD_CHUNK_TYPE;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
+	chunk->length = htons(chunk_length);
+	if (padding != NULL) {
+		memcpy(chunk->padding_data, padding, padding_length);
+	} else {
+		flags |= FLAG_CHUNK_VALUE_NOCHECK;
+		memset(chunk->padding_data, 'P', padding_length);
+	}
+	/* Clear the padding */
+	memset(chunk->padding_data + padding_length, 0, chunk_padding_length);
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	                                chunk_length + chunk_padding_length,
+	                                flags, sctp_parameter_list_new());
+}
+
 struct sctp_chunk_list *
 sctp_chunk_list_new(void)
 {
@@ -1139,8 +1184,43 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list)
 	                                    parameter_length, flags);
 }
 
+struct sctp_parameter_list_item *
+sctp_pad_parameter_new(s64 len, u8 *padding)
+{
+	struct sctp_pad_parameter *parameter;
+	u32 flags;
+	u16 parameter_length, padding_length, parameter_padding_length;
 
-/* SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	*/
+	assert((len == -1) || is_valid_u16(len));
+	assert((len != -1) || (padding == NULL));
+	flags = 0;
+	if (len == -1) {
+		padding_length = 0;
+		flags |= FLAG_PARAMETER_LENGTH_NOCHECK;
+	} else {
+		assert(len <= MAX_SCTP_PARAMETER_BYTES - sizeof(struct sctp_pad_parameter));
+		padding_length = len - sizeof(struct sctp_pad_parameter);
+	}
+	parameter_length = padding_length + sizeof(struct sctp_pad_parameter);
+	parameter_padding_length = parameter_length % 4;
+	if (parameter_padding_length > 0) {
+		parameter_padding_length = 4 - parameter_padding_length;
+	}
+	parameter = malloc(parameter_length + parameter_padding_length);
+	assert(parameter != NULL);
+	parameter->type = htons(SCTP_PAD_PARAMETER_TYPE);
+	parameter->length = htons(parameter_length);
+	if (padding != NULL) {
+		memcpy(parameter->padding_data, padding, padding_length);
+	} else {
+		/* flags |= FLAG_PARAMETER_VALUE_NOCHECK; */
+		memset(parameter->padding_data, 'P', padding_length);
+	}
+	/* Clear the padding */
+	memset(parameter->padding_data + padding_length, 0, parameter_padding_length);
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+	                                    parameter_length, flags);
+}
 
 struct sctp_parameter_list_item *
 sctp_ecn_capable_parameter_new(void)
@@ -1409,6 +1489,13 @@ new_sctp_packet(int address_family,
 				}
 				break;
 			case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
+				break;
+			case SCTP_PAD_CHUNK_TYPE:
+				if (chunk_item->flags & FLAG_CHUNK_LENGTH_NOCHECK) {
+					asprintf(error,
+						 "chunk length must be specified for inbound packets");
+					return NULL;
+				}
 				break;
 			default:
 				asprintf(error, "Unknown chunk type 0x%02x", chunk_item->chunk->type);
