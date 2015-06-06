@@ -605,7 +605,7 @@ static struct socket *find_socket_by_live_fd(
 {
 	struct socket *socket = NULL;
 	for (socket = state->sockets; socket != NULL; socket = socket->next)
-		if (!socket->is_closed & (socket->live.fd == live_fd)) {
+		if (!socket->is_closed && (socket->live.fd == live_fd)) {
 			assert(socket->live.fd >= 0);
 			assert(socket->script.fd >= 0);
 			return socket;
