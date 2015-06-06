@@ -190,7 +190,11 @@ static void set_ipv6_defaults(struct config *config)
 void set_default_config(struct config *config)
 {
 	memset(config, 0, sizeof(*config));
+#if defined(__FreeBSD__)
+	config->code_command_line	= "/usr/local/bin/python";
+#else
 	config->code_command_line	= "/usr/bin/python";
+#endif
 	config->code_format		= "python";
 	config->code_sockopt		= "";		/* auto-detect */
 	config->ip_version		= IP_VERSION_4;
