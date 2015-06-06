@@ -103,15 +103,22 @@ static void close_all_sockets(struct state *state)
 			if (close(socket->live.fd))
 				die_perror("close");
 		}
-		if (socket->protocol == IPPROTO_TCP &&
-		    !state->config->is_wire_client &&
-		    reset_connection(state, socket)) {
-			die("error reseting connection\n");
-		}
-		if (socket->protocol == IPPROTO_SCTP &&
-		    !state->config->is_wire_client &&
-		    abort_association(state, socket)) {
-			die("error aborting association\n");
+		if ((socket->state != SOCKET_INIT) &&
+		    (socket->state != SOCKET_NEW) &&
+		    (socket->state != SOCKET_PASSIVE_LISTENING) &&
+		    (state->config->is_wire_client == false)) {
+			switch (socket->protocol) {
+			case IPPROTO_TCP:
+				if (reset_connection(state, socket) != STATUS_OK)
+					die("error reseting connection\n");
+				break;
+			case IPPROTO_SCTP:
+				if (abort_association(state, socket) != STATUS_OK)
+					die("error aborting association\n");
+				break;
+			default:
+				break;
+			}
 		}
 		struct socket *dead_socket = socket;
 		socket = socket->next;
