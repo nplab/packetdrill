@@ -2468,7 +2468,7 @@ int reset_connection(struct state *state, struct socket *socket)
 	u16 window = 0;
 	struct packet *packet = NULL;
 	struct tuple live_inbound;
-	int result = 0;
+	int result = STATUS_OK;
 
 	/* Pick TCP header fields to be something the kernel will accept. */
 	if (socket->last_injected_tcp_header.ack) {
@@ -2529,7 +2529,7 @@ int abort_association(struct state *state, struct socket *socket)
 	struct packet *packet;
 	struct sctp_chunk_list *chunk_list;
 	struct tuple live_inbound;
-	int result = 0;
+	int result = STATUS_OK;
 
 	if ((socket->live.local_initiate_tag == 0) &&
 	    (socket->live.remote_initiate_tag == 0)) {
