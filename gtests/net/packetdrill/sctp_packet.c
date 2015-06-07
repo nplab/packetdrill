@@ -313,7 +313,7 @@ sctp_init_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn,
 		       item->length + parameter_padding_length);
 		free(item->parameter);
 		item->parameter = (struct sctp_parameter *)(chunk->parameter + offset);
-		if (item->flags == FLAG_PARAMETER_LENGTH_NOCHECK) {
+		if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
 			flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 		}
 		offset += item->length + parameter_padding_length;
@@ -386,7 +386,7 @@ sctp_init_ack_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn,
 		       item->length + parameter_padding_length);
 		free(item->parameter);
 		item->parameter = (struct sctp_parameter *)(chunk->parameter + offset);
-		if (item->flags == FLAG_PARAMETER_LENGTH_NOCHECK) {
+		if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
 			flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 		}
 		offset += item->length + parameter_padding_length;
@@ -1155,7 +1155,10 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list)
 
 	flags = 0;
 	parameter_length = sizeof(struct sctp_supported_address_types_parameter);
-	if (list != NULL) {
+	if (list == NULL) {
+		flags |= FLAG_PARAMETER_LENGTH_NOCHECK;
+		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
+	} else {
 		assert(list->nr_entries <=
 		       (MAX_SCTP_PARAMETER_BYTES - sizeof(struct sctp_supported_address_types_parameter)) / sizeof(u16));
 		parameter_length += list->nr_entries * sizeof(u16);
