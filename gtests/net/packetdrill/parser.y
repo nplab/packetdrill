@@ -1137,6 +1137,9 @@ sctp_abort_chunk_spec
 : ABORT '[' opt_abort_flags ']' {
 	$$ = sctp_abort_chunk_new($3);
 }
+| ABORT '[' opt_abort_flags ',' ELLIPSIS ']' {
+	$$ = sctp_abort_chunk_new($3);
+}
 
 sctp_shutdown_chunk_spec
 : SHUTDOWN '[' opt_flags ',' opt_cum_tsn ']' {
@@ -1150,6 +1153,9 @@ sctp_shutdown_ack_chunk_spec
 
 sctp_error_chunk_spec
 : ERROR '[' opt_flags ']' {
+	$$ = sctp_error_chunk_new($3);
+}
+| ERROR '[' opt_flags ',' ELLIPSIS ']' {
 	$$ = sctp_error_chunk_new($3);
 }
 

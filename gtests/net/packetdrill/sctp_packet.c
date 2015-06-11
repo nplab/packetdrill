@@ -572,7 +572,7 @@ sctp_abort_chunk_new(s64 flgs)
 	struct sctp_abort_chunk *chunk;
 	u32 flags;
 
-	flags = 0;
+	flags = FLAG_CHUNK_LENGTH_NOCHECK | FLAG_CHUNK_VALUE_NOCHECK;
 	chunk = malloc(sizeof(struct sctp_abort_chunk));
 	assert(chunk != NULL);
 	chunk->type = SCTP_ABORT_CHUNK_TYPE;
@@ -1447,11 +1447,13 @@ new_sctp_packet(int address_family,
 				overbook = true;
 				break;
 			case SCTP_ABORT_CHUNK_TYPE:
+#if 0
 				if (chunk_item->flags & FLAG_CHUNK_LENGTH_NOCHECK) {
 					asprintf(error,
 						 "error causes must be specified for inbound packets");
 					return NULL;
 				}
+#endif
 				break;
 			case SCTP_SHUTDOWN_CHUNK_TYPE:
 				if (chunk_item->flags & FLAG_SHUTDOWN_CHUNK_CUM_TSN_NOCHECK) {
@@ -1463,11 +1465,13 @@ new_sctp_packet(int address_family,
 			case SCTP_SHUTDOWN_ACK_CHUNK_TYPE:
 				break;
 			case SCTP_ERROR_CHUNK_TYPE:
+#if 0
 				if (chunk_item->flags & FLAG_CHUNK_LENGTH_NOCHECK) {
 					asprintf(error,
 						 "error causes must be specified for inbound packets");
 					return NULL;
 				}
+#endif
 				break;
 			case SCTP_COOKIE_ECHO_CHUNK_TYPE:
 				overbook = true;
