@@ -779,10 +779,10 @@ static int sctp_data_chunk_to_string(FILE *s,
 	}
 	fputs("DATA[", s);
 	fputs("flgs=", s);
-	if (flags & ~(SCTP_DATA_CHUNK_I_BIT |
-		      SCTP_DATA_CHUNK_U_BIT |
-		      SCTP_DATA_CHUNK_B_BIT |
-		      SCTP_DATA_CHUNK_E_BIT))
+	if ((flags & ~(SCTP_DATA_CHUNK_I_BIT |
+		       SCTP_DATA_CHUNK_U_BIT |
+		       SCTP_DATA_CHUNK_B_BIT |
+		       SCTP_DATA_CHUNK_E_BIT)) || (flags == 0x00))
 		fprintf(s, "0x%02x", chunk->flags);
 	else {
 		if (flags & SCTP_DATA_CHUNK_I_BIT)
