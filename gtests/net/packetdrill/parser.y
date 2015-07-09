@@ -951,7 +951,8 @@ opt_shutdown_complete_flags
 ;
 
 opt_tag
-: TAG '=' INTEGER {
+: TAG '=' ELLIPSIS { $$ = -1; }
+| TAG '=' INTEGER  {
 	if (!is_valid_u32($3)) {
 		semantic_error("tag value out of range");
 	}
@@ -1098,23 +1099,11 @@ sctp_data_chunk_spec
 
 sctp_init_chunk_spec
 : INIT '[' opt_flags ',' opt_tag ',' opt_a_rwnd ',' opt_os ',' opt_is ',' opt_tsn opt_parameter_list_spec ']' {
-	if ($5 == -1) {
-		semantic_error("tag value must be specified");
-	}
-	if ($13 == -1) {
-		semantic_error("tsn value must be specified");
-	}
 	$$ = sctp_init_chunk_new($3, $5, $7, $9, $11, $13, $14);
 }
 
 sctp_init_ack_chunk_spec
 : INIT_ACK '[' opt_flags ',' opt_tag ',' opt_a_rwnd ',' opt_os ',' opt_is ',' opt_tsn opt_parameter_list_spec ']' {
-	if ($5 == -1) {
-		semantic_error("tag value must be specified");
-	}
-	if ($13 == -1) {
-		semantic_error("tsn value must be specified");
-	}
 	$$ = sctp_init_ack_chunk_new($3, $5, $7, $9, $11, $13, $14);
 }
 

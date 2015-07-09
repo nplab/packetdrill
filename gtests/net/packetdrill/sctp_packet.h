@@ -130,19 +130,23 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
 struct sctp_chunk_list_item *
 sctp_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 ssn, s64 ppid);
 
-#define FLAG_INIT_CHUNK_A_RWND_NOCHECK          0x00000100
-#define FLAG_INIT_CHUNK_OS_NOCHECK              0x00000200
-#define FLAG_INIT_CHUNK_IS_NOCHECK              0x00000400
-#define FLAG_INIT_CHUNK_OPT_PARAM_NOCHECK       0x00000800
+#define FLAG_INIT_CHUNK_TAG_NOCHECK             0x00000100
+#define FLAG_INIT_CHUNK_A_RWND_NOCHECK          0x00000200
+#define FLAG_INIT_CHUNK_OS_NOCHECK              0x00000400
+#define FLAG_INIT_CHUNK_IS_NOCHECK              0x00000800
+#define FLAG_INIT_CHUNK_TSN_NOCHECK             0x00001000
+#define FLAG_INIT_CHUNK_OPT_PARAM_NOCHECK       0x00002000
 
 struct sctp_chunk_list_item *
 sctp_init_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn,
                     struct sctp_parameter_list *parameters);
 
-#define FLAG_INIT_ACK_CHUNK_A_RWND_NOCHECK      0x00000100
-#define FLAG_INIT_ACK_CHUNK_OS_NOCHECK          0x00000200
-#define FLAG_INIT_ACK_CHUNK_IS_NOCHECK          0x00000400
-#define FLAG_INIT_ACK_CHUNK_OPT_PARAM_NOCHECK   0x00000800
+#define FLAG_INIT_ACK_CHUNK_TAG_NOCHECK         0x00000100
+#define FLAG_INIT_ACK_CHUNK_A_RWND_NOCHECK      0x00000200
+#define FLAG_INIT_ACK_CHUNK_OS_NOCHECK          0x00000400
+#define FLAG_INIT_ACK_CHUNK_IS_NOCHECK          0x00000800
+#define FLAG_INIT_ACK_CHUNK_TSN_NOCHECK         0x00001000
+#define FLAG_INIT_ACK_CHUNK_OPT_PARAM_NOCHECK   0x00002000
 
 struct sctp_chunk_list_item *
 sctp_init_ack_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn,

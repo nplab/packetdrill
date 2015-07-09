@@ -282,7 +282,12 @@ sctp_init_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn,
 		chunk->flags = (u8)flgs;
 	}
 	chunk->length = htons(chunk_length);
-	chunk->initiate_tag = htonl((u32)tag);
+	if (tag == -1) {
+		chunk->initiate_tag = htonl(0);
+		flags |= FLAG_INIT_CHUNK_TAG_NOCHECK;
+	} else {
+		chunk->initiate_tag = htonl((u32)tag);
+	}
 	if (a_rwnd == -1) {
 		chunk->a_rwnd = htonl(0);
 		flags |= FLAG_INIT_CHUNK_A_RWND_NOCHECK;
@@ -301,7 +306,12 @@ sctp_init_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn,
 	} else {
 		chunk->is = htons((u16)is);
 	}
-	chunk->initial_tsn = htonl((u32)tsn);
+	if (tsn == -1) {
+		chunk->initial_tsn = htonl(0);
+		flags |= FLAG_INIT_CHUNK_TSN_NOCHECK;
+	} else {
+		chunk->initial_tsn = htonl((u32)tsn);
+	}
 	offset = 0;
 	for (item = list->first; item != NULL; item = item->next) {
 		parameter_padding_length = item->length % 4;
@@ -355,26 +365,36 @@ sctp_init_ack_chunk_new(s64 flgs, s64 tag, s64 a_rwnd, s64 os, s64 is, s64 tsn,
 		chunk->flags = (u8)flgs;
 	}
 	chunk->length = htons(chunk_length);
-	chunk->initiate_tag = htonl((u32)tag);
+	if (tag == -1) {
+		chunk->initiate_tag = htonl(0);
+		flags |= FLAG_INIT_ACK_CHUNK_TAG_NOCHECK;
+	} else {
+		chunk->initiate_tag = htonl((u32)tag);
+	}
 	if (a_rwnd == -1) {
 		chunk->a_rwnd = htonl(0);
-		flags |= FLAG_INIT_CHUNK_A_RWND_NOCHECK;
+		flags |= FLAG_INIT_ACK_CHUNK_A_RWND_NOCHECK;
 	} else {
 		chunk->a_rwnd = htonl((u32)a_rwnd);
 	}
 	if (os == -1) {
 		chunk->os = htons(0);
-		flags |= FLAG_INIT_CHUNK_OS_NOCHECK;
+		flags |= FLAG_INIT_ACK_CHUNK_OS_NOCHECK;
 	} else {
 		chunk->os = htons((u16)os);
 	}
 	if (is == -1) {
 		chunk->is = htons(0);
-		flags |= FLAG_INIT_CHUNK_IS_NOCHECK;
+		flags |= FLAG_INIT_ACK_CHUNK_IS_NOCHECK;
 	} else {
 		chunk->is = htons((u16)is);
 	}
-	chunk->initial_tsn = htonl((u32)tsn);
+	if (tsn == -1) {
+		chunk->initial_tsn = htonl(0);
+		flags |= FLAG_INIT_ACK_CHUNK_TSN_NOCHECK;
+	} else {
+		chunk->initial_tsn = htonl((u32)tsn);
+	}
 	offset = 0;
 	for (item = list->first; item != NULL; item = item->next) {
 		parameter_padding_length = item->length % 4;
@@ -1379,6 +1399,11 @@ new_sctp_packet(int address_family,
 				}
 				break;
 			case SCTP_INIT_CHUNK_TYPE:
+				if (chunk_item->flags & FLAG_INIT_CHUNK_TAG_NOCHECK) {
+					asprintf(error,
+						 "TAG must be specified for inbound packets");
+					return NULL;
+				}
 				if (chunk_item->flags & FLAG_INIT_CHUNK_A_RWND_NOCHECK) {
 					asprintf(error,
 						 "A_RWND must be specified for inbound packets");
@@ -1401,6 +1426,11 @@ new_sctp_packet(int address_family,
 				}
 				break;
 			case SCTP_INIT_ACK_CHUNK_TYPE:
+				if (chunk_item->flags & FLAG_INIT_ACK_CHUNK_TAG_NOCHECK) {
+					asprintf(error,
+						 "TAG must be specified for inbound packets");
+					return NULL;
+				}
 				if (chunk_item->flags & FLAG_INIT_ACK_CHUNK_A_RWND_NOCHECK) {
 					asprintf(error,
 						 "A_RWND must be specified for inbound packets");

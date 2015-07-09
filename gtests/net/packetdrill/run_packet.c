@@ -1153,10 +1153,11 @@ static int verify_init_chunk(struct sctp_init_chunk *actual_chunk,
 
 	assert(ntohs(actual_chunk->length) >= sizeof(struct sctp_init_chunk));
 	parameters_length = ntohs(actual_chunk->length) - sizeof(struct sctp_init_chunk);
-	if (check_field("sctp_init_chunk_tag",
-		        ntohl(script_chunk->initiate_tag),
-		        ntohl(actual_chunk->initiate_tag),
-		        error) ||
+	if ((flags & FLAG_INIT_CHUNK_TAG_NOCHECK ? STATUS_OK :
+	        check_field("sctp_init_chunk_tag",
+		            ntohl(script_chunk->initiate_tag),
+		            ntohl(actual_chunk->initiate_tag),
+		            error)) ||
 	    (flags & FLAG_INIT_CHUNK_A_RWND_NOCHECK ? STATUS_OK :
 	        check_field("sctp_init_chunk_a_rwnd",
 		            ntohl(script_chunk->a_rwnd),
@@ -1172,10 +1173,11 @@ static int verify_init_chunk(struct sctp_init_chunk *actual_chunk,
 		            ntohs(script_chunk->is),
 		            ntohs(actual_chunk->is),
 		            error)) ||
-	    check_field("sctp_init_chunk_tsn",
-		        ntohl(script_chunk->initial_tsn),
-		        ntohl(actual_chunk->initial_tsn),
-		        error) ||
+	    (flags & FLAG_INIT_CHUNK_TSN_NOCHECK? STATUS_OK :
+		check_field("sctp_init_chunk_tsn",
+		            ntohl(script_chunk->initial_tsn),
+		            ntohl(actual_chunk->initial_tsn),
+		            error)) ||
 	    (flags & FLAG_INIT_CHUNK_OPT_PARAM_NOCHECK? STATUS_OK :
 	        verify_sctp_parameters(actual_chunk->parameter,
 	                               parameters_length,
@@ -1190,10 +1192,11 @@ static int verify_init_ack_chunk(struct sctp_init_ack_chunk *actual_chunk,
                                  struct sctp_init_ack_chunk *script_chunk,
                                  u32 flags, char **error)
 {
-	if (check_field("sctp_init_ack_chunk_tag",
-		        ntohl(script_chunk->initiate_tag),
-		        ntohl(actual_chunk->initiate_tag),
-		        error) ||
+	if ((flags & FLAG_INIT_ACK_CHUNK_TAG_NOCHECK ? STATUS_OK :
+	        check_field("sctp_init_ack_chunk_tag",
+		            ntohl(script_chunk->initiate_tag),
+		            ntohl(actual_chunk->initiate_tag),
+		            error)) ||
 	    (flags & FLAG_INIT_ACK_CHUNK_A_RWND_NOCHECK ? STATUS_OK :
 	        check_field("sctp_init_ack_chunk_a_rwnd",
 		            ntohl(script_chunk->a_rwnd),
@@ -1209,10 +1212,11 @@ static int verify_init_ack_chunk(struct sctp_init_ack_chunk *actual_chunk,
 		            ntohs(script_chunk->is),
 		            ntohs(actual_chunk->is),
 		            error)) ||
-	    check_field("sctp_init_ack_chunk_tsn",
-		        ntohl(script_chunk->initial_tsn),
-		        ntohl(actual_chunk->initial_tsn),
-		        error)) {
+	    (flags & FLAG_INIT_ACK_CHUNK_TSN_NOCHECK? STATUS_OK :
+		check_field("sctp_init_ack_chunk_tsn",
+		            ntohl(script_chunk->initial_tsn),
+		            ntohl(actual_chunk->initial_tsn),
+		            error))) {
 		return STATUS_ERR;
 	}
 	/* FIXME: Validate parameters */
