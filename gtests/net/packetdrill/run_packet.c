@@ -1146,11 +1146,10 @@ static int verify_init_chunk(struct sctp_init_chunk *actual_chunk,
 {
 	struct sctp_init_chunk *script_chunk;
 	u32 flags;
+	u16 parameters_length;
 
 	script_chunk = (struct sctp_init_chunk *)script_chunk_item->chunk;
 	flags = script_chunk_item->flags;
-	u16 parameters_length;
-
 	assert(ntohs(actual_chunk->length) >= sizeof(struct sctp_init_chunk));
 	parameters_length = ntohs(actual_chunk->length) - sizeof(struct sctp_init_chunk);
 	if ((flags & FLAG_INIT_CHUNK_TAG_NOCHECK ? STATUS_OK :
@@ -1189,9 +1188,17 @@ static int verify_init_chunk(struct sctp_init_chunk *actual_chunk,
 }
 
 static int verify_init_ack_chunk(struct sctp_init_ack_chunk *actual_chunk,
-                                 struct sctp_init_ack_chunk *script_chunk,
-                                 u32 flags, char **error)
+                                 struct sctp_chunk_list_item *script_chunk_item,
+                                 char **error)
 {
+	struct sctp_init_ack_chunk *script_chunk;
+	u32 flags;
+	u16 parameters_length;
+
+	script_chunk = (struct sctp_init_ack_chunk *)script_chunk_item->chunk;
+	flags = script_chunk_item->flags;
+	assert(ntohs(actual_chunk->length) >= sizeof(struct sctp_init_ack_chunk));
+	parameters_length = ntohs(actual_chunk->length) - sizeof(struct sctp_init_ack_chunk);
 	if ((flags & FLAG_INIT_ACK_CHUNK_TAG_NOCHECK ? STATUS_OK :
 	        check_field("sctp_init_ack_chunk_tag",
 		            ntohl(script_chunk->initiate_tag),
@@ -1216,10 +1223,14 @@ static int verify_init_ack_chunk(struct sctp_init_ack_chunk *actual_chunk,
 		check_field("sctp_init_ack_chunk_tsn",
 		            ntohl(script_chunk->initial_tsn),
 		            ntohl(actual_chunk->initial_tsn),
-		            error))) {
+		            error)) ||
+	    (flags & FLAG_INIT_ACK_CHUNK_OPT_PARAM_NOCHECK? STATUS_OK :
+		verify_sctp_parameters(actual_chunk->parameter,
+		                       parameters_length,
+		                       script_chunk_item,
+		                       error))) {
 		return STATUS_ERR;
 	}
-	/* FIXME: Validate parameters */
 	return STATUS_OK;
 }
 
@@ -1509,8 +1520,7 @@ static int verify_sctp(
 			break;
 		case SCTP_INIT_ACK_CHUNK_TYPE:
 			result = verify_init_ack_chunk((struct sctp_init_ack_chunk *)actual_chunk,
-			                               (struct sctp_init_ack_chunk *)script_chunk,
-			                               flags, error);
+			                               script_chunk_item, error);
 			break;
 		case SCTP_SACK_CHUNK_TYPE:
 			result = verify_sack_chunk((struct sctp_sack_chunk *)actual_chunk,
