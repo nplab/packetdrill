@@ -606,6 +606,7 @@ static int map_inbound_sctp_packet(
 			init = (struct sctp_init_chunk *)chunk;
 			init->initial_tsn = htonl(ntohl(init->initial_tsn) + remote_diff);
 			/* XXX: Does this work in all cases? */
+			live_packet->sctp->v_tag = htonl(0);
 			if (ntohl(init->initiate_tag) == socket->script.local_initiate_tag) {
 				init->initiate_tag = htonl(socket->live.local_initiate_tag);
 			}
