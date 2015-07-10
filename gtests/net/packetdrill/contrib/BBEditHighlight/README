@@ -1,0 +1,5 @@
+The file packetdrill.plist has to be copied into
+$HOME/Library/Application\ Support/BBEdit/Language\ Modules
+
+The extension Packetdrill scripts is recognized. Keywords and Predefined Names
+are colored. Numbers are colored from BBEdit 11.0 onwards.
