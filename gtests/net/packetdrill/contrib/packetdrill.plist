@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BBEditDocumentType</key>
+	<string>CodelessLanguageModule</string>
+	<key>BBLMLanguageDisplayName</key>
+	<string>Packetdrill</string>
+	<key>BBLMLanguageCode</key>
+	<string>pkt!</string>
+	<key>BBLMIsCaseSensitive</key>
+	<true/>
+	<key>BBLMSuffixMap</key>
+	<array>
+		<dict>
+			<key>BBLMLanguageSuffix</key>
+			<string>.pkt</string>
+			<key>BBLMIsSourceKind</key>
+			<true/>
+		</dict>
+	</array>
+	<key>BBLMColorsSyntax</key>
+	<true/>
+	<key>BBLMKeywordList</key>
+	<array>
+		<string>sa_family</string>
+		<string>sin_port</string>
+		<string>sin_addr</string>
+		<string>msg_name</string>
+		<string>msg_iov</string>
+		<string>msg_flags</string>
+		<string>fd</string>
+		<string>events</string>
+		<string>revents</string>
+		<string>htons</string>
+		<string>icmp</string>
+		<string>sctp</string>
+		<string>udp</string>
+		<string>udplite</string>
+		<string>inet_addr</string>
+		<string>ack</string>
+		<string>eol</string>
+		<string>ecr</string>
+		<string>mss</string>
+		<string>mtu</string>
+		<string>nop</string>
+		<string>sack</string>
+		<string>sackOK</string>
+		<string>TS</string>
+		<string>FO</string>
+		<string>LS</string>
+		<string>gcn</string>
+		<string>minRTO</string>
+		<string>val</string>
+		<string>win</string>
+		<string>wscale</string>
+		<string>ect01</string>
+		<string>ect0</string>
+		<string>ect1</string>
+		<string>noecn</string>
+		<string>ce</string>
+		<string>pro</string>
+		<string>onoff</string>
+		<string>linger</string>
+		<string>srto_initial</string>
+		<string>srto_max</string>
+		<string>srto_min</string>
+		<string>sinit_num_ostreams</string>
+		<string>sinit_max_instreams</string>
+		<string>sinit_max_attempts</string>
+		<string>sinit_max_init_timeo</string>
+		<string>assoc_value</string>
+		<string>sack_delay</string>
+		<string>sack_freq</string>
+	</array>
+	<key>BBLMPredefinedNameList</key>
+	<array>
+		<string>accept</string>
+		<string>bind</string>
+		<string>close</string>
+		<string>connect</string>
+		<string>fcntl</string>
+		<string>getsockopt</string>
+		<string>ioctl</string>
+		<string>listen</string>
+		<string>poll</string>
+		<string>read</string>
+		<string>readv</string>
+		<string>recv</string>
+		<string>recvfrom</string>
+		<string>recvmsg</string>
+		<string>send</string>
+		<string>sendmsg</string>
+		<string>sendto</string>
+		<string>setsockopt</string>
+		<string>shutdown</string>
+		<string>socket</string>
+		<string>write</string>
+		<string>writev</string>
+	</array>
+	<key>BBLMCommentLineDefault</key>
+	<string>//</string>
+	<key>Language Features</key>
+	<dict>
+		<key>Open Parameter Lists</key>
+		<string>[</string>
+		<key>Close Parameter Lists</key>
+		<string>]</string>
+		<key>Open Strings 1</key>
+		<string>`</string>
+		<key>Close Strings 1</key>
+		<string>`</string>
+		<key>Identifier and Keyword Character Class</key>
+		<string>A-Za-z0-9_-</string>
+		<key>Comment Pattern</key>
+		<string>//.*$</string>
+	</dict>
+</dict>
+</plist>
