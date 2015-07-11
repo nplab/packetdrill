@@ -508,9 +508,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SHUTDOWN_COMPLETE PAD
 %token <reserved> TYPE FLAGS LEN
 %token <reserved> TAG A_RWND OS IS TSN SID SSN PPID CUM_TSN GAPS DUPS
-%token <reserved> HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS STATE_COOKIE
-%token <reserved> UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE HOSTNAME_ADDRESS
-%token <reserved> SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
+%token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
+%token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
+%token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <floating> FLOAT
@@ -568,6 +568,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_pad_chunk_spec
 %type <parameter_list> opt_parameter_list_spec sctp_parameter_list_spec
 %type <parameter_list_item> sctp_parameter_spec
+%type <parameter_list_item> sctp_generic_parameter_spec
 %type <parameter_list_item> sctp_heartbeat_information_parameter_spec
 %type <parameter_list_item> sctp_ipv4_address_parameter_spec
 %type <parameter_list_item> sctp_ipv6_address_parameter_spec
@@ -578,8 +579,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
-%type <integer> opt_chunk_type opt_flags opt_data_flags opt_abort_flags
-%type <integer> opt_shutdown_complete_flags opt_chunk_len
+%type <integer> opt_chunk_type opt_parameter_type
+%type <integer> opt_flags opt_data_flags opt_abort_flags
+%type <integer> opt_shutdown_complete_flags opt_len
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_cum_tsn opt_ppid
 %type <byte_list> opt_val byte_list
@@ -830,13 +832,13 @@ opt_flags
 }
 ;
 
-opt_chunk_len
+opt_len
 : LEN '=' ELLIPSIS { $$ = -1; }
 | LEN '=' INTEGER  {
 	if (!is_valid_u16($3)) {
 		semantic_error("length value out of range");
-        }
-        $$ = $3;
+	}
+	$$ = $3;
 }
 ;
 
@@ -1141,7 +1143,7 @@ dup
 ;
 
 sctp_generic_chunk_spec
-: CHUNK '[' opt_chunk_type ',' opt_flags ',' opt_chunk_len ',' opt_val ']' {
+: CHUNK '[' opt_chunk_type ',' opt_flags ',' opt_len ',' opt_val ']' {
 	if (($7 != -1) && ($7 < sizeof(struct sctp_chunk))) {
 		semantic_error("length value out of range");
 	}
@@ -1156,7 +1158,7 @@ sctp_generic_chunk_spec
 }
 
 sctp_data_chunk_spec
-: DATA '[' opt_data_flags ',' opt_chunk_len ',' opt_tsn ',' opt_sid ',' opt_ssn ',' opt_ppid ']' {
+: DATA '[' opt_data_flags ',' opt_len ',' opt_tsn ',' opt_sid ',' opt_ssn ',' opt_ppid ']' {
 	if (($5 != -1) && ($5 < sizeof(struct sctp_data_chunk))) {
 		semantic_error("length value out of range");
 	}
@@ -1215,7 +1217,7 @@ sctp_error_chunk_spec
 }
 
 sctp_cookie_echo_chunk_spec
-: COOKIE_ECHO '[' opt_flags ',' opt_chunk_len ',' VAL '=' ELLIPSIS ']' {
+: COOKIE_ECHO '[' opt_flags ',' opt_len ',' VAL '=' ELLIPSIS ']' {
 	$$ = sctp_cookie_echo_chunk_new($3, $5, NULL);
 }
 
@@ -1240,7 +1242,7 @@ sctp_shutdown_complete_chunk_spec
 }
 
 sctp_pad_chunk_spec
-: PAD '[' opt_flags ',' opt_chunk_len ',' VAL '=' ELLIPSIS ']' {
+: PAD '[' opt_flags ',' opt_len ',' VAL '=' ELLIPSIS ']' {
 	$$ = sctp_pad_chunk_new($3, $5, NULL);
 }
 
@@ -1258,7 +1260,8 @@ sctp_parameter_list_spec
 ;
 
 sctp_parameter_spec
-: sctp_heartbeat_information_parameter_spec   { $$ = $1; }
+: sctp_generic_parameter_spec                 { $$ = $1; }
+| sctp_heartbeat_information_parameter_spec   { $$ = $1; }
 | sctp_ipv4_address_parameter_spec            { $$ = $1; }
 | sctp_ipv6_address_parameter_spec            { $$ = $1; }
 | sctp_state_cookie_parameter_spec            { $$ = $1; }
@@ -1269,6 +1272,37 @@ sctp_parameter_spec
 | sctp_ecn_capable_parameter_spec             { $$ = $1; }
 | sctp_pad_parameter_spec                     { $$ = $1; }
 ;
+
+opt_parameter_type
+: TYPE '=' ELLIPSIS    { $$ = -1; }
+| TYPE '=' HEX_INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("type value out of range");
+        }
+	$$ = $3;
+}
+| TYPE '=' INTEGER     {
+	if (!is_valid_u16($3)) {
+		semantic_error("type value out of range");
+        }
+	$$ = $3;
+}
+;
+
+sctp_generic_parameter_spec
+: PARAMETER '[' opt_parameter_type ',' opt_len ',' opt_val ']' {
+	if (($5 != -1) && ($5 < sizeof(struct sctp_parameter))) {
+		semantic_error("length value out of range");
+	}
+	if (($5 != -1) && ($7 != NULL) &&
+	    ($5 != sizeof(struct sctp_parameter) + $7->nr_entries)) {
+		semantic_error("length value incompatible with val");
+	}
+	if (($5 == -1) && ($7 != NULL)) {
+		semantic_error("length needs to be specified");
+	}
+	$$ = sctp_generic_parameter_new($3, $5, $7);
+}
 
 sctp_heartbeat_information_parameter_spec
 : HEARTBEAT_INFORMATION '[' ELLIPSIS ']' {

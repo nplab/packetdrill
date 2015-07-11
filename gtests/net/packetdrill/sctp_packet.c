@@ -261,10 +261,10 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 
 	flags = 0;
 	if (bytes == NULL) {
-		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 		flags |= FLAG_CHUNK_VALUE_NOCHECK;
 	}
 	if (len == -1) {
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 		length = (u16)sizeof(struct sctp_chunk);
 	} else {
 		length = (u16)len;
@@ -288,10 +288,6 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 		 chunk->flags = (u8)flgs;
 	}
 	chunk->length = htons(length);
-	if (len == -1) {
-		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
-		flags |= FLAG_CHUNK_VALUE_NOCHECK;
-	}
 	if (bytes != NULL) {
 		for (i = 0, item = bytes->first;
 		     item != NULL;
@@ -1053,6 +1049,52 @@ sctp_parameter_list_item_new(struct sctp_parameter *parameter, u32 length, u32 f
 	item->length = length;
 	item->flags = flags;
 	return item;
+}
+
+struct sctp_parameter_list_item *
+sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
+{
+	struct sctp_parameter *parameter;
+	struct sctp_byte_list_item *item;
+	u32 flags;
+	u16 parameter_length, value_length, padding_length, i;
+
+	flags = 0;
+	if (bytes == NULL) {
+		flags |= FLAG_CHUNK_VALUE_NOCHECK;
+	}
+	if (len == -1) {
+		parameter_length = (u16)sizeof(struct sctp_chunk);
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+	} else {
+		parameter_length = (u16)len;
+	}
+	value_length = parameter_length - sizeof(struct sctp_parameter);
+	padding_length = parameter_length % 4;
+	if (padding_length > 0) {
+		padding_length = 4 - padding_length;
+	}
+	parameter = malloc(parameter_length + padding_length);
+	assert(parameter != NULL);
+	if (type == -1) {
+		parameter->type = 0;
+		flags |= FLAG_CHUNK_TYPE_NOCHECK;
+	} else {
+		parameter->type = htons((u16)type);
+	}
+	parameter->length = htons(parameter_length);
+	if (bytes != NULL) {
+		for (i = 0, item = bytes->first;
+		     item != NULL;
+		     i++, item = item->next) {
+			parameter->value[i] = item->byte;
+		}
+	} else {
+		memset(parameter->value, 0, value_length);
+	}
+	/* Clear the padding */
+	memset(parameter->value + value_length, 0, padding_length);
+	return sctp_parameter_list_item_new(parameter, parameter_length, flags);
 }
 
 struct sctp_parameter_list_item *

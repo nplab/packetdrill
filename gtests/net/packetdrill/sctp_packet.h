@@ -251,6 +251,9 @@ sctp_parameter_list_item_new(struct sctp_parameter *parameter,
                              u32 length, u32 flags);
 
 struct sctp_parameter_list_item *
+sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes);
+
+struct sctp_parameter_list_item *
 sctp_heartbeat_information_parameter_new(s64 len, u8 *information);
 
 struct sctp_parameter_list_item *

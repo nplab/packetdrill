@@ -243,6 +243,7 @@ ppid			return PPID;
 cum_tsn			return CUM_TSN;
 gaps			return GAPS;
 dups			return DUPS;
+PARAMETER		return PARAMETER;
 HEARTBEAT_INFORMATION	return HEARTBEAT_INFORMATION;
 IPV4_ADDRESS		return IPV4_ADDRESS;
 IPV6_ADDRESS		return IPV6_ADDRESS;
