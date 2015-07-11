@@ -466,6 +466,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct packet *packet;
 	struct sctp_chunk_list_item *chunk_list_item;
 	struct sctp_chunk_list *chunk_list;
+	struct sctp_byte_list_item *byte_list_item;
+	struct sctp_byte_list *byte_list;
 	struct sctp_sack_block_list_item *sack_block_list_item;
 	struct sctp_sack_block_list *sack_block_list;
 	struct sctp_address_type_list_item *address_type_list_item;
@@ -501,10 +503,11 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_VALUE
 %token <reserved> SACK_DELAY SACK_FREQ
-%token <reserved> DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
+%token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE PAD
-%token <reserved> FLAGS LEN TAG A_RWND OS IS TSN SID SSN PPID CUM_TSN GAPS DUPS
+%token <reserved> TYPE FLAGS LEN
+%token <reserved> TAG A_RWND OS IS TSN SID SSN PPID CUM_TSN GAPS DUPS
 %token <reserved> HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS STATE_COOKIE
 %token <reserved> UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE HOSTNAME_ADDRESS
 %token <reserved> SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
@@ -550,6 +553,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
+%type <chunk_list_item> sctp_generic_chunk_spec
 %type <chunk_list_item> sctp_data_chunk_spec
 %type <chunk_list_item> sctp_init_chunk_spec sctp_init_ack_chunk_spec
 %type <chunk_list_item> sctp_sack_chunk_spec
@@ -574,11 +578,12 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
-
-%type <integer> opt_flags opt_data_flags opt_abort_flags
+%type <integer> opt_chunk_type opt_flags opt_data_flags opt_abort_flags
 %type <integer> opt_shutdown_complete_flags opt_chunk_len
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_cum_tsn opt_ppid
+%type <byte_list> opt_val byte_list
+%type <byte_list_item> byte
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
 %type <address_type_list> address_types_list
@@ -774,7 +779,8 @@ sctp_chunk_list_spec
 ;
 
 sctp_chunk_spec
-: sctp_data_chunk_spec              { $$ = $1; }
+: sctp_generic_chunk_spec           { $$ = $1; }
+| sctp_data_chunk_spec              { $$ = $1; }
 | sctp_init_chunk_spec              { $$ = $1; }
 | sctp_init_ack_chunk_spec          { $$ = $1; }
 | sctp_sack_chunk_spec              { $$ = $1; }
@@ -792,13 +798,19 @@ sctp_chunk_spec
 | sctp_pad_chunk_spec               { $$ = $1; }
 ;
 
-opt_chunk_len
-: LEN '=' ELLIPSIS { $$ = -1; }
-| LEN '=' INTEGER  {
-	if (!is_valid_u16($3)) {
-		semantic_error("length value out of range");
+opt_chunk_type
+: TYPE '=' ELLIPSIS    { $$ = -1; }
+| TYPE '=' HEX_INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("type value out of range");
         }
-        $$ = $3;
+	$$ = $3;
+}
+| TYPE '=' INTEGER     {
+	if (!is_valid_u8($3)) {
+		semantic_error("type value out of range");
+        }
+	$$ = $3;
 }
 ;
 
@@ -815,6 +827,45 @@ opt_flags
 		semantic_error("flags value out of range");
         }
 	$$ = $3;
+}
+;
+
+opt_chunk_len
+: LEN '=' ELLIPSIS { $$ = -1; }
+| LEN '=' INTEGER  {
+	if (!is_valid_u16($3)) {
+		semantic_error("length value out of range");
+        }
+        $$ = $3;
+}
+;
+
+opt_val
+: VAL '=' ELLIPSIS          { $$ = NULL; }
+| VAL '=' '[' ELLIPSIS ']'  { $$ = NULL; }
+| VAL '=' '[' byte_list ']' { $$ = $4; }
+;
+
+byte_list
+:                    { $$ = sctp_byte_list_new(); }
+| byte               { $$ = sctp_byte_list_new();
+                       sctp_byte_list_append($$, $1); }
+| byte_list ',' byte { $$ = $1;
+                       sctp_byte_list_append($1, $3); }
+;
+
+byte
+: HEX_INTEGER {
+	if (!is_valid_u8($1)) {
+		semantic_error("byte value out of range");
+	}
+	$$ = sctp_byte_list_item_new($1);
+}
+| INTEGER {
+	if (!is_valid_u8($1)) {
+		semantic_error("byte value out of range");
+	}
+	$$ = sctp_byte_list_item_new($1);
 }
 ;
 
@@ -924,7 +975,7 @@ opt_shutdown_complete_flags
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -1088,6 +1139,21 @@ dup
 	$$ = sctp_sack_block_list_item_dup_new($1);
 }
 ;
+
+sctp_generic_chunk_spec
+: CHUNK '[' opt_chunk_type ',' opt_flags ',' opt_chunk_len ',' opt_val ']' {
+	if (($7 != -1) && ($7 < sizeof(struct sctp_chunk))) {
+		semantic_error("length value out of range");
+	}
+	if (($7 != -1) && ($9 != NULL) &&
+	    ($7 != sizeof(struct sctp_chunk) + $9->nr_entries)) {
+		semantic_error("length value incompatible with val");
+	}
+	if (($7 == -1) && ($9 != NULL)) {
+		semantic_error("length needs to be specified");
+	}
+	$$ = sctp_generic_chunk_new($3, $5, $7, $9);
+}
 
 sctp_data_chunk_spec
 : DATA '[' opt_data_flags ',' opt_chunk_len ',' opt_tsn ',' opt_sid ',' opt_ssn ',' opt_ppid ']' {

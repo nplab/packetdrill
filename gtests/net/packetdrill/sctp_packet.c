@@ -29,9 +29,71 @@
 
 /*
  * ToDo:
- * - Add support for parameters (fix hard coded state cookie in INIT-ACK)
  * - Add support for error causes
  */
+
+struct sctp_byte_list *
+sctp_byte_list_new(void)
+{
+	struct sctp_byte_list *list;
+
+	list = malloc(sizeof(struct sctp_byte_list));
+	assert(list != NULL);
+	list->first = NULL;
+	list->last = NULL;
+	list->nr_entries = 0;
+	return list;
+}
+
+void
+sctp_byte_list_append(struct sctp_byte_list *list,
+                      struct sctp_byte_list_item *item)
+{
+	assert(item->next == NULL);
+	if (list->last == NULL) {
+		assert(list->first == NULL);
+		assert(list->nr_entries == 0);
+		list->first = item;
+	} else {
+		assert(list->first != NULL);
+		list->last->next = item;
+	}
+	list->last = item;
+	list->nr_entries++;
+}
+
+void
+sctp_byte_list_free(struct sctp_byte_list *list)
+{
+	struct sctp_byte_list_item *current_item, *next_item;
+
+	if (list == NULL) {
+		return;
+	}
+	current_item = list->first;
+	while (current_item != NULL) {
+		assert(list->nr_entries > 0);
+		next_item = current_item->next;
+		assert(next_item != NULL || current_item == list->last);
+		free(current_item);
+		current_item = next_item;
+		list->nr_entries--;
+	}
+	assert(list->nr_entries == 0);
+	free(list);
+}
+
+struct sctp_byte_list_item *
+sctp_byte_list_item_new(u8 byte)
+{
+	struct sctp_byte_list_item *item;
+
+	item = malloc(sizeof(struct sctp_byte_list_item));
+	assert(item != NULL);
+	item->next = NULL;
+	item->byte = byte;
+	return item;
+}
 
 struct sctp_sack_block_list *
 sctp_sack_block_list_new(void)
@@ -186,6 +248,64 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
 	item->length = length;
 	item->flags = flags;
 	return item;
+}
+
+struct sctp_chunk_list_item *
+sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
+                       struct sctp_byte_list *bytes)
+{
+	struct sctp_chunk *chunk;
+	struct sctp_byte_list_item *item;
+	u32 flags;
+	u16 length, padding_length, i;
+
+	flags = 0;
+	if (bytes == NULL) {
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_CHUNK_VALUE_NOCHECK;
+	}
+	if (len == -1) {
+		length = (u16)sizeof(struct sctp_chunk);
+	} else {
+		length = (u16)len;
+	}
+	padding_length = length % 4;
+	if (padding_length > 0) {
+		padding_length = 4 - padding_length;
+	}
+	chunk = malloc(length + padding_length);
+	assert(chunk != NULL);
+	if (type == -1) {
+		chunk->type = 0;
+		flags |= FLAG_CHUNK_TYPE_NOCHECK;
+	} else {
+		chunk->type = (u8)type;
+	}
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		 chunk->flags = (u8)flgs;
+	}
+	chunk->length = htons(length);
+	if (len == -1) {
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_CHUNK_VALUE_NOCHECK;
+	}
+	if (bytes != NULL) {
+		for (i = 0, item = bytes->first;
+		     item != NULL;
+		     i++, item = item->next) {
+			chunk->value[i] = item->byte;
+		}
+	} else {
+		memset(chunk->value, 0, length - sizeof(struct sctp_chunk));
+	}
+	memset(chunk->value + (length - sizeof(struct sctp_chunk)),
+	       0, padding_length);
+	return sctp_chunk_list_item_new(chunk,
+	                                length + padding_length,
+	                                flags, sctp_parameter_list_new());
 }
 
 struct sctp_chunk_list_item *
@@ -1535,8 +1655,22 @@ new_sctp_packet(int address_family,
 				}
 				break;
 			default:
-				asprintf(error, "Unknown chunk type 0x%02x", chunk_item->chunk->type);
-				return NULL;
+				if (chunk_item->flags & FLAG_CHUNK_TYPE_NOCHECK) {
+					asprintf(error,
+						 "chunk type must be specified for inbound packets");
+					return NULL;
+				}
+				if (chunk_item->flags & FLAG_CHUNK_FLAGS_NOCHECK) {
+					asprintf(error,
+						 "chunk flags must be specified for inbound packets");
+					return NULL;
+				}
+				if (chunk_item->flags & FLAG_CHUNK_LENGTH_NOCHECK) {
+					asprintf(error,
+						 "chunk length must be specified for inbound packets");
+					return NULL;
+				}
+				break;
 			}
 		}
 	}

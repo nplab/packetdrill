@@ -29,6 +29,30 @@
 #include "packet.h"
 #include "sctp.h"
 
+struct sctp_byte_list_item {
+	struct sctp_byte_list_item *next;
+	u8 byte;
+};
+
+struct sctp_byte_list {
+	struct sctp_byte_list_item *first;
+	struct sctp_byte_list_item *last;
+	u16 nr_entries;
+};
+
+struct sctp_byte_list *
+sctp_byte_list_new(void);
+
+void
+sctp_byte_list_append(struct sctp_byte_list *list,
+                      struct sctp_byte_list_item *item);
+
+void
+sctp_byte_list_free(struct sctp_byte_list *list);
+
+struct sctp_byte_list_item *
+sctp_byte_list_item_new(u8 byte);
+
 struct sctp_sack_block_list_item {
 	struct sctp_sack_block_list_item *next;
 	union sctp_sack_block block;
@@ -113,14 +137,18 @@ struct sctp_chunk_list {
 	u32 length;
 };
 
+struct sctp_chunk_list_item *
+sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
+                         struct sctp_parameter_list *list);
+
 #define FLAG_CHUNK_TYPE_NOCHECK                 0x00000001
 #define FLAG_CHUNK_FLAGS_NOCHECK                0x00000002
 #define FLAG_CHUNK_LENGTH_NOCHECK               0x00000004
 #define FLAG_CHUNK_VALUE_NOCHECK                0x00000008
 
 struct sctp_chunk_list_item *
-sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
-                         struct sctp_parameter_list *list);
+sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
+                       struct sctp_byte_list *bytes);
 
 #define FLAG_DATA_CHUNK_TSN_NOCHECK             0x00000100
 #define FLAG_DATA_CHUNK_SID_NOCHECK             0x00000200
