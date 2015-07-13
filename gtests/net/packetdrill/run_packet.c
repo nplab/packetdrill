@@ -1070,12 +1070,13 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 		script_parameter = script_parameter_item->parameter;
 		flags = script_parameter_item->flags;
 		assert(script_parameter != NULL);
-		DEBUGP("script parameter: type %04d, length %04d\n",
+		DEBUGP("script parameter: type 0x%04x, length %05d\n",
 		       ntohs(script_parameter->type),
 		       ntohs(script_parameter->length));
-		DEBUGP("actual parameter: type %04d, length %04d\n",
+		DEBUGP("actual parameter: type 0x%04x, length %05d\n",
 		       ntohs(actual_parameter->type),
 		       ntohs(actual_parameter->length));
+		DEBUGP("flags: %08x\n", flags);
 		if ((flags & FLAG_PARAMETER_TYPE_NOCHECK ? STATUS_OK :
 		        check_field("sctp_parameter_type",
 		                    ntohs(script_parameter->type),
