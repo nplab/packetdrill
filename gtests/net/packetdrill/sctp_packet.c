@@ -1061,11 +1061,11 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 
 	flags = 0;
 	if (bytes == NULL) {
-		flags |= FLAG_CHUNK_VALUE_NOCHECK;
+		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
 	}
 	if (len == -1) {
 		parameter_length = (u16)sizeof(struct sctp_chunk);
-		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_PARAMETER_LENGTH_NOCHECK;
 	} else {
 		parameter_length = (u16)len;
 	}
@@ -1078,7 +1078,7 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 	assert(parameter != NULL);
 	if (type == -1) {
 		parameter->type = 0;
-		flags |= FLAG_CHUNK_TYPE_NOCHECK;
+		flags |= FLAG_PARAMETER_TYPE_NOCHECK;
 	} else {
 		parameter->type = htons((u16)type);
 	}
