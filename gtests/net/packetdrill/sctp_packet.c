@@ -1208,7 +1208,7 @@ sctp_state_cookie_parameter_new(s64 len, u8 *cookie)
 	if (cookie != NULL) {
 		memcpy(parameter->cookie, cookie, cookie_length);
 	} else {
-		/* flags |= FLAG_PARAMETER_VALUE_NOCHECK; */
+		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
 		memset(parameter->cookie, 'A', cookie_length);
 	}
 	/* Clear the padding */
@@ -1516,6 +1516,10 @@ new_sctp_packet(int address_family,
 			for (parameter_item = chunk_item->parameter_list->first;
 			     parameter_item != NULL;
 			     parameter_item = parameter_item->next) {
+				if (ntohs(parameter_item->parameter->type) ==
+				    SCTP_STATE_COOKIE_PARAMETER_TYPE) {
+					continue;
+				}
 				if (parameter_item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
 					asprintf(error,
 						 "parameter length must be specified for inbound packets");
