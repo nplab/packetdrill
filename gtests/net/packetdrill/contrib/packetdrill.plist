@@ -72,6 +72,14 @@
 		<string>assoc_value</string>
 		<string>sack_delay</string>
 		<string>sack_freq</string>
+		<string>sstat_state</string>
+		<string>sstat_rwnd</string>
+		<string>sstat_unackdata</string>
+		<string>sstat_penddata</string>
+		<string>sstat_instrms</string>
+		<string>sstat_outstrms</string>
+		<string>sstat_fragmentation_point</string>
+		<string>sstat_primary</string>
 	</array>
 	<key>BBLMPredefinedNameList</key>
 	<array>

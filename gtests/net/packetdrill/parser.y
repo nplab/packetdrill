@@ -503,6 +503,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_VALUE
 %token <reserved> SACK_DELAY SACK_FREQ
+%token <reserved> SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
+%token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
+%token <reserved> SSTAT_PRIMARY;
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE PAD
@@ -550,6 +553,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> decimal_integer hex_integer
 %type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents linger
 %type <expression> sctp_rtoinfo sctp_initmsg sctp_assocval sctp_sackinfo
+%type <expression> sctp_status
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -1921,6 +1925,9 @@ expression
 | sctp_sackinfo     {
 	$$ = $1;
 }
+| sctp_status       {
+	$$ = $1;
+}
 ;
 
 decimal_integer
@@ -2126,6 +2133,43 @@ sctp_sackinfo
 #endif
 }
 ;
+
+sctp_status
+: '{' SSTAT_STATE '=' INTEGER ',' SSTAT_RWND '=' INTEGER ',' SSTAT_UNACKDATA '=' INTEGER ',' SSTAT_PENDDATA '=' INTEGER ',' SSTAT_INSTRMS '=' INTEGER ',' SSTAT_OUTSTRMS '=' INTEGER ',' SSTAT_FRAGMENTATION_POINT '=' INTEGER ',' SSTAT_PRIMARY '=' ELLIPSIS '}' {
+#ifdef SCTP_INITMSG
+	$$ = new_expression(EXPR_SCTP_STATUS);
+	if (!is_valid_s32($4)) {
+		semantic_error("sstat_state out of range");
+	}
+	$$->value.sctp_status.sstat_state = $4;
+	if (!is_valid_u32($8)) {
+		semantic_error("sstat_rwnd out of range");
+	}
+	$$->value.sctp_status.sstat_rwnd = $8;
+	if (!is_valid_u16($12)) {
+		semantic_error("sstat_unackdata out of range");
+	}
+	$$->value.sctp_status.sstat_unackdata = $12;
+	if (!is_valid_u16($16)) {
+		semantic_error("sstat_penddata out of range");
+	}
+	$$->value.sctp_status.sstat_penddata = $16;
+	if (!is_valid_u16($20)) {
+		semantic_error("sstat_instrms out of range");
+	}
+	$$->value.sctp_status.sstat_instrms = $20;
+	if (!is_valid_u16($24)) {
+		semantic_error("sstat_outstrms out of range");
+	}
+	$$->value.sctp_status.sstat_outstrms = $24;
+	if (!is_valid_u32($28)) {
+		semantic_error("sstat_fragmentation_point out of range");
+	}
+	$$->value.sctp_status.sstat_fragmentation_point = $28;
+#else
+	$$ = NULL;
+#endif
+}
 
 opt_errno
 :                   { $$ = NULL; }

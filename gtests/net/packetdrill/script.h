@@ -58,6 +58,9 @@ enum expression_t {
 	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info for
 				   * SCTP_DELAYED_SACK */
 #endif
+#ifdef SCTP_STATUS
+	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
+#endif
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -88,6 +91,9 @@ struct expression {
 #endif
 #ifdef SCTP_DELAYED_SACK
 		struct sctp_sack_info sctp_sack_info;
+#endif
+#ifdef SCTP_STATUS
+		struct sctp_status sctp_status;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */

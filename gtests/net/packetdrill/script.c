@@ -77,6 +77,9 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_DELAYED_SACK
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
 #endif
+#ifdef SCTP_STATUS
+	{ EXPR_SCTP_STATUS,           "sctp_status"},
+#endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -294,6 +297,9 @@ void free_expression(struct expression *expression)
 #endif
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
+#endif
+#ifdef SCTP_STATUS
+	case EXPR_SCTP_STATUS:
 #endif
 		break;
 	case EXPR_WORD:
@@ -527,6 +533,12 @@ static int evaluate(struct expression *in,
 	case EXPR_SCTP_SACKINFO:	/* copy as-is */
 		memcpy(&out->value.sctp_sack_info, &in->value.sctp_sack_info,
 		       sizeof(in->value.sctp_sack_info));
+		break;
+#endif
+#ifdef SCTP_STATUS
+	case EXPR_SCTP_STATUS:	/* copy as-is */
+		memcpy(&out->value.sctp_status, &in->value.sctp_status,
+		       sizeof(in->value.sctp_status));
 		break;
 #endif
 	case EXPR_WORD:

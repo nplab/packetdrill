@@ -118,6 +118,19 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SCTP_MAX_BURST
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 #endif
+#ifdef SCTP_STATUS
+	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
+#endif
+	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
+	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
+	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },
+	{ SCTP_COOKIE_WAIT,                 "SCTP_COOKIE_WAIT"                },
+	{ SCTP_COOKIE_ECHOED,               "SCTP_COOKIE_ECHOED"              },
+	{ SCTP_ESTABLISHED,                 "SCTP_ESTABLISHED"                },
+	{ SCTP_SHUTDOWN_SENT,               "SCTP_SHUTDOWN_SENT"              },
+	{ SCTP_SHUTDOWN_RECEIVED,           "SCTP_SHUTDOWN_RECEIVED"          },
+	{ SCTP_SHUTDOWN_ACK_SENT,           "SCTP_SHUTDOWN_ACK_SENT"          },
+	{ SCTP_SHUTDOWN_PENDING,            "SCTP_SHUTDOWN_PENDING"           },
 
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

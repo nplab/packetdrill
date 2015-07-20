@@ -197,6 +197,21 @@ static inline bool is_valid_u32(s64 x)
 	return (x >= 0) && (x <= UINT_MAX);
 }
 
+static inline bool is_valid_s8(s64 x)
+{
+	return (x >= CHAR_MIN) && (x <= CHAR_MAX);
+}
+
+static inline bool is_valid_s16(s64 x)
+{
+	return (x >= SHRT_MIN) && (x <= SHRT_MAX);
+}
+
+static inline bool is_valid_s32(s64 x)
+{
+	return (x >= INT_MIN) && (x <= INT_MAX);
+}
+
 static inline s64 max(s64 a, s64 b)
 {
 	return (a > b) ? a : b;

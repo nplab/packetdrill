@@ -1653,6 +1653,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
 		optval = &val_expression->value.sctp_sack_info;
 #endif
+#ifdef SCTP_STATUS
+	} else if (val_expression->type == EXPR_SCTP_STATUS) {
+		optval = &val_expression->value.sctp_status;
+#endif
 	} else {
 		asprintf(error, "unsupported setsockopt value type: %s",
 			 expression_type_to_string(
