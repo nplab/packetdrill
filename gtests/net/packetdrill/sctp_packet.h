@@ -104,6 +104,30 @@ sctp_address_type_list_free(struct sctp_address_type_list *list);
 struct sctp_address_type_list_item *
 sctp_address_type_list_item_new(u16 address_type);
 
+struct sctp_parameter_type_list_item {
+	struct sctp_parameter_type_list_item *next;
+	u16 parameter_type;
+};
+
+struct sctp_parameter_type_list {
+	struct sctp_parameter_type_list_item *first;
+	struct sctp_parameter_type_list_item *last;
+	u16 nr_entries;
+};
+
+struct sctp_parameter_type_list *
+sctp_parameter_type_list_new(void);
+
+void
+sctp_parameter_type_list_append(struct sctp_parameter_type_list *list,
+			        struct sctp_parameter_type_list_item *item);
+
+void
+sctp_parameter_type_list_free(struct sctp_parameter_type_list *list);
+
+struct sctp_parameter_type_list_item *
+sctp_parameter_type_list_item_new(u16 parameter_type);
+
 struct sctp_parameter_list_item {
 	struct sctp_parameter_list_item *next;
 	struct sctp_parameter *parameter;
@@ -120,10 +144,27 @@ struct sctp_parameter_list {
 	u32 length;
 };
 
+struct sctp_cause_list_item {
+	struct sctp_cause_list_item *next;
+	struct sctp_cause *cause;
+	/* total length in bytes */
+	u32 length;
+	/* metadata */
+	u32 flags;
+};
+
+struct sctp_cause_list {
+	struct sctp_cause_list_item *first;
+	struct sctp_cause_list_item *last;
+	/* length in bytes excluding the padding of the last cause*/
+	u32 length;
+};
+
 struct sctp_chunk_list_item {
 	struct sctp_chunk_list_item *next;
 	struct sctp_chunk *chunk;
 	struct sctp_parameter_list *parameter_list;
+	struct sctp_cause_list *cause_list;
 	/* total length in bytes */
 	u32 length;
 	/* metadata */
@@ -139,7 +180,8 @@ struct sctp_chunk_list {
 
 struct sctp_chunk_list_item *
 sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
-                         struct sctp_parameter_list *list);
+                         struct sctp_parameter_list *parameter_list,
+                         struct sctp_cause_list *cause_list);
 
 #define FLAG_CHUNK_TYPE_NOCHECK                 0x00000001
 #define FLAG_CHUNK_FLAGS_NOCHECK                0x00000002
@@ -196,8 +238,10 @@ sctp_heartbeat_chunk_new(s64 flgs, struct sctp_parameter_list_item *info);
 struct sctp_chunk_list_item *
 sctp_heartbeat_ack_chunk_new(s64 flgs, struct sctp_parameter_list_item *info);
 
+#define FLAG_ABORT_CHUNK_OPT_CAUSES_NOCHECK     0x00000100
+
 struct sctp_chunk_list_item *
-sctp_abort_chunk_new(s64 flgs);
+sctp_abort_chunk_new(s64 flgs, struct sctp_cause_list *causes);
 
 #define FLAG_SHUTDOWN_CHUNK_CUM_TSN_NOCHECK     0x00000100
 
@@ -207,8 +251,10 @@ sctp_shutdown_chunk_new(s64 flgs, s64 cum_tsn);
 struct sctp_chunk_list_item *
 sctp_shutdown_ack_chunk_new(s64 flgs);
 
+#define FLAG_ERROR_CHUNK_OPT_CAUSES_NOCHECK     0x00000100
+
 struct sctp_chunk_list_item *
-sctp_error_chunk_new(s64 flgs);
+sctp_error_chunk_new(s64 flgs, struct sctp_cause_list *causes);
 
 struct sctp_chunk_list_item *
 sctp_cookie_echo_chunk_new(s64 flgs, s64 len, u8* cookie);
@@ -293,6 +339,65 @@ sctp_parameter_list_append(struct sctp_parameter_list *list,
 void
 sctp_parameter_list_free(struct sctp_parameter_list *list);
 
+struct sctp_cause_list_item *
+sctp_cause_list_item_new(struct sctp_cause *cause,
+                         u32 length, u32 flags);
+
+#define FLAG_CAUSE_CODE_NOCHECK					0x00000001
+#define FLAG_CAUSE_LENGTH_NOCHECK				0x00000002
+#define FLAG_CAUSE_INFORMATION_NOCHECK				0x00000004
+
+struct sctp_cause_list_item *
+sctp_generic_cause_new(s64 code, s64 len, struct sctp_byte_list *bytes);
+
+struct sctp_cause_list_item *
+sctp_invalid_stream_identifier_cause_new(s64 sid);
+
+struct sctp_cause_list_item *
+sctp_missing_mandatory_parameter_cause_new(struct sctp_parameter_type_list *list);
+
+struct sctp_cause_list_item *
+sctp_stale_cookie_error_cause_new(s64 staleness);
+
+struct sctp_cause_list_item *
+sctp_out_of_resources_cause_new(void);
+
+struct sctp_cause_list_item *
+sctp_unresolvable_address_cause_new(struct sctp_parameter_list_item *item);
+
+struct sctp_cause_list_item *
+sctp_unrecognized_chunk_type_cause_new(struct sctp_chunk_list_item *item);
+
+struct sctp_cause_list_item *
+sctp_invalid_mandatory_parameter_cause_new(void);
+
+struct sctp_cause_list_item *
+sctp_unrecognized_parameters_cause_new(struct sctp_parameter_list *list);
+
+struct sctp_cause_list_item *
+sctp_no_user_data_cause_new(s64 tsn);
+
+struct sctp_cause_list_item *
+sctp_cookie_received_while_shutdown_cause_new(void);
+
+struct sctp_cause_list_item *
+sctp_restart_with_new_addresses_cause_new(struct sctp_parameter_list *list);
+
+struct sctp_cause_list_item *
+sctp_user_initiated_abort_cause_new(char *info);
+
+struct sctp_cause_list_item *
+sctp_protocol_violation_cause_new(char *info);
+
+struct sctp_cause_list *
+sctp_cause_list_new(void);
+
+void
+sctp_cause_list_append(struct sctp_cause_list *list,
+                       struct sctp_cause_list_item *item);
+
+void
+sctp_cause_list_free(struct sctp_cause_list *list);
 
 /* Create and initialize a new struct packet containing a SCTP packet.
  * On success, returns a newly-allocated packet. On failure, returns NULL

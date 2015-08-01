@@ -1,0 +1,39 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
++0.1 < sctp: ERROR[flgs=0]
++0.1 < sctp: ERROR[flgs=0, CAUSE[code=0x0004, len=4, info=[]]]
++0.1 < sctp: ERROR[flgs=0, CAUSE[code=0x0001, len=8, info=[0x00, 0x01, 0x00, 0x00]],
+                          CAUSE[code=0x0001, len=8, info=[0x00, 0x02, 0x00, 0x00]]]
++0.1 < sctp: ERROR[flgs=0, INVALID_STREAM_IDENTIFIER[sid=65535]]
++0.1 < sctp: ERROR[flgs=0, MISSING_MANDATORY_PARAMETER[types=[123, 234]]]
++0.1 < sctp: ERROR[flgs=0, STALE_COOKIE_ERROR[staleness=12345678]]
++0.1 < sctp: ERROR[flgs=0, OUT_OF_RESOURCE[]]
++0.1 < sctp: ERROR[flgs=0, UNRESOLVABLE_ADDRESS[param=HOSTNAME_ADDRESS[addr="@A"]]]
++0.1 < sctp: ERROR[flgs=0, UNRECOGNIZED_CHUNK_TYPE[chk=CHUNK[type=0xCF, flgs=0, len=7, val=[0x01, 0x02, 0x03]]]]
++0.1 < sctp: ERROR[flgs=0, INVALID_MANDATORY_PARAMETER[]]
++0.1 < sctp: ERROR[flgs=0, UNRECOGNIZED_PARAMETERS[params=[PARAMETER[type=0x1234, len=4, val=[]]]]]
++0.1 < sctp: ERROR[flgs=0, NO_USER_DATA[tsn=12345678]]
++0.1 < sctp: ERROR[flgs=0, COOKIE_RECEIVED_WHILE_SHUTDOWN[]]
++0.1 < sctp: ERROR[flgs=0, RESTART_WITH_NEW_ADDRESSES[params=[IPV4_ADDRESS[addr=1.2.3.4],
+                                                              IPV4_ADDRESS[addr=2.3.4.5]]]]
++0.1 < sctp: ERROR[flgs=0, USER_INITIATED_ABORT[info="Testing"]]
++0.1 < sctp: ERROR[flgs=0, PROTOCOL_VIOLATION[info="Testing"]]
+//+0.1 < sctp: DATA[flgs=IBE, len=16, tsn=1, sid=0, ssn=0, ppid=0]
+//+0.0 > sctp: ABORT[flgs=0, NO_USER_DATA[tsn=1]]
+//+0.0 > sctp: ABORT[flgs=0, ...]
++1.0 < sctp: DATA[flgs=IBE, len=1016, tsn=1, sid=65535, ssn=0, ppid=0]
++0.0 > sctp: ERROR[flgs=0, CAUSE[code=0x0001, len=8, info=[0xff, 0xff, 0x00, 0x00]]];
+             SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]] // cum_tsn?
+// Tear down the association
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=1]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]

@@ -151,11 +151,11 @@ static int sctp_hostname_parameter_to_string(
 
 	length = ntohs(parameter->length);
 	if (length < sizeof(struct sctp_hostname_address_parameter)) {
-		asprintf(error, "HOSTNAME parameter illegal (length=%u)",
+		asprintf(error, "HOSTNAME_ADDRESS parameter illegal (length=%u)",
 			 length);
 		return STATUS_ERR;
 	}
-	fprintf(s, "HOSTNAME[addr=\"%.*s\"]",
+	fprintf(s, "HOSTNAME_ADDRESS[addr=\"%.*s\"]",
 		(int)(length - sizeof(struct sctp_hostname_address_parameter)),
 		(char *)parameter->hostname);
 	return STATUS_OK;
@@ -355,7 +355,7 @@ static int sctp_missing_mandatory_parameter_cause_to_string(
 		asprintf(error, "MISSING_MANDATORY_PARAMETER inconsistent");
 		return STATUS_ERR;
 	}
-	fputs("MISSING_MANDATORY_PARAMETER[", s);
+	fputs("MISSING_MANDATORY_PARAMETER[types=[", s);
 	for (i = 0; i < nr_parameters; i++) {
 		if (i > 0)
 			fputs(", ", s);
@@ -389,7 +389,7 @@ static int sctp_missing_mandatory_parameter_cause_to_string(
 			break;
 		}
 	}
-	fputc(']', s);
+	fputs("]]", s);
 	return STATUS_OK;
 }
 
@@ -456,7 +456,7 @@ static int sctp_unresolvable_address_cause_to_string(
 		asprintf(error, "UNRESOLVABLE_ADDRESS cause inconsistent");
 		return STATUS_ERR;
 	}
-	fputs("UNRESOLVABLE_ADDRESS[", s);
+	fputs("UNRESOLVABLE_ADDRESS[param=", s);
 	result = sctp_parameter_to_string(s, parameter, error);
 	fputc(']', s);
 	return result;
@@ -492,7 +492,7 @@ static int sctp_unrecognized_chunk_type_cause_to_string(
 		asprintf(error, "UNRECOGNIZED_CHUNK cause inconsistent");
 		return STATUS_ERR;
 	}
-	fputs("UNRECOGNIZED_CHUNK[", s);
+	fputs("UNRECOGNIZED_CHUNK[chk=", s);
 	result = sctp_chunk_to_string(s, chunk, error);
 	fputc(']', s);
 	return result;
@@ -644,7 +644,7 @@ static int sctp_user_initiated_abort_cause_to_string(
 			 length);
 		return STATUS_ERR;
 	}
-	fprintf(s, "USER_INITIATED_ABORT[%.*s]",
+	fprintf(s, "USER_INITIATED_ABORT[info=\"%.*s\"]",
 		(int)(length - sizeof(struct sctp_user_initiated_abort_cause)),
 		(char *)cause->information);
 	return STATUS_OK;
@@ -663,7 +663,7 @@ static int sctp_protocol_violation_cause_to_string(
 			 length);
 		return STATUS_ERR;
 	}
-	fprintf(s, "PROTOCOL_VIOLATION[%.*s]",
+	fprintf(s, "PROTOCOL_VIOLATION[info=\"%.*s\"]",
 		(int)(length - sizeof(struct sctp_protocol_violation_cause)),
 		(char *)cause->information);
 	return STATUS_OK;
@@ -703,7 +703,7 @@ static int sctp_cause_to_string(FILE *s, struct sctp_cause *cause, char **error)
 			(struct sctp_invalid_stream_identifier_cause *)cause,
 			error);
 		break;
-	case SCTP_MISSING_MADATORY_PARAMETER_CAUSE_CODE:
+	case SCTP_MISSING_MANDATORY_PARAMETER_CAUSE_CODE:
 		result = sctp_missing_mandatory_parameter_cause_to_string(s,
 			(struct sctp_missing_mandatory_parameter_cause *)cause,
 			error);
@@ -725,7 +725,7 @@ static int sctp_cause_to_string(FILE *s, struct sctp_cause *cause, char **error)
 			(struct sctp_unrecognized_chunk_type_cause *)cause,
 			error);
 		break;
-	case SCTP_INVALID_MADATORY_PARAMETER_CAUSE_CODE:
+	case SCTP_INVALID_MANDATORY_PARAMETER_CAUSE_CODE:
 		result = sctp_invalid_mandatory_parameter_cause_to_string(s,
 			(struct sctp_invalid_mandatory_parameter_cause *)cause,
 			error);

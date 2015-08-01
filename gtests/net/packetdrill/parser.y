@@ -472,8 +472,12 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct sctp_sack_block_list *sack_block_list;
 	struct sctp_address_type_list_item *address_type_list_item;
 	struct sctp_address_type_list *address_type_list;
+	struct sctp_parameter_type_list_item *parameter_type_list_item;
+	struct sctp_parameter_type_list *parameter_type_list;
 	struct sctp_parameter_list_item *parameter_list_item;
 	struct sctp_parameter_list *parameter_list;
+	struct sctp_cause_list_item *cause_list_item;
+	struct sctp_cause_list *cause_list;
 	struct syscall_spec *syscall;
 	struct command_spec *command;
 	struct code_spec *code;
@@ -516,6 +520,15 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
+%token <reserved> CAUSE
+%token <reserved> CAUSE_CODE CAUSE_INFO
+%token <reserved> INVALID_STREAM_IDENTIFIER MISSING_MANDATORY_PARAMETER
+%token <reserved> STALE_COOKIE_ERROR OUT_OF_RESOURCE
+%token <reserved> UNRESOLVABLE_ADDRESS UNRECOGNIZED_CHUNK_TYPE
+%token <reserved> INVALID_MANDATORY_PARAMETER NO_USER_DATA
+%token <reserved> COOKIE_RECEIVED_WHILE_SHUTDOWN RESTART_WITH_NEW_ADDRESSES
+%token <reserved> USER_INITIATED_ABORT PROTOCOL_VIOLATION
+%token <reserved> STALENESS CHK PARAM UNRECOGNIZED_PARAMETERS
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -583,17 +596,35 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
-%type <integer> opt_chunk_type opt_parameter_type
+%type <cause_list> opt_cause_list_spec sctp_cause_list_spec
+%type <cause_list_item> sctp_cause_spec
+%type <cause_list_item> sctp_generic_cause_spec
+%type <cause_list_item> sctp_invalid_stream_identifier_cause_spec
+%type <cause_list_item> sctp_missing_mandatory_parameter_cause_spec
+%type <cause_list_item> sctp_stale_cookie_error_cause_spec
+%type <cause_list_item> sctp_out_of_resources_cause_spec
+%type <cause_list_item> sctp_unresolvable_address_cause_spec
+%type <cause_list_item> sctp_unrecognized_chunk_type_cause_spec
+%type <cause_list_item> sctp_invalid_mandatory_parameter_cause_spec
+%type <cause_list_item> sctp_unrecognized_parameters_cause_spec
+%type <cause_list_item> sctp_no_user_data_cause_spec
+%type <cause_list_item> sctp_cookie_received_while_shutdown_cause_spec
+%type <cause_list_item> sctp_restart_with_new_addresses_cause_spec
+%type <cause_list_item> sctp_user_initiated_abort_cause_spec
+%type <cause_list_item> sctp_protocol_violation_cause_spec
+%type <integer> opt_chunk_type opt_parameter_type opt_cause_code
 %type <integer> opt_flags opt_data_flags opt_abort_flags
 %type <integer> opt_shutdown_complete_flags opt_len
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_cum_tsn opt_ppid
-%type <byte_list> opt_val byte_list
+%type <byte_list> opt_val opt_info byte_list
 %type <byte_list_item> byte
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
 %type <address_type_list> address_types_list
 %type <address_type_list_item> address_type
+%type <parameter_type_list> parameter_types_list
+%type <parameter_type_list_item> parameter_type
 
 %%  /* The grammar follows. */
 
@@ -850,6 +881,12 @@ opt_val
 : VAL '=' ELLIPSIS          { $$ = NULL; }
 | VAL '=' '[' ELLIPSIS ']'  { $$ = NULL; }
 | VAL '=' '[' byte_list ']' { $$ = $4; }
+;
+
+opt_info
+: CAUSE_INFO '=' ELLIPSIS          { $$ = NULL; }
+| CAUSE_INFO '=' '[' ELLIPSIS ']'  { $$ = NULL; }
+| CAUSE_INFO '=' '[' byte_list ']' { $$ = $4; }
 ;
 
 byte_list
@@ -1195,11 +1232,8 @@ sctp_heartbeat_ack_chunk_spec
 }
 
 sctp_abort_chunk_spec
-: ABORT '[' opt_abort_flags ']' {
-	$$ = sctp_abort_chunk_new($3);
-}
-| ABORT '[' opt_abort_flags ',' ELLIPSIS ']' {
-	$$ = sctp_abort_chunk_new($3);
+: ABORT '[' opt_abort_flags opt_cause_list_spec ']' {
+	$$ = sctp_abort_chunk_new($3, $4);
 }
 
 sctp_shutdown_chunk_spec
@@ -1213,11 +1247,8 @@ sctp_shutdown_ack_chunk_spec
 }
 
 sctp_error_chunk_spec
-: ERROR '[' opt_flags ']' {
-	$$ = sctp_error_chunk_new($3);
-}
-| ERROR '[' opt_flags ',' ELLIPSIS ']' {
-	$$ = sctp_error_chunk_new($3);
+: ERROR '[' opt_flags opt_cause_list_spec ']' {
+	$$ = sctp_error_chunk_new($3, $4);
 }
 
 sctp_cookie_echo_chunk_spec
@@ -1282,13 +1313,13 @@ opt_parameter_type
 | TYPE '=' HEX_INTEGER {
 	if (!is_valid_u16($3)) {
 		semantic_error("type value out of range");
-        }
+	}
 	$$ = $3;
 }
 | TYPE '=' INTEGER     {
 	if (!is_valid_u16($3)) {
 		semantic_error("type value out of range");
-        }
+	}
 	$$ = $3;
 }
 ;
@@ -1402,8 +1433,8 @@ address_types_list
 address_type
 : INTEGER       { if (!is_valid_u16($1)) {
                   semantic_error("address type value out of range");
-	          }
-	          $$ = sctp_address_type_list_item_new($1); }
+                  }
+                  $$ = sctp_address_type_list_item_new($1); }
 | IPV4_TYPE     { $$ = sctp_address_type_list_item_new(SCTP_IPV4_ADDRESS_PARAMETER_TYPE); }
 | IPV6_TYPE     { $$ = sctp_address_type_list_item_new(SCTP_IPV6_ADDRESS_PARAMETER_TYPE); }
 | HOSTNAME_TYPE { $$ = sctp_address_type_list_item_new(SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE); }
@@ -1436,6 +1467,186 @@ sctp_pad_parameter_spec
 		semantic_error("len value out of range");
 	}
 	$$ = sctp_pad_parameter_new($5, NULL);
+}
+
+opt_cause_list_spec
+: ',' ELLIPSIS             { $$ = NULL; }
+|                          { $$ = sctp_cause_list_new(); }
+| ',' sctp_cause_list_spec { $$ = $2; }
+;
+
+sctp_cause_list_spec
+: sctp_cause_spec                          { $$ = sctp_cause_list_new();
+                                             sctp_cause_list_append($$, $1); }
+| sctp_cause_list_spec ',' sctp_cause_spec { $$ = $1;
+                                             sctp_cause_list_append($1, $3); }
+;
+
+sctp_cause_spec
+: sctp_generic_cause_spec                        { $$ = $1; }
+| sctp_invalid_stream_identifier_cause_spec      { $$ = $1; }
+| sctp_missing_mandatory_parameter_cause_spec    { $$ = $1; }
+| sctp_stale_cookie_error_cause_spec             { $$ = $1; }
+| sctp_out_of_resources_cause_spec               { $$ = $1; }
+| sctp_unresolvable_address_cause_spec           { $$ = $1; }
+| sctp_unrecognized_chunk_type_cause_spec        { $$ = $1; }
+| sctp_invalid_mandatory_parameter_cause_spec    { $$ = $1; }
+| sctp_unrecognized_parameters_cause_spec        { $$ = $1; }
+| sctp_no_user_data_cause_spec                   { $$ = $1; }
+| sctp_cookie_received_while_shutdown_cause_spec { $$ = $1; }
+| sctp_restart_with_new_addresses_cause_spec     { $$ = $1; }
+| sctp_user_initiated_abort_cause_spec           { $$ = $1; }
+| sctp_protocol_violation_cause_spec             { $$ = $1; }
+;
+
+opt_cause_code
+: CAUSE_CODE '=' ELLIPSIS    { $$ = -1; }
+| CAUSE_CODE '=' HEX_INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("cause value out of range");
+	}
+	$$ = $3;
+}
+| CAUSE_CODE '=' INTEGER     {
+	if (!is_valid_u16($3)) {
+		semantic_error("cause value out of range");
+	}
+	$$ = $3;
+}
+;
+
+sctp_generic_cause_spec
+: CAUSE '[' opt_cause_code ',' opt_len ',' opt_info ']' {
+	if (($5 != -1) && ($5 < sizeof(struct sctp_cause))) {
+		semantic_error("length value out of range");
+	}
+	if (($5 != -1) && ($7 != NULL) &&
+	    ($5 != sizeof(struct sctp_cause) + $7->nr_entries)) {
+		semantic_error("length value incompatible with val");
+	}
+	if (($5 == -1) && ($7 != NULL)) {
+		semantic_error("length needs to be specified");
+	}
+	$$ = sctp_generic_cause_new($3, $5, $7);
+}
+
+sctp_invalid_stream_identifier_cause_spec
+: INVALID_STREAM_IDENTIFIER '[' SID '=' INTEGER ']' {
+	if (!is_valid_u16($5)) {
+		semantic_error("stream identifier out of range");
+	}
+	$$ = sctp_invalid_stream_identifier_cause_new($5);
+}
+| INVALID_STREAM_IDENTIFIER '[' SID '=' ELLIPSIS ']' {
+	$$ = sctp_invalid_stream_identifier_cause_new(-1);
+}
+
+parameter_types_list
+:                                         { $$ = sctp_parameter_type_list_new(); }
+| parameter_type                          { $$ = sctp_parameter_type_list_new();
+                                            sctp_parameter_type_list_append($$, $1); }
+| parameter_types_list ',' parameter_type { $$ = $1;
+                                            sctp_parameter_type_list_append($1, $3); }
+;
+
+parameter_type
+: INTEGER       { if (!is_valid_u16($1)) {
+                  semantic_error("parameter type value out of range");
+                  }
+                  $$ = sctp_parameter_type_list_item_new($1); }
+;
+
+sctp_missing_mandatory_parameter_cause_spec
+: MISSING_MANDATORY_PARAMETER '[' TYPES '=' ELLIPSIS ']' {
+	$$ = sctp_missing_mandatory_parameter_cause_new(NULL);
+}
+| MISSING_MANDATORY_PARAMETER '[' TYPES '=' '[' parameter_types_list ']' ']' {
+	$$ = sctp_missing_mandatory_parameter_cause_new($6);
+}
+
+sctp_stale_cookie_error_cause_spec
+: STALE_COOKIE_ERROR '[' STALENESS '=' INTEGER ']' {
+	if (!is_valid_u32($5)) {
+		semantic_error("staleness out of range");
+	}
+	$$ = sctp_stale_cookie_error_cause_new($5);
+}
+| STALE_COOKIE_ERROR '[' STALENESS '=' ELLIPSIS ']' {
+	$$ = sctp_stale_cookie_error_cause_new(-1);
+}
+
+sctp_out_of_resources_cause_spec
+: OUT_OF_RESOURCE '[' ']' {
+	$$ = sctp_out_of_resources_cause_new();
+}
+
+sctp_unresolvable_address_cause_spec
+: UNRESOLVABLE_ADDRESS '[' PARAM '=' sctp_parameter_spec ']' {
+	$$ = sctp_unresolvable_address_cause_new($5);
+}
+| UNRESOLVABLE_ADDRESS '[' PARAM '=' ELLIPSIS ']' {
+	$$ = sctp_unresolvable_address_cause_new(NULL);
+}
+
+sctp_unrecognized_chunk_type_cause_spec
+: UNRECOGNIZED_CHUNK_TYPE '[' CHK '=' sctp_chunk_spec ']' {
+	$$ = sctp_unrecognized_chunk_type_cause_new($5);
+}
+| UNRECOGNIZED_CHUNK_TYPE '[' CHK '=' ELLIPSIS ']' {
+	$$ = sctp_unrecognized_chunk_type_cause_new(NULL);
+}
+
+sctp_invalid_mandatory_parameter_cause_spec
+: INVALID_MANDATORY_PARAMETER '[' ']' {
+	$$ = sctp_invalid_mandatory_parameter_cause_new();
+}
+
+sctp_unrecognized_parameters_cause_spec
+: UNRECOGNIZED_PARAMETERS '[' PARAMS '=' '[' sctp_parameter_list_spec ']' ']' {
+	$$ = sctp_unrecognized_parameters_cause_new($6);
+}
+| UNRECOGNIZED_PARAMETERS '[' PARAMS '=' ELLIPSIS ']' {
+	$$ = sctp_unrecognized_parameters_cause_new(NULL);
+}
+
+sctp_no_user_data_cause_spec
+: NO_USER_DATA '[' TSN '=' INTEGER ']' {
+	if (!is_valid_u32($5)) {
+		semantic_error("tsn out of range");
+	}
+	$$ = sctp_no_user_data_cause_new($5);
+}
+| NO_USER_DATA '[' TSN '=' ELLIPSIS ']' {
+	$$ = sctp_no_user_data_cause_new(-1);
+}
+
+sctp_cookie_received_while_shutdown_cause_spec
+: COOKIE_RECEIVED_WHILE_SHUTDOWN '[' ']' {
+	$$ = sctp_cookie_received_while_shutdown_cause_new();
+}
+
+sctp_restart_with_new_addresses_cause_spec
+: RESTART_WITH_NEW_ADDRESSES '[' PARAMS '=' '[' sctp_parameter_list_spec ']' ']' {
+	$$ = sctp_restart_with_new_addresses_cause_new($6);
+}
+| RESTART_WITH_NEW_ADDRESSES '[' PARAMS '=' ELLIPSIS ']' {
+	$$ = sctp_restart_with_new_addresses_cause_new(NULL);
+}
+
+sctp_user_initiated_abort_cause_spec
+: USER_INITIATED_ABORT '[' CAUSE_INFO '=' STRING ']' {
+	$$ = sctp_user_initiated_abort_cause_new($5);
+}
+| USER_INITIATED_ABORT '[' CAUSE_INFO '=' ELLIPSIS ']' {
+	$$ = sctp_user_initiated_abort_cause_new(NULL);
+}
+
+sctp_protocol_violation_cause_spec
+: PROTOCOL_VIOLATION '[' CAUSE_INFO '=' STRING ']' {
+	$$ = sctp_protocol_violation_cause_new($5);
+}
+| PROTOCOL_VIOLATION '[' CAUSE_INFO '=' ELLIPSIS ']' {
+	$$ = sctp_protocol_violation_cause_new(NULL);
 }
 
 tcp_packet_spec

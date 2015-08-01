@@ -149,12 +149,12 @@ static struct socket *find_socket_for_live_packet(
 {
 	struct socket *socket = state->socket_under_test;	/* shortcut */
 
+	DEBUGP("find_connect_for_live_packet\n");
 	if (socket == NULL)
 		return NULL;
 
 	struct tuple packet_tuple, live_outbound, live_inbound;
 	get_packet_tuple(packet, &packet_tuple);
-
 	/* Is packet inbound to the socket under test? */
 	socket_get_inbound(&socket->live, &live_inbound);
 	if (is_equal_tuple(&packet_tuple, &live_inbound)) {
@@ -1083,7 +1083,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 		                    ntohs(actual_parameter->type),
 		                    error)) ||
 		    (flags & FLAG_PARAMETER_LENGTH_NOCHECK ? STATUS_OK :
-		        check_field("sctp_chunk_length",
+		        check_field("sctp_parameter_length",
 		                    ntohs(script_parameter->length),
 		                    ntohs(actual_parameter->length),
 		                    error))) {
@@ -1108,6 +1108,71 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 	if ((actual_parameter != NULL) || (script_parameter_item != NULL)) {
 		asprintf(error,
 		         "live chunk and expected chunk have not the same number of parameters");
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+static int verify_sctp_causes(struct sctp_chunk *chunk, u16 offset,
+                              struct sctp_chunk_list_item *script_chunk_item,
+                              char **error)
+{
+	struct sctp_causes_iterator iter;
+	struct sctp_cause *actual_cause;
+	struct sctp_cause *script_cause;
+	struct sctp_cause_list_item *script_cause_item;
+	u32 flags;
+
+	for (actual_cause = sctp_causes_begin(chunk, offset, &iter, error),
+	     script_cause_item = script_chunk_item->cause_list->first;
+	     actual_cause != NULL && script_cause_item != NULL;
+	     actual_cause = sctp_causes_next(&iter, error),
+	     script_cause_item = script_cause_item->next) {
+		if (*error != NULL) {
+			DEBUGP("Error during iteration\n");
+			return STATUS_ERR;
+		}
+		script_cause = script_cause_item->cause;
+		flags = script_cause_item->flags;
+		assert(script_cause != NULL);
+		DEBUGP("script cause: code 0x%04x, length %05d\n",
+		       ntohs(script_cause->code),
+		       ntohs(script_cause->length));
+		DEBUGP("actual cause: code 0x%04x, length %05d\n",
+		       ntohs(actual_cause->code),
+		       ntohs(actual_cause->length));
+		DEBUGP("flags: %08x\n", flags);
+		if ((flags & FLAG_CAUSE_CODE_NOCHECK ? STATUS_OK :
+		        check_field("sctp_cause_code",
+		                    ntohs(script_cause->code),
+		                    ntohs(actual_cause->code),
+		                    error)) ||
+		    (flags & FLAG_CAUSE_LENGTH_NOCHECK ? STATUS_OK :
+		        check_field("sctp_cause_length",
+		                    ntohs(script_cause->length),
+		                    ntohs(actual_cause->length),
+		                    error))) {
+			return STATUS_ERR;
+		}
+		if ((flags & FLAG_CAUSE_INFORMATION_NOCHECK) == 0) {
+			assert((flags & FLAG_CAUSE_LENGTH_NOCHECK) == 0);
+			if (memcmp(script_cause->information,
+			           actual_cause->information,
+			           ntohs(actual_cause->length) - sizeof(struct sctp_cause))) {
+				asprintf(error, "live packet cause information not as expected");
+				return STATUS_ERR;
+			}
+		}
+	}
+	if (actual_cause != NULL) {
+		DEBUGP("actual chunk contains more causes than script chunk\n");
+	}
+	if (script_cause_item != NULL) {
+		DEBUGP("script chunk contains more causes than actual chunk\n");
+	}
+	if ((actual_cause != NULL) || (script_cause_item != NULL)) {
+		asprintf(error,
+		         "live chunk and expected chunk have not the same number of causes");
 		return STATUS_ERR;
 	}
 	return STATUS_OK;
@@ -1349,11 +1414,17 @@ static int verify_heartbeat_ack_chunk(struct sctp_heartbeat_ack_chunk *actual_ch
 }
 
 static int verify_abort_chunk(struct sctp_abort_chunk *actual_chunk,
-                              struct sctp_abort_chunk *script_chunk,
-                              u32 flags, char **error)
+                              struct sctp_chunk_list_item *script_chunk_item,
+                              char **error)
 {
-	/* FIXME: Validate causes */
-	return STATUS_OK;
+	u32 flags;
+
+	assert(ntohs(actual_chunk->length) >= sizeof(struct sctp_abort_chunk));
+	flags = script_chunk_item->flags;
+	return (flags & FLAG_ABORT_CHUNK_OPT_CAUSES_NOCHECK ? STATUS_OK :
+	    verify_sctp_causes((struct sctp_chunk *)actual_chunk,
+	                       sizeof(struct sctp_error_chunk),
+		               script_chunk_item, error));
 }
 
 static int verify_shutdown_chunk(struct sctp_shutdown_chunk *actual_chunk,
@@ -1376,11 +1447,17 @@ static int verify_shutdown_ack_chunk(struct sctp_shutdown_ack_chunk *actual_chun
 }
 
 static int verify_error_chunk(struct sctp_error_chunk *actual_chunk,
-                              struct sctp_error_chunk *script_chunk,
-                              u32 flags, char **error)
+                              struct sctp_chunk_list_item *script_chunk_item,
+                              char **error)
 {
-	/* FIXME: Validate causes */
-	return STATUS_OK;
+	u32 flags;
+
+	assert(ntohs(actual_chunk->length) >= sizeof(struct sctp_error_chunk));
+	flags = script_chunk_item->flags;
+	return (flags & FLAG_ERROR_CHUNK_OPT_CAUSES_NOCHECK ? STATUS_OK :
+	    verify_sctp_causes((struct sctp_chunk *)actual_chunk,
+	                       sizeof(struct sctp_error_chunk),
+		               script_chunk_item, error));
 }
 
 static int verify_cookie_echo_chunk(struct sctp_cookie_echo_chunk *actual_chunk,
@@ -1540,8 +1617,7 @@ static int verify_sctp(
 			break;
 		case SCTP_ABORT_CHUNK_TYPE:
 			result = verify_abort_chunk((struct sctp_abort_chunk *)actual_chunk,
-			                            (struct sctp_abort_chunk *)script_chunk,
-			                            flags, error);
+			                            script_chunk_item, error);
 			break;
 		case SCTP_SHUTDOWN_CHUNK_TYPE:
 			result = verify_shutdown_chunk((struct sctp_shutdown_chunk *)actual_chunk,
@@ -1555,8 +1631,7 @@ static int verify_sctp(
 			break;
 		case SCTP_ERROR_CHUNK_TYPE:
 			result = verify_error_chunk((struct sctp_error_chunk *)actual_chunk,
-			                            (struct sctp_error_chunk *)script_chunk,
-			                            flags, error);
+			                            script_chunk_item, error);
 			break;
 		case SCTP_COOKIE_ECHO_CHUNK_TYPE:
 			result = verify_cookie_echo_chunk((struct sctp_cookie_echo_chunk *)actual_chunk,
@@ -2546,6 +2621,7 @@ int abort_association(struct state *state, struct socket *socket)
 	struct sctp_chunk_list *chunk_list;
 	struct tuple live_inbound;
 	int result = STATUS_OK;
+	s64 flgs;
 
 	if ((socket->live.local_initiate_tag == 0) &&
 	    (socket->live.remote_initiate_tag == 0)) {
@@ -2553,10 +2629,12 @@ int abort_association(struct state *state, struct socket *socket)
 	}
 	chunk_list = sctp_chunk_list_new();
 	if (socket->live.local_initiate_tag != 0) {
-		sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(0));
+		flgs = 0;
 	} else {
-		sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(SCTP_ABORT_CHUNK_T_BIT));
+		flgs = SCTP_ABORT_CHUNK_T_BIT;
 	}
+	/* XXX Provide an error cause */
+	sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(flgs, sctp_cause_list_new()));
 	packet = new_sctp_packet(socket->address_family,
 				 DIRECTION_INBOUND, ECN_NONE,
 				 chunk_list, &error);

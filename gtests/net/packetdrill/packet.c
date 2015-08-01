@@ -153,6 +153,9 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	struct sctp_parameter_list_item *old_parameter_item, *new_parameter_item;
 	struct sctp_parameter *new_parameter;
 	struct sctp_parameter_list *new_parameter_list;
+	struct sctp_cause_list_item *old_cause_item, *new_cause_item;
+	struct sctp_cause *new_cause;
+	struct sctp_cause_list *new_cause_list;
 
 	memcpy(new_base, old_base, bytes_used);
 
@@ -191,11 +194,24 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 			                                                  old_parameter_item->flags);
 			sctp_parameter_list_append(new_parameter_list, new_parameter_item);
 		}
+		new_cause_list = sctp_cause_list_new();
+		for (old_cause_item = old_chunk_item->cause_list->first;
+		     old_cause_item != NULL;
+		     old_cause_item = old_cause_item->next) {
+			new_cause = offset_ptr(old_base,
+			                       new_base,
+			                       old_cause_item->cause);
+			new_cause_item = sctp_cause_list_item_new(new_cause,
+			                                          old_cause_item->length,
+			                                          old_cause_item->flags);
+			sctp_cause_list_append(new_cause_list, new_cause_item);
+		}
 		new_chunk = offset_ptr(old_base, new_base, old_chunk_item->chunk);
 		new_chunk_item = sctp_chunk_list_item_new(new_chunk,
 		                                          old_chunk_item->length,
 		                                          old_chunk_item->flags,
-		                                          new_parameter_list);
+		                                          new_parameter_list,
+		                                          new_cause_list);
 		sctp_chunk_list_append(packet->chunk_list, new_chunk_item);
 	}
 
