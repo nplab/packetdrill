@@ -1262,13 +1262,13 @@ sctp_cookie_ack_chunk_spec
 }
 
 sctp_ecne_chunk_spec
-: ECNE '[' opt_flags opt_tsn ']' {
-	$$ = sctp_ecne_chunk_new($3, $4);
+: ECNE '[' opt_flags ',' opt_tsn ']' {
+	$$ = sctp_ecne_chunk_new($3, $5);
 }
 
 sctp_cwr_chunk_spec
-: CWR '[' opt_flags opt_tsn ']' {
-	$$ = sctp_cwr_chunk_new($3, $4);
+: CWR '[' opt_flags ',' opt_tsn ']' {
+	$$ = sctp_cwr_chunk_new($3, $5);
 }
 
 sctp_shutdown_complete_chunk_spec
