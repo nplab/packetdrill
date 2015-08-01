@@ -591,9 +591,9 @@ static int map_inbound_sctp_packet(
 		if (*error != NULL) {
 			return STATUS_ERR;
 		}
-		DEBUGP("live remote tsn %d, scripte remote tsn %d\n",
+		DEBUGP("live remote tsn 0x%08x, scripte remote tsn 0x%08x\n",
 		       socket->live.remote_initial_tsn, socket->script.remote_initial_tsn);
-		DEBUGP("live local tsn %d, scripte local tsn %d\n",
+		DEBUGP("live local tsn 0x%08x, scripte local tsn 0x%08x\n",
 		       socket->live.local_initial_tsn, socket->script.local_initial_tsn);
 		remote_diff = socket->live.remote_initial_tsn - socket->script.remote_initial_tsn;
 		local_diff = socket->live.local_initial_tsn - socket->script.local_initial_tsn;
@@ -2403,7 +2403,7 @@ static int do_inbound_script_packet(
 					socket->script.remote_initial_tsn = ntohl(init_ack->initial_tsn);
 					socket->live.remote_initiate_tag = ntohl(init_ack->initiate_tag);
 					socket->live.remote_initial_tsn = ntohl(init_ack->initial_tsn);
-					DEBUGP("remote_initiate_tag %d, remote_initial_tsn %d\n", ntohl(init_ack->initiate_tag), ntohl(init_ack->initial_tsn));
+					DEBUGP("remote_initiate_tag 0x%08x, remote_initial_tsn 0x%08x\n", ntohl(init_ack->initiate_tag), ntohl(init_ack->initial_tsn));
 				}
 				break;
 			case SCTP_COOKIE_ECHO_CHUNK_TYPE:
