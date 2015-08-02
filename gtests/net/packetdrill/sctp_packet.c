@@ -429,7 +429,7 @@ sctp_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 ssn, s64 ppid)
 	memset(chunk->data, 0,
 	       length + padding_length - sizeof(struct sctp_data_chunk));
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
-	                                length, flags,
+	                                length + padding_length, flags,
 	                                sctp_parameter_list_new(),
 	                                sctp_cause_list_new());
 }
@@ -2165,7 +2165,6 @@ new_sctp_packet(int address_family,
 	const int sctp_chunk_bytes = list->length;
 	const int ip_bytes =
 		 ip_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
-	u16 padding_length;
 	bool overbook = false;
 
 	/* Sanity-check all the various lengths */
@@ -2432,11 +2431,7 @@ new_sctp_packet(int address_family,
 	for (chunk_item = list->first;
 	     chunk_item != NULL;
 	     chunk_item = chunk_item->next) {
-		padding_length = chunk_item->length % 4;
-		if (padding_length > 0) {
-			padding_length = 4 - padding_length;
-		}
-		memcpy(sctp_chunk_start, chunk_item->chunk, chunk_item->length + padding_length);
+		memcpy(sctp_chunk_start, chunk_item->chunk, chunk_item->length);
 		for (parameter_item = chunk_item->parameter_list->first;
 		     parameter_item != NULL;
 		     parameter_item = parameter_item->next) {
@@ -2455,7 +2450,7 @@ new_sctp_packet(int address_family,
 		}
 		free(chunk_item->chunk);
 		chunk_item->chunk = (struct sctp_chunk *)sctp_chunk_start;
-		sctp_chunk_start += chunk_item->length + padding_length;
+		sctp_chunk_start += chunk_item->length;
 	}
 	free(packet->chunk_list);
 	packet->chunk_list = list;
