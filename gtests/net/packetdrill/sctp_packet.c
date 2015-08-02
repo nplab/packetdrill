@@ -2165,6 +2165,7 @@ new_sctp_packet(int address_family,
 	const int sctp_chunk_bytes = list->length;
 	const int ip_bytes =
 		 ip_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+	u16 padding_length;
 	bool overbook = false;
 
 	/* Sanity-check all the various lengths */
@@ -2431,7 +2432,11 @@ new_sctp_packet(int address_family,
 	for (chunk_item = list->first;
 	     chunk_item != NULL;
 	     chunk_item = chunk_item->next) {
-		memcpy(sctp_chunk_start, chunk_item->chunk, chunk_item->length);
+		padding_length = chunk_item->length % 4;
+		if (padding_length > 0) {
+			padding_length = 4 - padding_length;
+		}
+		memcpy(sctp_chunk_start, chunk_item->chunk, chunk_item->length + padding_length);
 		for (parameter_item = chunk_item->parameter_list->first;
 		     parameter_item != NULL;
 		     parameter_item = parameter_item->next) {
@@ -2450,7 +2455,7 @@ new_sctp_packet(int address_family,
 		}
 		free(chunk_item->chunk);
 		chunk_item->chunk = (struct sctp_chunk *)sctp_chunk_start;
-		sctp_chunk_start += chunk_item->length;
+		sctp_chunk_start += chunk_item->length + padding_length;
 	}
 	free(packet->chunk_list);
 	packet->chunk_list = list;
