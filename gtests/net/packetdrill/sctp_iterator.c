@@ -72,7 +72,6 @@ struct sctp_chunk *sctp_chunks_next(struct sctp_chunks_iterator *iter,
 	u16 chunk_length, padding_length;
 	struct sctp_chunk *current_chunk;
 
-	if (*error) printf("!!!%s!!!\n", *error);
 	assert(*error == NULL);
 	current_chunk = (struct sctp_chunk *)iter->current_chunk;
 	chunk_length = ntohs(current_chunk->length);
