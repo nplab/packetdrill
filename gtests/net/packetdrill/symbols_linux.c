@@ -122,8 +122,10 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 #endif
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
+#if 0
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
 	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },
+#endif
 	{ SCTP_COOKIE_WAIT,                 "SCTP_COOKIE_WAIT"                },
 	{ SCTP_COOKIE_ECHOED,               "SCTP_COOKIE_ECHOED"              },
 	{ SCTP_ESTABLISHED,                 "SCTP_ESTABLISHED"                },
