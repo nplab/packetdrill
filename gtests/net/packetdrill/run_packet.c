@@ -1386,6 +1386,7 @@ static int verify_heartbeat_chunk(struct sctp_heartbeat_chunk *actual_chunk,
 		           length - sizeof(struct sctp_heartbeat_chunk)) == 0) {
 		        return STATUS_OK;
 		} else {
+			asprintf(error, "live packet heartbeat info not as expected");
 			return STATUS_ERR;
 		}
 	}
@@ -1408,6 +1409,7 @@ static int verify_heartbeat_ack_chunk(struct sctp_heartbeat_ack_chunk *actual_ch
 		           length - sizeof(struct sctp_heartbeat_ack_chunk)) == 0) {
 		        return STATUS_OK;
 		} else {
+			asprintf(error, "live packet heartbeat info not as expected");
 			return STATUS_ERR;
 		}
 	}
