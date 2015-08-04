@@ -945,7 +945,9 @@ sctp_cookie_echo_chunk_new(s64 flgs, s64 len, u8* cookie)
 	u32 flags;
 	u16 chunk_length, cookie_length, padding_length;
 
-	assert((len == -1) || is_valid_u16(len));
+	assert((len == -1) ||
+	       (is_valid_u16(len) &&
+	        len >= sizeof(struct sctp_cookie_echo_chunk)));
 	assert((len != -1) || (cookie == NULL));
 	flags = 0;
 	if (len == -1) {
@@ -1247,41 +1249,9 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 }
 
 struct sctp_parameter_list_item *
-sctp_heartbeat_information_parameter_new(s64 len, u8 *information)
+sctp_heartbeat_information_parameter_new(s64 len, struct sctp_byte_list *bytes)
 {
-	struct sctp_heartbeat_information_parameter *parameter;
-	u32 flags;
-	u16 parameter_length, information_length, padding_length;
-
-	assert((len == -1) || is_valid_u16(len));
-	assert((len != -1) || (information == NULL));
-	flags = 0;
-	if (len == -1) {
-		information_length = 0;
-		flags |= FLAG_PARAMETER_LENGTH_NOCHECK;
-	} else {
-		assert(len <= MAX_SCTP_PARAMETER_BYTES - sizeof(struct sctp_heartbeat_information_parameter));
-		information_length = len - sizeof(struct sctp_heartbeat_information_parameter);
-	}
-	parameter_length = information_length + sizeof(struct sctp_heartbeat_information_parameter);
-	padding_length = parameter_length % 4;
-	if (padding_length > 0) {
-		padding_length = 4 - padding_length;
-	}
-	parameter = malloc(parameter_length + padding_length);
-	assert(parameter != NULL);
-	parameter->type = htons(SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE);
-	parameter->length = htons(parameter_length);
-	if (information != NULL) {
-		memcpy(parameter->information, information, information_length);
-	} else {
-		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
-		memset(parameter->information, 'A', information_length);
-	}
-	/* Clear the padding */
-	memset(parameter->information + information_length, 0, padding_length);
-	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
-	                                    parameter_length, flags);
+	return sctp_generic_parameter_new(SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE, len,bytes);
 }
 
 struct sctp_parameter_list_item *

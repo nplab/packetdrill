@@ -300,7 +300,7 @@ struct sctp_parameter_list_item *
 sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes);
 
 struct sctp_parameter_list_item *
-sctp_heartbeat_information_parameter_new(s64 len, u8 *information);
+sctp_heartbeat_information_parameter_new(s64 len, struct sctp_byte_list *bytes);
 
 struct sctp_parameter_list_item *
 sctp_ipv4_address_parameter_new(struct in_addr *addr);

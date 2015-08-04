@@ -1185,7 +1185,8 @@ dup
 
 sctp_generic_chunk_spec
 : CHUNK '[' opt_chunk_type ',' opt_flags ',' opt_len ',' opt_val ']' {
-	if (($7 != -1) && ($7 < sizeof(struct sctp_chunk))) {
+	if (($7 != -1) &&
+	    (!is_valid_u16($7) || ($7 < sizeof(struct sctp_chunk)))) {
 		semantic_error("length value out of range");
 	}
 	if (($7 != -1) && ($9 != NULL) &&
@@ -1200,7 +1201,8 @@ sctp_generic_chunk_spec
 
 sctp_data_chunk_spec
 : DATA '[' opt_data_flags ',' opt_len ',' opt_tsn ',' opt_sid ',' opt_ssn ',' opt_ppid ']' {
-	if (($5 != -1) && ($5 < sizeof(struct sctp_data_chunk))) {
+	if (($5 != -1) &&
+	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_data_chunk)))) {
 		semantic_error("length value out of range");
 	}
 	$$ = sctp_data_chunk_new($3, $5, $7, $9, $11, $13);
@@ -1253,6 +1255,10 @@ sctp_error_chunk_spec
 
 sctp_cookie_echo_chunk_spec
 : COOKIE_ECHO '[' opt_flags ',' opt_len ',' VAL '=' ELLIPSIS ']' {
+	if (($5 != -1) &&
+	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_cookie_echo_chunk)))) {
+		semantic_error("length value out of range");
+	}
 	$$ = sctp_cookie_echo_chunk_new($3, $5, NULL);
 }
 
@@ -1278,6 +1284,10 @@ sctp_shutdown_complete_chunk_spec
 
 sctp_pad_chunk_spec
 : PAD '[' opt_flags ',' opt_len ',' VAL '=' ELLIPSIS ']' {
+	if (($5 != -1) &&
+	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_pad_chunk)))) {
+		semantic_error("length value out of range");
+	}
 	$$ = sctp_pad_chunk_new($3, $5, NULL);
 }
 
@@ -1326,7 +1336,8 @@ opt_parameter_type
 
 sctp_generic_parameter_spec
 : PARAMETER '[' opt_parameter_type ',' opt_len ',' opt_val ']' {
-	if (($5 != -1) && ($5 < sizeof(struct sctp_parameter))) {
+	if (($5 != -1) &&
+	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_parameter)))) {
 		semantic_error("length value out of range");
 	}
 	if (($5 != -1) && ($7 != NULL) &&
@@ -1343,15 +1354,19 @@ sctp_heartbeat_information_parameter_spec
 : HEARTBEAT_INFORMATION '[' ELLIPSIS ']' {
 	$$ = sctp_heartbeat_information_parameter_new(-1, NULL);
 }
-| HEARTBEAT_INFORMATION '[' LEN '=' ELLIPSIS ',' VAL '=' ELLIPSIS ']' {
-	$$ = sctp_heartbeat_information_parameter_new(-1, NULL);
-}
-| HEARTBEAT_INFORMATION '[' LEN '=' INTEGER ',' VAL '=' ELLIPSIS ']' {
-	if (($5 < sizeof(struct sctp_heartbeat_information_parameter)) ||
-	    !is_valid_u16($5)) {
-		semantic_error("len value out of range");
+| HEARTBEAT_INFORMATION '[' opt_len ',' opt_val ']' {
+	if (($3 != -1) &&
+	    (!is_valid_u16($3) || ($3 < sizeof(struct sctp_heartbeat_information_parameter)))) {
+		semantic_error("length value out of range");
 	}
-	$$ = sctp_heartbeat_information_parameter_new($5, NULL);
+	if (($3 != -1) && ($5 != NULL) &&
+	    ($3 != sizeof(struct sctp_heartbeat_information_parameter) + $5->nr_entries)) {
+		semantic_error("length value incompatible with val");
+	}
+	if (($3 == -1) && ($5 != NULL)) {
+		semantic_error("length needs to be specified");
+	}
+	$$ = sctp_heartbeat_information_parameter_new($3, $5);
 }
 
 sctp_ipv4_address_parameter_spec
@@ -1517,7 +1532,8 @@ opt_cause_code
 
 sctp_generic_cause_spec
 : CAUSE '[' opt_cause_code ',' opt_len ',' opt_info ']' {
-	if (($5 != -1) && ($5 < sizeof(struct sctp_cause))) {
+	if (($5 != -1) &&
+	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_cause)))) {
 		semantic_error("length value out of range");
 	}
 	if (($5 != -1) && ($7 != NULL) &&
