@@ -19,7 +19,7 @@
 /*
  * Author: ncardwell@google.com (Neal Cardwell)
  *
- * Helpers to calculate IP, TCP, and UDP checksums.
+ * Helpers to calculate IP, SCTP, TCP, UDP and UDPLite checksums.
  */
 
 #include "checksum.h"
