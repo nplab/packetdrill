@@ -945,7 +945,7 @@ sctp_cookie_echo_chunk_new(s64 flgs, s64 len, struct sctp_byte_list *cookie)
 	struct sctp_byte_list_item *item;
 	u32 flags;
 	u16 chunk_length, cookie_length, padding_length, i;
-	
+
 	assert((len == -1) ||
 	       (is_valid_u16(len) &&
 	        len >= sizeof(struct sctp_cookie_echo_chunk)));
@@ -979,7 +979,6 @@ sctp_cookie_echo_chunk_new(s64 flgs, s64 len, struct sctp_byte_list *cookie)
 		     i++, item = item->next) {
 			chunk->cookie[i] = item->byte;
 		}
-		//memcpy(chunk->cookie, cookie, cookie_length);
 	} else {
 		flags |= FLAG_CHUNK_VALUE_NOCHECK;
 		memset(chunk->cookie, 'A', cookie_length);
