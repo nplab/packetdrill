@@ -257,7 +257,7 @@ struct sctp_chunk_list_item *
 sctp_error_chunk_new(s64 flgs, struct sctp_cause_list *causes);
 
 struct sctp_chunk_list_item *
-sctp_cookie_echo_chunk_new(s64 flgs, s64 len, u8* cookie);
+sctp_cookie_echo_chunk_new(s64 flgs, s64 len, struct sctp_byte_list *cookie);
 
 struct sctp_chunk_list_item *
 sctp_cookie_ack_chunk_new(s64 flgs);

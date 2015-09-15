@@ -1254,12 +1254,19 @@ sctp_error_chunk_spec
 }
 
 sctp_cookie_echo_chunk_spec
-: COOKIE_ECHO '[' opt_flags ',' opt_len ',' VAL '=' ELLIPSIS ']' {
+: COOKIE_ECHO '[' opt_flags ',' opt_len ',' opt_val ']' {
 	if (($5 != -1) &&
 	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_cookie_echo_chunk)))) {
 		semantic_error("length value out of range");
 	}
-	$$ = sctp_cookie_echo_chunk_new($3, $5, NULL);
+        if (($5 != -1) && ($7 != NULL) &&
+	    ($5 != sizeof(struct sctp_cookie_echo_chunk) + $7->nr_entries)) {
+		semantic_error("length value incompatible with val");
+	}
+	if (($5 == -1) && ($7 != NULL)) {
+		semantic_error("length needs to be specified");
+	}
+	$$ = sctp_cookie_echo_chunk_new($3, $5, $7);
 }
 
 sctp_cookie_ack_chunk_spec
