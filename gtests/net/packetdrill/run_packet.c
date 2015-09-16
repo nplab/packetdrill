@@ -2409,14 +2409,8 @@ static int do_inbound_script_packet(
 				}
 				break;
 			case SCTP_COOKIE_ECHO_CHUNK_TYPE:
-				if (!(item->flags & FLAG_CHUNK_VALUE_NOCHECK)) break;	// if the cookie was explicitly 
-											// added to the test script, we dont
-											// need to copy the saved cookie
-											// from the init_ack chunk ...
-											// TODO: can this be done in a more readable way?
-											
-				
-				if (socket->state == SOCKET_PASSIVE_INIT_ACK_SENT) {
+				if ((socket->state == SOCKET_PASSIVE_INIT_ACK_SENT) &&
+				    (item->flags & FLAG_CHUNK_VALUE_NOCHECK)) {
 					temp_offset = socket->prepared_cookie_echo_length - item->length;
 					assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
 					memmove((u8 *)item->chunk + item->length + temp_offset,
