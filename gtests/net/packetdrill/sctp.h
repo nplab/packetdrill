@@ -217,7 +217,7 @@ struct sctp_i_data_chunk {
 	__be16 length;
 	__be32 tsn;
 	__be16 sid;
-	__be16 reserved;
+	__be16 res;
 	__be32 mid;
 	union {
 		__be32 ppid;
