@@ -52,6 +52,7 @@ struct sctp_common_header {
 #define SCTP_ECNE_CHUNK_TYPE				0x0c
 #define SCTP_CWR_CHUNK_TYPE				0x0d
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE		0x0e
+#define SCTP_I_DATA_CHUNK_TYPE				0x40
 #define SCTP_PAD_CHUNK_TYPE				0x84
 
 #define MAX_SCTP_CHUNK_BYTES	0xffff
@@ -203,6 +204,26 @@ struct sctp_shutdown_complete_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
+} __packed;
+
+#define SCTP_I_DATA_CHUNK_I_BIT				0x08
+#define SCTP_I_DATA_CHUNK_U_BIT				0x04
+#define SCTP_I_DATA_CHUNK_B_BIT				0x02
+#define SCTP_I_DATA_CHUNK_E_BIT				0x01
+
+struct sctp_i_data_chunk {
+	__u8 type;
+	__u8 flags;
+	__be16 length;
+	__be32 tsn;
+	__be16 sid;
+	__be16 reserved;
+	__be32 mid;
+	union {
+		__be32 ppid;
+		__be32 fsn;
+	} field;
+	__u8 data[];
 } __packed;
 
 struct sctp_pad_chunk {
