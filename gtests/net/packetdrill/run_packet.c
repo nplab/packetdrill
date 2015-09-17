@@ -581,6 +581,7 @@ static int map_inbound_sctp_packet(
 	struct sctp_shutdown_chunk *shutdown;
 	struct sctp_ecne_chunk *ecne;
 	struct sctp_cwr_chunk *cwr;
+	struct sctp_i_data_chunk *i_data;
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
 
@@ -641,6 +642,10 @@ static int map_inbound_sctp_packet(
 		case SCTP_CWR_CHUNK_TYPE:
 			cwr = (struct sctp_cwr_chunk *)chunk;
 			cwr->lowest_tsn = htonl(ntohl(cwr->lowest_tsn) + local_diff);
+			break;
+		case SCTP_I_DATA_CHUNK_TYPE:
+			i_data = (struct sctp_i_data_chunk *)chunk;
+			i_data->tsn = htonl(ntohl(i_data->tsn) + remote_diff);
 			break;
 		default:
 			break;
@@ -734,6 +739,7 @@ static int map_outbound_live_sctp_packet(
 	struct sctp_shutdown_chunk *shutdown;
 	struct sctp_ecne_chunk *ecne;
 	struct sctp_cwr_chunk *cwr;
+	struct sctp_i_data_chunk *i_data;
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
 
@@ -789,6 +795,10 @@ static int map_outbound_live_sctp_packet(
 		case SCTP_CWR_CHUNK_TYPE:
 			cwr = (struct sctp_cwr_chunk *)chunk;
 			cwr->lowest_tsn = htonl(ntohl(cwr->lowest_tsn) + remote_diff);
+			break;
+		case SCTP_I_DATA_CHUNK_TYPE:
+			i_data = (struct sctp_i_data_chunk *)chunk;
+			i_data->tsn = htonl(ntohl(i_data->tsn) + local_diff);
 			break;
 		default:
 			break;
@@ -1522,6 +1532,44 @@ static int verify_shutdown_complete_chunk(struct sctp_shutdown_complete_chunk *a
 	return STATUS_OK;
 }
 
+static int verify_i_data_chunk(struct sctp_i_data_chunk *actual_chunk,
+                               struct sctp_i_data_chunk *script_chunk,
+                               u32 flags, char **error)
+{
+	if (check_field("sctp_i_data_chunk_tsn",
+		        ntohl(script_chunk->tsn),
+		        ntohl(actual_chunk->tsn),
+		        error) ||
+	    (flags & FLAG_I_DATA_CHUNK_SID_NOCHECK ? STATUS_OK :
+	        check_field("sctp_i_data_chunk_sid",
+		            ntohs(script_chunk->sid),
+		            ntohs(actual_chunk->sid),
+		            error)) ||
+	    (flags & FLAG_I_DATA_CHUNK_RES_NOCHECK ? STATUS_OK :
+	        check_field("sctp_i_data_chunk_res",
+		            ntohs(script_chunk->res),
+		            ntohs(actual_chunk->res),
+		            error)) ||
+	    (flags & FLAG_I_DATA_CHUNK_MID_NOCHECK? STATUS_OK :
+		check_field("sctp_i_data_chunk_mid",
+		            ntohl(script_chunk->mid),
+		            ntohl(actual_chunk->mid),
+		            error)) ||
+	    (flags & FLAG_I_DATA_CHUNK_PPID_NOCHECK? STATUS_OK :
+		check_field("sctp_i_data_chunk_ppid",
+		            ntohl(script_chunk->field.ppid),
+		            ntohl(actual_chunk->field.ppid),
+		            error)) ||
+	    (flags & FLAG_I_DATA_CHUNK_FSN_NOCHECK? STATUS_OK :
+		check_field("sctp_i_data_chunk_fsn",
+		            ntohl(script_chunk->field.fsn),
+		            ntohl(actual_chunk->field.fsn),
+		            error))) {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
 static int verify_pad_chunk(struct sctp_pad_chunk *actual_chunk,
                             struct sctp_pad_chunk *script_chunk,
                             u32 flags, char **error)
@@ -1659,6 +1707,11 @@ static int verify_sctp(
 			result = verify_shutdown_complete_chunk((struct sctp_shutdown_complete_chunk *)actual_chunk,
 			                                        (struct sctp_shutdown_complete_chunk *)script_chunk,
 			                                        flags, error);
+			break;
+		case SCTP_I_DATA_CHUNK_TYPE:
+			result = verify_i_data_chunk((struct sctp_i_data_chunk *)actual_chunk,
+			                             (struct sctp_i_data_chunk *)script_chunk,
+			                             flags, error);
 			break;
 		case SCTP_PAD_CHUNK_TYPE:
 			result = verify_pad_chunk((struct sctp_pad_chunk *)actual_chunk,
