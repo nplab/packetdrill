@@ -1206,6 +1206,49 @@ static int sctp_shutdown_complete_chunk_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_i_data_chunk_to_string(FILE *s,
+				       struct sctp_i_data_chunk *chunk,
+				       char **error)
+{
+	u16 length;
+	u8 flags;
+
+	flags = chunk->flags;
+	length = ntohs(chunk->length);
+	if (length < sizeof(struct sctp_i_data_chunk)) {
+		asprintf(error, "I-DATA chunk too short (length=%u)", length);
+		return STATUS_ERR;
+	}
+	fputs("I-DATA[", s);
+	fputs("flgs=", s);
+	if ((flags & ~(SCTP_I_DATA_CHUNK_I_BIT |
+		       SCTP_I_DATA_CHUNK_U_BIT |
+		       SCTP_I_DATA_CHUNK_B_BIT |
+		       SCTP_I_DATA_CHUNK_E_BIT)) || (flags == 0x00))
+		fprintf(s, "0x%02x", chunk->flags);
+	else {
+		if (flags & SCTP_I_DATA_CHUNK_I_BIT)
+			fputc('I', s);
+		if (flags & SCTP_I_DATA_CHUNK_U_BIT)
+			fputc('U', s);
+		if (flags & SCTP_I_DATA_CHUNK_B_BIT)
+			fputc('B', s);
+		if (flags & SCTP_I_DATA_CHUNK_E_BIT)
+			fputc('E', s);
+	}
+	fputs(", ", s);
+	fprintf(s, "len=%u, ", length);
+	fprintf(s, "tsn=%u, ", ntohl(chunk->tsn));
+	fprintf(s, "sid=%d, ", ntohs(chunk->sid));
+	fprintf(s, "mid=%u, ", ntohl(chunk->mid));
+	if (flags & SCTP_I_DATA_CHUNK_B_BIT)
+		fprintf(s, "ppid=%u", ntohl(chunk->field.ppid));
+	else
+		fprintf(s, "fsn=%u", ntohl(chunk->field.fsn));
+	fputc(']', s);
+	return STATUS_OK;
+}
+
 static int sctp_pad_chunk_to_string(
 	FILE *s,
 	struct sctp_pad_chunk *chunk,
@@ -1304,6 +1347,10 @@ int sctp_chunk_to_string(FILE *s, struct sctp_chunk *chunk, char **error)
 	case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
 		result = sctp_shutdown_complete_chunk_to_string(s,
 			(struct sctp_shutdown_complete_chunk *)chunk, error);
+		break;
+	case SCTP_I_DATA_CHUNK_TYPE:
+		result = sctp_i_data_chunk_to_string(s,
+			(struct sctp_i_data_chunk *)chunk, error);
 		break;
 	case SCTP_PAD_CHUNK_TYPE:
 		result = sctp_pad_chunk_to_string(s,
