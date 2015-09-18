@@ -518,6 +518,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
+%token <reserved> SUPPORTED_EXTENSIONS
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -596,6 +597,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_hostname_address_parameter_spec
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
+%type <parameter_list_item> sctp_supported_extensions_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
@@ -613,13 +615,13 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <cause_list_item> sctp_restart_with_new_addresses_cause_spec
 %type <cause_list_item> sctp_user_initiated_abort_cause_spec
 %type <cause_list_item> sctp_protocol_violation_cause_spec
-%type <integer> opt_chunk_type opt_parameter_type opt_cause_code
+%type <integer> chunk_type opt_chunk_type opt_parameter_type opt_cause_code
 %type <integer> opt_flags opt_data_flags opt_abort_flags
 %type <integer> opt_shutdown_complete_flags opt_i_data_flags opt_len
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_mid opt_fsn
 %type <integer> opt_cum_tsn opt_ppid
-%type <byte_list> opt_val opt_info byte_list
+%type <byte_list> opt_val opt_info byte_list chunk_types_list
 %type <byte_list_item> byte
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
@@ -838,18 +840,75 @@ sctp_chunk_spec
 | sctp_pad_chunk_spec               { $$ = $1; }
 ;
 
+chunk_type
+: HEX_INTEGER {
+	if (!is_valid_u8($1)) {
+		semantic_error("type value out of range");
+	}
+	$$ = $1;
+}
+| INTEGER {
+	if (!is_valid_u8($1)) {
+		semantic_error("type value out of range");
+	}
+	$$ = $1;
+}
+| DATA {
+	$$ = SCTP_DATA_CHUNK_TYPE;
+}
+| INIT {
+	$$ = SCTP_INIT_CHUNK_TYPE;
+}
+| INIT_ACK {
+	$$ = SCTP_INIT_ACK_CHUNK_TYPE;
+}
+| SACK {
+	$$ = SCTP_SACK_CHUNK_TYPE;
+}
+| HEARTBEAT {
+	$$ = SCTP_HEARTBEAT_CHUNK_TYPE;
+}
+| HEARTBEAT_ACK {
+	$$ = SCTP_HEARTBEAT_ACK_CHUNK_TYPE;
+}
+| ABORT {
+	$$ = SCTP_ABORT_CHUNK_TYPE;
+}
+| SHUTDOWN {
+	$$ = SCTP_SHUTDOWN_CHUNK_TYPE;
+}
+| SHUTDOWN_ACK {
+	$$ = SCTP_SHUTDOWN_ACK_CHUNK_TYPE;
+}
+| ERROR {
+	$$ = SCTP_ERROR_CHUNK_TYPE;
+}
+| COOKIE_ECHO {
+	$$ = SCTP_COOKIE_ECHO_CHUNK_TYPE;
+}
+| COOKIE_ACK {
+	$$ = SCTP_COOKIE_ACK_CHUNK_TYPE;
+}
+| ECNE {
+	$$ = SCTP_ECNE_CHUNK_TYPE;
+}
+| CWR {
+	$$ = SCTP_CWR_CHUNK_TYPE;
+}
+| SHUTDOWN_COMPLETE{
+	$$ = SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE;
+}
+| I_DATA {
+	$$ = SCTP_I_DATA_CHUNK_TYPE;
+}
+| PAD {
+	$$ = SCTP_PAD_CHUNK_TYPE;
+}
+;
+
 opt_chunk_type
 : TYPE '=' ELLIPSIS    { $$ = -1; }
-| TYPE '=' HEX_INTEGER {
-	if (!is_valid_u8($3)) {
-		semantic_error("type value out of range");
-	}
-	$$ = $3;
-}
-| TYPE '=' INTEGER     {
-	if (!is_valid_u8($3)) {
-		semantic_error("type value out of range");
-	}
+| TYPE '=' chunk_type {
 	$$ = $3;
 }
 ;
@@ -1419,6 +1478,7 @@ sctp_parameter_spec
 | sctp_hostname_address_parameter_spec        { $$ = $1; }
 | sctp_supported_address_types_parameter_spec { $$ = $1; }
 | sctp_ecn_capable_parameter_spec             { $$ = $1; }
+| sctp_supported_extensions_parameter_spec    { $$ = $1; }
 | sctp_pad_parameter_spec                     { $$ = $1; }
 ;
 
@@ -1571,6 +1631,28 @@ sctp_supported_address_types_parameter_spec
 sctp_ecn_capable_parameter_spec
 : ECN_CAPABLE '[' ']' {
 	$$ = sctp_ecn_capable_parameter_new();
+}
+
+chunk_types_list
+: {
+	$$ = sctp_byte_list_new();
+}
+| chunk_type {
+	$$ = sctp_byte_list_new();
+	sctp_byte_list_append($$, sctp_byte_list_item_new($1));
+}
+| chunk_types_list ',' chunk_type {
+	$$ = $1;
+	sctp_byte_list_append($1, sctp_byte_list_item_new($3));
+}
+;
+
+sctp_supported_extensions_parameter_spec
+: SUPPORTED_EXTENSIONS '[' TYPES '=' ELLIPSIS ']' {
+	$$ = sctp_supported_extensions_parameter_new(NULL);
+}
+| SUPPORTED_EXTENSIONS '[' TYPES '=' '[' chunk_types_list ']' ']' {
+	$$ = sctp_supported_extensions_parameter_new($6);
 }
 
 sctp_pad_parameter_spec
