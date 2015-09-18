@@ -1571,6 +1571,12 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list)
 }
 
 struct sctp_parameter_list_item *
+sctp_supported_extensions_parameter_new(s64 len, struct sctp_byte_list *types)
+{
+	return sctp_generic_parameter_new(SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE, len, types);
+}
+
+struct sctp_parameter_list_item *
 sctp_pad_parameter_new(s64 len, u8 *padding)
 {
 	struct sctp_pad_parameter *parameter;

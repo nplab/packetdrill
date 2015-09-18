@@ -340,6 +340,12 @@ sctp_ecn_capable_parameter_new(void);
 struct sctp_parameter_list_item *
 sctp_pad_parameter_new(s64 len, u8 *padding);
 
+struct sctp_parameter_list_item *
+sctp_supported_extensions_parameter_new(s64 len, struct sctp_byte_list *types);
+
+struct sctp_parameter_list_item *
+sctp_pad_parameter_new(s64 len, u8 *padding);
+
 struct sctp_parameter_list *
 sctp_parameter_list_new(void);
 
