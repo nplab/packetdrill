@@ -1571,9 +1571,44 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list)
 }
 
 struct sctp_parameter_list_item *
-sctp_supported_extensions_parameter_new(s64 len, struct sctp_byte_list *types)
+sctp_supported_extensions_parameter_new(struct sctp_byte_list *list)
 {
-	return sctp_generic_parameter_new(SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE, len, types);
+	struct sctp_supported_extensions_parameter *parameter;
+
+	u32 flags;
+	u16 i, parameter_length, padding_length;
+	struct sctp_byte_list_item *item;
+
+	flags = 0;
+	parameter_length = sizeof(struct sctp_supported_extensions_parameter);
+	if (list == NULL) {
+		flags |= FLAG_PARAMETER_LENGTH_NOCHECK;
+		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
+	} else {
+		assert(list->nr_entries <=
+		       (MAX_SCTP_PARAMETER_BYTES - sizeof(struct sctp_supported_extensions_parameter)) / sizeof(u8));
+		parameter_length += list->nr_entries * sizeof(u8);
+	}
+	padding_length = parameter_length % 4;
+	if (padding_length > 0) {
+		padding_length = 4 - padding_length;
+	}
+	assert(padding_length < 4);
+	parameter = malloc(parameter_length + padding_length);
+	assert(parameter != NULL);
+	parameter->type = htons(SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE);
+	parameter->length = htons(parameter_length);
+	if (list != NULL) {
+		for (i = 0, item = list->first;
+		     (i < list->nr_entries) && (item != NULL);
+		     i++, item = item->next) {
+			parameter->chunk_type[i] = item->byte;
+		}
+		assert((i == list->nr_entries) && (item == NULL));
+	}
+	memset(parameter->chunk_type + list->nr_entries, 0, padding_length);
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+	                                    parameter_length, flags);
 }
 
 struct sctp_parameter_list_item *
