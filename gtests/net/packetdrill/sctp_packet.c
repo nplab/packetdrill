@@ -1333,7 +1333,7 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 struct sctp_parameter_list_item *
 sctp_heartbeat_information_parameter_new(s64 len, struct sctp_byte_list *bytes)
 {
-	return sctp_generic_parameter_new(SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE, len,bytes);
+	return sctp_generic_parameter_new(SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE, len, bytes);
 }
 
 struct sctp_parameter_list_item *
