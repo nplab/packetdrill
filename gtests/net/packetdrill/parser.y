@@ -843,13 +843,13 @@ opt_chunk_type
 | TYPE '=' HEX_INTEGER {
 	if (!is_valid_u8($3)) {
 		semantic_error("type value out of range");
-        }
+	}
 	$$ = $3;
 }
 | TYPE '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("type value out of range");
-        }
+	}
 	$$ = $3;
 }
 ;
@@ -859,13 +859,13 @@ opt_flags
 | FLAGS '=' HEX_INTEGER {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 ;
@@ -926,7 +926,7 @@ opt_data_flags
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -984,7 +984,7 @@ opt_abort_flags
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -1058,7 +1058,7 @@ opt_i_data_flags
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -1340,7 +1340,7 @@ sctp_cookie_echo_chunk_spec
 	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_cookie_echo_chunk)))) {
 		semantic_error("length value out of range");
 	}
-        if (($5 != -1) && ($7 != NULL) &&
+	if (($5 != -1) && ($7 != NULL) &&
 	    ($5 != sizeof(struct sctp_cookie_echo_chunk) + $7->nr_entries)) {
 		semantic_error("length value incompatible with val");
 	}
