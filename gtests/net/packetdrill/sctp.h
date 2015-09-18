@@ -242,6 +242,7 @@ struct sctp_pad_chunk {
 #define SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE		0x000b
 #define SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	0x000c
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
+#define SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE	0x8008
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
 
 #define MAX_SCTP_PARAMETER_BYTES	0xffff
@@ -303,6 +304,12 @@ struct sctp_supported_address_types_parameter {
 struct sctp_ecn_capable_parameter {
 	__be16 type;
 	__be16 length;
+} __packed;
+
+struct sctp_supported_extensions_parameter {
+	__be16 type;
+	__be16 length;
+	__u8 chunk_type[];
 } __packed;
 
 struct sctp_pad_parameter {
