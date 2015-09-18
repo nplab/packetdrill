@@ -1154,16 +1154,17 @@ sctp_i_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 res, s64 mid,
 		chunk->mid = htonl((u32)mid);
 	}
 	if (ppid == -1) {
-		chunk->field.ppid = htonl(0);
 		flags |= FLAG_I_DATA_CHUNK_PPID_NOCHECK;
 	} else {
 		chunk->field.ppid = htonl((u32)ppid);
 	}
 	if (fsn == -1) {
-		chunk->field.fsn = htonl(0);
 		flags |= FLAG_I_DATA_CHUNK_FSN_NOCHECK;
 	} else {
 		chunk->field.fsn = htonl((u32)fsn);
+	}
+	if (ppid == -1 && fsn == -1) {
+		chunk->field.ppid = htonl(0);
 	}
 	memset(chunk->data, 0,
 	       length + padding_length - sizeof(struct sctp_i_data_chunk));
