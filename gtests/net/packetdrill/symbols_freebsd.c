@@ -86,6 +86,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
+#if defined(SCTP_INTERLEAVING_SUPPORTED)
+	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },
+#endif
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
 	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },

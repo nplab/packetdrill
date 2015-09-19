@@ -51,7 +51,7 @@ enum expression_t {
 #ifdef SCTP_INITMSG
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	EXPR_SCTP_ASSOCVAL,	  /* struct sctp_assoc_value */
 #endif
 #ifdef SCTP_DELAYED_SACK
@@ -86,7 +86,7 @@ struct expression {
 #ifdef SCTP_INITMSG
 		struct sctp_initmsg sctp_initmsg;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 		struct sctp_assoc_value sctp_assoc_value;
 #endif
 #ifdef SCTP_DELAYED_SACK

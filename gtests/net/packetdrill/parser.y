@@ -2517,7 +2517,7 @@ sctp_initmsg
 
 sctp_assocval
 : '{' ASSOC_VALUE '=' INTEGER '}' {
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	$$ = new_expression(EXPR_SCTP_ASSOCVAL);
 	if (!is_valid_u32($4)) {
 		semantic_error("assoc_value out of range");

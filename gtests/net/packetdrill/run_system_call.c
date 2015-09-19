@@ -1645,7 +1645,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
 		optval = &val_expression->value.sctp_initmsg;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	} else if (val_expression->type == EXPR_SCTP_ASSOCVAL) {
 		optval = &val_expression->value.sctp_assoc_value;
 #endif
