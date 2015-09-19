@@ -421,10 +421,10 @@ sctp_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 ssn, s64 ppid)
 		chunk->ssn = htons((u16)ssn);
 	}
 	if (ppid == -1) {
-		chunk->ppid = htons(0);
+		chunk->ppid = htonl(0);
 		flags |= FLAG_DATA_CHUNK_PPID_NOCHECK;
 	} else {
-		chunk->ppid = htons((u32)ppid);
+		chunk->ppid = htonl((u32)ppid);
 	}
 	memset(chunk->data, 0,
 	       length + padding_length - sizeof(struct sctp_data_chunk));
