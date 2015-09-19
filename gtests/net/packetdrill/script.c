@@ -71,7 +71,7 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_INITMSG
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	{ EXPR_SCTP_ASSOCVAL,        "sctp_assocvalue"},
 #endif
 #ifdef SCTP_DELAYED_SACK
@@ -292,7 +292,7 @@ void free_expression(struct expression *expression)
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	case EXPR_SCTP_ASSOCVAL:
 #endif
 #ifdef SCTP_DELAYED_SACK
@@ -522,7 +522,7 @@ static int evaluate(struct expression *in,
 		       sizeof(in->value.sctp_initmsg));
 		break;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	case EXPR_SCTP_ASSOCVAL:	/* copy as-is */
 		memcpy(&out->value.sctp_assoc_value,
 		       &in->value.sctp_assoc_value,
