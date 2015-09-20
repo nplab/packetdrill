@@ -86,6 +86,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
+	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
 #if defined(SCTP_INTERLEAVING_SUPPORTED)
 	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },
 #endif
