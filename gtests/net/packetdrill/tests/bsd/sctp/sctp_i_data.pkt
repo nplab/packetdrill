@@ -1,0 +1,25 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
+// Check the handshake with en empty(!) cookie
++0.0 bind(3, ..., ...) = 0
++0.0 listen(3, 1) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_FRAGMENT_INTERLEAVE, [2], 4) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_INTERLEAVING_SUPPORTED, {assoc_value=1}, 8) = 0
++0.0 < sctp: INIT[flgs=0, tag=1, a_rwnd=1500, os=2, is=2, tsn=1,
+                  SUPPORTED_EXTENSIONS[types=[I-DATA, PAD]]]
++0.0 > sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]
++0.0 > sctp: COOKIE_ACK[flgs=0]
++0.0 accept(3, ..., ...) = 4
++0.1 send(4, ..., 100, 0) = 100
++0.0 > sctp: I-DATA[flgs=BE, len=120, tsn=1, sid=0, mid=0, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
+// Insert a I-DATA chunk
++0.0 < sctp: I-DATA[flgs=BE, len=24, tsn=1, sid=1, mid=0, ppid=1234]
++0.0 > sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]]
++0.0 recv(4, ..., 100, 0) = 4
+// Tear down the association
++1.0 < sctp: SHUTDOWN[flgs=0, cum_tsn=1]
++0.0 > sctp: SHUTDOWN_ACK[flgs=0]
++0.0 < sctp: SHUTDOWN_COMPLETE[flgs=0]
++0.0 close(4) = 0
++0.0 close(3) = 0
