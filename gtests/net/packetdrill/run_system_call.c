@@ -1609,7 +1609,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	}
 
 	if (live_optlen != script_optlen) {
-		asprintf(error, "Bad getsockopt optlen: expected: %d actual: %d", (int)script_optlen, (int)live_optlen);
+		asprintf(error, "Bad getsockopt optlen: expected: %d actual: %d",
+		         (int)script_optlen, (int)live_optlen);
 		free(live_optval);
 		return STATUS_ERR;
 	}
@@ -1617,12 +1618,14 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	if (val_expression->type == EXPR_LINGER) {
 		struct linger *ling = live_optval;
 		if (ling->l_onoff != val_expression->value.linger.l_onoff) {
-			asprintf(error, "Bad getsockopt Linger onoff: expected: %d actual: %d", val_expression->value.linger.l_onoff, ling->l_onoff);
+			asprintf(error, "Bad getsockopt Linger onoff: expected: %d actual: %d",
+			         val_expression->value.linger.l_onoff, ling->l_onoff);
 			free(live_optval);
 			return STATUS_ERR;
 		}
 		if (ling->l_linger != val_expression->value.linger.l_linger) {
-			asprintf(error, "Bad getsockopt Linger Value: expected: %d actual: %d", val_expression->value.linger.l_linger, ling->l_linger);
+			asprintf(error, "Bad getsockopt Linger Value: expected: %d actual: %d",
+			         val_expression->value.linger.l_linger, ling->l_linger);
 			free(live_optval);
 			return STATUS_ERR;
 		}
@@ -1630,15 +1633,18 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
 		struct sctp_rtoinfo *rtoinfo = live_optval;
 		if (rtoinfo->srto_initial != val_expression->value.sctp_rtoinfo.srto_initial){
-			asprintf(error, "Bad getsockopt SCTP_RTOINFO initial: expected: %u actual: %u", val_expression->value.sctp_rtoinfo.srto_initial, rtoinfo->srto_initial);
+			asprintf(error, "Bad getsockopt SCTP_RTOINFO initial: expected: %u actual: %u",
+			         val_expression->value.sctp_rtoinfo.srto_initial, rtoinfo->srto_initial);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (rtoinfo->srto_max != val_expression->value.sctp_rtoinfo.srto_max){
-		 	asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MAX: expected: %u actual: %u", val_expression->value.sctp_rtoinfo.srto_max, rtoinfo->srto_max);
+		 	asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MAX: expected: %u actual: %u",
+		 	         val_expression->value.sctp_rtoinfo.srto_max, rtoinfo->srto_max);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (rtoinfo->srto_min != val_expression->value.sctp_rtoinfo.srto_min){
-		 	asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MIN: expected: %u actual: %u", val_expression->value.sctp_rtoinfo.srto_min, rtoinfo->srto_min);
+		 	asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MIN: expected: %u actual: %u",
+		 	         val_expression->value.sctp_rtoinfo.srto_min, rtoinfo->srto_min);
 			free(live_optval);
 			return STATUS_ERR;
 		}
@@ -1648,38 +1654,46 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_status *live_val = live_optval;
 		struct sctp_status *expected_val = &(val_expression->value.sctp_status);
 		if (live_val->sstat_state != expected_val->sstat_state) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS state: expected: %d actual: %d ", expected_val->sstat_state, live_val->sstat_state);
+			asprintf(error, "Bad getsockopt SCTP_STATUS state: expected: %d actual: %d ",
+			         expected_val->sstat_state, live_val->sstat_state);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (live_val->sstat_rwnd != expected_val->sstat_rwnd) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS rwnd: expected: %u actual: %u ", expected_val->sstat_rwnd, live_val->sstat_rwnd);
+			asprintf(error, "Bad getsockopt SCTP_STATUS rwnd: expected: %u actual: %u ",
+			         expected_val->sstat_rwnd, live_val->sstat_rwnd);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (live_val->sstat_unackdata != expected_val->sstat_unackdata) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS unackdata: expected: %u actual: %u", expected_val->sstat_unackdata, live_val->sstat_unackdata);
+			asprintf(error, "Bad getsockopt SCTP_STATUS unackdata: expected: %u actual: %u",
+			         expected_val->sstat_unackdata, live_val->sstat_unackdata);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (live_val->sstat_penddata != expected_val->sstat_penddata) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS penddata: expected: %u actual: %u", expected_val->sstat_penddata, live_val->sstat_penddata);
+			asprintf(error, "Bad getsockopt SCTP_STATUS penddata: expected: %u actual: %u",
+			         expected_val->sstat_penddata, live_val->sstat_penddata);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (live_val->sstat_instrms != expected_val->sstat_instrms) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS instreams: expected: %u actual: %u", expected_val->sstat_instrms, live_val->sstat_instrms);
+			asprintf(error, "Bad getsockopt SCTP_STATUS instreams: expected: %u actual: %u",
+			         expected_val->sstat_instrms, live_val->sstat_instrms);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (live_val->sstat_outstrms != expected_val->sstat_outstrms) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS outstreams: expected: %u actual: %u", expected_val->sstat_outstrms, live_val->sstat_outstrms);
+			asprintf(error, "Bad getsockopt SCTP_STATUS outstreams: expected: %u actual: %u",
+			         expected_val->sstat_outstrms, live_val->sstat_outstrms);
 			free(live_optval);
 			return STATUS_ERR;
 		} else if (live_val->sstat_fragmentation_point != expected_val->sstat_fragmentation_point){
-			asprintf(error, "Bad getsockopt SCTP_STATUS fragmentation point: expected: %u actual: %u", expected_val->sstat_fragmentation_point, live_val->sstat_fragmentation_point);
+			asprintf(error, "Bad getsockopt SCTP_STATUS fragmentation point: expected: %u actual: %u",
+			         expected_val->sstat_fragmentation_point, live_val->sstat_fragmentation_point);
 			free(live_optval);
 			return STATUS_ERR;
 		}
 #endif
 	} else {
 		if (*(int*)live_optval != script_optval) {
-			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d", (int)script_optval, *(int*)live_optval);
+			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
+			         (int)script_optval, *(int*)live_optval);
 			free(live_optval);
 			return STATUS_ERR;
 		}
