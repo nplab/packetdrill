@@ -18,6 +18,9 @@
 
 +0 setsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=1, linger=30}, 8) = 0
 +0 getsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=128, linger=30}, [8]) = 0
++0 getsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=..., linger=30}, [8]) = 0
++0 getsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=128, linger=...}, [8]) = 0
++0 getsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=..., linger=...}, [8]) = 0
 
 
 +0 close(3) = 0
