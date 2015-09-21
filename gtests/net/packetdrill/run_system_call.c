@@ -1582,23 +1582,23 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	if (val_expression == NULL) {
 		return STATUS_ERR;
 	} else if (val_expression->type == EXPR_LINGER) {
-		live_optval = (void *) malloc(sizeof(val_expression->value.linger));
-		live_optlen = sizeof(val_expression->value.linger);
+		live_optval = malloc(sizeof(val_expression->value.linger));
+		live_optlen = (socklen_t)sizeof(val_expression->value.linger);
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		live_optval = (void*) malloc(sizeof(val_expression->value.sctp_rtoinfo));
-		live_optlen = sizeof(val_expression->value.sctp_rtoinfo);
+		live_optval = malloc(sizeof(val_expression->value.sctp_rtoinfo));
+		live_optlen = (socklen_t)sizeof(val_expression->value.sctp_rtoinfo);
 #endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
-		live_optval = (void*) malloc(sizeof(val_expression->value.sctp_status));
-		live_optlen = sizeof(val_expression->value.sctp_status);
+		live_optval = malloc(sizeof(val_expression->value.sctp_status));
+		live_optlen = (socklen_t)sizeof(val_expression->value.sctp_status);
 		((struct sctp_status*) live_optval)->sstat_assoc_id = val_expression->value.sctp_status.sstat_assoc_id;
 #endif
 	} else {
 		s32_bracketed_arg(args, 3, &script_optval, error);
-		live_optval = (void *) malloc(sizeof(int));
-		live_optlen = sizeof(int);
+		live_optval = malloc(sizeof(int));
+		live_optlen = (socklen_t)sizeof(int);
 	}
 
 	begin_syscall(state, syscall);
