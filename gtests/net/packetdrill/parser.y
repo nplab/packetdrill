@@ -2286,7 +2286,6 @@ l_onoff
 	if (!is_valid_u32($3)){
 		semantic_error("linger onoff out of range");
 	} else {
-		printf("test2\n");
 		$$ = new_integer_expression( $3, "%ld" ); 
 	}	
 }
@@ -2299,7 +2298,6 @@ l_linger
 		semantic_error("linger out of range");
 	}
 	$$ = new_integer_expression( $3, "%ld");
-	printf("test6\n"); 
 }
 | LINGER '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
 ;
@@ -2307,7 +2305,7 @@ l_linger
 linger
 : '{' l_onoff ',' l_linger '}' {
 	$$ = new_expression( EXPR_LINGER );
-	$$->value.linger = (struct linger_expr*) malloc(sizeof(struct linger_expr));
+	$$->value.linger = (struct linger_expr*) calloc(1, sizeof(struct linger_expr));
 	$$->value.linger->l_onoff  = $2;
 	$$->value.linger->l_linger = $4;
 }
