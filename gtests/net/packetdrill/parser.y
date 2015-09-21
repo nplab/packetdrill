@@ -564,7 +564,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression_list> expression_list function_arguments
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer
-%type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents linger
+%type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents 
+%type <expression> linger l_onoff l_linger
 %type <expression> sctp_rtoinfo sctp_initmsg sctp_assocval sctp_sackinfo
 %type <expression> sctp_status
 %type <errno_info> opt_errno
@@ -2276,15 +2277,39 @@ pollfd
 ;
 
 opt_revents
-:                                { $$ = new_integer_expression(0, "%ld"); }
+:                                { $$ = new_integer_expression(0, "%ld" ); }
 | ',' REVENTS '=' expression     { $$ = $4; }
 ;
 
+l_onoff
+: ONOFF '=' INTEGER  { 
+	if (!is_valid_u32($3)){
+		semantic_error("linger onoff out of range");
+	} else {
+		printf("test2\n");
+		$$ = new_integer_expression( $3, "%ld" ); 
+	}	
+}
+| ONOFF '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+;
+
+l_linger
+: LINGER '=' INTEGER  { 
+	if (!is_valid_u32($3)){
+		semantic_error("linger out of range");
+	}
+	$$ = new_integer_expression( $3, "%ld");
+	printf("test6\n"); 
+}
+| LINGER '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+;
+
 linger
-: '{' ONOFF '=' INTEGER ',' LINGER '=' INTEGER '}' {
-	$$ = new_expression(EXPR_LINGER);
-	$$->value.linger.l_onoff  = $4;
-	$$->value.linger.l_linger = $8;
+: '{' l_onoff ',' l_linger '}' {
+	$$ = new_expression( EXPR_LINGER );
+	$$->value.linger = (struct linger_expr*) malloc(sizeof(struct linger_expr));
+	$$->value.linger->l_onoff  = $2;
+	$$->value.linger->l_linger = $4;
 }
 ;
 

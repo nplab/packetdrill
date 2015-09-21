@@ -72,7 +72,7 @@ struct expression {
 	union {
 		s64 num;
 		char *string;
-		struct linger linger;
+		struct linger_expr *linger;
 		struct sockaddr_in *socket_address_ipv4;
 		struct sockaddr_in6 *socket_address_ipv6;
 		struct binary_expression *binary;
@@ -134,6 +134,12 @@ struct pollfd_expr {
 	struct expression *fd;		/* file descriptor */
 	struct expression *events;	/* requested events */
 	struct expression *revents;	/* returned events */
+};
+
+/* Handle the values for socketoption SO_Linger with inputtypes and values*/
+struct linger_expr {
+	struct expression *l_onoff;
+	struct expression *l_linger;
 };
 
 /* The errno-related info from strace to summarize a system call error */
