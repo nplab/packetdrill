@@ -81,7 +81,7 @@ struct expression {
 		struct msghdr_expr *msghdr;
 		struct pollfd_expr *pollfd;
 #ifdef SCTP_RTOINFO
-		struct sctp_rtoinfo_expr sctp_rtoinfo;
+		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 #endif
 #ifdef SCTP_INITMSG
 		struct sctp_initmsg sctp_initmsg;

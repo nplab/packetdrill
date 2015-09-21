@@ -566,8 +566,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> decimal_integer hex_integer
 %type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents 
 %type <expression> linger l_onoff l_linger
-%type <expression> sctp_rtoinfo sctp_initmsg sctp_assocval sctp_sackinfo
-%type <expression> sctp_status
+%type <expression> sctp_status sctp_initmsg sctp_assocval sctp_sackinfo
+%type <expression> sctp_rtoinfo srto_initial srto_max srto_min
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2282,8 +2282,8 @@ opt_revents
 ;
 
 l_onoff
-: ONOFF '=' INTEGER  { 
-	if (!is_valid_u32($3)){
+: ONOFF '=' INTEGER { 
+	if (!is_valid_s32($3)){
 		semantic_error("linger onoff out of range");
 	} else {
 		$$ = new_integer_expression( $3, "%ld" ); 
@@ -2293,8 +2293,8 @@ l_onoff
 ;
 
 l_linger
-: LINGER '=' INTEGER  { 
-	if (!is_valid_u32($3)){
+: LINGER '=' INTEGER { 
+	if (!is_valid_s32($3)){
 		semantic_error("linger out of range");
 	}
 	$$ = new_integer_expression( $3, "%ld");
@@ -2311,22 +2311,44 @@ linger
 }
 ;
 
-sctp_rtoinfo
-: '{' SRTO_INITIAL '=' INTEGER ',' SRTO_MAX '=' INTEGER ',' SRTO_MIN '=' INTEGER '}' {
-#ifdef SCTP_RTOINFO
-	$$ = new_expression(EXPR_SCTP_RTOINFO);
-	if (!is_valid_u32($4)) {
+srto_initial
+: SRTO_INITIAL '=' INTEGER {
+	if (!is_valid_u32($3)){
 		semantic_error("srto_initial out of range");
 	}
-	$$->value.sctp_rtoinfo.srto_initial = $4;
-	if (!is_valid_u32($8)) {
+        $$ = new_integer_expression( $3, "%u");
+}
+| SRTO_INITIAL '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+;
+
+srto_max
+: SRTO_MAX '=' INTEGER {
+	if (!is_valid_u32($3)) {
 		semantic_error("srto_max out of range");
 	}
-	$$->value.sctp_rtoinfo.srto_max = $8;
-	if (!is_valid_u32($12)) {
+	$$ = new_integer_expression( $3, "%u");
+}
+| SRTO_MAX '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+;
+
+srto_min
+: SRTO_MIN '=' INTEGER {
+	if (!is_valid_u32($3)) {
 		semantic_error("srto_min out of range");
 	}
-	$$->value.sctp_rtoinfo.srto_min = $12;
+	$$ = new_integer_expression( $3, "%u");
+}
+| SRTO_MIN '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+;
+
+sctp_rtoinfo
+: '{' srto_initial ',' srto_max ',' srto_min '}' {
+#ifdef SCTP_RTOINFO
+	$$ = new_expression(EXPR_SCTP_RTOINFO);
+	$$->value.sctp_rtoinfo = (struct sctp_rtoinfo_expr*) calloc(1, sizeof(struct sctp_rtoinfo_expr));
+	$$->value.sctp_rtoinfo->srto_initial = $2;
+	$$->value.sctp_rtoinfo->srto_max = $4;
+	$$->value.sctp_rtoinfo->srto_min = $6;
 #else
 	$$ = NULL;
 #endif
