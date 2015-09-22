@@ -306,9 +306,16 @@ void free_expression(struct expression *expression)
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
 #endif
-#ifdef SCTP_STATUS
+		break;
 	case EXPR_SCTP_STATUS:
-#endif
+		free(expression->value.sctp_status->sstat_state);
+		free(expression->value.sctp_status->sstat_rwnd);
+		free(expression->value.sctp_status->sstat_unackdata);
+		free(expression->value.sctp_status->sstat_penddata);
+		free(expression->value.sctp_status->sstat_instrms);
+		free(expression->value.sctp_status->sstat_outstrms);
+		free(expression->value.sctp_status->sstat_fragmentation_point);
+		free(expression->value.sctp_status->sstat_primary);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
