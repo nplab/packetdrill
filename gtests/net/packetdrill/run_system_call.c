@@ -1732,7 +1732,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		} else if (sstat_rwnd->type == EXPR_INTEGER) {
+		}
+		if (sstat_rwnd->type == EXPR_INTEGER) {
 			if (get_s32(sstat_rwnd, &rwnd, error)) {
 				free(live_optval);
 				return STATUS_ERR;
@@ -1743,8 +1744,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-
-		} else if (sstat_unackdata->type == EXPR_INTEGER) {
+		}
+		if (sstat_unackdata->type == EXPR_INTEGER) {
 			if (get_s16(sstat_unackdata, &unackdata, error)) {
 				free(live_optval);
 				return STATUS_ERR;
@@ -1755,7 +1756,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		} else if (sstat_penddata->type == EXPR_INTEGER) {
+		}
+		if (sstat_penddata->type == EXPR_INTEGER) {
 			if (get_s16(sstat_penddata, &penddata, error)) {
 				free(live_optval);
 				return STATUS_ERR;
@@ -1766,7 +1768,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		} else if (sstat_instrms->type == EXPR_INTEGER) {
+		}
+		if (sstat_instrms->type == EXPR_INTEGER) {
 			if (get_s16(sstat_instrms, &instrms, error)) {
 				free(live_optval);
 				return STATUS_ERR;	
@@ -1777,7 +1780,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		} else if (sstat_outstrms->type == EXPR_INTEGER) {
+		}
+		if (sstat_outstrms->type == EXPR_INTEGER) {
 			if (get_s16(sstat_outstrms, &outstrms, error)) {
 				free(live_optval);
 				return STATUS_ERR;
@@ -1788,7 +1792,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		} else if (sstat_fragmentation_point->type == EXPR_INTEGER) {
+		}
+		if (sstat_fragmentation_point->type == EXPR_INTEGER) {
 			if (get_s32(sstat_fragmentation_point, &fragmentation_point, error)) {
 				free(live_optval);
 				return STATUS_ERR;
