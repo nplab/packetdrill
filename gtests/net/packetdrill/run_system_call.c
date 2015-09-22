@@ -1658,7 +1658,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-			if (rtoinfo->srto_initial != initial){
+			if (rtoinfo->srto_initial != initial) {
 				asprintf(error, "Bad getsockopt SCTP_RTOINFO initial: expected: %u actual: %u",
 					initial, rtoinfo->srto_initial);
 				free(live_optval);
@@ -1669,7 +1669,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-			if (rtoinfo->srto_max != max){
+			if (rtoinfo->srto_max != max) {
 				asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MAX: expected: %u actual: %u",
 					max, rtoinfo->srto_max);
 				free(live_optval);
@@ -1680,7 +1680,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-			if (rtoinfo->srto_min != min){
+			if (rtoinfo->srto_min != min) {
 				asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MIN: expected: %u actual: %u",
 					min, rtoinfo->srto_min);
 				free(live_optval);
