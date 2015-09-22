@@ -1586,8 +1586,9 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct linger);
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		live_optval = malloc(sizeof(struct sctp_rtoinfo));
+		live_optval = calloc(1, sizeof(struct sctp_rtoinfo));
 		live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
+		((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
 #endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
@@ -1651,7 +1652,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct expression *srto_max = val_expression->value.sctp_rtoinfo->srto_max;
 		struct expression *srto_min = val_expression->value.sctp_rtoinfo->srto_min;
 		struct sctp_rtoinfo *rtoinfo = live_optval;
-		int initial, max, min;
+		int initial=0, max=0, min=0;
 		if (srto_initial->type == EXPR_INTEGER) {
 			if (get_s32(srto_initial, &initial, error)) {
 				free(live_optval);
@@ -1776,16 +1777,17 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &optval_s32;
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		if(val_expression->value.sctp_rtoinfo->srto_initial->type != EXPR_INTEGER ||
+		if (val_expression->value.sctp_rtoinfo->srto_initial->type != EXPR_INTEGER ||
 			val_expression->value.sctp_rtoinfo->srto_max->type != EXPR_INTEGER ||
 			val_expression->value.sctp_rtoinfo->srto_min->type != EXPR_INTEGER) { 
+			asprintf(error, "Bad setsockopt, bad inputtype for rtoinfo");
 			return STATUS_ERR;
 		}
 		optval = malloc(sizeof(struct sctp_rtoinfo));
 		((struct sctp_rtoinfo*) optval)->srto_initial = val_expression->value.sctp_rtoinfo->srto_initial->value.num;
-		((struct sctp_rtoinfo*) optval)->srto_max = val_expression->value.sctp_rtoinfo->srto_initial->value.num;
-		((struct sctp_rtoinfo*) optval)->srto_min = val_expression->value.sctp_rtoinfo->srto_initial->value.num;
-		optval = &val_expression->value.sctp_rtoinfo;
+		((struct sctp_rtoinfo*) optval)->srto_max = val_expression->value.sctp_rtoinfo->srto_max->value.num;
+		((struct sctp_rtoinfo*) optval)->srto_min = val_expression->value.sctp_rtoinfo->srto_min->value.num;
+		((struct sctp_rtoinfo*) optval)->srto_assoc_id = 0;
 #endif
 #ifdef SCTP_INITMSG
 	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
