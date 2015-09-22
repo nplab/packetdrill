@@ -93,7 +93,7 @@ struct expression {
 		struct sctp_sack_info sctp_sack_info;
 #endif
 #ifdef SCTP_STATUS
-		struct sctp_status_expr sctp_status;
+		struct sctp_status_expr *sctp_status;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */

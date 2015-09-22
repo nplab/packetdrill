@@ -566,7 +566,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> decimal_integer hex_integer
 %type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents 
 %type <expression> linger l_onoff l_linger
-%type <expression> sctp_status sstat_state sstat_unackdata sstat_penddata 
+%type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata 
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary 
 %type <expression> sctp_initmsg sctp_assocval sctp_sackinfo
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min
@@ -2456,7 +2456,7 @@ sstat_penddata
 ;
 
 sstat_instrms
-: SSTAT_IMSTRMS '=' INTEGER {
+: SSTAT_INSTRMS '=' INTEGER {
 	if (!is_valid_u16($3)) {
 		semantic_error("sstat_instrms out of range");
 	}
@@ -2466,7 +2466,7 @@ sstat_instrms
 ;
 
 sstat_outstrms
-: SSTAT_STATE '=' INTEGER {
+: SSTAT_OUTSTRMS '=' INTEGER {
 	if (!is_valid_u16($3)) {
 		semantic_error("sstat_outstrms out of range");
 	}
@@ -2490,7 +2490,7 @@ sstat_primary
 ;
 
 sctp_status
-: '{' sstat_state ',' sstate_rwnd ',' sstat_unackdata ',' sstat_penddata ',' sstat_instrms ',' sstat_outstrms ',' 
+: '{' sstat_state ',' sstat_rwnd ',' sstat_unackdata ',' sstat_penddata ',' sstat_instrms ',' sstat_outstrms ',' 
 	sstat_fragmentation_point ',' sstat_primary '}' {
 	$$ = new_expression(EXPR_SCTP_STATUS);
 	$$->value.sctp_status = (struct sctp_status_expr*) calloc(1, sizeof(struct sctp_status_expr));

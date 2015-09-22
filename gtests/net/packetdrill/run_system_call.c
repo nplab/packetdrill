@@ -200,6 +200,26 @@ static int get_s32(struct expression *expression,
 	return STATUS_OK;
 }
 
+/* Sets the value from the expression argument, checking that it is a
+ * valid s16 or u16, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static short get_s16(struct expression *expression, 
+		s16 *value, char **error) 
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if ((expression->value.num > USHRT_MAX) ||
+		(expression->value.num < SHRT_MIN)) {
+		asprintf(error,
+			"Value out of range for 16-bit integer: %lld",
+			expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+
 /* Return the value of the argument with the given index, and verify
  * that it has the expected type.
  */
@@ -1592,9 +1612,9 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
-		live_optval = malloc(sizeof(val_expression->value.sctp_status));
-		live_optlen = (socklen_t)sizeof(val_expression->value.sctp_status);
-		((struct sctp_status*) live_optval)->sstat_assoc_id = val_expression->value.sctp_status.sstat_assoc_id;
+		live_optval = malloc(sizeof(struct sctp_status));
+		live_optlen = (socklen_t)sizeof(struct sctp_status);
+		((struct sctp_status*) live_optval)->sstat_assoc_id = 0;
 #endif
 	} else {
 		s32_bracketed_arg(args, 3, &script_optval, error);
@@ -1690,43 +1710,95 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
-		struct sctp_status *live_val = live_optval;
-		struct sctp_status *expected_val = &(val_expression->value.sctp_status);
-		if (live_val->sstat_state != expected_val->sstat_state) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS state: expected: %d actual: %d ",
-			         expected_val->sstat_state, live_val->sstat_state);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (live_val->sstat_rwnd != expected_val->sstat_rwnd) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS rwnd: expected: %u actual: %u ",
-			         expected_val->sstat_rwnd, live_val->sstat_rwnd);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (live_val->sstat_unackdata != expected_val->sstat_unackdata) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS unackdata: expected: %u actual: %u",
-			         expected_val->sstat_unackdata, live_val->sstat_unackdata);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (live_val->sstat_penddata != expected_val->sstat_penddata) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS penddata: expected: %u actual: %u",
-			         expected_val->sstat_penddata, live_val->sstat_penddata);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (live_val->sstat_instrms != expected_val->sstat_instrms) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS instreams: expected: %u actual: %u",
-			         expected_val->sstat_instrms, live_val->sstat_instrms);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (live_val->sstat_outstrms != expected_val->sstat_outstrms) {
-			asprintf(error, "Bad getsockopt SCTP_STATUS outstreams: expected: %u actual: %u",
-			         expected_val->sstat_outstrms, live_val->sstat_outstrms);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (live_val->sstat_fragmentation_point != expected_val->sstat_fragmentation_point){
-			asprintf(error, "Bad getsockopt SCTP_STATUS fragmentation point: expected: %u actual: %u",
-			         expected_val->sstat_fragmentation_point, live_val->sstat_fragmentation_point);
-			free(live_optval);
-			return STATUS_ERR;
+		struct expression *sstat_state = val_expression->value.sctp_status->sstat_state;
+		struct expression *sstat_rwnd = val_expression->value.sctp_status->sstat_rwnd;
+		struct expression *sstat_unackdata = val_expression->value.sctp_status->sstat_unackdata;
+		struct expression *sstat_penddata = val_expression->value.sctp_status->sstat_penddata;
+		struct expression *sstat_instrms = val_expression->value.sctp_status->sstat_instrms;
+		struct expression *sstat_outstrms = val_expression->value.sctp_status->sstat_outstrms;
+		struct expression *sstat_fragmentation_point = val_expression->value.sctp_status->sstat_fragmentation_point;
+		//struct expression *sstat_primary = val_expression->value.sctp_status->sstat_primary;
+		struct sctp_status *live_status = live_optval;
+		int state, rwnd, fragmentation_point;
+		short unackdata, penddata, instrms, outstrms;
+		if (sstat_state->type == EXPR_INTEGER) {
+			if (get_s32(sstat_state, &state, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_status->sstat_state != state) {
+				asprintf(error, "Bad getsockopt SCTP_STATUS state: expected: %d actual: %d ",
+					state, live_status->sstat_state);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else if (sstat_rwnd->type == EXPR_INTEGER) {
+			if (get_s32(sstat_rwnd, &rwnd, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_status->sstat_rwnd != rwnd) {
+				asprintf(error, "Bad getsockopt SCTP_STATUS rwnd: expected: %u actual: %u ",
+			        	rwnd, live_status->sstat_rwnd);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+
+		} else if (sstat_unackdata->type == EXPR_INTEGER) {
+			if (get_s16(sstat_unackdata, &unackdata, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_status->sstat_unackdata != unackdata) {
+				asprintf(error, "Bad getsockopt SCTP_STATUS unackdata: expected: %hu actual: %hu",
+				         unackdata, live_status->sstat_unackdata);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else if (sstat_penddata->type == EXPR_INTEGER) {
+			if (get_s16(sstat_penddata, &penddata, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_status->sstat_penddata != penddata) {
+				asprintf(error, "Bad getsockopt SCTP_STATUS penddata: expected: %hu actual: %hu",
+					penddata, live_status->sstat_penddata);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else if (sstat_instrms->type == EXPR_INTEGER) {
+			if (get_s16(sstat_instrms, &instrms, error)) {
+				free(live_optval);
+				return STATUS_ERR;	
+			}
+			if (live_status->sstat_instrms != instrms) {
+				asprintf(error, "Bad getsockopt SCTP_STATUS instreams: expected: %hu actual: %hu",
+					instrms, live_status->sstat_instrms);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else if (sstat_outstrms->type == EXPR_INTEGER) {
+			if (get_s16(sstat_outstrms, &outstrms, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_status->sstat_outstrms != outstrms) {
+				asprintf(error, "Bad getsockopt SCTP_STATUS outstreams: expected: %hu actual: %hu",
+					outstrms, live_status->sstat_outstrms);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else if (sstat_fragmentation_point->type == EXPR_INTEGER) {
+			if (get_s32(sstat_fragmentation_point, &fragmentation_point, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_status->sstat_fragmentation_point != fragmentation_point) {
+				asprintf(error, "Bad getsockopt SCTP_STATUS fragmentation point: expected: %u actual: %u",
+					fragmentation_point, live_status->sstat_fragmentation_point);
+				free(live_optval);
+				return STATUS_ERR;
+			}
 		}
 #endif
 	} else {
