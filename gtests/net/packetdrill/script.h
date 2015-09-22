@@ -93,7 +93,7 @@ struct expression {
 		struct sctp_sack_info sctp_sack_info;
 #endif
 #ifdef SCTP_STATUS
-		struct sctp_status sctp_status;
+		struct sctp_status_expr sctp_status;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -147,6 +147,20 @@ struct sctp_rtoinfo_expr {
 	struct expression *srto_initial;
 	struct expression *srto_max;
 	struct expression *srto_min;
+};
+#endif
+
+/* Parse tree for syscall getsockopt for sctp_status*/
+#ifdef SCTP_STATUS
+struct sctp_status_expr {
+	struct expression *sstat_state;
+	struct expression *sstat_rwnd;
+	struct expression *sstat_unackdata;
+	struct expression *sstat_penddata;
+	struct expression *sstat_instrms;
+	struct expression *sstat_outstrms;
+	struct expression *sstat_fragmentation_point;
+	struct expression *sstat_primary;
 };
 #endif
 
