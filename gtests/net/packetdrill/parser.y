@@ -2277,34 +2277,34 @@ pollfd
 ;
 
 opt_revents
-:                                { $$ = new_integer_expression(0, "%ld" ); }
+:                                { $$ = new_integer_expression(0, "%ld"); }
 | ',' REVENTS '=' expression     { $$ = $4; }
 ;
 
 l_onoff
 : ONOFF '=' INTEGER { 
-	if (!is_valid_s32($3)){
+	if (!is_valid_s32($3)) {
 		semantic_error("linger onoff out of range");
 	} else {
-		$$ = new_integer_expression( $3, "%ld" ); 
+		$$ = new_integer_expression($3, "%ld"); 
 	}	
 }
-| ONOFF '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+| ONOFF '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 l_linger
 : LINGER '=' INTEGER { 
-	if (!is_valid_s32($3)){
+	if (!is_valid_s32($3)) {
 		semantic_error("linger out of range");
 	}
-	$$ = new_integer_expression( $3, "%ld");
+	$$ = new_integer_expression($3, "%ld");
 }
-| LINGER '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+| LINGER '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 linger
 : '{' l_onoff ',' l_linger '}' {
-	$$ = new_expression( EXPR_LINGER );
+	$$ = new_expression(EXPR_LINGER);
 	$$->value.linger = (struct linger_expr*) calloc(1, sizeof(struct linger_expr));
 	$$->value.linger->l_onoff  = $2;
 	$$->value.linger->l_linger = $4;
@@ -2316,9 +2316,9 @@ srto_initial
 	if (!is_valid_u32($3)){
 		semantic_error("srto_initial out of range");
 	}
-        $$ = new_integer_expression( $3, "%u");
+        $$ = new_integer_expression($3, "%u");
 }
-| SRTO_INITIAL '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+| SRTO_INITIAL '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 srto_max
@@ -2326,9 +2326,9 @@ srto_max
 	if (!is_valid_u32($3)) {
 		semantic_error("srto_max out of range");
 	}
-	$$ = new_integer_expression( $3, "%u");
+	$$ = new_integer_expression($3, "%u");
 }
-| SRTO_MAX '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+| SRTO_MAX '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 srto_min
@@ -2336,9 +2336,9 @@ srto_min
 	if (!is_valid_u32($3)) {
 		semantic_error("srto_min out of range");
 	}
-	$$ = new_integer_expression( $3, "%u");
+	$$ = new_integer_expression($3, "%u");
 }
-| SRTO_MIN '=' ELLIPSIS { $$ = new_expression( EXPR_ELLIPSIS ); }
+| SRTO_MIN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 sctp_rtoinfo
