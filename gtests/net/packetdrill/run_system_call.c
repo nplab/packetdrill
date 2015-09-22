@@ -1747,6 +1747,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	int script_fd, live_fd, level, optname, optval_s32, optlen, result;
 	void *optval = NULL;
 	struct expression *val_expression;
+
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
