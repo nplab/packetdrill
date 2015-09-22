@@ -566,7 +566,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> decimal_integer hex_integer
 %type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents 
 %type <expression> linger l_onoff l_linger
-%type <expression> sctp_status sctp_initmsg sctp_assocval sctp_sackinfo
+%type <expression> sctp_status sstat_state sstat_unackdata sstat_penddata 
+%type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary 
+%type <expression> sctp_initmsg sctp_assocval sctp_sackinfo
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2413,41 +2415,92 @@ sctp_sackinfo
 }
 ;
 
-sctp_status
-: '{' SSTAT_STATE '=' INTEGER ',' SSTAT_RWND '=' INTEGER ',' SSTAT_UNACKDATA '=' INTEGER ',' SSTAT_PENDDATA '=' INTEGER ',' SSTAT_INSTRMS '=' INTEGER ',' SSTAT_OUTSTRMS '=' INTEGER ',' SSTAT_FRAGMENTATION_POINT '=' INTEGER ',' SSTAT_PRIMARY '=' ELLIPSIS '}' {
-#ifdef SCTP_INITMSG
-	$$ = new_expression(EXPR_SCTP_STATUS);
-	if (!is_valid_s32($4)) {
+sstat_state
+: SSTAT_STATE '=' INTEGER {
+	if (!is_valid_u32($3)) {
 		semantic_error("sstat_state out of range");
 	}
-	$$->value.sctp_status.sstat_state = $4;
-	if (!is_valid_u32($8)) {
+	$$ = new_integer_expression($3, "%ld");
+}
+| SSTAT_STATE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sstat_rwnd
+: SSTAT_RWND '=' INTEGER {
+	if (!is_valid_u32($3)) {
 		semantic_error("sstat_rwnd out of range");
 	}
-	$$->value.sctp_status.sstat_rwnd = $8;
-	if (!is_valid_u16($12)) {
+	$$ = new_integer_expression($3, "%u");
+}
+| SSTAT_RWND '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sstat_unackdata
+: SSTAT_UNACKDATA '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sstat_unackdata out of range");
 	}
-	$$->value.sctp_status.sstat_unackdata = $12;
-	if (!is_valid_u16($16)) {
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSTAT_UNACKDATA '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sstat_penddata
+: SSTAT_PENDDATA '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sstat_penddata out of range");
 	}
-	$$->value.sctp_status.sstat_penddata = $16;
-	if (!is_valid_u16($20)) {
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSTAT_PENDDATA '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sstat_instrms
+: SSTAT_IMSTRMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sstat_instrms out of range");
 	}
-	$$->value.sctp_status.sstat_instrms = $20;
-	if (!is_valid_u16($24)) {
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSTAT_INSTRMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sstat_outstrms
+: SSTAT_STATE '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sstat_outstrms out of range");
 	}
-	$$->value.sctp_status.sstat_outstrms = $24;
-	if (!is_valid_u32($28)) {
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSTAT_OUTSTRMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sstat_fragmentation_point
+: SSTAT_FRAGMENTATION_POINT '=' INTEGER {
+	if (!is_valid_u32($3)) {
 		semantic_error("sstat_fragmentation_point out of range");
 	}
-	$$->value.sctp_status.sstat_fragmentation_point = $28;
-#else
-	$$ = NULL;
-#endif
+	$$ = new_integer_expression($3, "%u");
+}
+| SSTAT_FRAGMENTATION_POINT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sstat_primary
+: SSTAT_PRIMARY '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_status
+: '{' sstat_state ',' sstate_rwnd ',' sstat_unackdata ',' sstat_penddata ',' sstat_instrms ',' sstat_outstrms ',' 
+	sstat_fragmentation_point ',' sstat_primary '}' {
+	$$ = new_expression(EXPR_SCTP_STATUS);
+	$$->value.sctp_status = (struct sctp_status_expr*) calloc(1, sizeof(struct sctp_status_expr));
+	$$->value.sctp_status->sstat_state = $2;
+	$$->value.sctp_status->sstat_rwnd = $4;
+	$$->value.sctp_status->sstat_unackdata = $6;
+	$$->value.sctp_status->sstat_penddata = $8;
+	$$->value.sctp_status->sstat_instrms = $10;
+	$$->value.sctp_status->sstat_outstrms = $12;
+	$$->value.sctp_status->sstat_fragmentation_point = $14;
 }
 
 opt_errno
