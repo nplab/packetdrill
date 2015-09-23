@@ -285,9 +285,17 @@ void free_expression(struct expression *expression)
 	switch (expression->type) {
 	case EXPR_ELLIPSIS:
 	case EXPR_INTEGER:
+		break;
 	case EXPR_LINGER:
+		free(expression->value.linger->l_onoff);
+		free(expression->value.linger->l_linger);
+		break;
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
+		free(expression->value.sctp_rtoinfo->srto_initial);
+		free(expression->value.sctp_rtoinfo->srto_max);
+		free(expression->value.sctp_rtoinfo->srto_min);
+		break;
 #endif
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:

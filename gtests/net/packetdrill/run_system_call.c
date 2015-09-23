@@ -1582,12 +1582,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	if (val_expression == NULL) {
 		return STATUS_ERR;
 	} else if (val_expression->type == EXPR_LINGER) {
-		live_optval = malloc(sizeof(val_expression->value.linger));
-		live_optlen = (socklen_t)sizeof(val_expression->value.linger);
+		live_optval = malloc(sizeof(struct linger));
+		live_optlen = (socklen_t)sizeof(struct linger);
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		live_optval = malloc(sizeof(val_expression->value.sctp_rtoinfo));
-		live_optlen = (socklen_t)sizeof(val_expression->value.sctp_rtoinfo);
+		live_optval = malloc(sizeof(struct sctp_rtoinfo));
+		live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
+		((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
 #endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
@@ -1614,39 +1615,77 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		free(live_optval);
 		return STATUS_ERR;
 	}
-
 	if (val_expression->type == EXPR_LINGER) {
+		struct expression *l_onoff = val_expression->value.linger->l_onoff;
+		struct expression *l_linger = val_expression->value.linger->l_linger;
 		struct linger *ling = live_optval;
-		if (ling->l_onoff != val_expression->value.linger.l_onoff) {
-			asprintf(error, "Bad getsockopt Linger onoff: expected: %d actual: %d",
-			         val_expression->value.linger.l_onoff, ling->l_onoff);
-			free(live_optval);
-			return STATUS_ERR;
+		int val_onoff = 0; 
+		if (l_onoff->type == EXPR_INTEGER) {
+			if (get_s32(l_onoff, &val_onoff, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (val_onoff != ling->l_onoff) {
+				asprintf(error, "Bad getsockopt Linger onoff: expected: %d actual: %d",
+			         	(int) val_onoff, ling->l_onoff);
+				free(live_optval);
+				return STATUS_ERR;
+			}
 		}
-		if (ling->l_linger != val_expression->value.linger.l_linger) {
-			asprintf(error, "Bad getsockopt Linger Value: expected: %d actual: %d",
-			         val_expression->value.linger.l_linger, ling->l_linger);
-			free(live_optval);
-			return STATUS_ERR;
+		int val_linger = 0;
+		if (l_linger->type == EXPR_INTEGER) {
+			if (get_s32(l_linger, &val_linger, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (ling->l_linger != val_linger) {
+				asprintf(error, "Bad getsockopt Linger Value: expected: %d actual: %d",
+			        	 val_linger, ling->l_linger);
+				free(live_optval);
+				return STATUS_ERR;
+			}
 		}
+
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
+		struct expression *srto_initial = val_expression->value.sctp_rtoinfo->srto_initial;
+		struct expression *srto_max = val_expression->value.sctp_rtoinfo->srto_max;
+		struct expression *srto_min = val_expression->value.sctp_rtoinfo->srto_min;
 		struct sctp_rtoinfo *rtoinfo = live_optval;
-		if (rtoinfo->srto_initial != val_expression->value.sctp_rtoinfo.srto_initial){
-			asprintf(error, "Bad getsockopt SCTP_RTOINFO initial: expected: %u actual: %u",
-			         val_expression->value.sctp_rtoinfo.srto_initial, rtoinfo->srto_initial);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (rtoinfo->srto_max != val_expression->value.sctp_rtoinfo.srto_max){
-		 	asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MAX: expected: %u actual: %u",
-		 	         val_expression->value.sctp_rtoinfo.srto_max, rtoinfo->srto_max);
-			free(live_optval);
-			return STATUS_ERR;
-		} else if (rtoinfo->srto_min != val_expression->value.sctp_rtoinfo.srto_min){
-		 	asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MIN: expected: %u actual: %u",
-		 	         val_expression->value.sctp_rtoinfo.srto_min, rtoinfo->srto_min);
-			free(live_optval);
-			return STATUS_ERR;
+		int initial=0, max=0, min=0;
+		if (srto_initial->type == EXPR_INTEGER) {
+			if (get_s32(srto_initial, &initial, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (rtoinfo->srto_initial != initial) {
+				asprintf(error, "Bad getsockopt SCTP_RTOINFO initial: expected: %u actual: %u",
+					initial, rtoinfo->srto_initial);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else if (srto_max->type == EXPR_INTEGER) {
+			if (get_s32(srto_max, &max, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (rtoinfo->srto_max != max) {
+				asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MAX: expected: %u actual: %u",
+					max, rtoinfo->srto_max);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else if (srto_min->type == EXPR_INTEGER) {
+			if (get_s32(srto_min, &min, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (rtoinfo->srto_min != min) {
+				asprintf(error, "Bad getsockopt SCTP_RTOINFO SRTO_MIN: expected: %u actual: %u",
+					min, rtoinfo->srto_min);
+				free(live_optval);
+				return STATUS_ERR;
+			}
 		}
 #endif
 #ifdef SCTP_STATUS
@@ -1726,7 +1765,11 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	if (val_expression == NULL)
 		return STATUS_ERR;
 	if (val_expression->type == EXPR_LINGER) {
-		optval = &val_expression->value.linger;
+		optval = malloc(sizeof(struct linger));
+		get_s32(val_expression->value.linger->l_onoff, 
+			&(((struct linger*) optval)->l_onoff), error);
+		get_s32(val_expression->value.linger->l_linger,
+                        &(((struct linger*) optval)->l_linger), error);
 	} else if (val_expression->type == EXPR_STRING) {
 		optval = val_expression->value.string;
 	} else if (val_expression->type == EXPR_LIST) {
@@ -1735,7 +1778,20 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &optval_s32;
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		optval = &val_expression->value.sctp_rtoinfo;
+		struct sctp_rtoinfo *rtoinfo;
+		struct sctp_rtoinfo_expr *expr_rtoinfo  = val_expression->value.sctp_rtoinfo;
+		if (expr_rtoinfo->srto_initial->type != EXPR_INTEGER ||
+			expr_rtoinfo->srto_max->type != EXPR_INTEGER ||
+			expr_rtoinfo->srto_min->type != EXPR_INTEGER) { 
+			asprintf(error, "Bad setsockopt, bad inputtype for rtoinfo");
+			return STATUS_ERR;
+		}
+		rtoinfo = malloc(sizeof(struct sctp_rtoinfo));
+		rtoinfo->srto_initial = expr_rtoinfo->srto_initial->value.num;
+		rtoinfo->srto_max = expr_rtoinfo->srto_max->value.num;
+		rtoinfo->srto_min = expr_rtoinfo->srto_min->value.num;
+		rtoinfo->srto_assoc_id = 0;
+		optval = rtoinfo;
 #endif
 #ifdef SCTP_INITMSG
 	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
@@ -1765,6 +1821,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
 	return end_syscall(state, syscall, CHECK_EXACT, result, error);
+	free(optval);
 }
 
 static int syscall_poll(struct state *state, struct syscall_spec *syscall,
