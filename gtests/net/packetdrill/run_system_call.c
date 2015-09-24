@@ -994,7 +994,7 @@ static int syscall_accept(struct state *state, struct syscall_spec *syscall,
 
 	result = accept(live_fd, (struct sockaddr *)&live_addr, &live_addrlen);
 
-	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
 		return STATUS_ERR;
 
 	if (result >= 0) {
