@@ -514,6 +514,7 @@ static void begin_syscall(struct state *state, struct syscall_spec *syscall)
 enum result_check_t {
 	CHECK_EXACT,		/* check that result matches exactly */
 	CHECK_NON_NEGATIVE,	/* check that result is non-negative */
+	CHECK_ANY,		/* accept any result */
 };
 static int end_syscall(struct state *state, struct syscall_spec *syscall,
 		       enum result_check_t mode, int actual, char **error)
@@ -557,7 +558,9 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 					 expected, actual);
 			return STATUS_ERR;
 		}
-	} else {
+	} else if (mode == CHECK_ANY) {
+		return STATUS_OK;
+	}else {
 		assert(!"bad mode");
 	}
 
@@ -994,7 +997,7 @@ static int syscall_accept(struct state *state, struct syscall_spec *syscall,
 
 	result = accept(live_fd, (struct sockaddr *)&live_addr, &live_addrlen);
 
-	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
+	if (end_syscall(state, syscall, CHECK_ANY, result, error))
 		return STATUS_ERR;
 
 	if (result >= 0) {
