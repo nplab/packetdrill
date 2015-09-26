@@ -565,8 +565,7 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 				 "with errno %d (%s)",
 				 actual, actual_errno, strerror(actual_errno));
 			return STATUS_ERR;
-		}
-		else if ((expected < 0) && (actual != expected)) {
+		} else if ((expected < 0) && (actual != expected)) {
 			asprintf(error,
 				 "Expected result %d but got %d",
 				 expected, actual);
