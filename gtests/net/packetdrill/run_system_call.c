@@ -514,7 +514,7 @@ static void begin_syscall(struct state *state, struct syscall_spec *syscall)
 enum result_check_t {
 	CHECK_EXACT,		/* check that result matches exactly */
 	CHECK_NON_NEGATIVE,	/* check that result is non-negative */
-	CHECK_ACCEPT,		/* checks for results after accept-syscall */
+	CHECK_ALLOW_MAPPING,	/* checks for results after accept-syscall */
 };
 static int end_syscall(struct state *state, struct syscall_spec *syscall,
 		       enum result_check_t mode, int actual, char **error)
@@ -558,21 +558,21 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 					 expected, actual);
 			return STATUS_ERR;
 		}
-	} else if (mode == CHECK_ACCEPT) {
-		if (expected >= 0  && actual < 0) {
+	} else if (mode == CHECK_ALLOW_MAPPING) {
+		if ((expected >= 0)  && (actual < 0)) {
 			asprintf(error,
 				 "Expected non-negative result but got %d "
 				 "with errno %d (%s)",
 				 actual, actual_errno, strerror(actual_errno));
 			return STATUS_ERR;
 		}
-		else if (expected < 0 && actual != expected) {
+		else if ((expected < 0) && (actual != expected)) {
 			asprintf(error,
-					 "Expected result %d but got %d",
-					 expected, actual);
+				 "Expected result %d but got %d",
+				 expected, actual);
 			return STATUS_ERR;
 		}
-	}else {
+	} else {
 		assert(!"bad mode");
 	}
 
@@ -1009,7 +1009,7 @@ static int syscall_accept(struct state *state, struct syscall_spec *syscall,
 
 	result = accept(live_fd, (struct sockaddr *)&live_addr, &live_addrlen);
 
-	if (end_syscall(state, syscall, CHECK_ACCEPT, result, error))
+	if (end_syscall(state, syscall, CHECK_ALLOW_MAPPING, result, error))
 		return STATUS_ERR;
 
 	if (result >= 0) {
