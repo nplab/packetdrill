@@ -126,6 +126,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
 	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },
 #endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },	
+#endif
 	{ SCTP_COOKIE_WAIT,                 "SCTP_COOKIE_WAIT"                },
 	{ SCTP_COOKIE_ECHOED,               "SCTP_COOKIE_ECHOED"              },
 	{ SCTP_ESTABLISHED,                 "SCTP_ESTABLISHED"                },
