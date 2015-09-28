@@ -566,10 +566,10 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression_list> expression_list function_arguments
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer
-%type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents 
+%type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
-%type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata 
-%type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary 
+%type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
+%type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
 %type <expression> sctp_initmsg sctp_assocval sctp_sackinfo
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
@@ -2294,18 +2294,17 @@ opt_revents
 ;
 
 l_onoff
-: ONOFF '=' INTEGER { 
+: ONOFF '=' INTEGER {
 	if (!is_valid_s32($3)) {
 		semantic_error("linger onoff out of range");
-	} else {
-		$$ = new_integer_expression($3, "%ld"); 
-	}	
+	}
+	$$ = new_integer_expression($3, "%ld");
 }
 | ONOFF '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 l_linger
-: LINGER '=' INTEGER { 
+: LINGER '=' INTEGER {
 	if (!is_valid_s32($3)) {
 		semantic_error("linger out of range");
 	}
@@ -2563,7 +2562,7 @@ sctp_paddrinfo
 ;
 
 sctp_status
-: '{' sstat_state ',' sstat_rwnd ',' sstat_unackdata ',' sstat_penddata ',' sstat_instrms ',' sstat_outstrms ',' 
+: '{' sstat_state ',' sstat_rwnd ',' sstat_unackdata ',' sstat_penddata ',' sstat_instrms ',' sstat_outstrms ','
 	sstat_fragmentation_point ',' sstat_primary  '}' {
 	$$ = new_expression(EXPR_SCTP_STATUS);
 	$$->value.sctp_status = (struct sctp_status_expr*) calloc(1, sizeof(struct sctp_status_expr));

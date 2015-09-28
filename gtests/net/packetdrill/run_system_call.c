@@ -205,7 +205,7 @@ static int get_s32(struct expression *expression,
  * success; on failure returns STATUS_ERR and sets error message.
  */
 static short get_s16(struct expression *expression, 
-		s16 *value, char **error) 
+		s16 *value, char **error)
 {
 	if (check_type(expression, EXPR_INTEGER, error))
 		return STATUS_ERR;
@@ -1658,27 +1658,27 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct expression *l_linger = val_expression->value.linger->l_linger;
 		struct linger *ling = live_optval;
 		int val_onoff = 0; 
-		if (l_onoff->type == EXPR_INTEGER) {
+		if (l_onoff->type != EXPR_ELLIPSIS) {
 			if (get_s32(l_onoff, &val_onoff, error)) {
 				free(live_optval);
 				return STATUS_ERR;
 			}
 			if (val_onoff != ling->l_onoff) {
 				asprintf(error, "Bad getsockopt Linger onoff: expected: %d actual: %d",
-			         	(int) val_onoff, ling->l_onoff);
+					val_onoff, ling->l_onoff);
 				free(live_optval);
 				return STATUS_ERR;
 			}
 		}
 		int val_linger = 0;
-		if (l_linger->type == EXPR_INTEGER) {
+		if (l_linger->type != EXPR_ELLIPSIS) {
 			if (get_s32(l_linger, &val_linger, error)) {
 				free(live_optval);
 				return STATUS_ERR;
 			}
 			if (ling->l_linger != val_linger) {
 				asprintf(error, "Bad getsockopt Linger Value: expected: %d actual: %d",
-			        	 val_linger, ling->l_linger);
+					 val_linger, ling->l_linger);
 				free(live_optval);
 				return STATUS_ERR;
 			}
@@ -1758,7 +1758,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			}
 			if (live_status->sstat_rwnd != rwnd) {
 				asprintf(error, "Bad getsockopt SCTP_STATUS rwnd: expected: %u actual: %u ",
-			        	rwnd, live_status->sstat_rwnd);
+					rwnd, live_status->sstat_rwnd);
 				free(live_optval);
 				return STATUS_ERR;
 			}
@@ -1770,7 +1770,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			}
 			if (live_status->sstat_unackdata != unackdata) {
 				asprintf(error, "Bad getsockopt SCTP_STATUS unackdata: expected: %hu actual: %hu",
-				         unackdata, live_status->sstat_unackdata);
+					unackdata, live_status->sstat_unackdata);
 				free(live_optval);
 				return STATUS_ERR;
 			}
