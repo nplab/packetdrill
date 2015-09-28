@@ -78,7 +78,11 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
 #endif
 #ifdef SCTP_STATUS
-	{ EXPR_SCTP_STATUS,           "sctp_status"},
+	{ EXPR_SCTP_STATUS,          "sctp_status"},
+	{ EXPR_SCTP_PADDRINFO,	     "sctp_paddrinfo"},
+#endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+	{ EXPR_SCTP_PEER_ADDR_PARAMS,	"sctp_peer_addr_params"},
 #endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
@@ -306,10 +310,35 @@ void free_expression(struct expression *expression)
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
 #endif
-#ifdef SCTP_STATUS
-	case EXPR_SCTP_STATUS:
-#endif
 		break;
+#ifdef SCTP_STATUS
+	case EXPR_SCTP_PADDRINFO:
+		free(expression->value.sctp_paddrinfo->spinfo_state);
+		free(expression->value.sctp_paddrinfo->spinfo_cwnd);
+		free(expression->value.sctp_paddrinfo->spinfo_srtt);
+		free(expression->value.sctp_paddrinfo->spinfo_rto);
+		free(expression->value.sctp_paddrinfo->spinfo_mtu);
+		break;
+	case EXPR_SCTP_STATUS:
+		free(expression->value.sctp_status->sstat_state);
+		free(expression->value.sctp_status->sstat_rwnd);
+		free(expression->value.sctp_status->sstat_unackdata);
+		free(expression->value.sctp_status->sstat_penddata);
+		free(expression->value.sctp_status->sstat_instrms);
+		free(expression->value.sctp_status->sstat_outstrms);
+		free(expression->value.sctp_status->sstat_fragmentation_point);
+		free(expression->value.sctp_status->sstat_primary);
+		break;
+#endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+	case EXPR_SCTP_PEER_ADDR_PARAMS:
+		free(expression->value.sctp_paddrparams->spp_address);
+		free(expression->value.sctp_paddrparams->spp_hbinterval);
+		free(expression->value.sctp_paddrparams->spp_pathmaxrxt);
+		free(expression->value.sctp_paddrparams->spp_pathmtu);
+		free(expression->value.sctp_paddrparams->spp_sackdelay);
+		break;
+#endif
 	case EXPR_WORD:
 		assert(expression->value.string);
 		free(expression->value.string);
@@ -544,9 +573,19 @@ static int evaluate(struct expression *in,
 		break;
 #endif
 #ifdef SCTP_STATUS
+	case EXPR_SCTP_PADDRINFO:
+		memcpy(&out->value.sctp_paddrinfo, &in->value.sctp_paddrinfo,
+			sizeof(in->value.sctp_paddrinfo));
+		break;
 	case EXPR_SCTP_STATUS:	/* copy as-is */
 		memcpy(&out->value.sctp_status, &in->value.sctp_status,
 		       sizeof(in->value.sctp_status));
+		break;
+#endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+	case EXPR_SCTP_PEER_ADDR_PARAMS:
+		memcpy(&out->value.sctp_paddrparams, &in->value.sctp_paddrparams, 
+			sizeof(in->value.sctp_paddrparams));
 		break;
 #endif
 	case EXPR_WORD:
