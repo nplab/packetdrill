@@ -72,7 +72,7 @@ struct expression {
 	union {
 		s64 num;
 		char *string;
-		struct linger linger;
+		struct linger_expr *linger;
 		struct sockaddr_in *socket_address_ipv4;
 		struct sockaddr_in6 *socket_address_ipv6;
 		struct binary_expression *binary;
@@ -81,7 +81,7 @@ struct expression {
 		struct msghdr_expr *msghdr;
 		struct pollfd_expr *pollfd;
 #ifdef SCTP_RTOINFO
-		struct sctp_rtoinfo sctp_rtoinfo;
+		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 #endif
 #ifdef SCTP_INITMSG
 		struct sctp_initmsg sctp_initmsg;
@@ -135,6 +135,20 @@ struct pollfd_expr {
 	struct expression *events;	/* requested events */
 	struct expression *revents;	/* returned events */
 };
+
+/* Handle values for socketoption SO_Linger with inputtypes and values*/
+struct linger_expr {
+	struct expression *l_onoff;
+	struct expression *l_linger;
+};
+/* Parse tree for syscall get/setsockopt for sctp_rtoinfo*/
+#ifdef SCTP_RTOINFO
+struct sctp_rtoinfo_expr {
+	struct expression *srto_initial;
+	struct expression *srto_max;
+	struct expression *srto_min;
+};
+#endif
 
 /* The errno-related info from strace to summarize a system call error */
 struct errno_spec {
