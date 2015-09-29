@@ -36,6 +36,7 @@
 void run_command_event(
 	struct state *state, struct event *event, struct command_spec *command)
 {
+	char *script_path = NULL;
 	DEBUGP("%d: command: `%s`\n", event->line_number,
 	       command->command_line);
 
@@ -48,9 +49,11 @@ void run_command_event(
 	return;
 
 error_out:
+	script_path = strdup(state->config->script_path);
 	state_free(state);
 	die("%s:%d: error executing `%s` command: %s\n",
-	    state->config->script_path, event->line_number,
+	    script_path, event->line_number,
 	    command->command_line, error);
+	free(script_path);
 	free(error);
 }

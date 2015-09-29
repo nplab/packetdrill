@@ -591,9 +591,11 @@ void run_script(struct config *config, struct script *script)
 		wire_client_next_event(state->wire_client, NULL);
 
 	if (code_execute(state->code, &error)) {
+		char *script_path = strdup(state->config->script_path);
 		state_free(state);
 		die("%s: error executing code: %s\n",
-		    state->config->script_path, error);
+		    script_path, error);
+		free(script_path);
 		free(error);
 	}
 
