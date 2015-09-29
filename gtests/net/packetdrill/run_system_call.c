@@ -1745,7 +1745,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_status->sstat_state != state) {
-				asprintf(error, "Bad getsockopt SCTP_STATUS state: expected: %d actual: %d ",
+				asprintf(error, "Bad getsockopt SCTP_STATUS state: expected: %d actual: %d",
 					state, live_status->sstat_state);
 				free(live_optval);
 				return STATUS_ERR;
@@ -1757,7 +1757,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_status->sstat_rwnd != rwnd) {
-				asprintf(error, "Bad getsockopt SCTP_STATUS rwnd: expected: %u actual: %u ",
+				asprintf(error, "Bad getsockopt SCTP_STATUS rwnd: expected: %u actual: %u",
 					rwnd, live_status->sstat_rwnd);
 				free(live_optval);
 				return STATUS_ERR;
@@ -1904,7 +1904,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_params->spp_hbinterval != hbinterval) {
-				asprintf(error, "Bad getsockopt SCTP_PARAMS hbinterval: expected: %d actual: %d ",
+				asprintf(error, "Bad getsockopt SCTP_PARAMS hbinterval: expected: %u actual: %u ",
 					hbinterval, live_params->spp_hbinterval);
 				free(live_optval);
 				return STATUS_ERR;
@@ -1916,7 +1916,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_params->spp_pathmaxrxt != pathmaxrxt) {
-				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmaxrxt: expected: %d actual: %d ",
+				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmaxrxt: expected: %hu actual: %hu ",
 					pathmaxrxt, live_params->spp_pathmaxrxt);
 				free(live_optval);
 				return STATUS_ERR;
@@ -1928,7 +1928,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_params->spp_pathmtu != pathmtu) {
-				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmtu: expected: %d actual: %d ",
+				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmtu: expected: %u actual: %u ",
 					pathmtu, live_params->spp_pathmtu);
 				free(live_optval);
 				return STATUS_ERR;

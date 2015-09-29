@@ -2047,7 +2047,7 @@ tcp_option
 	}
 }
 ;
-	
+
 sack_block_list
 : sack_block                 { $$ = $1; }
 | sack_block_list sack_block {
@@ -2587,7 +2587,7 @@ spp_hbinterval
 	if (!is_valid_u32($3)) {
 		semantic_error("spp_hbinterval out of range");
 	}
-	$$ = new_integer_expression($3 , "%u"); }
+	$$ = new_integer_expression($3, "%u"); }
 | SPP_HBINTERVAL '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
@@ -2596,7 +2596,7 @@ spp_pathmtu
 	if (!is_valid_u32($3)) {
 		semantic_error("spp_pathmtu out of range");
 	}
-	$$ = new_integer_expression($3 , "%u"); }
+	$$ = new_integer_expression($3, "%u"); }
 | SPP_PATHMTU '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
@@ -2605,7 +2605,7 @@ spp_pathmaxrxt
 	if (!is_valid_u16($3)) {
 		semantic_error("spp_pathmaxrxt out of range");
 	}
-	$$ = new_integer_expression($3 , "%u"); }
+	$$ = new_integer_expression($3, "%u"); }
 | SPP_PATHMAXRXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 

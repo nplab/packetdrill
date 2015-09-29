@@ -85,6 +85,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
@@ -96,7 +97,6 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_SHUTDOWN_RECEIVED,           "SCTP_SHUTDOWN_RECEIVED"          },
 	{ SCTP_SHUTDOWN_ACK_SENT,           "SCTP_SHUTDOWN_ACK_SENT"          },
 	{ SCTP_SHUTDOWN_PENDING,            "SCTP_SHUTDOWN_PENDING"           },
-	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },

@@ -118,6 +118,9 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SCTP_MAX_BURST
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 #endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
+#endif
 #ifdef SCTP_STATUS
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 #endif
@@ -125,9 +128,6 @@ struct int_symbol platform_symbols_table[] = {
 #if 0
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
 	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },
-#endif
-#ifdef SCTP_PEER_ADDR_PARAMS
-	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },	
 #endif
 	{ SCTP_COOKIE_WAIT,                 "SCTP_COOKIE_WAIT"                },
 	{ SCTP_COOKIE_ECHOED,               "SCTP_COOKIE_ECHOED"              },
