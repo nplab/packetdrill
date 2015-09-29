@@ -30,14 +30,17 @@
 	sstat_outstrms=1, sstat_fragmentation_point=..., 
 	sstat_primary={ spinfo_state=1, spinfo_cwnd=4464, spinfo_srtt=..., spinfo_rto=1000, spinfo_mtu=1468} }, [176])= 0
 
++0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+	spp_hbinterval=60000, spp_pathmtu=1468, spp_pathmaxrxt=...}, 152) = 0
+
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
-	spp_hbinterval=30000, spp_pathmtu=1468, spp_pathmaxrxt=5}, [152]) = 0
+	spp_hbinterval=60000, spp_pathmtu=1468, spp_pathmaxrxt=5}, [152]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
 	spp_hbinterval=..., spp_pathmtu=1468, spp_pathmaxrxt=5}, [152]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
-	spp_hbinterval=30000, spp_pathmtu=..., spp_pathmaxrxt=5}, [152]) = 0
+	spp_hbinterval=60000, spp_pathmtu=..., spp_pathmaxrxt=5}, [152]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
-	spp_hbinterval=30000, spp_pathmtu=1468, spp_pathmaxrxt=...}, [152]) = 0
+	spp_hbinterval=60000, spp_pathmtu=1468, spp_pathmaxrxt=...}, [152]) = 0
 
 +0 setsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=1, linger=30}, 8) = 0
 +0 getsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=128, linger=30}, [8]) = 0

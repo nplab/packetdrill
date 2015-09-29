@@ -557,7 +557,7 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 	if (mode == CHECK_NON_NEGATIVE) {
 		if (actual < 0) {
 			asprintf(error,
-				 "Expected non-negative result but got %d "
+				 "Expected non-negative result but got %d"
 				 "with errno %d (%s)",
 				 actual, actual_errno, strerror(actual_errno));
 			return STATUS_ERR;
@@ -1904,7 +1904,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_params->spp_hbinterval != hbinterval) {
-				asprintf(error, "Bad getsockopt SCTP_PARAMS hbinterval: expected: %u actual: %u ",
+				asprintf(error, "Bad getsockopt SCTP_PARAMS hbinterval: expected: %u actual: %u",
 					hbinterval, live_params->spp_hbinterval);
 				free(live_optval);
 				return STATUS_ERR;
@@ -1916,7 +1916,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_params->spp_pathmaxrxt != pathmaxrxt) {
-				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmaxrxt: expected: %hu actual: %hu ",
+				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmaxrxt: expected: %hu actual: %hu",
 					pathmaxrxt, live_params->spp_pathmaxrxt);
 				free(live_optval);
 				return STATUS_ERR;
@@ -1928,7 +1928,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 			if (live_params->spp_pathmtu != pathmtu) {
-				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmtu: expected: %u actual: %u ",
+				asprintf(error, "Bad getsockopt SCTP_PARAMS pathmtu: expected: %u actual: %u",
 					pathmtu, live_params->spp_pathmtu);
 				free(live_optval);
 				return STATUS_ERR;
@@ -2014,6 +2014,38 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
 		optval = &val_expression->value.sctp_status;
+#endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+	} else if (val_expression->type == EXPR_SCTP_PEER_ADDR_PARAMS) {
+		struct sctp_paddrparams_expr *expr_params = val_expression->value.sctp_paddrparams;
+		struct sctp_paddrparams *params = malloc(sizeof(struct sctp_paddrparams));
+		memset(params, 0, sizeof(struct sctp_paddrparams));
+		socklen_t live_optlen = sizeof(struct sctp_paddrparams);
+		if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
+			memcpy(&params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
+			memcpy(&params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+		} else {
+			asprintf(error, "Bad setsockopt, bad input for spp_address for socketoption SCTP_PADDRPARAMS");
+			free(params);
+			return STATUS_ERR;
+		}
+		params->spp_assoc_id = 0;                
+		if (getsockopt(live_fd, level, optname, params, &live_optlen) == -1) {
+			asprintf(error, "Bad setsockopt, bad get actuall values");
+			free(params);
+			return STATUS_ERR;
+		}
+		if (expr_params->spp_hbinterval->type != EXPR_ELLIPSIS) {
+			params->spp_hbinterval = expr_params->spp_hbinterval->value.num;
+		}
+		if (expr_params->spp_pathmaxrxt->type != EXPR_ELLIPSIS) {		
+			params->spp_pathmaxrxt = expr_params->spp_pathmaxrxt->value.num;
+		}
+		if (expr_params->spp_pathmtu->type != EXPR_ELLIPSIS) {
+			params->spp_pathmtu = expr_params->spp_pathmtu->value.num;
+		}
+		optval = params;
 #endif
 	} else {
 		asprintf(error, "unsupported setsockopt value type: %s",

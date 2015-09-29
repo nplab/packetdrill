@@ -42,5 +42,7 @@
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 9) = 0
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 7) = -1 (Invalid argument)
 
-+0 close(3) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+	spp_hbinterval=30000, spp_pathmtu=1468, spp_pathmaxrxt=100}, 152) = 0
 
++0 close(3) = 0
