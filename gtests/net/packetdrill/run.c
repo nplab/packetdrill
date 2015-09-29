@@ -541,8 +541,10 @@ void run_script(struct config *config, struct script *script)
 		wire_client_send_client_starting(state->wire_client);
 
 	while (1) {
-		if (get_next_event(state, &error))
+		if (get_next_event(state, &error)) {
+			state_free(state);
 			die("%s", error);
+		}
 		event = state->event;
 		if (event == NULL)
 			break;
