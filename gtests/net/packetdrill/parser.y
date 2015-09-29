@@ -2605,7 +2605,7 @@ spp_pathmaxrxt
 	if (!is_valid_u16($3)) {
 		semantic_error("spp_pathmaxrxt out of range");
 	}
-	$$ = new_integer_expression($3, "%u"); }
+	$$ = new_integer_expression($3, "%hu"); }
 | SPP_PATHMAXRXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
