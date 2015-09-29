@@ -1924,7 +1924,7 @@ static void invoke_system_call(
 {
 	DEBUGP("%d: invoke call: %s\n", event->line_number, syscall->name);
 
-	char *error = NULL;
+	char *error = NULL, *script_path = NULL;
 	const char *name = syscall->name;
 	struct expression_list *args = NULL;
 	int i = 0;
@@ -1958,9 +1958,12 @@ static void invoke_system_call(
 	return;
 
 error_out:
+	script_path = strdup(state->config->script_path);
+	state_free(state);
 	die("%s:%d: runtime error in %s call: %s\n",
-	    state->config->script_path, event->line_number,
+	    script_path, event->line_number,
 	    syscall->name, error);
+	free(script_path);
 	free(error);
 }
 
@@ -2007,7 +2010,7 @@ static int yield(void)
 static void enqueue_system_call(
 	struct state *state, struct event *event, struct syscall_spec *syscall)
 {
-	char *error = NULL;
+	char *error = NULL, *script_path = NULL;
 	bool done = false;
 
 	/* Wait if there are back-to-back blocking system calls. */
@@ -2058,9 +2061,12 @@ static void enqueue_system_call(
 	return;
 
 error_out:
+	script_path = strdup(state->config->script_path);
+	state_free(state);
 	die("%s:%d: runtime error in %s call: %s\n",
-	    state->config->script_path, event->line_number,
+	    script_path, event->line_number,
 	    syscall->name, error);
+	free(script_path);
 	free(error);
 }
 

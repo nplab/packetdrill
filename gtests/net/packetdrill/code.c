@@ -573,7 +573,7 @@ void run_code_event(struct state *state, struct event *event,
 {
 	DEBUGP("%d: run code event\n", event->line_number);
 
-	char *error = NULL;
+	char *error = NULL, *script_path = NULL;
 
 	/* Wait for the right time before firing off this event. */
 	wait_for_event(state);
@@ -618,7 +618,10 @@ void run_code_event(struct state *state, struct event *event,
 	return;
 
 error_out:
+	script_path = strdup(state->config->script_path);
+	state_free(state);
 	die("%s:%d: runtime error in code: %s\n",
-	    state->config->script_path, event->line_number, error);
+	    script_path, event->line_number, error);
+	free(script_path);
 	free(error);
 }

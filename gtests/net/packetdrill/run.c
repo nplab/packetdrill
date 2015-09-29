@@ -401,6 +401,7 @@ static void run_local_packet_event(struct state *state, struct event *event,
 		fprintf(stderr, "%s", error);
 		free(error);
 	} else if (result == STATUS_ERR) {
+		state_free(state);
 		die("%s", error);
 	}
 }
@@ -540,8 +541,10 @@ void run_script(struct config *config, struct script *script)
 		wire_client_send_client_starting(state->wire_client);
 
 	while (1) {
-		if (get_next_event(state, &error))
+		if (get_next_event(state, &error)) {
+			state_free(state);
 			die("%s", error);
+		}
 		event = state->event;
 		if (event == NULL)
 			break;
@@ -588,8 +591,11 @@ void run_script(struct config *config, struct script *script)
 		wire_client_next_event(state->wire_client, NULL);
 
 	if (code_execute(state->code, &error)) {
+		char *script_path = strdup(state->config->script_path);
+		state_free(state);
 		die("%s: error executing code: %s\n",
-		    state->config->script_path, error);
+		    script_path, error);
+		free(script_path);
 		free(error);
 	}
 
