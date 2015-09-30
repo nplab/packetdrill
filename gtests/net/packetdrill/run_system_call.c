@@ -1621,13 +1621,19 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_paddrparams_expr *expr_params = val_expression->value.sctp_paddrparams;
 		struct sctp_paddrparams *live_params = malloc(sizeof(struct sctp_paddrparams));
 		live_optlen = sizeof(struct sctp_paddrparams);
-		if (expr_params->spp_address->type != EXPR_ELLIPSIS) {
-			if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-				memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
-			} else {
-				memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+		if (expr_params->spp_address->type == EXPR_ELLIPSIS) {
+			socklen_t len_addr = sizeof(live_params->spp_address);
+			if (getpeername(live_fd, (struct sockaddr*) &live_params->spp_address, &len_addr)) {
+				asprintf(error, "Bad setsockopt, bad get primary peer address");
+				free(live_params);
+				return STATUS_ERR;
 			}
+		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
+			memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
+			memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
 		} else {
+			asprintf(error, "Bad setsockopt, bad get input for spp_address");
 			free(live_params);
 			return STATUS_ERR;
 		}
@@ -2031,6 +2037,13 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			memcpy(&params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
 		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
 			memcpy(&params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+		} else if (expr_params->spp_address->type == EXPR_ELLIPSIS) {
+			socklen_t len_addr = sizeof(params->spp_address);
+			if (getpeername(live_fd, (struct sockaddr*) &params->spp_address, &len_addr)) {
+				asprintf(error, "Bad setsockopt, bad get primary peer address");
+				free(params);
+				return STATUS_ERR;
+			}
 		} else {
 			asprintf(error, "Bad setsockopt, bad input for spp_address for socketoption SCTP_PADDRPARAMS");
 			free(params);
