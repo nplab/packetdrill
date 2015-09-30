@@ -155,7 +155,7 @@ void state_free(struct state *state)
 	run_unlock(state);
 	if (pthread_mutex_destroy(&state->mutex) != 0)
 		die_perror("pthread_mutex_destroy");
-	
+
 	memset(state, 0, sizeof(*state));  /* paranoia to help catch bugs */
 	free(state);
 }
