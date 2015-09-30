@@ -72,7 +72,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	{ EXPR_SCTP_ASSOCVAL,        "sctp_assocvalue"},
+	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
 #endif
 #ifdef SCTP_DELAYED_SACK
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
@@ -297,11 +297,13 @@ void free_expression(struct expression *expression)
 		free(expression->value.sctp_rtoinfo->srto_min);
 		break;
 #endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	case EXPR_SCTP_ASSOC_VALUE:
+		free(expression->value.sctp_assoc_value->assoc_value);
+		break;
+#endif
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
-#endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	case EXPR_SCTP_ASSOCVAL:
 #endif
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
@@ -495,6 +497,30 @@ static int evaluate_pollfd_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+static int evaluate_sctp_assoc_value_expression(struct expression *in,
+						struct expression *out,
+						char **error)
+{
+	struct sctp_assoc_value_expr *in_value;
+	struct sctp_assoc_value_expr *out_value;
+
+	assert(in->type == EXPR_SCTP_ASSOC_VALUE);
+	assert(in->value.sctp_assoc_value);
+	assert(out->type == EXPR_SCTP_ASSOC_VALUE);
+
+	out->value.sctp_assoc_value = calloc(1, sizeof(struct sctp_assoc_value_expr));
+
+	in_value = in->value.sctp_assoc_value;
+	out_value = out->value.sctp_assoc_value;
+
+	if (evaluate(in_value->assoc_value, &out_value->assoc_value, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -531,10 +557,8 @@ static int evaluate(struct expression *in,
 		break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	case EXPR_SCTP_ASSOCVAL:	/* copy as-is */
-		memcpy(&out->value.sctp_assoc_value,
-		       &in->value.sctp_assoc_value,
-		       sizeof(in->value.sctp_assoc_value));
+	case EXPR_SCTP_ASSOC_VALUE:	/* copy as-is */
+		evaluate_sctp_assoc_value_expression(in, out, error);
 		break;
 #endif
 #ifdef SCTP_DELAYED_SACK

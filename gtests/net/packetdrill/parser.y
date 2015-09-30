@@ -565,9 +565,10 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression_list> expression_list function_arguments
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer
-%type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents 
+%type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
-%type <expression> sctp_status sctp_initmsg sctp_assocval sctp_sackinfo
+%type <expression> sctp_status sctp_initmsg sctp_sackinfo
+%type <expression> sctp_assoc_value
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2333,7 +2334,7 @@ expression
 | sctp_initmsg      {
 	$$ = $1;
 }
-| sctp_assocval     {
+| sctp_assoc_value  {
 	$$ = $1;
 }
 | sctp_sackinfo     {
@@ -2461,18 +2462,18 @@ opt_revents
 ;
 
 l_onoff
-: ONOFF '=' INTEGER { 
+: ONOFF '=' INTEGER {
 	if (!is_valid_s32($3)) {
 		semantic_error("linger onoff out of range");
 	} else {
-		$$ = new_integer_expression($3, "%ld"); 
-	}	
+		$$ = new_integer_expression($3, "%ld");
+	}
 }
 | ONOFF '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 l_linger
-: LINGER '=' INTEGER { 
+: LINGER '=' INTEGER {
 	if (!is_valid_s32($3)) {
 		semantic_error("linger out of range");
 	}
@@ -2560,14 +2561,12 @@ sctp_initmsg
 }
 ;
 
-sctp_assocval
-: '{' ASSOC_VALUE '=' INTEGER '}' {
+sctp_assoc_value
+: '{' ASSOC_VALUE '=' expression '}' {
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	$$ = new_expression(EXPR_SCTP_ASSOCVAL);
-	if (!is_valid_u32($4)) {
-		semantic_error("assoc_value out of range");
-	}
-	$$->value.sctp_assoc_value.assoc_value = $4;
+	$$ = new_expression(EXPR_SCTP_ASSOC_VALUE);
+	$$->value.sctp_assoc_value = calloc(1, sizeof(struct sctp_assoc_value_expr));
+	$$->value.sctp_assoc_value->assoc_value = $4;
 #else
 	$$ = NULL;
 #endif

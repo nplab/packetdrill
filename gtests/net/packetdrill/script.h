@@ -52,7 +52,7 @@ enum expression_t {
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	EXPR_SCTP_ASSOCVAL,	  /* struct sctp_assoc_value */
+	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
 #endif
 #ifdef SCTP_DELAYED_SACK
 	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info for
@@ -87,7 +87,7 @@ struct expression {
 		struct sctp_initmsg sctp_initmsg;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-		struct sctp_assoc_value sctp_assoc_value;
+		struct sctp_assoc_value_expr *sctp_assoc_value;
 #endif
 #ifdef SCTP_DELAYED_SACK
 		struct sctp_sack_info sctp_sack_info;
@@ -147,6 +147,13 @@ struct sctp_rtoinfo_expr {
 	struct expression *srto_initial;
 	struct expression *srto_max;
 	struct expression *srto_min;
+};
+#endif
+
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+/* Parse tree for a sctp_assoc_value struct in a [gs]etsockopt syscall. */
+struct sctp_assoc_value_expr {
+	struct expression *assoc_value;
 };
 #endif
 

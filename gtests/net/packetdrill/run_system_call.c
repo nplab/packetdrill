@@ -181,6 +181,26 @@ static int check_type(struct expression *expression,
 }
 
 /* Sets the value from the expression argument, checking that it is a
+ * valid u32, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static int get_u32(struct expression *expression,
+		   u32 *value, char **error)
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if ((expression->value.num > UINT32_MAX) ||
+	    (expression->value.num < 0)) {
+		asprintf(error,
+			 "Value out of range for 32-bit unsigned integer: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+
+/* Sets the value from the expression argument, checking that it is a
  * valid s32 or u32, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
@@ -1578,6 +1598,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	void *live_optval;
 	socklen_t live_optlen;
 	struct expression *val_expression;
+
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -1610,6 +1631,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(val_expression->value.sctp_status);
 		((struct sctp_status*) live_optval)->sstat_assoc_id = val_expression->value.sctp_status.sstat_assoc_id;
 #endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	} else if (val_expression->type == EXPR_SCTP_ASSOC_VALUE) {
+		live_optval = malloc(sizeof(struct sctp_assoc_value));
+		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
+		((struct sctp_assoc_value *) live_optval)->assoc_id = 0;
+#endif
 	} else {
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -1633,7 +1660,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct expression *l_onoff = val_expression->value.linger->l_onoff;
 		struct expression *l_linger = val_expression->value.linger->l_linger;
 		struct linger *ling = live_optval;
-		int val_onoff = 0; 
+		int val_onoff = 0;
 		if (l_onoff->type == EXPR_INTEGER) {
 			if (get_s32(l_onoff, &val_onoff, error)) {
 				free(live_optval);
@@ -1743,6 +1770,25 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	} else if (val_expression->type == EXPR_SCTP_ASSOC_VALUE) {
+		struct expression *assoc_value = val_expression->value.sctp_assoc_value->assoc_value;
+		struct sctp_assoc_value *sctp_assoc_value = live_optval;
+		u32 value;
+
+		if (assoc_value->type != EXPR_ELLIPSIS) {
+			if (get_u32(assoc_value, &value, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (sctp_assoc_value->assoc_value != value) {
+				asprintf(error, "Bad getsockopt sctp_assoc_value.assoc_value: expected: %u actual: %u",
+					 value, sctp_assoc_value->assoc_value);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		}
+#endif
 	} else {
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
@@ -1761,6 +1807,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	int script_fd, live_fd, level, optname, optval_s32, optlen, result;
 	void *optval = NULL;
 	struct expression *val_expression;
+	struct sctp_assoc_value assoc_value;
 
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
@@ -1780,7 +1827,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	if (val_expression->type == EXPR_LINGER) {
 		optval = malloc(sizeof(struct linger));
-		get_s32(val_expression->value.linger->l_onoff, 
+		get_s32(val_expression->value.linger->l_onoff,
 			&(((struct linger*) optval)->l_onoff), error);
 		get_s32(val_expression->value.linger->l_linger,
                         &(((struct linger*) optval)->l_linger), error);
@@ -1796,7 +1843,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_rtoinfo_expr *expr_rtoinfo  = val_expression->value.sctp_rtoinfo;
 		if (expr_rtoinfo->srto_initial->type != EXPR_INTEGER ||
 			expr_rtoinfo->srto_max->type != EXPR_INTEGER ||
-			expr_rtoinfo->srto_min->type != EXPR_INTEGER) { 
+			expr_rtoinfo->srto_min->type != EXPR_INTEGER) {
 			asprintf(error, "Bad setsockopt, bad inputtype for rtoinfo");
 			return STATUS_ERR;
 		}
@@ -1812,8 +1859,13 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &val_expression->value.sctp_initmsg;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	} else if (val_expression->type == EXPR_SCTP_ASSOCVAL) {
-		optval = &val_expression->value.sctp_assoc_value;
+	} else if (val_expression->type == EXPR_SCTP_ASSOC_VALUE) {
+		assoc_value.assoc_id = 0;
+		if (get_u32(val_expression->value.sctp_assoc_value->assoc_value,
+		            &assoc_value.assoc_value, error)) {
+			return STATUS_ERR;
+		}
+		optval = &assoc_value;
 #endif
 #ifdef SCTP_DELAYED_SACK
 	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
