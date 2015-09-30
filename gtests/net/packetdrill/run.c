@@ -64,6 +64,15 @@
  */
 const int MAX_SPIN_USECS = 20;
 
+struct state *state = NULL;
+
+void interrupt_handler(int signal_number) {
+	if (state != NULL)
+		state_free(state);
+	
+	die("interrupted");
+}
+
 struct state *state_new(struct config *config,
 			struct script *script,
 			struct netdev *netdev)
@@ -146,7 +155,7 @@ void state_free(struct state *state)
 	run_unlock(state);
 	if (pthread_mutex_destroy(&state->mutex) != 0)
 		die_perror("pthread_mutex_destroy");
-
+	
 	memset(state, 0, sizeof(*state));  /* paranoia to help catch bugs */
 	free(state);
 }
@@ -496,9 +505,12 @@ static s64 schedule_start_time_usecs(void)
 void run_script(struct config *config, struct script *script)
 {
 	char *error = NULL;
-	struct state *state = NULL;
 	struct netdev *netdev = NULL;
 	struct event *event = NULL;
+	
+	if (signal(SIGINT, interrupt_handler) == SIG_ERR) {
+		die("could not set up interrupt handler!");
+	}
 
 	DEBUGP("run_script: running script\n");
 
