@@ -2425,9 +2425,7 @@ sctp_sackinfo
 ;
 
 sstat_state
-: SSTAT_STATE '=' expression {
-	$$ = $3;
-}
+: SSTAT_STATE '=' expression { $$ = $3; }
 ;
 
 sstat_rwnd
@@ -2501,6 +2499,10 @@ spinfo_state
 		semantic_error("spinfo_state out of range");
 	}
 	$$ = new_integer_expression($3, "%d"); 
+}
+| SPINFO_STATE '=' WORD { 
+	$$ = new_expression(EXPR_WORD); 
+	$$->value.string = $3; 
 }
 | SPINFO_STATE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;

@@ -136,6 +136,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_SHUTDOWN_RECEIVED,           "SCTP_SHUTDOWN_RECEIVED"          },
 	{ SCTP_SHUTDOWN_ACK_SENT,           "SCTP_SHUTDOWN_ACK_SENT"          },
 	{ SCTP_SHUTDOWN_PENDING,            "SCTP_SHUTDOWN_PENDING"           },
+        { SCTP_UNCONFIRMED,                 "SCTP_UNCONFIRMED"                },
+        { SCTP_ACTIVE,                      "SCTP_ACTIVE"                     },
+        { SCTP_INACTIVE,                    "SCTP_INACTIVE"                   },
 
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

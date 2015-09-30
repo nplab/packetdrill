@@ -559,6 +559,21 @@ static int evaluate_sctp_status_expression(struct expression *in,
 			&out_status->sstat_primary,
 			error))
 		return STATUS_ERR;
+	if (in_status->sstat_primary->type == EXPR_SCTP_PADDRINFO) {
+		struct sctp_paddrinfo_expr *paddrinfo = in_status->sstat_primary->value.sctp_paddrinfo;
+		if (paddrinfo->spinfo_state->type == EXPR_WORD) {
+			s64 val_state = 0;
+			if (symbol_to_int(paddrinfo->spinfo_state->value.string,
+					&val_state, error) == STATUS_OK) {
+				paddrinfo->spinfo_state->type = EXPR_INTEGER;
+				paddrinfo->spinfo_state->value.num = val_state;
+			} else {
+				asprintf(error, "bad expression unknown symbol for spinfo_state %s",
+					paddrinfo->spinfo_state->value.string);
+				return STATUS_ERR;
+			}
+		}
+	}
 	return STATUS_OK;
 }
 #endif
