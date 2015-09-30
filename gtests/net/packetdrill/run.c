@@ -64,7 +64,7 @@
  */
 const int MAX_SPIN_USECS = 20;
 
-struct state *state = NULL;
+static struct state *state = NULL;
 
 void interrupt_handler(int signal_number) {
 	if (state != NULL)
@@ -509,7 +509,7 @@ void run_script(struct config *config, struct script *script)
 	struct event *event = NULL;
 	
 	if (signal(SIGINT, interrupt_handler) == SIG_ERR) {
-		die("could not set up interrupt handler!");
+		die("could not set up interrupt handler for SIGINT!");
 	}
 
 	DEBUGP("run_script: running script\n");
