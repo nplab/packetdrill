@@ -204,7 +204,7 @@ static int get_s32(struct expression *expression,
  * valid s16 or u16, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
-static short get_s16(struct expression *expression, 
+static short get_s16(struct expression *expression,
 		s16 *value, char **error)
 {
 	if (check_type(expression, EXPR_INTEGER, error))
@@ -1657,7 +1657,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct expression *l_onoff = val_expression->value.linger->l_onoff;
 		struct expression *l_linger = val_expression->value.linger->l_linger;
 		struct linger *ling = live_optval;
-		int val_onoff = 0; 
+		int val_onoff = 0;
 		if (l_onoff->type != EXPR_ELLIPSIS) {
 			if (get_s32(l_onoff, &val_onoff, error)) {
 				free(live_optval);
@@ -1678,7 +1678,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			}
 			if (ling->l_linger != val_linger) {
 				asprintf(error, "Bad getsockopt Linger Value: expected: %d actual: %d",
-					 val_linger, ling->l_linger);
+					val_linger, ling->l_linger);
 				free(live_optval);
 				return STATUS_ERR;
 			}
@@ -1691,7 +1691,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct expression *srto_min = val_expression->value.sctp_rtoinfo->srto_min;
 		struct sctp_rtoinfo *rtoinfo = live_optval;
 		int initial=0, max=0, min=0;
-		if (srto_initial->type == EXPR_INTEGER) {
+		if (srto_initial->type != EXPR_ELLIPSIS) {
 			if (get_s32(srto_initial, &initial, error)) {
 				free(live_optval);
 				return STATUS_ERR;
@@ -1702,7 +1702,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		} else if (srto_max->type == EXPR_INTEGER) {
+		} else if (srto_max->type != EXPR_ELLIPSIS) {
 			if (get_s32(srto_max, &max, error)) {
 				free(live_optval);
 				return STATUS_ERR;
@@ -1713,7 +1713,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		} else if (srto_min->type == EXPR_INTEGER) {
+		} else if (srto_min->type != EXPR_ELLIPSIS) {
 			if (get_s32(srto_min, &min, error)) {
 				free(live_optval);
 				return STATUS_ERR;
@@ -1894,7 +1894,6 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct expression *spp_hbinterval = val_expression->value.sctp_paddrparams->spp_hbinterval;
 		struct expression *spp_pathmaxrxt = val_expression->value.sctp_paddrparams->spp_pathmaxrxt;
 		struct expression *spp_pathmtu = val_expression->value.sctp_paddrparams->spp_pathmtu;
-		
 		struct sctp_paddrparams *live_params = live_optval;
 		int hbinterval, pathmtu;
 		short pathmaxrxt;
@@ -1938,7 +1937,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	} else {
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
-			         (int)script_optval, *(int*)live_optval);
+				(int)script_optval, *(int*)live_optval);
 			free(live_optval);
 			return STATUS_ERR;
 		}
@@ -1948,7 +1947,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 }
 
 static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
-			      struct expression_list *args, char **error)
+			struct expression_list *args, char **error)
 {
 	int script_fd, live_fd, level, optname, optval_s32, optlen, result;
 	void *optval = NULL;
@@ -1972,10 +1971,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	if (val_expression->type == EXPR_LINGER) {
 		optval = malloc(sizeof(struct linger));
-		get_s32(val_expression->value.linger->l_onoff, 
+		get_s32(val_expression->value.linger->l_onoff,
 			&(((struct linger*) optval)->l_onoff), error);
 		get_s32(val_expression->value.linger->l_linger,
-                        &(((struct linger*) optval)->l_linger), error);
+			&(((struct linger*) optval)->l_linger), error);
 	} else if (val_expression->type == EXPR_STRING) {
 		optval = val_expression->value.string;
 	} else if (val_expression->type == EXPR_LIST) {
@@ -1986,17 +1985,24 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
 		struct sctp_rtoinfo *rtoinfo;
 		struct sctp_rtoinfo_expr *expr_rtoinfo  = val_expression->value.sctp_rtoinfo;
-		if (expr_rtoinfo->srto_initial->type != EXPR_INTEGER ||
-			expr_rtoinfo->srto_max->type != EXPR_INTEGER ||
-			expr_rtoinfo->srto_min->type != EXPR_INTEGER) { 
-			asprintf(error, "Bad setsockopt, bad inputtype for rtoinfo");
+		socklen_t live_optlen = sizeof(struct sctp_paddrparams);
+		rtoinfo = malloc(sizeof(struct sctp_rtoinfo));
+		memset(rtoinfo, 0, sizeof(struct sctp_rtoinfo));
+		rtoinfo->srto_assoc_id = 0;
+		if (getsockopt(live_fd, level, optname, rtoinfo, &live_optlen) == -1) {
+			asprintf(error, "Bad setsockopt, bad get actuall values");
+			free(rtoinfo);
 			return STATUS_ERR;
 		}
-		rtoinfo = malloc(sizeof(struct sctp_rtoinfo));
-		rtoinfo->srto_initial = expr_rtoinfo->srto_initial->value.num;
-		rtoinfo->srto_max = expr_rtoinfo->srto_max->value.num;
-		rtoinfo->srto_min = expr_rtoinfo->srto_min->value.num;
-		rtoinfo->srto_assoc_id = 0;
+		if (expr_rtoinfo->srto_initial->type != EXPR_ELLIPSIS) {
+			rtoinfo->srto_initial = expr_rtoinfo->srto_initial->value.num;	
+		}
+		if (expr_rtoinfo->srto_max->type != EXPR_ELLIPSIS) {
+			rtoinfo->srto_max = expr_rtoinfo->srto_max->value.num;		
+		}
+		if (expr_rtoinfo->srto_min->type != EXPR_ELLIPSIS) {
+			rtoinfo->srto_min = expr_rtoinfo->srto_min->value.num;
+		}
 		optval = rtoinfo;
 #endif
 #ifdef SCTP_INITMSG
@@ -2030,7 +2036,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			free(params);
 			return STATUS_ERR;
 		}
-		params->spp_assoc_id = 0;                
+		params->spp_assoc_id = 0;
 		if (getsockopt(live_fd, level, optname, params, &live_optlen) == -1) {
 			asprintf(error, "Bad setsockopt, bad get actuall values");
 			free(params);
@@ -2039,7 +2045,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		if (expr_params->spp_hbinterval->type != EXPR_ELLIPSIS) {
 			params->spp_hbinterval = expr_params->spp_hbinterval->value.num;
 		}
-		if (expr_params->spp_pathmaxrxt->type != EXPR_ELLIPSIS) {		
+		if (expr_params->spp_pathmaxrxt->type != EXPR_ELLIPSIS) {
 			params->spp_pathmaxrxt = expr_params->spp_pathmaxrxt->value.num;
 		}
 		if (expr_params->spp_pathmtu->type != EXPR_ELLIPSIS) {

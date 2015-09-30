@@ -2425,13 +2425,9 @@ sctp_sackinfo
 ;
 
 sstat_state
-: SSTAT_STATE '=' INTEGER {
-	if (!is_valid_u32($3)) {
-		semantic_error("sstat_state out of range");
-	}
-	$$ = new_integer_expression($3, "%ld");
+: SSTAT_STATE '=' expression {
+	$$ = $3;
 }
-| SSTAT_STATE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 sstat_rwnd

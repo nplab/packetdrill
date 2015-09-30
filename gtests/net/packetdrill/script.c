@@ -499,6 +499,56 @@ static int evaluate_msghdr_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+#ifdef SCTP_STATUS
+static int evaluate_sctp_status_expression(struct expression *in,
+						struct expression *out, char **error)
+{
+	struct sctp_status_expr *in_status;
+	struct sctp_status_expr *out_status;
+
+	assert(in->type == EXPR_SCTP_STATUS);
+	assert(in->value.sctp_status);
+	assert(out->type == EXPR_SCTP_STATUS);
+
+	out->value.sctp_status = calloc(1, sizeof(struct sctp_status_expr));
+
+	in_status = in->value.sctp_status;
+	out_status = out->value.sctp_status;
+	if (evaluate(in_status->sstat_state,
+			&out_status->sstat_state,
+			error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_rwnd,
+			&out_status->sstat_rwnd,
+			error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_unackdata,
+			&out_status->sstat_unackdata,
+			error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_penddata,
+			&out_status->sstat_penddata,
+			error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_instrms,
+			&out_status->sstat_instrms,
+			error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_outstrms,
+			&out_status->sstat_outstrms,
+			error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_fragmentation_point,
+			&out_status->sstat_fragmentation_point,
+			error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_primary,
+			&out_status->sstat_primary,
+			error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+#endif
 static int evaluate_pollfd_expression(struct expression *in,
 				      struct expression *out, char **error)
 {
@@ -574,8 +624,7 @@ static int evaluate(struct expression *in,
 #endif
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
-		memcpy(&out->value.sctp_paddrinfo, &in->value.sctp_paddrinfo,
-			sizeof(in->value.sctp_paddrinfo));
+		result = evaluate_sctp_status_expression(in, out, error);
 		break;
 	case EXPR_SCTP_STATUS:	/* copy as-is */
 		memcpy(&out->value.sctp_status, &in->value.sctp_status,
