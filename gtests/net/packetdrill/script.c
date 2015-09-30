@@ -514,7 +514,20 @@ static int evaluate_sctp_status_expression(struct expression *in,
 
 	in_status = in->value.sctp_status;
 	out_status = out->value.sctp_status;
-	if (evaluate(in_status->sstat_state,
+	if (in_status->sstat_state->type == EXPR_WORD) {
+		s64 val_state = 0;
+		if (symbol_to_int(in_status->sstat_state->value.string,  
+				&val_state, error) == STATUS_OK) {
+			out_status->sstat_state = (struct expression*) 
+				calloc(1, sizeof(struct expression));
+			out_status->sstat_state->type = EXPR_INTEGER;
+			out_status->sstat_state->value.num = val_state;
+		} else {
+			asprintf(error, "bad expression unknown symbol for sstat_state %s", 
+				in_status->sstat_state->value.string);
+			return STATUS_ERR;
+		}
+	} else if (evaluate(in_status->sstat_state,
 			&out_status->sstat_state,
 			error))
 		return STATUS_ERR;
@@ -624,11 +637,11 @@ static int evaluate(struct expression *in,
 #endif
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
-		result = evaluate_sctp_status_expression(in, out, error);
+		memcpy(&out->value.sctp_paddrinfo, &in->value.sctp_paddrinfo,
+		       sizeof(in->value.sctp_paddrinfo));
 		break;
 	case EXPR_SCTP_STATUS:	/* copy as-is */
-		memcpy(&out->value.sctp_status, &in->value.sctp_status,
-		       sizeof(in->value.sctp_status));
+		result = evaluate_sctp_status_expression(in, out, error);
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
