@@ -181,26 +181,6 @@ static int check_type(struct expression *expression,
 }
 
 /* Sets the value from the expression argument, checking that it is a
- * valid u16, and matches the expected type. Returns STATUS_OK on
- * success; on failure returns STATUS_ERR and sets error message.
- */
-static int get_u16(struct expression *expression,
-		   u16 *value, char **error)
-{
-	if (check_type(expression, EXPR_INTEGER, error))
-		return STATUS_ERR;
-	if ((expression->value.num > UINT16_MAX) ||
-	    (expression->value.num < 0)) {
-		asprintf(error,
-			 "Value out of range for 16-bit unsigned integer: %lld",
-			 expression->value.num);
-		return STATUS_ERR;
-	}
-	*value = expression->value.num;
-	return STATUS_OK;
-}
-
-/* Sets the value from the expression argument, checking that it is a
  * valid u32, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
@@ -241,6 +221,26 @@ static int get_s32(struct expression *expression,
 }
 
 /* Sets the value from the expression argument, checking that it is a
+ * valid u16, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static int get_u16(struct expression *expression,
+		   u16 *value, char **error)
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if ((expression->value.num > UINT16_MAX) ||
+	    (expression->value.num < 0)) {
+		asprintf(error,
+			 "Value out of range for 16-bit unsigned integer: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+
+/* Sets the value from the expression argument, checking that it is a
  * valid s16 or u16, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
@@ -249,8 +249,8 @@ static int get_s16(struct expression *expression,
 {
 	if (check_type(expression, EXPR_INTEGER, error))
 		return STATUS_ERR;
-	if ((expression->value.num > USHRT_MAX) ||
-		(expression->value.num < SHRT_MIN)) {
+	if ((expression->value.num > INT16_MAX) ||
+		(expression->value.num < INT16_MIN)) {
 		asprintf(error,
 			"Value out of range for 16-bit integer: %lld",
 			expression->value.num);
@@ -269,8 +269,8 @@ static int get_s8(struct expression *expression,
 {
         if (check_type(expression, EXPR_INTEGER, error))
                 return STATUS_ERR;
-        if ((expression->value.num > UCHAR_MAX) ||
-                (expression->value.num < SCHAR_MIN)) {
+        if ((expression->value.num > INT8_MAX) ||
+                (expression->value.num < INT8_MIN)) {
                 asprintf(error,
                         "Value out of range for 8-bit integer: %lld",
                         expression->value.num);
