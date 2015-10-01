@@ -2167,12 +2167,16 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	int script_fd, live_fd, level, optname, optval_s32, optlen, result;
 	void *optval = NULL;
 	struct expression *val_expression;
+	struct linger linger;
+	struct sctp_rtoinfo rtoinfo;
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	struct sctp_assoc_value assoc_value;
 #endif
+	struct sctp_status status;
 #if defined(SCTP_SS_VALUE)
 	struct sctp_stream_value stream_value;
 #endif
+	struct sctp_paddrparams paddrparams;
 
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
@@ -2191,11 +2195,11 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	if (val_expression == NULL)
 		return STATUS_ERR;
 	if (val_expression->type == EXPR_LINGER) {
-		optval = malloc(sizeof(struct linger));
 		get_s32(val_expression->value.linger->l_onoff,
-			&(((struct linger*) optval)->l_onoff), error);
+			&linger.l_onoff, error);
 		get_s32(val_expression->value.linger->l_linger,
-			&(((struct linger*) optval)->l_linger), error);
+			&linger.l_linger, error);
+		optval = &linger;
 	} else if (val_expression->type == EXPR_STRING) {
 		optval = val_expression->value.string;
 	} else if (val_expression->type == EXPR_LIST) {
@@ -2204,26 +2208,20 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &optval_s32;
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		struct sctp_rtoinfo *rtoinfo;
-		struct sctp_rtoinfo_expr *expr_rtoinfo  = val_expression->value.sctp_rtoinfo;
-		rtoinfo = malloc(sizeof(struct sctp_rtoinfo));
-		rtoinfo->srto_assoc_id = 0;
-		if (get_u32(expr_rtoinfo->srto_initial,
-		            &rtoinfo->srto_initial, error)) {
-			free(rtoinfo);
+		rtoinfo.srto_assoc_id = 0;
+		if (get_u32(val_expression->value.sctp_rtoinfo->srto_initial,
+		            &rtoinfo.srto_initial, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u32(expr_rtoinfo->srto_max,
-		            &rtoinfo->srto_max, error)) {
-			free(rtoinfo);
+		if (get_u32(val_expression->value.sctp_rtoinfo->srto_max,
+		            &rtoinfo.srto_max, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u32(expr_rtoinfo->srto_min,
-		            &rtoinfo->srto_min, error)) {
-			free(rtoinfo);
+		if (get_u32(val_expression->value.sctp_rtoinfo->srto_min,
+		            &rtoinfo.srto_min, error)) {
 			return STATUS_ERR;
 		}
-		optval = rtoinfo;
+		optval = &rtoinfo;
 #endif
 #ifdef SCTP_INITMSG
 	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
@@ -2257,65 +2255,61 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
-		struct sctp_status *status = malloc(sizeof(struct sctp_status));
-		status->sstat_assoc_id = 0;
-		optval = status;
+		status.sstat_assoc_id = 0;
+		optval = &status;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	} else if (val_expression->type == EXPR_SCTP_PEER_ADDR_PARAMS) {
-		struct sctp_paddrparams_expr *expr_params = val_expression->value.sctp_paddrparams;
-		struct sctp_paddrparams *params = malloc(sizeof(struct sctp_paddrparams));
-		memset(params, 0, sizeof(struct sctp_paddrparams));
-		params->spp_assoc_id = 0;
-		if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-			memcpy(&params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
-		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
-			memcpy(&params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
-		} else if (expr_params->spp_address->type == EXPR_ELLIPSIS) {
-			socklen_t len_addr = sizeof(params->spp_address);
-			if (getpeername(live_fd, (struct sockaddr*) &params->spp_address, &len_addr)) {
+		paddrparams.spp_assoc_id = 0;
+		if (val_expression->value.sctp_paddrparams->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
+			memcpy(&paddrparams.spp_address,
+			       val_expression->value.sctp_paddrparams->spp_address->value.socket_address_ipv4,
+			       sizeof(struct sockaddr_in));
+		} else if (val_expression->value.sctp_paddrparams->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
+			memcpy(&paddrparams.spp_address,
+			       val_expression->value.sctp_paddrparams->spp_address->value.socket_address_ipv6,
+			       sizeof(struct sockaddr_in6));
+		} else if (val_expression->value.sctp_paddrparams->spp_address->type == EXPR_ELLIPSIS) {
+			socklen_t len_addr = sizeof(struct sockaddr_storage);
+			if (getpeername(live_fd,
+			                (struct sockaddr*)&paddrparams.spp_address,
+			                &len_addr)) {
 				asprintf(error, "Bad setsockopt, bad get primary peer address");
-				free(params);
 				return STATUS_ERR;
 			}
 		} else {
 			asprintf(error, "Bad setsockopt, bad input for spp_address for socketoption SCTP_PADDRPARAMS");
-			free(params);
 			return STATUS_ERR;
 		}
-		if (get_u32(expr_params->spp_hbinterval,
-		            &params->spp_hbinterval, error)) {
-			free(params);
+		if (get_u32(val_expression->value.sctp_paddrparams->spp_hbinterval,
+		            &paddrparams.spp_hbinterval, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u16(expr_params->spp_pathmaxrxt,
-		            &params->spp_pathmaxrxt, error)) {
-			free(params);
+		if (get_u16(val_expression->value.sctp_paddrparams->spp_pathmaxrxt,
+		            &paddrparams.spp_pathmaxrxt, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u32(expr_params->spp_pathmtu,
-		            &params->spp_pathmtu, error)) {
-			free(params);
+		if (get_u32(val_expression->value.sctp_paddrparams->spp_pathmtu,
+		            &paddrparams.spp_pathmtu, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u32(expr_params->spp_flags, &params->spp_flags, error)) {
-			free(params);
+		if (get_u32(val_expression->value.sctp_paddrparams->spp_flags,
+		            &paddrparams.spp_flags, error)) {
 			return STATUS_ERR;
 		}
 #ifdef SPP_IPV6_FLOWLABEL
-		if (get_u32(expr_params->spp_ipv6_flowlabel,
-		            &params->spp_ipv6_flowlabel, error)) {
-			free(params);
+		if (get_u32(val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel,
+		            &paddrparams.spp_ipv6_flowlabel, error)) {
 			return STATUS_ERR;
 		}
 #endif
 #ifdef SPP_DSCP
-		if (get_u8(expr_params->spp_dscp, &params->spp_dscp, error)) {
-			free(params);
+		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
+		           &paddrparams.spp_dscp, error)) {
 			return STATUS_ERR;
 		}
 #endif
-		optval = params;
+		optval = &paddrparams;
 #endif
 	} else {
 		asprintf(error, "unsupported setsockopt value type: %s",
@@ -2327,7 +2321,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
 	return end_syscall(state, syscall, CHECK_EXACT, result, error);
-	free(optval);
 }
 
 static int syscall_poll(struct state *state, struct syscall_spec *syscall,
