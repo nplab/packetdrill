@@ -8,10 +8,57 @@
 +0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
 +0.1 < sctp: COOKIE_ACK[flgs=0]
 
-+0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+//+0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=8, sstat_rwnd=1500, sstat_unackdata=0, sstat_penddata=0, sstat_instrms=1, sstat_outstrms=1, 
- 		sstat_fragmentation_point=1452, sstat_primary=...}, [176])= 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=..., sstat_rwnd=..., sstat_unackdata=..., sstat_penddata=...,
+sstat_instrms=..., sstat_outstrms=..., sstat_fragmentation_point=..., sstat_primary=...}, 176) = -1
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=SCTP_ESTABLISHED, sstat_rwnd=1500, 
+sstat_unackdata=0, sstat_penddata=0, sstat_instrms=1, sstat_outstrms=1, sstat_fragmentation_point=1452, sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=..., sstat_rwnd=1500, sstat_unackdata=0, 
+sstat_penddata=0, sstat_instrms=1, sstat_outstrms=1, sstat_fragmentation_point=1452, sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=8, sstat_rwnd=..., sstat_unackdata=0, 
+sstat_penddata=0, sstat_instrms=1, sstat_outstrms=1, sstat_fragmentation_point=1452, sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=8, sstat_rwnd=1500, sstat_unackdata=..., 
+sstat_penddata=0, sstat_instrms=1, sstat_outstrms=1, sstat_fragmentation_point=1452, sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=8, sstat_rwnd=1500, sstat_unackdata=0, 
+sstat_penddata=..., sstat_instrms=1, sstat_outstrms=1, sstat_fragmentation_point=1452, sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=8, sstat_rwnd=1500, sstat_unackdata=0, 
+sstat_penddata=0, sstat_instrms=..., sstat_outstrms=1, sstat_fragmentation_point=1452, sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=8, sstat_rwnd=1500, sstat_unackdata=0, 
+sstat_penddata=0, sstat_instrms=1, sstat_outstrms=..., sstat_fragmentation_point=1452, sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=8, sstat_rwnd=1500, sstat_unackdata=0, 
+sstat_penddata=0, sstat_instrms=1, sstat_outstrms=1, sstat_fragmentation_point=..., sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_state=SCTP_ESTABLISHED, sstat_rwnd=1500, sstat_unackdata=0, sstat_penddata=0,
+sstat_instrms=1, sstat_outstrms=1, sstat_fragmentation_point=..., 
+sstat_primary={ spinfo_state=SCTP_ACTIVE, spinfo_cwnd=4464, spinfo_srtt=..., spinfo_rto=1000, spinfo_mtu=1468} }, [176]) = 0
+
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+spp_hbinterval=300, spp_pathmtu=1468, spp_pathmaxrxt=..., spp_flags=SPP_DSCP|SPP_HB_ENABLE, spp_ipv6_flowlabel=0, spp_dscp=0}, 152) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+spp_hbinterval=300, spp_pathmtu=1468, spp_pathmaxrxt=..., spp_flags=SPP_DSCP|SPP_HB_ENABLE|SPP_PMTUD_ENABLE, spp_ipv6_flowlabel=0, spp_dscp=0}, [152]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+spp_hbinterval=..., spp_pathmtu=1468, spp_pathmaxrxt=..., spp_flags=..., spp_ipv6_flowlabel=0, spp_dscp=0}, [152]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+spp_hbinterval=300, spp_pathmtu=..., spp_pathmaxrxt=..., spp_flags=521, spp_ipv6_flowlabel=0, spp_dscp=0}, [152]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+spp_hbinterval=300, spp_pathmtu=1468, spp_pathmaxrxt=..., spp_flags=521, spp_ipv6_flowlabel=..., spp_dscp=0}, [152]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+spp_hbinterval=300, spp_pathmtu=1468, spp_pathmaxrxt=..., spp_flags=521, spp_ipv6_flowlabel=0, spp_dscp=...}, [152]) = 0
 
 +0 setsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=1, linger=30}, 8) = 0
 +0 getsockopt(3, SOL_SOCKET, SO_LINGER, {onoff=128, linger=30}, [8]) = 0
@@ -26,4 +73,3 @@
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=200, srto_min=...}, [16]) = 0
 
 +0 close(3) = 0
-

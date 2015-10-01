@@ -60,7 +60,9 @@ enum expression_t {
 #endif
 #ifdef SCTP_STATUS
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
+	EXPR_SCTP_PADDRINFO,
 #endif
+	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS*/
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -93,7 +95,11 @@ struct expression {
 		struct sctp_sack_info sctp_sack_info;
 #endif
 #ifdef SCTP_STATUS
-		struct sctp_status sctp_status;
+		struct sctp_status_expr *sctp_status;
+		struct sctp_paddrinfo_expr *sctp_paddrinfo;
+#endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+		struct sctp_paddrparams_expr *sctp_paddrparams; 
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -149,6 +155,39 @@ struct sctp_rtoinfo_expr {
 	struct expression *srto_min;
 };
 #endif
+
+/* Parse tree for syscall getsockopt for sctp_status*/
+#ifdef SCTP_STATUS
+struct sctp_status_expr {
+	struct expression *sstat_state;
+	struct expression *sstat_rwnd;
+	struct expression *sstat_unackdata;
+	struct expression *sstat_penddata;
+	struct expression *sstat_instrms;
+	struct expression *sstat_outstrms;
+	struct expression *sstat_fragmentation_point;
+	struct expression *sstat_primary;
+};
+
+struct sctp_paddrinfo_expr {
+	struct expression *spinfo_state;
+	struct expression *spinfo_cwnd;
+	struct expression *spinfo_srtt;
+	struct expression *spinfo_rto;
+	struct expression *spinfo_mtu;
+};
+#endif
+
+/* Parse tree for syscall set/getsockopt for SCTP_PEER_ADDR_PARAMS*/
+struct sctp_paddrparams_expr {
+	struct expression *spp_address;
+	struct expression *spp_hbinterval;
+	struct expression *spp_pathmaxrxt;
+	struct expression *spp_pathmtu;
+	struct expression *spp_flags;
+	struct expression *spp_ipv6_flowlabel;
+	struct expression *spp_dscp;
+};
 
 /* The errno-related info from strace to summarize a system call error */
 struct errno_spec {
