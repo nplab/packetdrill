@@ -531,7 +531,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> USER_INITIATED_ABORT PROTOCOL_VIOLATION
 %token <reserved> STALENESS CHK PARAM UNRECOGNIZED_PARAMETERS
 %token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
-%token <reserved> SPP_FLAGS SPPIPV6FLOWLABEL SPPDSCP 
+%token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -576,7 +576,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
 %type <expression> spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
-%type <errno_info> opt_errno 
+%type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
 %type <chunk_list_item> sctp_generic_chunk_spec
@@ -2496,15 +2496,15 @@ sstat_primary
 ;
 
 spinfo_state
-: SPINFO_STATE '=' INTEGER { 
+: SPINFO_STATE '=' INTEGER {
 	if (!is_valid_s32($3)) {
 		semantic_error("spinfo_state out of range");
 	}
-	$$ = new_integer_expression($3, "%d"); 
+	$$ = new_integer_expression($3, "%d");
 }
-| SPINFO_STATE '=' WORD { 
-	$$ = new_expression(EXPR_WORD); 
-	$$->value.string = $3; 
+| SPINFO_STATE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
 }
 | SPINFO_STATE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
@@ -2532,7 +2532,7 @@ spinfo_srtt
 spinfo_rto
 : SPINFO_RTO '=' INTEGER {
 	if (!is_valid_u32($3)) {
-		semantic_error("spinfo_rto out of range");	
+		semantic_error("spinfo_rto out of range");
 	}
 	$$ = new_integer_expression($3, "%u");
 }
@@ -2583,7 +2583,7 @@ spp_address
 ;
 
 spp_hbinterval
-: SPP_HBINTERVAL '=' INTEGER { 
+: SPP_HBINTERVAL '=' INTEGER {
 	if (!is_valid_u32($3)) {
 		semantic_error("spp_hbinterval out of range");
 	}
@@ -2617,27 +2617,27 @@ spp_flags
 ;
 
 spp_ipv6_flowlabel
-: SPPIPV6FLOWLABEL '=' INTEGER {
+: SPP_IPV6_FLOWLABEL_ '=' INTEGER {
 	if (!is_valid_u32($3)) {
 		semantic_error("spp_ipv6_flowlabel out of range");
 	}
 	$$ = new_integer_expression($3, "%u");
 }
-| SPPIPV6FLOWLABEL '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SPP_IPV6_FLOWLABEL_ '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 spp_dscp
-: SPPDSCP '=' INTEGER {
+: SPP_DSCP_ '=' INTEGER {
 	if (!is_valid_u8($3)) {
 		semantic_error("spp_dscp out of range");
 	}
 	$$ = new_integer_expression($3, "%hhu");
 }
-| SPPDSCP '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SPP_DSCP_ '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 sctp_paddrparams
-: '{' spp_address ',' spp_hbinterval ',' spp_pathmtu ',' spp_pathmaxrxt ',' spp_flags 
+: '{' spp_address ',' spp_hbinterval ',' spp_pathmtu ',' spp_pathmaxrxt ',' spp_flags
 	',' spp_ipv6_flowlabel ',' spp_dscp'}' {
 	$$ = new_expression(EXPR_SCTP_PEER_ADDR_PARAMS);
 	$$->value.sctp_paddrparams = (struct sctp_paddrparams_expr*) calloc(1, sizeof(struct sctp_paddrparams_expr));

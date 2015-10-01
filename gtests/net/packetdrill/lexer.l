@@ -230,8 +230,8 @@ spp_hbinterval			return SPP_HBINTERVAL;
 spp_pathmaxrxt			return SPP_PATHMAXRXT;
 spp_pathmtu			return SPP_PATHMTU;
 spp_flags			return SPP_FLAGS;
-spp_ipv6_flowlabel		return SPPIPV6FLOWLABEL;
-spp_dscp			return SPPDSCP;
+spp_ipv6_flowlabel		return SPP_IPV6_FLOWLABEL_; /* avoid name clash */
+spp_dscp			return SPP_DSCP_; /* avoid name clash */
 CHUNK				return CHUNK;
 DATA				return DATA;
 INIT				return INIT;
