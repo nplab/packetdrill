@@ -573,7 +573,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> linger l_onoff l_linger
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
-%type <expression> sctp_initmsg sctp_assoc_value sctp_stream_value sctp_sackinfo
+%type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts 
+%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value sctp_sackinfo
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
@@ -2551,29 +2552,55 @@ sctp_rtoinfo
 }
 ;
 
-sctp_initmsg
-: '{' SINIT_NUM_OSTREAMS '=' INTEGER ',' SINIT_MAX_INSTREAMS '=' INTEGER ',' SINIT_MAX_ATTEMPTS '=' INTEGER ',' SINIT_MAX_INIT_TIMEO '=' INTEGER '}' {
-#ifdef SCTP_INITMSG
-	$$ = new_expression(EXPR_SCTP_INITMSG);
-	if (!is_valid_u16($4)) {
+sinit_num_ostreams
+: SINIT_NUM_OSTREAMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sinit_num_ostreams out of range");
 	}
-	$$->value.sctp_initmsg.sinit_num_ostreams = $4;
-	if (!is_valid_u16($8)) {
+	$$ = new_integer_expression($3, "%hu");
+}
+| SINIT_NUM_OSTREAMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinit_max_instreams
+: SINIT_MAX_INSTREAMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sinit_max_instreams out of range");
 	}
-	$$->value.sctp_initmsg.sinit_max_instreams = $8;
-	if (!is_valid_u16($12)) {
+	$$ = new_integer_expression($3, "%hu");
+}
+| SINIT_MAX_INSTREAMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinit_max_attempts
+: SINIT_MAX_ATTEMPTS '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sinit_max_attempts out of range");
 	}
-	$$->value.sctp_initmsg.sinit_max_attempts = $12;
-	if (!is_valid_u16($16)) {
+	$$ = new_integer_expression($3, "%hu");
+}
+| SINIT_MAX_ATTEMPTS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinit_max_init_timeo
+: SINIT_MAX_INIT_TIMEO '=' INTEGER {
+	if (!is_valid_u16($3)) {
 		semantic_error("sinit_max_init_timeo out of range");
 	}
-	$$->value.sctp_initmsg.sinit_max_init_timeo = $16;
-#else
-	$$ = NULL;
-#endif
+	$$ = new_integer_expression($3, "%hu");
+}
+| SINIT_MAX_INIT_TIMEO '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_initmsg
+: '{' sinit_num_ostreams ',' sinit_max_instreams ',' sinit_max_attempts ',' sinit_max_init_timeo '}' 
+{
+	$$ = new_expression(EXPR_SCTP_INITMSG);
+	$$->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_initmsg_expr));
+	$$->value.sctp_initmsg->sinit_num_ostreams = $2;
+	$$->value.sctp_initmsg->sinit_max_instreams = $4;
+	$$->value.sctp_initmsg->sinit_max_attempts = $6;
+	$$->value.sctp_initmsg->sinit_max_init_timeo = $8;
 }
 ;
 
