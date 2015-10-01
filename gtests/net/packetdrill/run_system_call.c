@@ -264,6 +264,26 @@ static int get_s16(struct expression *expression,
  * valid s8 or u8, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
+static int get_u8(struct expression *expression,
+                u8 *value, char **error)
+{
+        if (check_type(expression, EXPR_INTEGER, error))
+                return STATUS_ERR;
+        if ((expression->value.num > UINT8_MAX) ||
+                (expression->value.num < 0)) {
+                asprintf(error,
+                        "Value out of range for 8-bit unsigned integer: %lld",
+                        expression->value.num);
+                return STATUS_ERR;
+        }
+        *value = expression->value.num;
+        return STATUS_OK;
+}
+
+/* Sets the value from the expression argument, checking that it is a
+ * valid s8 or u8, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
 static int get_s8(struct expression *expression,
                 s8 *value, char **error)
 {
@@ -2186,23 +2206,22 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
 		struct sctp_rtoinfo *rtoinfo;
 		struct sctp_rtoinfo_expr *expr_rtoinfo  = val_expression->value.sctp_rtoinfo;
-		if (expr_rtoinfo->srto_initial->type != EXPR_INTEGER ||
-			expr_rtoinfo->srto_max->type != EXPR_INTEGER ||
-			expr_rtoinfo->srto_min->type != EXPR_INTEGER) {
-			asprintf(error, "Bad setsockopt, bad inputtype for rtoinfo");
+		rtoinfo = malloc(sizeof(struct sctp_rtoinfo));
+		rtoinfo->srto_assoc_id = 0;
+		if (get_u32(expr_rtoinfo->srto_initial,
+		            &rtoinfo->srto_initial, error)) {
+			free(rtoinfo);
 			return STATUS_ERR;
 		}
-		rtoinfo = malloc(sizeof(struct sctp_rtoinfo));
-		memset(rtoinfo, 0, sizeof(struct sctp_rtoinfo));
-		rtoinfo->srto_assoc_id = 0;
-		if (expr_rtoinfo->srto_initial->type != EXPR_ELLIPSIS) {
-			rtoinfo->srto_initial = expr_rtoinfo->srto_initial->value.num;
+		if (get_u32(expr_rtoinfo->srto_max,
+		            &rtoinfo->srto_max, error)) {
+			free(rtoinfo);
+			return STATUS_ERR;
 		}
-		if (expr_rtoinfo->srto_max->type != EXPR_ELLIPSIS) {
-			rtoinfo->srto_max = expr_rtoinfo->srto_max->value.num;
-		}
-		if (expr_rtoinfo->srto_min->type != EXPR_ELLIPSIS) {
-			rtoinfo->srto_min = expr_rtoinfo->srto_min->value.num;
+		if (get_u32(expr_rtoinfo->srto_min,
+		            &rtoinfo->srto_min, error)) {
+			free(rtoinfo);
+			return STATUS_ERR;
 		}
 		optval = rtoinfo;
 #endif
@@ -2247,7 +2266,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_paddrparams_expr *expr_params = val_expression->value.sctp_paddrparams;
 		struct sctp_paddrparams *params = malloc(sizeof(struct sctp_paddrparams));
 		memset(params, 0, sizeof(struct sctp_paddrparams));
-		socklen_t live_optlen = sizeof(struct sctp_paddrparams);
+		params->spp_assoc_id = 0;
 		if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
 			memcpy(&params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
 		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
@@ -2264,70 +2283,43 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			free(params);
 			return STATUS_ERR;
 		}
-		params->spp_assoc_id = 0;
-		if (getsockopt(live_fd, level, optname, params, &live_optlen) == -1) {
-			asprintf(error, "Bad setsockopt, bad get actuall values");
+		if (get_u32(expr_params->spp_hbinterval,
+		            &params->spp_hbinterval, error)) {
 			free(params);
 			return STATUS_ERR;
 		}
-		if (expr_params->spp_hbinterval->type != EXPR_ELLIPSIS) {
-			int hbinterval;
-			if (get_s32(expr_params->spp_hbinterval, &hbinterval, error)) {
-				free(params);
-				return STATUS_ERR;
-			}
-			params->spp_hbinterval = hbinterval;
+		if (get_u16(expr_params->spp_pathmaxrxt,
+		            &params->spp_pathmaxrxt, error)) {
+			free(params);
+			return STATUS_ERR;
 		}
-		if (expr_params->spp_pathmaxrxt->type != EXPR_ELLIPSIS) {
-			short maxrxt;
-			if (get_s16(expr_params->spp_pathmaxrxt, &maxrxt, error)) {
-				free(params);
-				return STATUS_ERR;
-			}
-			params->spp_pathmaxrxt = maxrxt;
+		if (get_u32(expr_params->spp_pathmtu,
+		            &params->spp_pathmtu, error)) {
+			free(params);
+			return STATUS_ERR;
 		}
-		if (expr_params->spp_pathmtu->type != EXPR_ELLIPSIS) {
-			int mtu;
-			if (get_s32(expr_params->spp_pathmtu, &mtu, error)) {
-				free(params);
-				return STATUS_ERR;
-			}
-			params->spp_pathmtu = mtu;
-		}
-		if (expr_params->spp_flags->type != EXPR_ELLIPSIS) {
-			int flags;
-			if (get_s32(expr_params->spp_flags, &flags, error)) {
-				free(params);
-				return STATUS_ERR;
-			}
-			params->spp_flags = flags;
+		if (get_u32(expr_params->spp_flags, &params->spp_flags, error)) {
+			free(params);
+			return STATUS_ERR;
 		}
 #ifdef SPP_IPV6_FLOWLABEL
-		if (expr_params->spp_ipv6_flowlabel->type != EXPR_ELLIPSIS) {
-			int flowlabel;
-			if (get_s32(expr_params->spp_ipv6_flowlabel, &flowlabel, error)) {
-				free(params);
-				return STATUS_ERR;
-			}
-			params->spp_ipv6_flowlabel = flowlabel;
+		if (get_u32(expr_params->spp_ipv6_flowlabel,
+		            &params->spp_ipv6_flowlabel, error)) {
+			free(params);
+			return STATUS_ERR;
 		}
 #endif
 #ifdef SPP_DSCP
-		if (expr_params->spp_dscp->type != EXPR_ELLIPSIS) {
-			s8 dscp;
-			if (get_s8(expr_params->spp_dscp, &dscp, error)) {
-				free(params);
-				return STATUS_ERR;
-			}
-			params->spp_dscp = dscp;
+		if (get_u8(expr_params->spp_dscp, &params->spp_dscp, error)) {
+			free(params);
+			return STATUS_ERR;
 		}
 #endif
 		optval = params;
 #endif
 	} else {
 		asprintf(error, "unsupported setsockopt value type: %s",
-			 expression_type_to_string(
-				 val_expression->type));
+			 expression_type_to_string(val_expression->type));
 		return STATUS_ERR;
 	}
 	begin_syscall(state, syscall);
