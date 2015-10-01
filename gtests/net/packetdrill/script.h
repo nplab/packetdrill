@@ -61,6 +61,9 @@ enum expression_t {
 #ifdef SCTP_STATUS
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
 #endif
+#ifdef SCTP_SS_VALUE
+	EXPR_SCTP_STREAM_VALUE,	  /* struct sctp_stream_value for SCTP_SS_VALUE */
+#endif
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -94,6 +97,9 @@ struct expression {
 #endif
 #ifdef SCTP_STATUS
 		struct sctp_status sctp_status;
+#endif
+#ifdef SCTP_SS_VALUE
+		struct sctp_stream_value_expr *sctp_stream_value;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -154,6 +160,14 @@ struct sctp_rtoinfo_expr {
 /* Parse tree for a sctp_assoc_value struct in a [gs]etsockopt syscall. */
 struct sctp_assoc_value_expr {
 	struct expression *assoc_value;
+};
+#endif
+
+#ifdef SCTP_SS_VALUE
+/* Parse tree for a sctp_stream_value struct in a [gs]etsockopt syscall. */
+struct sctp_stream_value_expr {
+	struct expression *stream_id;
+	struct expression *stream_value;
 };
 #endif
 

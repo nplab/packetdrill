@@ -80,6 +80,9 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_STATUS
 	{ EXPR_SCTP_STATUS,           "sctp_status"},
 #endif
+#ifdef SCTP_SS_VALUE
+	{ EXPR_SCTP_STREAM_VALUE,     "sctp_stream_value"},
+#endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -312,6 +315,12 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_STATUS:
 #endif
 		break;
+#ifdef SCTP_SS_VALUE
+	case EXPR_SCTP_STREAM_VALUE:
+		free(expression->value.sctp_stream_value->stream_id);
+		free(expression->value.sctp_stream_value->stream_value);
+		break;
+#endif
 	case EXPR_WORD:
 		assert(expression->value.string);
 		free(expression->value.string);
@@ -521,6 +530,32 @@ static int evaluate_sctp_assoc_value_expression(struct expression *in,
 }
 #endif
 
+#ifdef SCTP_SS_VALUE
+static int evaluate_sctp_stream_value_expression(struct expression *in,
+						 struct expression *out,
+						 char **error)
+{
+	struct sctp_stream_value_expr *in_value;
+	struct sctp_stream_value_expr *out_value;
+
+	assert(in->type == EXPR_SCTP_STREAM_VALUE);
+	assert(in->value.sctp_stream_value);
+	assert(out->type == EXPR_SCTP_STREAM_VALUE);
+
+	out->value.sctp_stream_value = calloc(1, sizeof(struct sctp_stream_value_expr));
+
+	in_value = in->value.sctp_stream_value;
+	out_value = out->value.sctp_stream_value;
+
+	if (evaluate(in_value->stream_id, &out_value->stream_id, error))
+		return STATUS_ERR;
+	if (evaluate(in_value->stream_value, &out_value->stream_value, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -571,6 +606,11 @@ static int evaluate(struct expression *in,
 	case EXPR_SCTP_STATUS:	/* copy as-is */
 		memcpy(&out->value.sctp_status, &in->value.sctp_status,
 		       sizeof(in->value.sctp_status));
+		break;
+#endif
+#ifdef SCTP_SS_VALUE
+	case EXPR_SCTP_STREAM_VALUE:
+		evaluate_sctp_stream_value_expression(in, out, error);
 		break;
 #endif
 	case EXPR_WORD:

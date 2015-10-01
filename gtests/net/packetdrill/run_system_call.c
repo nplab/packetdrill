@@ -181,6 +181,26 @@ static int check_type(struct expression *expression,
 }
 
 /* Sets the value from the expression argument, checking that it is a
+ * valid u16, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static int get_u16(struct expression *expression,
+		   u16 *value, char **error)
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if ((expression->value.num > UINT16_MAX) ||
+	    (expression->value.num < 0)) {
+		asprintf(error,
+			 "Value out of range for 16-bit unsigned integer: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+
+/* Sets the value from the expression argument, checking that it is a
  * valid u32, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
@@ -1637,6 +1657,18 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
 		((struct sctp_assoc_value *) live_optval)->assoc_id = 0;
 #endif
+#ifdef SCTP_SS_VALUE
+	} else if (val_expression->type == EXPR_SCTP_STREAM_VALUE) {
+		live_optval = malloc(sizeof(struct sctp_stream_value));
+		live_optlen = (socklen_t)sizeof(struct sctp_stream_value);
+		((struct sctp_stream_value *) live_optval)->assoc_id = 0;
+		if (get_u16(val_expression->value.sctp_stream_value->stream_id,
+		            &((struct sctp_stream_value *) live_optval)->stream_id,
+		            error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
 	} else {
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -1789,6 +1821,38 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			}
 		}
 #endif
+#ifdef SCTP_SS_VALUE
+	} else if (val_expression->type == EXPR_SCTP_STREAM_VALUE) {
+		struct expression *stream_id = val_expression->value.sctp_stream_value->stream_id;
+		struct expression *stream_value = val_expression->value.sctp_stream_value->stream_value;
+		struct sctp_stream_value *sctp_stream_value = live_optval;
+		u16 value;
+
+		if (stream_id->type != EXPR_ELLIPSIS) {
+			if (get_u16(stream_id, &value, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (sctp_stream_value->stream_id != value) {
+				asprintf(error, "Bad getsockopt sctp_stream_value.stream_id: expected: %u actual: %u",
+					 value, sctp_stream_value->stream_id);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		}
+		if (stream_value->type != EXPR_ELLIPSIS) {
+			if (get_u16(stream_value, &value, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (sctp_stream_value->stream_value != value) {
+				asprintf(error, "Bad getsockopt sctp_stream_value.stream_value: expected: %u actual: %u",
+					 value, sctp_stream_value->stream_value);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		}
+#endif
 	} else {
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
@@ -1807,7 +1871,12 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	int script_fd, live_fd, level, optname, optval_s32, optlen, result;
 	void *optval = NULL;
 	struct expression *val_expression;
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	struct sctp_assoc_value assoc_value;
+#endif
+#if defined(SCTP_SS_VALUE)
+	struct sctp_stream_value stream_value;
+#endif
 
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
@@ -1866,6 +1935,19 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &assoc_value;
+#endif
+#ifdef SCTP_SS_VALUE
+	} else if (val_expression->type == EXPR_SCTP_STREAM_VALUE) {
+		stream_value.assoc_id = 0;
+		if (get_u16(val_expression->value.sctp_stream_value->stream_id,
+		            &stream_value.stream_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_stream_value->stream_value,
+		            &stream_value.stream_value, error)) {
+			return STATUS_ERR;
+		}
+		optval = &stream_value;
 #endif
 #ifdef SCTP_DELAYED_SACK
 	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {

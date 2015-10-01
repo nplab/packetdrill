@@ -203,6 +203,8 @@ noecn				return NO_ECN;
 ce				return CE;
 [.][.][.]			return ELLIPSIS;
 assoc_value			return ASSOC_VALUE;
+stream_id			return STREAM_ID;
+stream_value			return STREAM_VALUE;
 sack_delay			return SACK_DELAY;
 sack_freq			return SACK_FREQ;
 srto_initial			return SRTO_INITIAL;

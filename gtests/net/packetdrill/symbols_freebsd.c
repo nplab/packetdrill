@@ -105,6 +105,7 @@ struct int_symbol platform_symbols_table[] = {
 	 * The old symbols currently being deployed are also provided.
 	 */
 	{ SCTP_PLUGGABLE_SS,                "SCTP_PLUGGABLE_SS"               },
+	{ SCTP_SS_VALUE,                    "SCTP_SS_VALUE"                   },
 	{ SCTP_SS_DEFAULT,                  "SCTP_SS_DEFAULT"                 },
 	{ SCTP_SS_ROUND_ROBIN,              "SCTP_SS_ROUND_ROBIN"             },
 	{ SCTP_SS_ROUND_ROBIN_PACKET,       "SCTP_SS_ROUND_ROBIN_PACKET"      },

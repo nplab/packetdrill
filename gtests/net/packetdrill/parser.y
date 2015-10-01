@@ -506,6 +506,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_VALUE
+%token <reserved> STREAM_ID STREAM_VALUE
 %token <reserved> SACK_DELAY SACK_FREQ
 %token <reserved> SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
@@ -569,6 +570,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> linger l_onoff l_linger
 %type <expression> sctp_status sctp_initmsg sctp_sackinfo
 %type <expression> sctp_assoc_value
+%type <expression> sctp_stream_value
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2337,6 +2339,9 @@ expression
 | sctp_assoc_value  {
 	$$ = $1;
 }
+| sctp_stream_value  {
+	$$ = $1;
+}
 | sctp_sackinfo     {
 	$$ = $1;
 }
@@ -2555,6 +2560,19 @@ sctp_initmsg
 		semantic_error("sinit_max_init_timeo out of range");
 	}
 	$$->value.sctp_initmsg.sinit_max_init_timeo = $16;
+#else
+	$$ = NULL;
+#endif
+}
+;
+
+sctp_stream_value
+: '{' STREAM_ID '=' expression ',' STREAM_VALUE '=' expression '}' {
+#if defined(SCTP_SS_VALUE)
+	$$ = new_expression(EXPR_SCTP_STREAM_VALUE);
+	$$->value.sctp_stream_value = calloc(1, sizeof(struct sctp_stream_value_expr));
+	$$->value.sctp_stream_value->stream_id = $4;
+	$$->value.sctp_stream_value->stream_value = $8;
 #else
 	$$ = NULL;
 #endif
