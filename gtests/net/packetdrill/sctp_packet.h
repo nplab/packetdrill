@@ -275,6 +275,17 @@ sctp_cwr_chunk_new(s64 flgs, s64 lowest_tsn);
 struct sctp_chunk_list_item *
 sctp_shutdown_complete_chunk_new(s64 flgs);
 
+#define FLAG_I_DATA_CHUNK_TSN_NOCHECK           0x00000100
+#define FLAG_I_DATA_CHUNK_SID_NOCHECK           0x00000200
+#define FLAG_I_DATA_CHUNK_RES_NOCHECK           0x00000400
+#define FLAG_I_DATA_CHUNK_MID_NOCHECK           0x00000800
+#define FLAG_I_DATA_CHUNK_PPID_NOCHECK          0x00001000
+#define FLAG_I_DATA_CHUNK_FSN_NOCHECK           0x00002000
+
+struct sctp_chunk_list_item *
+sctp_i_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 res, s64 mid,
+                      s64 ppid, s64 fsn);
+
 struct sctp_chunk_list_item *
 sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding);
 
@@ -325,6 +336,12 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list);
 
 struct sctp_parameter_list_item *
 sctp_ecn_capable_parameter_new(void);
+
+struct sctp_parameter_list_item *
+sctp_pad_parameter_new(s64 len, u8 *padding);
+
+struct sctp_parameter_list_item *
+sctp_supported_extensions_parameter_new(struct sctp_byte_list *list);
 
 struct sctp_parameter_list_item *
 sctp_pad_parameter_new(s64 len, u8 *padding);

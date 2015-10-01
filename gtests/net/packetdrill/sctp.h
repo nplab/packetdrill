@@ -52,6 +52,7 @@ struct sctp_common_header {
 #define SCTP_ECNE_CHUNK_TYPE				0x0c
 #define SCTP_CWR_CHUNK_TYPE				0x0d
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE		0x0e
+#define SCTP_I_DATA_CHUNK_TYPE				0x40
 #define SCTP_PAD_CHUNK_TYPE				0x84
 
 #define MAX_SCTP_CHUNK_BYTES	0xffff
@@ -205,6 +206,26 @@ struct sctp_shutdown_complete_chunk {
 	__be16 length;
 } __packed;
 
+#define SCTP_I_DATA_CHUNK_I_BIT				0x08
+#define SCTP_I_DATA_CHUNK_U_BIT				0x04
+#define SCTP_I_DATA_CHUNK_B_BIT				0x02
+#define SCTP_I_DATA_CHUNK_E_BIT				0x01
+
+struct sctp_i_data_chunk {
+	__u8 type;
+	__u8 flags;
+	__be16 length;
+	__be32 tsn;
+	__be16 sid;
+	__be16 res;
+	__be32 mid;
+	union {
+		__be32 ppid;
+		__be32 fsn;
+	} field;
+	__u8 data[];
+} __packed;
+
 struct sctp_pad_chunk {
 	__u8 type;
 	__u8 flags;
@@ -221,6 +242,7 @@ struct sctp_pad_chunk {
 #define SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE		0x000b
 #define SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	0x000c
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
+#define SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE	0x8008
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
 
 #define MAX_SCTP_PARAMETER_BYTES	0xffff
@@ -282,6 +304,12 @@ struct sctp_supported_address_types_parameter {
 struct sctp_ecn_capable_parameter {
 	__be16 type;
 	__be16 length;
+} __packed;
+
+struct sctp_supported_extensions_parameter {
+	__be16 type;
+	__be16 length;
+	__u8 chunk_type[];
 } __packed;
 
 struct sctp_pad_parameter {

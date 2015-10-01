@@ -506,6 +506,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_VALUE
+%token <reserved> STREAM_ID STREAM_VALUE
 %token <reserved> SACK_DELAY SACK_FREQ
 %token <reserved> SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
@@ -513,12 +514,13 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPINFO_STATE SPINFO_CWND SPINFO_SRTT SPINFO_RTO SPINFO_MTU
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
-%token <reserved> SHUTDOWN_COMPLETE PAD
+%token <reserved> SHUTDOWN_COMPLETE I_DATA PAD
 %token <reserved> TYPE FLAGS LEN
-%token <reserved> TAG A_RWND OS IS TSN SID SSN PPID CUM_TSN GAPS DUPS
+%token <reserved> TAG A_RWND OS IS TSN SID SSN MID PPID FSN CUM_TSN GAPS DUPS
 %token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
+%token <reserved> SUPPORTED_EXTENSIONS
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -571,7 +573,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> linger l_onoff l_linger
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
-%type <expression> sctp_initmsg sctp_assocval sctp_sackinfo
+%type <expression> sctp_initmsg sctp_assoc_value sctp_stream_value sctp_sackinfo
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
@@ -591,6 +593,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_cookie_echo_chunk_spec sctp_cookie_ack_chunk_spec
 %type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
+%type <chunk_list_item> sctp_i_data_chunk_spec
 %type <chunk_list_item> sctp_pad_chunk_spec
 %type <parameter_list> opt_parameter_list_spec sctp_parameter_list_spec
 %type <parameter_list_item> sctp_parameter_spec
@@ -604,6 +607,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_hostname_address_parameter_spec
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
+%type <parameter_list_item> sctp_supported_extensions_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
@@ -621,12 +625,13 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <cause_list_item> sctp_restart_with_new_addresses_cause_spec
 %type <cause_list_item> sctp_user_initiated_abort_cause_spec
 %type <cause_list_item> sctp_protocol_violation_cause_spec
-%type <integer> opt_chunk_type opt_parameter_type opt_cause_code
+%type <integer> chunk_type opt_chunk_type opt_parameter_type opt_cause_code
 %type <integer> opt_flags opt_data_flags opt_abort_flags
-%type <integer> opt_shutdown_complete_flags opt_len
+%type <integer> opt_shutdown_complete_flags opt_i_data_flags opt_len
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
+%type <integer> opt_mid opt_fsn
 %type <integer> opt_cum_tsn opt_ppid
-%type <byte_list> opt_val opt_info byte_list
+%type <byte_list> opt_val opt_info byte_list chunk_types_list
 %type <byte_list_item> byte
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
@@ -841,21 +846,79 @@ sctp_chunk_spec
 | sctp_ecne_chunk_spec              { $$ = $1; }
 | sctp_cwr_chunk_spec               { $$ = $1; }
 | sctp_shutdown_complete_chunk_spec { $$ = $1; }
+| sctp_i_data_chunk_spec            { $$ = $1; }
 | sctp_pad_chunk_spec               { $$ = $1; }
+;
+
+chunk_type
+: HEX_INTEGER {
+	if (!is_valid_u8($1)) {
+		semantic_error("type value out of range");
+	}
+	$$ = $1;
+}
+| INTEGER {
+	if (!is_valid_u8($1)) {
+		semantic_error("type value out of range");
+	}
+	$$ = $1;
+}
+| DATA {
+	$$ = SCTP_DATA_CHUNK_TYPE;
+}
+| INIT {
+	$$ = SCTP_INIT_CHUNK_TYPE;
+}
+| INIT_ACK {
+	$$ = SCTP_INIT_ACK_CHUNK_TYPE;
+}
+| SACK {
+	$$ = SCTP_SACK_CHUNK_TYPE;
+}
+| HEARTBEAT {
+	$$ = SCTP_HEARTBEAT_CHUNK_TYPE;
+}
+| HEARTBEAT_ACK {
+	$$ = SCTP_HEARTBEAT_ACK_CHUNK_TYPE;
+}
+| ABORT {
+	$$ = SCTP_ABORT_CHUNK_TYPE;
+}
+| SHUTDOWN {
+	$$ = SCTP_SHUTDOWN_CHUNK_TYPE;
+}
+| SHUTDOWN_ACK {
+	$$ = SCTP_SHUTDOWN_ACK_CHUNK_TYPE;
+}
+| ERROR {
+	$$ = SCTP_ERROR_CHUNK_TYPE;
+}
+| COOKIE_ECHO {
+	$$ = SCTP_COOKIE_ECHO_CHUNK_TYPE;
+}
+| COOKIE_ACK {
+	$$ = SCTP_COOKIE_ACK_CHUNK_TYPE;
+}
+| ECNE {
+	$$ = SCTP_ECNE_CHUNK_TYPE;
+}
+| CWR {
+	$$ = SCTP_CWR_CHUNK_TYPE;
+}
+| SHUTDOWN_COMPLETE{
+	$$ = SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE;
+}
+| I_DATA {
+	$$ = SCTP_I_DATA_CHUNK_TYPE;
+}
+| PAD {
+	$$ = SCTP_PAD_CHUNK_TYPE;
+}
 ;
 
 opt_chunk_type
 : TYPE '=' ELLIPSIS    { $$ = -1; }
-| TYPE '=' HEX_INTEGER {
-	if (!is_valid_u8($3)) {
-		semantic_error("type value out of range");
-        }
-	$$ = $3;
-}
-| TYPE '=' INTEGER     {
-	if (!is_valid_u8($3)) {
-		semantic_error("type value out of range");
-        }
+| TYPE '=' chunk_type {
 	$$ = $3;
 }
 ;
@@ -865,13 +928,13 @@ opt_flags
 | FLAGS '=' HEX_INTEGER {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 ;
@@ -932,7 +995,7 @@ opt_data_flags
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -990,7 +1053,7 @@ opt_abort_flags
 | FLAGS '=' INTEGER     {
 	if (!is_valid_u8($3)) {
 		semantic_error("flags value out of range");
-        }
+	}
 	$$ = $3;
 }
 | FLAGS '=' WORD        {
@@ -1046,6 +1109,64 @@ opt_shutdown_complete_flags
 			break;
 		default:
 			semantic_error("Only expecting T as flags");
+			break;
+		}
+	}
+	$$ = flags;
+}
+;
+
+opt_i_data_flags
+: FLAGS '=' ELLIPSIS    { $$ = -1; }
+| FLAGS '=' HEX_INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+	}
+	$$ = $3;
+}
+| FLAGS '=' INTEGER     {
+	if (!is_valid_u8($3)) {
+		semantic_error("flags value out of range");
+	}
+	$$ = $3;
+}
+| FLAGS '=' WORD        {
+	u64 flags;
+	char *c;
+
+	flags = 0;
+	for (c = $3; *c != '\0'; c++) {
+		switch (*c) {
+		case 'I':
+			if (flags & SCTP_I_DATA_CHUNK_I_BIT) {
+				semantic_error("I-bit specified multiple times");
+			} else {
+				flags |= SCTP_I_DATA_CHUNK_I_BIT;
+			}
+			break;
+		case 'U':
+			if (flags & SCTP_I_DATA_CHUNK_U_BIT) {
+				semantic_error("U-bit specified multiple times");
+			} else {
+				flags |= SCTP_I_DATA_CHUNK_U_BIT;
+			}
+			break;
+		case 'B':
+			if (flags & SCTP_I_DATA_CHUNK_B_BIT) {
+				semantic_error("B-bit specified multiple times");
+			} else {
+				flags |= SCTP_I_DATA_CHUNK_B_BIT;
+			}
+			break;
+		case 'E':
+			if (flags & SCTP_I_DATA_CHUNK_E_BIT) {
+				semantic_error("E-bit specified multiple times");
+			} else {
+				flags |= SCTP_I_DATA_CHUNK_E_BIT;
+			}
+			break;
+		default:
+			semantic_error("Only expecting IUBE as flags");
 			break;
 		}
 	}
@@ -1123,11 +1244,31 @@ opt_ssn
 }
 ;
 
+opt_mid
+: MID '=' ELLIPSIS { $$ = -1; }
+| MID '=' INTEGER  {
+	if (!is_valid_u32($3)) {
+		semantic_error("mid value out of range");
+	}
+	$$ = $3;
+}
+;
+
 opt_ppid
 : PPID '=' ELLIPSIS { $$ = -1; }
 | PPID '=' INTEGER  {
 	if (!is_valid_u32($3)) {
 		semantic_error("ppid value out of range");
+	}
+	$$ = $3;
+}
+;
+
+opt_fsn
+: FSN '=' ELLIPSIS { $$ = -1; }
+| FSN '=' INTEGER  {
+	if (!is_valid_u32($3)) {
+		semantic_error("fsn value out of range");
 	}
 	$$ = $3;
 }
@@ -1268,7 +1409,7 @@ sctp_cookie_echo_chunk_spec
 	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_cookie_echo_chunk)))) {
 		semantic_error("length value out of range");
 	}
-        if (($5 != -1) && ($7 != NULL) &&
+	if (($5 != -1) && ($7 != NULL) &&
 	    ($5 != sizeof(struct sctp_cookie_echo_chunk) + $7->nr_entries)) {
 		semantic_error("length value incompatible with val");
 	}
@@ -1296,6 +1437,22 @@ sctp_cwr_chunk_spec
 sctp_shutdown_complete_chunk_spec
 : SHUTDOWN_COMPLETE '[' opt_shutdown_complete_flags ']' {
 	$$ = sctp_shutdown_complete_chunk_new($3);
+}
+
+sctp_i_data_chunk_spec
+: I_DATA '[' opt_i_data_flags ',' opt_len ',' opt_tsn ',' opt_sid ',' opt_mid ',' opt_ppid ']' {
+	if (($5 != -1) &&
+	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_i_data_chunk)))) {
+		semantic_error("length value out of range");
+	}
+	$$ = sctp_i_data_chunk_new($3, $5, $7, $9, 0, $11, $13, -1);
+}
+| I_DATA '[' opt_i_data_flags ',' opt_len ',' opt_tsn ',' opt_sid ',' opt_mid ',' opt_fsn ']' {
+	if (($5 != -1) &&
+	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_i_data_chunk)))) {
+		semantic_error("length value out of range");
+	}
+	$$ = sctp_i_data_chunk_new($3, $5, $7, $9, 0, $11, -1, $13);
 }
 
 sctp_pad_chunk_spec
@@ -1331,6 +1488,7 @@ sctp_parameter_spec
 | sctp_hostname_address_parameter_spec        { $$ = $1; }
 | sctp_supported_address_types_parameter_spec { $$ = $1; }
 | sctp_ecn_capable_parameter_spec             { $$ = $1; }
+| sctp_supported_extensions_parameter_spec    { $$ = $1; }
 | sctp_pad_parameter_spec                     { $$ = $1; }
 ;
 
@@ -1483,6 +1641,28 @@ sctp_supported_address_types_parameter_spec
 sctp_ecn_capable_parameter_spec
 : ECN_CAPABLE '[' ']' {
 	$$ = sctp_ecn_capable_parameter_new();
+}
+
+chunk_types_list
+: {
+	$$ = sctp_byte_list_new();
+}
+| chunk_type {
+	$$ = sctp_byte_list_new();
+	sctp_byte_list_append($$, sctp_byte_list_item_new($1));
+}
+| chunk_types_list ',' chunk_type {
+	$$ = $1;
+	sctp_byte_list_append($1, sctp_byte_list_item_new($3));
+}
+;
+
+sctp_supported_extensions_parameter_spec
+: SUPPORTED_EXTENSIONS '[' TYPES '=' ELLIPSIS ']' {
+	$$ = sctp_supported_extensions_parameter_new(NULL);
+}
+| SUPPORTED_EXTENSIONS '[' TYPES '=' '[' chunk_types_list ']' ']' {
+	$$ = sctp_supported_extensions_parameter_new($6);
 }
 
 sctp_pad_parameter_spec
@@ -2162,7 +2342,10 @@ expression
 | sctp_initmsg      {
 	$$ = $1;
 }
-| sctp_assocval     {
+| sctp_assoc_value  {
+	$$ = $1;
+}
+| sctp_stream_value  {
 	$$ = $1;
 }
 | sctp_sackinfo     {
@@ -2394,14 +2577,25 @@ sctp_initmsg
 }
 ;
 
-sctp_assocval
-: '{' ASSOC_VALUE '=' INTEGER '}' {
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
-	$$ = new_expression(EXPR_SCTP_ASSOCVAL);
-	if (!is_valid_u32($4)) {
-		semantic_error("assoc_value out of range");
-	}
-	$$->value.sctp_assoc_value.assoc_value = $4;
+sctp_stream_value
+: '{' STREAM_ID '=' expression ',' STREAM_VALUE '=' expression '}' {
+#if defined(SCTP_SS_VALUE)
+	$$ = new_expression(EXPR_SCTP_STREAM_VALUE);
+	$$->value.sctp_stream_value = calloc(1, sizeof(struct sctp_stream_value_expr));
+	$$->value.sctp_stream_value->stream_id = $4;
+	$$->value.sctp_stream_value->stream_value = $8;
+#else
+	$$ = NULL;
+#endif
+}
+;
+
+sctp_assoc_value
+: '{' ASSOC_VALUE '=' expression '}' {
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	$$ = new_expression(EXPR_SCTP_ASSOC_VALUE);
+	$$->value.sctp_assoc_value = calloc(1, sizeof(struct sctp_assoc_value_expr));
+	$$->value.sctp_assoc_value->assoc_value = $4;
 #else
 	$$ = NULL;
 #endif

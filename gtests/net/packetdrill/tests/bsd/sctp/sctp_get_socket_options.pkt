@@ -71,5 +71,5 @@ spp_hbinterval=300, spp_pathmtu=1468, spp_pathmaxrxt=..., spp_flags=521, spp_ipv
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=..., srto_max=200, srto_min=50}, [16]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=..., srto_min=50}, [16]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=200, srto_min=...}, [16]) = 0
-
++0 getsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, {assoc_value=1452}, [8]) = 0
 +0 close(3) = 0

@@ -71,8 +71,8 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_INITMSG
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
-	{ EXPR_SCTP_ASSOCVAL,        "sctp_assocvalue"},
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
 #endif
 #ifdef SCTP_DELAYED_SACK
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
@@ -83,6 +83,9 @@ struct expression_type_entry expression_type_table[] = {
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	{ EXPR_SCTP_PEER_ADDR_PARAMS,	"sctp_peer_addr_params"},
+#endif
+#ifdef SCTP_SS_VALUE
+	{ EXPR_SCTP_STREAM_VALUE,     "sctp_stream_value"},
 #endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
@@ -291,21 +294,26 @@ void free_expression(struct expression *expression)
 	case EXPR_INTEGER:
 		break;
 	case EXPR_LINGER:
+		assert(expression->value.linger);
 		free(expression->value.linger->l_onoff);
 		free(expression->value.linger->l_linger);
 		break;
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
+		assert(expression->value.sctp_rtoinfo);
 		free(expression->value.sctp_rtoinfo->srto_initial);
 		free(expression->value.sctp_rtoinfo->srto_max);
 		free(expression->value.sctp_rtoinfo->srto_min);
 		break;
 #endif
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	case EXPR_SCTP_ASSOC_VALUE:
+		assert(expression->value.sctp_assoc_value);
+		free(expression->value.sctp_assoc_value->assoc_value);
+		break;
+#endif
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
-#endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
-	case EXPR_SCTP_ASSOCVAL:
 #endif
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
@@ -313,6 +321,7 @@ void free_expression(struct expression *expression)
 		break;
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
+		free(expression->value.sctp_paddrinfo);
 		free(expression->value.sctp_paddrinfo->spinfo_state);
 		free(expression->value.sctp_paddrinfo->spinfo_cwnd);
 		free(expression->value.sctp_paddrinfo->spinfo_srtt);
@@ -320,6 +329,7 @@ void free_expression(struct expression *expression)
 		free(expression->value.sctp_paddrinfo->spinfo_mtu);
 		break;
 	case EXPR_SCTP_STATUS:
+		assert(expression->value.sctp_status);
 		free(expression->value.sctp_status->sstat_state);
 		free(expression->value.sctp_status->sstat_rwnd);
 		free(expression->value.sctp_status->sstat_unackdata);
@@ -332,6 +342,7 @@ void free_expression(struct expression *expression)
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
+		assert(expression->value.sctp_paddrparams);
 		free(expression->value.sctp_paddrparams->spp_address);
 		free(expression->value.sctp_paddrparams->spp_hbinterval);
 		free(expression->value.sctp_paddrparams->spp_pathmaxrxt);
@@ -339,6 +350,13 @@ void free_expression(struct expression *expression)
 		free(expression->value.sctp_paddrparams->spp_flags);
 		free(expression->value.sctp_paddrparams->spp_ipv6_flowlabel);
 		free(expression->value.sctp_paddrparams->spp_dscp);
+		break;
+#endif
+#ifdef SCTP_SS_VALUE
+	case EXPR_SCTP_STREAM_VALUE:
+		assert(expression->value.sctp_stream_value);
+		free(expression->value.sctp_stream_value->stream_id);
+		free(expression->value.sctp_stream_value->stream_value);
 		break;
 #endif
 	case EXPR_WORD:
@@ -516,7 +534,7 @@ static int evaluate_sctp_status_expression(struct expression *in,
 
 	in_status = in->value.sctp_status;
 	out_status = out->value.sctp_status;
-	
+
 	if (evaluate(in_status->sstat_state,
 			&out_status->sstat_state,
 			error))
@@ -577,6 +595,56 @@ static int evaluate_pollfd_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+static int evaluate_sctp_assoc_value_expression(struct expression *in,
+						struct expression *out,
+						char **error)
+{
+	struct sctp_assoc_value_expr *in_value;
+	struct sctp_assoc_value_expr *out_value;
+
+	assert(in->type == EXPR_SCTP_ASSOC_VALUE);
+	assert(in->value.sctp_assoc_value);
+	assert(out->type == EXPR_SCTP_ASSOC_VALUE);
+
+	out->value.sctp_assoc_value = calloc(1, sizeof(struct sctp_assoc_value_expr));
+
+	in_value = in->value.sctp_assoc_value;
+	out_value = out->value.sctp_assoc_value;
+
+	if (evaluate(in_value->assoc_value, &out_value->assoc_value, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#ifdef SCTP_SS_VALUE
+static int evaluate_sctp_stream_value_expression(struct expression *in,
+						 struct expression *out,
+						 char **error)
+{
+	struct sctp_stream_value_expr *in_value;
+	struct sctp_stream_value_expr *out_value;
+
+	assert(in->type == EXPR_SCTP_STREAM_VALUE);
+	assert(in->value.sctp_stream_value);
+	assert(out->type == EXPR_SCTP_STREAM_VALUE);
+
+	out->value.sctp_stream_value = calloc(1, sizeof(struct sctp_stream_value_expr));
+
+	in_value = in->value.sctp_stream_value;
+	out_value = out->value.sctp_stream_value;
+
+	if (evaluate(in_value->stream_id, &out_value->stream_id, error))
+		return STATUS_ERR;
+	if (evaluate(in_value->stream_value, &out_value->stream_value, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -612,11 +680,9 @@ static int evaluate(struct expression *in,
 		       sizeof(in->value.sctp_initmsg));
 		break;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
-	case EXPR_SCTP_ASSOCVAL:	/* copy as-is */
-		memcpy(&out->value.sctp_assoc_value,
-		       &in->value.sctp_assoc_value,
-		       sizeof(in->value.sctp_assoc_value));
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	case EXPR_SCTP_ASSOC_VALUE:	/* copy as-is */
+		evaluate_sctp_assoc_value_expression(in, out, error);
 		break;
 #endif
 #ifdef SCTP_DELAYED_SACK
@@ -640,12 +706,17 @@ static int evaluate(struct expression *in,
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
-		memcpy(&out->value.sctp_paddrparams, &in->value.sctp_paddrparams, 
+		memcpy(&out->value.sctp_paddrparams, &in->value.sctp_paddrparams,
 			sizeof(in->value.sctp_paddrparams));
 		if (evaluate(in->value.sctp_paddrparams->spp_flags,
 				&out->value.sctp_paddrparams->spp_flags,
 				error))
-			return STATUS_ERR;		
+			return STATUS_ERR;
+		break;
+#endif
+#ifdef SCTP_SS_VALUE
+	case EXPR_SCTP_STREAM_VALUE:
+		evaluate_sctp_stream_value_expression(in, out, error);
 		break;
 #endif
 	case EXPR_WORD:

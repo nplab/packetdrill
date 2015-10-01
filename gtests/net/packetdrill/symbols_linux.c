@@ -124,6 +124,12 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SCTP_STATUS
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 #endif
+#ifdef SCTP_FRAGMENT_INTERLEAVE
+	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
+#endif
+#ifdef SCTP_INTERLEAVING_SUPPORTED
+	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },
+#endif
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
 #if 0
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },

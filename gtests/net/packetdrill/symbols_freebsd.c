@@ -78,7 +78,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_SETFIB,                        "SO_SETFIB"                       },
 	{ SO_USER_COOKIE,                   "SO_USER_COOKIE"                  },
 
-	/* /usr/include/netinet/sctp.h */
+	/* /usr/include/netinet/sctp.h and /usr/include/netinet/sctp_uio.h */
 	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
 	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
 	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
@@ -87,6 +87,10 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
+	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
+#if defined(SCTP_INTERLEAVING_SUPPORTED)
+	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },
+#endif
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
 	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },
@@ -97,8 +101,52 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_SHUTDOWN_RECEIVED,           "SCTP_SHUTDOWN_RECEIVED"          },
 	{ SCTP_SHUTDOWN_ACK_SENT,           "SCTP_SHUTDOWN_ACK_SENT"          },
 	{ SCTP_SHUTDOWN_PENDING,            "SCTP_SHUTDOWN_PENDING"           },
-
-	/* /usr/include/netinet/sctp_uio.h */
+	/* The following constants are from
+	 * https://tools.ietf.org/html/draft-ietf-tsvwg-sctp-ndata-04
+	 * The old symbols currently being deployed are also provided.
+	 */
+	{ SCTP_PLUGGABLE_SS,                "SCTP_PLUGGABLE_SS"               },
+	{ SCTP_SS_VALUE,                    "SCTP_SS_VALUE"                   },
+	{ SCTP_SS_DEFAULT,                  "SCTP_SS_DEFAULT"                 },
+	{ SCTP_SS_ROUND_ROBIN,              "SCTP_SS_ROUND_ROBIN"             },
+	{ SCTP_SS_ROUND_ROBIN_PACKET,       "SCTP_SS_ROUND_ROBIN_PACKET"      },
+	{ SCTP_SS_PRIORITY,                 "SCTP_SS_PRIORITY"                },
+	/* The following is a typo in FreeBSD's sctp.h */
+	{ SCTP_SS_FAIR_BANDWITH,            "SCTP_SS_FAIR_BANDWITH"           },
+	{ SCTP_SS_FIRST_COME,               "SCTP_SS_FIRST_COME"              },
+#if defined(SCTP_SS_FCFS)
+	{ SCTP_SS_FCFS,                     "SCTP_SS_FCFS"                    },
+#endif
+#if defined(SCTP_SS_RR)
+	{ SCTP_SS_RR,                       "SCTP_SS_RR"                      },
+#endif
+#if defined(SCTP_SS_RR_PKT)
+	{ SCTP_SS_RR_PKT,                   "SCTP_SS_RR_PKT"                  },
+#endif
+#if defined(SCTP_SS_PRIO)
+	{ SCTP_SS_PRIO,                     "SCTP_SS_PRIO"                    },
+#endif
+#if defined(SCTP_SS_FB)
+	{ SCTP_SS_FB,                       "SCTP_SS_FB"                      },
+#endif
+#if defined(SCTP_SS_WFQ)
+	{ SCTP_SS_WFQ,                      "SCTP_SS_WFQ"                     },
+#endif
+#if defined(SCTP_SS_RR_INTER)
+	{ SCTP_SS_RR_INTER,                 "SCTP_SS_RR_INTER"                },
+#endif
+#if defined(SCTP_SS_RR_PKT_INTER)
+	{ SCTP_SS_RR_PKT_INTER,             "SCTP_SS_RR_PKT_INTER"            },
+#endif
+#if defined(SCTP_SS_PRIO_INTER)
+	{ SCTP_SS_PRIO_INTER,               "SCTP_SS_PRIO_INTER"              },
+#endif
+#if defined(SCTP_SS_FB_INTER)
+	{ SCTP_SS_FB_INTER,                 "SCTP_SS_FB_INTER"                },
+#endif
+#if defined(SCTP_SS_WFQ_INTER)
+	{ SCTP_SS_WFQ_INTER,                "SCTP_SS_WFQ_INTER"               },
+#endif
 	{ SCTP_UNCONFIRMED,                 "SCTP_UNCONFIRMED"                },
 	{ SCTP_ACTIVE,                      "SCTP_ACTIVE"                     },
 	{ SCTP_INACTIVE,                    "SCTP_INACTIVE"                   },
@@ -111,7 +159,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
 	{ SPP_DSCP,                         "SPP_DSCP"                        },
 	{ SPP_IPV4_TOS,                     "SPP_IPV4_TOS"                    },
- 
+
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

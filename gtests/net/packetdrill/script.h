@@ -51,8 +51,8 @@ enum expression_t {
 #ifdef SCTP_INITMSG
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
-	EXPR_SCTP_ASSOCVAL,	  /* struct sctp_assoc_value */
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
 #endif
 #ifdef SCTP_DELAYED_SACK
 	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info for
@@ -61,6 +61,9 @@ enum expression_t {
 #ifdef SCTP_STATUS
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
 	EXPR_SCTP_PADDRINFO,
+#endif
+#ifdef SCTP_SS_VALUE
+	EXPR_SCTP_STREAM_VALUE,	  /* struct sctp_stream_value for SCTP_SS_VALUE */
 #endif
 	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS*/
 	NUM_EXPR_TYPES,
@@ -88,8 +91,8 @@ struct expression {
 #ifdef SCTP_INITMSG
 		struct sctp_initmsg sctp_initmsg;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST)
-		struct sctp_assoc_value sctp_assoc_value;
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+		struct sctp_assoc_value_expr *sctp_assoc_value;
 #endif
 #ifdef SCTP_DELAYED_SACK
 		struct sctp_sack_info sctp_sack_info;
@@ -99,7 +102,10 @@ struct expression {
 		struct sctp_paddrinfo_expr *sctp_paddrinfo;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
-		struct sctp_paddrparams_expr *sctp_paddrparams; 
+		struct sctp_paddrparams_expr *sctp_paddrparams;
+#endif
+#ifdef SCTP_SS_VALUE
+		struct sctp_stream_value_expr *sctp_stream_value;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -147,7 +153,7 @@ struct linger_expr {
 	struct expression *l_onoff;
 	struct expression *l_linger;
 };
-/* Parse tree for syscall get/setsockopt for sctp_rtoinfo*/
+/* Parse tree for a sctp_rtoinfo struct in a [gs]etsockopt syscall. */
 #ifdef SCTP_RTOINFO
 struct sctp_rtoinfo_expr {
 	struct expression *srto_initial;
@@ -156,7 +162,22 @@ struct sctp_rtoinfo_expr {
 };
 #endif
 
-/* Parse tree for syscall getsockopt for sctp_status*/
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+/* Parse tree for a sctp_assoc_value struct in a [gs]etsockopt syscall. */
+struct sctp_assoc_value_expr {
+	struct expression *assoc_value;
+};
+#endif
+
+#ifdef SCTP_SS_VALUE
+/* Parse tree for a sctp_stream_value struct in a [gs]etsockopt syscall. */
+struct sctp_stream_value_expr {
+	struct expression *stream_id;
+	struct expression *stream_value;
+};
+#endif
+
+/* Parse tree for a sctp_status struct in a [gs]etsockopt syscall. */
 #ifdef SCTP_STATUS
 struct sctp_status_expr {
 	struct expression *sstat_state;
@@ -169,6 +190,7 @@ struct sctp_status_expr {
 	struct expression *sstat_primary;
 };
 
+/* Parse tree for a sctp_paddrinfo struct in a [gs]etsockopt syscall. */
 struct sctp_paddrinfo_expr {
 	struct expression *spinfo_state;
 	struct expression *spinfo_cwnd;
@@ -178,7 +200,7 @@ struct sctp_paddrinfo_expr {
 };
 #endif
 
-/* Parse tree for syscall set/getsockopt for SCTP_PEER_ADDR_PARAMS*/
+/* Parse tree for a sctp_paddrparams struct in a [gs]etsockopt syscall. */
 struct sctp_paddrparams_expr {
 	struct expression *spp_address;
 	struct expression *spp_hbinterval;
