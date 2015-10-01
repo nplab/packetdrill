@@ -2318,7 +2318,7 @@ l_linger
 linger
 : '{' l_onoff ',' l_linger '}' {
 	$$ = new_expression(EXPR_LINGER);
-	$$->value.linger = (struct linger_expr*) calloc(1, sizeof(struct linger_expr));
+	$$->value.linger = calloc(1, sizeof(struct linger_expr));
 	$$->value.linger->l_onoff  = $2;
 	$$->value.linger->l_linger = $4;
 }
@@ -2358,7 +2358,7 @@ sctp_rtoinfo
 : '{' srto_initial ',' srto_max ',' srto_min '}' {
 #ifdef SCTP_RTOINFO
 	$$ = new_expression(EXPR_SCTP_RTOINFO);
-	$$->value.sctp_rtoinfo = (struct sctp_rtoinfo_expr*) calloc(1, sizeof(struct sctp_rtoinfo_expr));
+	$$->value.sctp_rtoinfo = calloc(1, sizeof(struct sctp_rtoinfo_expr));
 	$$->value.sctp_rtoinfo->srto_initial = $2;
 	$$->value.sctp_rtoinfo->srto_max = $4;
 	$$->value.sctp_rtoinfo->srto_min = $6;
@@ -2552,7 +2552,7 @@ spinfo_mtu
 sctp_paddrinfo
 : '{' spinfo_state ',' spinfo_cwnd ',' spinfo_srtt ',' spinfo_rto ',' spinfo_mtu '}' {
 	$$ = new_expression(EXPR_SCTP_PADDRINFO);
-	$$->value.sctp_paddrinfo = (struct sctp_paddrinfo_expr*) calloc(1, sizeof(struct sctp_paddrinfo_expr));
+	$$->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_paddrinfo_expr));
 	$$->value.sctp_paddrinfo->spinfo_state = $2;
 	$$->value.sctp_paddrinfo->spinfo_cwnd = $4;
 	$$->value.sctp_paddrinfo->spinfo_srtt = $6;
@@ -2565,7 +2565,7 @@ sctp_status
 : '{' sstat_state ',' sstat_rwnd ',' sstat_unackdata ',' sstat_penddata ',' sstat_instrms ',' sstat_outstrms ','
 	sstat_fragmentation_point ',' sstat_primary  '}' {
 	$$ = new_expression(EXPR_SCTP_STATUS);
-	$$->value.sctp_status = (struct sctp_status_expr*) calloc(1, sizeof(struct sctp_status_expr));
+	$$->value.sctp_status = calloc(1, sizeof(struct sctp_status_expr));
 	$$->value.sctp_status->sstat_state = $2;
 	$$->value.sctp_status->sstat_rwnd = $4;
 	$$->value.sctp_status->sstat_unackdata = $6;
@@ -2640,7 +2640,7 @@ sctp_paddrparams
 : '{' spp_address ',' spp_hbinterval ',' spp_pathmtu ',' spp_pathmaxrxt ',' spp_flags
 	',' spp_ipv6_flowlabel ',' spp_dscp'}' {
 	$$ = new_expression(EXPR_SCTP_PEER_ADDR_PARAMS);
-	$$->value.sctp_paddrparams = (struct sctp_paddrparams_expr*) calloc(1, sizeof(struct sctp_paddrparams_expr));
+	$$->value.sctp_paddrparams = calloc(1, sizeof(struct sctp_paddrparams_expr));
 	$$->value.sctp_paddrparams->spp_address = $2;
 	$$->value.sctp_paddrparams->spp_hbinterval = $4;
 	$$->value.sctp_paddrparams->spp_pathmtu = $6;
