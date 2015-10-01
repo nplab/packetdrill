@@ -295,21 +295,21 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_LINGER:
 		assert(expression->value.linger);
-		free(expression->value.linger->l_onoff);
-		free(expression->value.linger->l_linger);
+		free_expression(expression->value.linger->l_onoff);
+		free_expression(expression->value.linger->l_linger);
 		break;
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
 		assert(expression->value.sctp_rtoinfo);
-		free(expression->value.sctp_rtoinfo->srto_initial);
-		free(expression->value.sctp_rtoinfo->srto_max);
-		free(expression->value.sctp_rtoinfo->srto_min);
+		free_expression(expression->value.sctp_rtoinfo->srto_initial);
+		free_expression(expression->value.sctp_rtoinfo->srto_max);
+		free_expression(expression->value.sctp_rtoinfo->srto_min);
 		break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	case EXPR_SCTP_ASSOC_VALUE:
 		assert(expression->value.sctp_assoc_value);
-		free(expression->value.sctp_assoc_value->assoc_value);
+		free_expression(expression->value.sctp_assoc_value->assoc_value);
 		break;
 #endif
 #ifdef SCTP_INITMSG
@@ -321,42 +321,42 @@ void free_expression(struct expression *expression)
 		break;
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
-		free(expression->value.sctp_paddrinfo);
-		free(expression->value.sctp_paddrinfo->spinfo_state);
-		free(expression->value.sctp_paddrinfo->spinfo_cwnd);
-		free(expression->value.sctp_paddrinfo->spinfo_srtt);
-		free(expression->value.sctp_paddrinfo->spinfo_rto);
-		free(expression->value.sctp_paddrinfo->spinfo_mtu);
+		assert(expression->value.sctp_paddrinfo);
+		free_expression(expression->value.sctp_paddrinfo->spinfo_state);
+		free_expression(expression->value.sctp_paddrinfo->spinfo_cwnd);
+		free_expression(expression->value.sctp_paddrinfo->spinfo_srtt);
+		free_expression(expression->value.sctp_paddrinfo->spinfo_rto);
+		free_expression(expression->value.sctp_paddrinfo->spinfo_mtu);
 		break;
 	case EXPR_SCTP_STATUS:
 		assert(expression->value.sctp_status);
-		free(expression->value.sctp_status->sstat_state);
-		free(expression->value.sctp_status->sstat_rwnd);
-		free(expression->value.sctp_status->sstat_unackdata);
-		free(expression->value.sctp_status->sstat_penddata);
-		free(expression->value.sctp_status->sstat_instrms);
-		free(expression->value.sctp_status->sstat_outstrms);
-		free(expression->value.sctp_status->sstat_fragmentation_point);
-		free(expression->value.sctp_status->sstat_primary);
+		free_expression(expression->value.sctp_status->sstat_state);
+		free_expression(expression->value.sctp_status->sstat_rwnd);
+		free_expression(expression->value.sctp_status->sstat_unackdata);
+		free_expression(expression->value.sctp_status->sstat_penddata);
+		free_expression(expression->value.sctp_status->sstat_instrms);
+		free_expression(expression->value.sctp_status->sstat_outstrms);
+		free_expression(expression->value.sctp_status->sstat_fragmentation_point);
+		free_expression(expression->value.sctp_status->sstat_primary);
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		assert(expression->value.sctp_paddrparams);
-		free(expression->value.sctp_paddrparams->spp_address);
-		free(expression->value.sctp_paddrparams->spp_hbinterval);
-		free(expression->value.sctp_paddrparams->spp_pathmaxrxt);
-		free(expression->value.sctp_paddrparams->spp_pathmtu);
-		free(expression->value.sctp_paddrparams->spp_flags);
-		free(expression->value.sctp_paddrparams->spp_ipv6_flowlabel);
-		free(expression->value.sctp_paddrparams->spp_dscp);
+		free_expression(expression->value.sctp_paddrparams->spp_address);
+		free_expression(expression->value.sctp_paddrparams->spp_hbinterval);
+		free_expression(expression->value.sctp_paddrparams->spp_pathmaxrxt);
+		free_expression(expression->value.sctp_paddrparams->spp_pathmtu);
+		free_expression(expression->value.sctp_paddrparams->spp_flags);
+		free_expression(expression->value.sctp_paddrparams->spp_ipv6_flowlabel);
+		free_expression(expression->value.sctp_paddrparams->spp_dscp);
 		break;
 #endif
 #ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
 		assert(expression->value.sctp_stream_value);
-		free(expression->value.sctp_stream_value->stream_id);
-		free(expression->value.sctp_stream_value->stream_value);
+		free_expression(expression->value.sctp_stream_value->stream_id);
+		free_expression(expression->value.sctp_stream_value->stream_value);
 		break;
 #endif
 	case EXPR_WORD:
