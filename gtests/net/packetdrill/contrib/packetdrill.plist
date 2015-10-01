@@ -80,6 +80,14 @@
 		<string>sstat_outstrms</string>
 		<string>sstat_fragmentation_point</string>
 		<string>sstat_primary</string>
+		<string>spinfo_state</string>
+		<string>spinfo_cwnd</string>
+		<string>spinfo_srtt</string>
+		<string>spinfo_rto</string>
+		<string>spinfo_mtu</string>
+		<string>spp_address</string>
+		<string>spp_hbinterval</string>
+		<string>spp_pathmaxrxt</string>
 	</array>
 	<key>BBLMPredefinedNameList</key>
 	<array>

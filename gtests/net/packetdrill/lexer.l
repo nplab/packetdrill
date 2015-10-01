@@ -222,6 +222,18 @@ sstat_instrms			return SSTAT_INSTRMS;
 sstat_outstrms			return SSTAT_OUTSTRMS;
 sstat_fragmentation_point	return SSTAT_FRAGMENTATION_POINT;
 sstat_primary			return SSTAT_PRIMARY;
+spinfo_state			return SPINFO_STATE;
+spinfo_cwnd			return SPINFO_CWND;
+spinfo_srtt			return SPINFO_SRTT;
+spinfo_rto			return SPINFO_RTO;
+spinfo_mtu			return SPINFO_MTU;
+spp_address			return SPP_ADDRESS;
+spp_hbinterval			return SPP_HBINTERVAL;
+spp_pathmaxrxt			return SPP_PATHMAXRXT;
+spp_pathmtu			return SPP_PATHMTU;
+spp_flags			return SPP_FLAGS;
+spp_ipv6_flowlabel		return SPP_IPV6_FLOWLABEL_; /* avoid name clash */
+spp_dscp			return SPP_DSCP_; /* avoid name clash */
 CHUNK				return CHUNK;
 DATA				return DATA;
 INIT				return INIT;

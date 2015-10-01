@@ -78,13 +78,14 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_SETFIB,                        "SO_SETFIB"                       },
 	{ SO_USER_COOKIE,                   "SO_USER_COOKIE"                  },
 
-	/* /usr/include/netinet/sctp.h */
+	/* /usr/include/netinet/sctp.h and /usr/include/netinet/sctp_uio.h */
 	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
 	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
 	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
 #if defined(SCTP_INTERLEAVING_SUPPORTED)
@@ -146,6 +147,19 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(SCTP_SS_WFQ_INTER)
 	{ SCTP_SS_WFQ_INTER,                "SCTP_SS_WFQ_INTER"               },
 #endif
+	{ SCTP_UNCONFIRMED,                 "SCTP_UNCONFIRMED"                },
+	{ SCTP_ACTIVE,                      "SCTP_ACTIVE"                     },
+	{ SCTP_INACTIVE,                    "SCTP_INACTIVE"                   },
+	{ SPP_HB_ENABLE,                    "SPP_HB_ENABLE"                   },
+	{ SPP_HB_DISABLE,                   "SPP_HB_DISABLE"                  },
+	{ SPP_HB_DEMAND,                    "SPP_HB_DEMAND"                   },
+	{ SPP_PMTUD_ENABLE,                 "SPP_PMTUD_ENABLE"                },
+	{ SPP_PMTUD_DISABLE,                "SPP_PMTUD_DISABLE"               },
+	{ SPP_HB_TIME_IS_ZERO,              "SPP_HB_TIME_IS_ZERO"             },
+	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
+	{ SPP_DSCP,                         "SPP_DSCP"                        },
+	{ SPP_IPV4_TOS,                     "SPP_IPV4_TOS"                    },
+
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

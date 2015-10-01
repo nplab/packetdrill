@@ -118,6 +118,9 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SCTP_MAX_BURST
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 #endif
+#ifdef SCTP_PEER_ADDR_PARAMS
+	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
+#endif
 #ifdef SCTP_STATUS
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 #endif
@@ -139,7 +142,36 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_SHUTDOWN_RECEIVED,           "SCTP_SHUTDOWN_RECEIVED"          },
 	{ SCTP_SHUTDOWN_ACK_SENT,           "SCTP_SHUTDOWN_ACK_SENT"          },
 	{ SCTP_SHUTDOWN_PENDING,            "SCTP_SHUTDOWN_PENDING"           },
-
+        { SCTP_UNCONFIRMED,                 "SCTP_UNCONFIRMED"                },
+        { SCTP_ACTIVE,                      "SCTP_ACTIVE"                     },
+        { SCTP_INACTIVE,                    "SCTP_INACTIVE"                   },
+#ifdef SPP_HB_ENABLE
+        { SPP_HB_ENABLE,                    "SPP_HB_ENABLE"                   },
+#endif
+#ifdef SPP_HB_DISABLE
+        { SPP_HB_DISABLE,                    "SPP_HB_DISABLE"                 },
+#endif
+#ifdef SPP_HB_DEMAND
+        { SPP_HB_DEMAND,                    "SPP_HB_DEMAND"                   },
+#endif
+#ifdef SPP_PMTUD_ENABLE
+        { SPP_PMTUD_ENABLE,                 "SPP_PMTUD_ENABLE"                },
+#endif
+#ifdef SPP_PMTUD_DISABLE
+	{ SPP_PMTUD_DISABLE,                "SPP_PMTUD_DISABLE"               },
+#endif
+#ifdef SPP_HB_TIME_IS_ZERO
+	{ SPP_HB_TIME_IS_ZERO,              "SPP_HB_TIME_IS_ZERO"             },
+#endif
+#ifdef SPP_IPV6_FLOWLABEL
+	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
+#endif
+#ifdef SPP_DSCP
+	{ SPP_DSCP,                         "SPP_DSCP"                        },
+#endif
+#ifdef SPP_IPV4_TOS
+	{ SPP_IPV4_TOS,                     "SPP_IPV4_TOS"                    },
+#endif
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },
 	{ TCP_CORK,                         "TCP_CORK"                        },
