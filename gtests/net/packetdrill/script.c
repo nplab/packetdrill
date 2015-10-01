@@ -336,7 +336,9 @@ void free_expression(struct expression *expression)
 		free(expression->value.sctp_paddrparams->spp_hbinterval);
 		free(expression->value.sctp_paddrparams->spp_pathmaxrxt);
 		free(expression->value.sctp_paddrparams->spp_pathmtu);
-		free(expression->value.sctp_paddrparams->spp_sackdelay);
+		free(expression->value.sctp_paddrparams->spp_flags);
+		free(expression->value.sctp_paddrparams->spp_ipv6_flowlabel);
+		free(expression->value.sctp_paddrparams->spp_dscp);
 		break;
 #endif
 	case EXPR_WORD:
@@ -514,20 +516,8 @@ static int evaluate_sctp_status_expression(struct expression *in,
 
 	in_status = in->value.sctp_status;
 	out_status = out->value.sctp_status;
-	if (in_status->sstat_state->type == EXPR_WORD) {
-		s64 val_state = 0;
-		if (symbol_to_int(in_status->sstat_state->value.string,  
-				&val_state, error) == STATUS_OK) {
-			out_status->sstat_state = (struct expression*) 
-				calloc(1, sizeof(struct expression));
-			out_status->sstat_state->type = EXPR_INTEGER;
-			out_status->sstat_state->value.num = val_state;
-		} else {
-			asprintf(error, "bad expression unknown symbol for sstat_state %s", 
-				in_status->sstat_state->value.string);
-			return STATUS_ERR;
-		}
-	} else if (evaluate(in_status->sstat_state,
+	
+	if (evaluate(in_status->sstat_state,
 			&out_status->sstat_state,
 			error))
 		return STATUS_ERR;
@@ -558,22 +548,7 @@ static int evaluate_sctp_status_expression(struct expression *in,
 	if (evaluate(in_status->sstat_primary,
 			&out_status->sstat_primary,
 			error))
-		return STATUS_ERR;
-	if (in_status->sstat_primary->type == EXPR_SCTP_PADDRINFO) {
-		struct sctp_paddrinfo_expr *paddrinfo = in_status->sstat_primary->value.sctp_paddrinfo;
-		if (paddrinfo->spinfo_state->type == EXPR_WORD) {
-			s64 val_state = 0;
-			if (symbol_to_int(paddrinfo->spinfo_state->value.string,
-					&val_state, error) == STATUS_OK) {
-				paddrinfo->spinfo_state->type = EXPR_INTEGER;
-				paddrinfo->spinfo_state->value.num = val_state;
-			} else {
-				asprintf(error, "bad expression unknown symbol for spinfo_state %s",
-					paddrinfo->spinfo_state->value.string);
-				return STATUS_ERR;
-			}
-		}
-	}
+			return STATUS_ERR;
 	return STATUS_OK;
 }
 #endif
@@ -654,6 +629,10 @@ static int evaluate(struct expression *in,
 	case EXPR_SCTP_PADDRINFO:
 		memcpy(&out->value.sctp_paddrinfo, &in->value.sctp_paddrinfo,
 		       sizeof(in->value.sctp_paddrinfo));
+		if (evaluate(in->value.sctp_paddrinfo->spinfo_state,
+				&out->value.sctp_paddrinfo->spinfo_state,
+				error))
+			return STATUS_ERR;
 		break;
 	case EXPR_SCTP_STATUS:	/* copy as-is */
 		result = evaluate_sctp_status_expression(in, out, error);
@@ -663,6 +642,10 @@ static int evaluate(struct expression *in,
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		memcpy(&out->value.sctp_paddrparams, &in->value.sctp_paddrparams, 
 			sizeof(in->value.sctp_paddrparams));
+		if (evaluate(in->value.sctp_paddrparams->spp_flags,
+				&out->value.sctp_paddrparams->spp_flags,
+				error))
+			return STATUS_ERR;		
 		break;
 #endif
 	case EXPR_WORD:

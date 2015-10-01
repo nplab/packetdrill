@@ -204,7 +204,7 @@ static int get_s32(struct expression *expression,
  * valid s16 or u16, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
-static short get_s16(struct expression *expression,
+static int get_s16(struct expression *expression,
 		s16 *value, char **error)
 {
 	if (check_type(expression, EXPR_INTEGER, error))
@@ -218,6 +218,26 @@ static short get_s16(struct expression *expression,
 	}
 	*value = expression->value.num;
 	return STATUS_OK;
+}
+
+/* Sets the value from the expression argument, checking that it is a
+ * valid s8 or u8, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static int get_s8(struct expression *expression,
+                s8 *value, char **error)
+{
+        if (check_type(expression, EXPR_INTEGER, error))
+                return STATUS_ERR;
+        if ((expression->value.num > UCHAR_MAX) ||
+                (expression->value.num < SCHAR_MIN)) {
+                asprintf(error,
+                        "Value out of range for 8-bit integer: %lld",
+                        expression->value.num);
+                return STATUS_ERR;
+        }
+        *value = expression->value.num;
+        return STATUS_OK;
 }
 
 /* Return the value of the argument with the given index, and verify
@@ -1900,9 +1920,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct expression *spp_hbinterval = val_expression->value.sctp_paddrparams->spp_hbinterval;
 		struct expression *spp_pathmaxrxt = val_expression->value.sctp_paddrparams->spp_pathmaxrxt;
 		struct expression *spp_pathmtu = val_expression->value.sctp_paddrparams->spp_pathmtu;
+		struct expression *spp_flags = val_expression->value.sctp_paddrparams->spp_flags;
+		struct expression *spp_ipv6_flowlabel = val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel;
+		struct expression *spp_dscp = val_expression->value.sctp_paddrparams->spp_dscp;
 		struct sctp_paddrparams *live_params = live_optval;
-		int hbinterval, pathmtu;
+		int hbinterval, pathmtu, flags, ipv6_flowlabel;
 		short pathmaxrxt;
+		s8 dscp;
 		if (spp_hbinterval->type != EXPR_ELLIPSIS) {
 			if (get_s32(spp_hbinterval, &hbinterval, error)) {
 				free(live_optval);
@@ -1939,6 +1963,46 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 		}
+		if (spp_flags->type != EXPR_ELLIPSIS) {
+			if (get_s32(spp_flags, &flags, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_params->spp_flags != flags) {
+				asprintf(error, "Bad getsockopt SCTP_PARAMS flags: expected: %u actual: %u",
+					flags, live_params->spp_flags);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		}
+#ifdef SPP_IPV6_FLOWLABEL
+		if (spp_ipv6_flowlabel->type != EXPR_ELLIPSIS) {
+			if (get_s32(spp_ipv6_flowlabel, &ipv6_flowlabel, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_params->spp_ipv6_flowlabel != ipv6_flowlabel) {
+				asprintf(error, "Bad getsockopt SCTP_PARAMS ipv6_flowlabel: expected: %u actual: %u",
+					ipv6_flowlabel, live_params->spp_ipv6_flowlabel);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		}
+#endif
+#ifdef SPP_DSCP
+		if (spp_dscp->type != EXPR_ELLIPSIS) {
+			if (get_s8(spp_dscp, &dscp, error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			if (live_params->spp_dscp != dscp) {
+				asprintf(error, "Bad getsockopt SCTP_PARAMS dscp: expected: %hhu actual: %hhu",
+					dscp, live_params->spp_dscp);
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		}
+#endif
 #endif
 	} else {
 		if (*(int*)live_optval != script_optval) {
@@ -2025,7 +2089,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
-		optval = &val_expression->value.sctp_status;
+		struct sctp_status *status = malloc(sizeof(struct sctp_status));
+		status->sstat_assoc_id = 0;
+		optval = status;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	} else if (val_expression->type == EXPR_SCTP_PEER_ADDR_PARAMS) {
@@ -2056,14 +2122,57 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		if (expr_params->spp_hbinterval->type != EXPR_ELLIPSIS) {
-			params->spp_hbinterval = expr_params->spp_hbinterval->value.num;
+			int hbinterval;
+			if (get_s32(expr_params->spp_hbinterval, &hbinterval, error)) {
+				free(params);
+				return STATUS_ERR;
+			}
+			params->spp_hbinterval = hbinterval;
 		}
 		if (expr_params->spp_pathmaxrxt->type != EXPR_ELLIPSIS) {
-			params->spp_pathmaxrxt = expr_params->spp_pathmaxrxt->value.num;
+			short maxrxt;
+			if (get_s16(expr_params->spp_pathmaxrxt, &maxrxt, error)) {
+				free(params);
+				return STATUS_ERR;
+			}
+			params->spp_pathmaxrxt = maxrxt;
 		}
 		if (expr_params->spp_pathmtu->type != EXPR_ELLIPSIS) {
-			params->spp_pathmtu = expr_params->spp_pathmtu->value.num;
+			int mtu;
+			if (get_s32(expr_params->spp_pathmtu, &mtu, error)) {
+				free(params);
+				return STATUS_ERR;
+			}
+			params->spp_pathmtu = mtu;
 		}
+		if (expr_params->spp_flags->type != EXPR_ELLIPSIS) {
+			int flags;
+			if (get_s32(expr_params->spp_flags, &flags, error)) {
+				free(params);
+				return STATUS_ERR;
+			}
+			params->spp_flags = flags;
+		}
+#ifdef SPP_IPV6_FLOWLABEL
+		if (expr_params->spp_ipv6_flowlabel->type != EXPR_ELLIPSIS) {
+			int flowlabel; 
+			if (get_s32(expr_params->spp_ipv6_flowlabel, &flowlabel, error)) {
+				free(params);
+				return STATUS_ERR;
+			}
+			params->spp_ipv6_flowlabel = flowlabel;
+		}
+#endif
+#ifdef SPP_DSCP
+		if (expr_params->spp_dscp->type != EXPR_ELLIPSIS) {
+			s8 dscp;
+			if (get_s8(expr_params->spp_dscp, &dscp, error)) {
+				free(params);
+				return STATUS_ERR;
+			}
+			params->spp_dscp = dscp;
+		}
+#endif
 		optval = params;
 #endif
 	} else {
@@ -2072,7 +2181,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 				 val_expression->type));
 		return STATUS_ERR;
 	}
-
 	begin_syscall(state, syscall);
 
 	result = setsockopt(live_fd, level, optname, optval, optlen);

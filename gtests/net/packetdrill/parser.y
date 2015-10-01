@@ -530,7 +530,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> COOKIE_RECEIVED_WHILE_SHUTDOWN RESTART_WITH_NEW_ADDRESSES
 %token <reserved> USER_INITIATED_ABORT PROTOCOL_VIOLATION
 %token <reserved> STALENESS CHK PARAM UNRECOGNIZED_PARAMETERS
-%token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU 
+%token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
+%token <reserved> SPP_FLAGS SPPIPV6FLOWLABEL SPPDSCP 
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -573,6 +574,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_initmsg sctp_assocval sctp_sackinfo
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
+%type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
 %type <expression> spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <errno_info> opt_errno 
 %type <chunk_list> sctp_chunk_list_spec
@@ -2585,7 +2587,8 @@ spp_hbinterval
 	if (!is_valid_u32($3)) {
 		semantic_error("spp_hbinterval out of range");
 	}
-	$$ = new_integer_expression($3, "%u"); }
+	$$ = new_integer_expression($3, "%u");
+}
 | SPP_HBINTERVAL '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
@@ -2594,7 +2597,8 @@ spp_pathmtu
 	if (!is_valid_u32($3)) {
 		semantic_error("spp_pathmtu out of range");
 	}
-	$$ = new_integer_expression($3, "%u"); }
+	$$ = new_integer_expression($3, "%u");
+}
 | SPP_PATHMTU '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
@@ -2603,18 +2607,47 @@ spp_pathmaxrxt
 	if (!is_valid_u16($3)) {
 		semantic_error("spp_pathmaxrxt out of range");
 	}
-	$$ = new_integer_expression($3, "%hu"); }
+	$$ = new_integer_expression($3, "%hu");
+}
 | SPP_PATHMAXRXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+spp_flags
+: SPP_FLAGS '=' expression { $$ = $3; }
+;
+
+spp_ipv6_flowlabel
+: SPPIPV6FLOWLABEL '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("spp_ipv6_flowlabel out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SPPIPV6FLOWLABEL '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+spp_dscp
+: SPPDSCP '=' INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("spp_dscp out of range");
+	}
+	$$ = new_integer_expression($3, "%hhu");
+}
+| SPPDSCP '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 sctp_paddrparams
-: '{' spp_address ',' spp_hbinterval ',' spp_pathmtu ',' spp_pathmaxrxt '}' {
+: '{' spp_address ',' spp_hbinterval ',' spp_pathmtu ',' spp_pathmaxrxt ',' spp_flags 
+	',' spp_ipv6_flowlabel ',' spp_dscp'}' {
 	$$ = new_expression(EXPR_SCTP_PEER_ADDR_PARAMS);
 	$$->value.sctp_paddrparams = (struct sctp_paddrparams_expr*) calloc(1, sizeof(struct sctp_paddrparams_expr));
 	$$->value.sctp_paddrparams->spp_address = $2;
 	$$->value.sctp_paddrparams->spp_hbinterval = $4;
 	$$->value.sctp_paddrparams->spp_pathmtu = $6;
 	$$->value.sctp_paddrparams->spp_pathmaxrxt = $8;
+	$$->value.sctp_paddrparams->spp_flags = $10;
+	$$->value.sctp_paddrparams->spp_ipv6_flowlabel = $12;
+	$$->value.sctp_paddrparams->spp_dscp = $14;
 }
 ;
 

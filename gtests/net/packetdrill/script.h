@@ -184,7 +184,9 @@ struct sctp_paddrparams_expr {
 	struct expression *spp_hbinterval;
 	struct expression *spp_pathmaxrxt;
 	struct expression *spp_pathmtu;
-	struct expression *spp_sackdelay;
+	struct expression *spp_flags;
+	struct expression *spp_ipv6_flowlabel;
+	struct expression *spp_dscp;
 };
 
 /* The errno-related info from strace to summarize a system call error */
