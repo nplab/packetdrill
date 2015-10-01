@@ -2194,20 +2194,24 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	val_expression = get_arg(args, 3, error);
 	if (val_expression == NULL)
 		return STATUS_ERR;
-	if (val_expression->type == EXPR_LINGER) {
+	switch (val_expression->type) {
+	case EXPR_LINGER:
 		get_s32(val_expression->value.linger->l_onoff,
 			&linger.l_onoff, error);
 		get_s32(val_expression->value.linger->l_linger,
 			&linger.l_linger, error);
 		optval = &linger;
-	} else if (val_expression->type == EXPR_STRING) {
+		break;
+	case EXPR_STRING:
 		optval = val_expression->value.string;
-	} else if (val_expression->type == EXPR_LIST) {
+		break;
+	case EXPR_LIST:
 		if (s32_bracketed_arg(args, 3, &optval_s32, error))
 			return STATUS_ERR;
 		optval = &optval_s32;
+		break;
 #ifdef SCTP_RTOINFO
-	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
+	case EXPR_SCTP_RTOINFO:
 		rtoinfo.srto_assoc_id = 0;
 		if (get_u32(val_expression->value.sctp_rtoinfo->srto_initial,
 		            &rtoinfo.srto_initial, error)) {
@@ -2222,22 +2226,25 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &rtoinfo;
+		break;
 #endif
 #ifdef SCTP_INITMSG
-	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
+	case EXPR_SCTP_INITMSG:
 		optval = &val_expression->value.sctp_initmsg;
+		break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	} else if (val_expression->type == EXPR_SCTP_ASSOC_VALUE) {
+	case EXPR_SCTP_ASSOC_VALUE:
 		assoc_value.assoc_id = 0;
 		if (get_u32(val_expression->value.sctp_assoc_value->assoc_value,
 		            &assoc_value.assoc_value, error)) {
 			return STATUS_ERR;
 		}
 		optval = &assoc_value;
+		break;
 #endif
 #ifdef SCTP_SS_VALUE
-	} else if (val_expression->type == EXPR_SCTP_STREAM_VALUE) {
+	case EXPR_SCTP_STREAM_VALUE:
 		stream_value.assoc_id = 0;
 		if (get_u16(val_expression->value.sctp_stream_value->stream_id,
 		            &stream_value.stream_id, error)) {
@@ -2248,18 +2255,21 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &stream_value;
+		break;
 #endif
 #ifdef SCTP_DELAYED_SACK
-	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
+	case EXPR_SCTP_SACKINFO:
 		optval = &val_expression->value.sctp_sack_info;
+		break;
 #endif
 #ifdef SCTP_STATUS
-	} else if (val_expression->type == EXPR_SCTP_STATUS) {
+	case EXPR_SCTP_STATUS:
 		status.sstat_assoc_id = 0;
 		optval = &status;
+		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
-	} else if (val_expression->type == EXPR_SCTP_PEER_ADDR_PARAMS) {
+	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		paddrparams.spp_assoc_id = 0;
 		if (val_expression->value.sctp_paddrparams->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
 			memcpy(&paddrparams.spp_address,
@@ -2310,11 +2320,13 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 #endif
 		optval = &paddrparams;
+		break;
 #endif
-	} else {
+	default:
 		asprintf(error, "unsupported setsockopt value type: %s",
 			 expression_type_to_string(val_expression->type));
 		return STATUS_ERR;
+		break;
 	}
 	begin_syscall(state, syscall);
 
