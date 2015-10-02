@@ -2675,6 +2675,7 @@ int abort_association(struct state *state, struct socket *socket)
 	char *error = NULL;
 	struct packet *packet;
 	struct sctp_chunk_list *chunk_list;
+	struct sctp_cause_list *cause_list;
 	struct tuple live_inbound;
 	int result = STATUS_OK;
 	s64 flgs;
@@ -2683,14 +2684,16 @@ int abort_association(struct state *state, struct socket *socket)
 	    (socket->live.remote_initiate_tag == 0)) {
 		return STATUS_OK;
 	}
-	chunk_list = sctp_chunk_list_new();
 	if (socket->live.local_initiate_tag != 0) {
 		flgs = 0;
 	} else {
 		flgs = SCTP_ABORT_CHUNK_T_BIT;
 	}
-	/* XXX Provide an error cause */
-	sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(flgs, sctp_cause_list_new()));
+	cause_list = sctp_cause_list_new();
+	sctp_cause_list_append(cause_list,
+	                       sctp_user_initiated_abort_cause_new("packetdrill cleaning up"));
+	chunk_list = sctp_chunk_list_new();
+	sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(flgs, cause_list));
 	packet = new_sctp_packet(socket->address_family,
 				 DIRECTION_INBOUND, ECN_NONE,
 				 chunk_list, &error);
