@@ -322,6 +322,9 @@ void free_expression(struct expression *expression)
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
 		assert(expression->value.sctp_paddrinfo);
+#if 0
+		free_expression(expression->value.sctp_paddrinfo->spinfo_address);
+#endif
 		free_expression(expression->value.sctp_paddrinfo->spinfo_state);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_cwnd);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_srtt);
@@ -519,57 +522,6 @@ static int evaluate_msghdr_expression(struct expression *in,
 	return STATUS_OK;
 }
 
-#ifdef SCTP_STATUS
-static int evaluate_sctp_status_expression(struct expression *in,
-						struct expression *out, char **error)
-{
-	struct sctp_status_expr *in_status;
-	struct sctp_status_expr *out_status;
-
-	assert(in->type == EXPR_SCTP_STATUS);
-	assert(in->value.sctp_status);
-	assert(out->type == EXPR_SCTP_STATUS);
-
-	out->value.sctp_status = calloc(1, sizeof(struct sctp_status_expr));
-
-	in_status = in->value.sctp_status;
-	out_status = out->value.sctp_status;
-
-	if (evaluate(in_status->sstat_state,
-			&out_status->sstat_state,
-			error))
-		return STATUS_ERR;
-	if (evaluate(in_status->sstat_rwnd,
-			&out_status->sstat_rwnd,
-			error))
-		return STATUS_ERR;
-	if (evaluate(in_status->sstat_unackdata,
-			&out_status->sstat_unackdata,
-			error))
-		return STATUS_ERR;
-	if (evaluate(in_status->sstat_penddata,
-			&out_status->sstat_penddata,
-			error))
-		return STATUS_ERR;
-	if (evaluate(in_status->sstat_instrms,
-			&out_status->sstat_instrms,
-			error))
-		return STATUS_ERR;
-	if (evaluate(in_status->sstat_outstrms,
-			&out_status->sstat_outstrms,
-			error))
-		return STATUS_ERR;
-	if (evaluate(in_status->sstat_fragmentation_point,
-			&out_status->sstat_fragmentation_point,
-			error))
-		return STATUS_ERR;
-	if (evaluate(in_status->sstat_primary,
-			&out_status->sstat_primary,
-			error))
-			return STATUS_ERR;
-	return STATUS_OK;
-}
-#endif
 static int evaluate_pollfd_expression(struct expression *in,
 				      struct expression *out, char **error)
 {
@@ -595,6 +547,40 @@ static int evaluate_pollfd_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+#ifdef SCTP_RTOINFO
+static int evaluate_sctp_rtoinfo_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+	struct sctp_rtoinfo_expr *in_rtoinfo;
+	struct sctp_rtoinfo_expr *out_rtoinfo;
+
+	assert(in->type == EXPR_SCTP_RTOINFO);
+	assert(in->value.sctp_rtoinfo);
+	assert(out->type == EXPR_SCTP_RTOINFO);
+
+	out->value.sctp_rtoinfo = calloc(1, sizeof(struct sctp_rtoinfo_expr));
+
+	in_rtoinfo = in->value.sctp_rtoinfo;
+	out_rtoinfo = out->value.sctp_rtoinfo;
+
+	if (evaluate(in_rtoinfo->srto_initial,
+	             &out_rtoinfo->srto_initial,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_rtoinfo->srto_max,
+	             &out_rtoinfo->srto_max,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_rtoinfo->srto_min,
+	             &out_rtoinfo->srto_min,
+	             error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 static int evaluate_sctp_assoc_value_expression(struct expression *in,
 						struct expression *out,
@@ -612,9 +598,159 @@ static int evaluate_sctp_assoc_value_expression(struct expression *in,
 	in_value = in->value.sctp_assoc_value;
 	out_value = out->value.sctp_assoc_value;
 
-	if (evaluate(in_value->assoc_value, &out_value->assoc_value, error))
+	if (evaluate(in_value->assoc_value,
+	             &out_value->assoc_value,
+	             error))
 		return STATUS_ERR;
 
+	return STATUS_OK;
+}
+#endif
+
+#ifdef SCTP_STATUS
+static int evaluate_sctp_paddrinfo_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_paddrinfo_expr *in_paddrinfo;
+	struct sctp_paddrinfo_expr *out_paddrinfo;
+
+	assert(in->type == EXPR_SCTP_PADDRINFO);
+	assert(in->value.sctp_paddrinfo);
+	assert(out->type == EXPR_SCTP_PADDRINFO);
+
+	out->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_paddrinfo_expr));
+
+	in_paddrinfo = in->value.sctp_paddrinfo;
+	out_paddrinfo = out->value.sctp_paddrinfo;
+
+#if 0
+	if (evaluate(in_paddrinfo->spinfo_address,
+	             &out_value->spinfo_addresss,
+	             error))
+		return STATUS_ERR;
+#endif
+	if (evaluate(in_paddrinfo->spinfo_state,
+	             &out_paddrinfo->spinfo_state,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrinfo->spinfo_cwnd,
+	             &out_paddrinfo->spinfo_cwnd,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrinfo->spinfo_srtt,
+	             &out_paddrinfo->spinfo_srtt,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrinfo->spinfo_rto,
+	             &out_paddrinfo->spinfo_rto,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrinfo->spinfo_mtu,
+	             &out_paddrinfo->spinfo_mtu,
+	             error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
+
+static int evaluate_sctp_status_expression(struct expression *in,
+					   struct expression *out, char **error)
+{
+	struct sctp_status_expr *in_status;
+	struct sctp_status_expr *out_status;
+
+	assert(in->type == EXPR_SCTP_STATUS);
+	assert(in->value.sctp_status);
+	assert(out->type == EXPR_SCTP_STATUS);
+
+	out->value.sctp_status = calloc(1, sizeof(struct sctp_status_expr));
+
+	in_status = in->value.sctp_status;
+	out_status = out->value.sctp_status;
+
+	if (evaluate(in_status->sstat_state,
+	             &out_status->sstat_state,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_rwnd,
+	             &out_status->sstat_rwnd,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_unackdata,
+	             &out_status->sstat_unackdata,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_penddata,
+	             &out_status->sstat_penddata,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_instrms,
+	             &out_status->sstat_instrms,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_outstrms,
+	             &out_status->sstat_outstrms,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_fragmentation_point,
+	             &out_status->sstat_fragmentation_point,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_status->sstat_primary,
+	             &out_status->sstat_primary,
+	             error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+#endif
+
+#ifdef SCTP_PEER_ADDR_PARAMS
+static int evaluate_sctp_peer_addr_param_expression(struct expression *in,
+						    struct expression *out,
+						    char **error)
+{
+	struct sctp_paddrparams_expr *in_paddrparams;
+	struct sctp_paddrparams_expr *out_paddrparams;
+
+	assert(in->type == EXPR_SCTP_PEER_ADDR_PARAMS);
+	assert(in->value.sctp_paddrparams);
+	assert(out->type == EXPR_SCTP_PEER_ADDR_PARAMS);
+
+	out->value.sctp_paddrparams = calloc(1, sizeof(struct sctp_paddrparams_expr));
+
+	in_paddrparams = in->value.sctp_paddrparams;
+	out_paddrparams = out->value.sctp_paddrparams;
+
+	if (evaluate(in_paddrparams->spp_address,
+	             &out_paddrparams->spp_address,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrparams->spp_hbinterval,
+	             &out_paddrparams->spp_hbinterval,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrparams->spp_pathmaxrxt,
+	             &out_paddrparams->spp_pathmaxrxt,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrparams->spp_pathmtu,
+	             &out_paddrparams->spp_pathmtu,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrparams->spp_flags,
+	             &out_paddrparams->spp_flags,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrparams->spp_ipv6_flowlabel,
+	             &out_paddrparams->spp_ipv6_flowlabel,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_paddrparams->spp_dscp,
+	             &out_paddrparams->spp_dscp,
+	             error))
+		return STATUS_ERR;
 	return STATUS_OK;
 }
 #endif
@@ -636,9 +772,13 @@ static int evaluate_sctp_stream_value_expression(struct expression *in,
 	in_value = in->value.sctp_stream_value;
 	out_value = out->value.sctp_stream_value;
 
-	if (evaluate(in_value->stream_id, &out_value->stream_id, error))
+	if (evaluate(in_value->stream_id,
+	             &out_value->stream_id,
+	             error))
 		return STATUS_ERR;
-	if (evaluate(in_value->stream_value, &out_value->stream_value, error))
+	if (evaluate(in_value->stream_value,
+	             &out_value->stream_value,
+	             error))
 		return STATUS_ERR;
 
 	return STATUS_OK;
@@ -669,9 +809,8 @@ static int evaluate(struct expression *in,
 		       sizeof(in->value.linger));
 		break;
 #ifdef SCTP_RTOINFO
-	case EXPR_SCTP_RTOINFO:		/* copy as-is */
-		memcpy(&out->value.sctp_rtoinfo, &in->value.sctp_rtoinfo,
-		       sizeof(in->value.sctp_rtoinfo));
+	case EXPR_SCTP_RTOINFO:
+		evaluate_sctp_rtoinfo_expression(in, out, error);
 		break;
 #endif
 #ifdef SCTP_INITMSG
@@ -681,7 +820,7 @@ static int evaluate(struct expression *in,
 		break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	case EXPR_SCTP_ASSOC_VALUE:	/* copy as-is */
+	case EXPR_SCTP_ASSOC_VALUE:
 		evaluate_sctp_assoc_value_expression(in, out, error);
 		break;
 #endif
@@ -693,25 +832,15 @@ static int evaluate(struct expression *in,
 #endif
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
-		memcpy(&out->value.sctp_paddrinfo, &in->value.sctp_paddrinfo,
-		       sizeof(in->value.sctp_paddrinfo));
-		if (evaluate(in->value.sctp_paddrinfo->spinfo_state,
-				&out->value.sctp_paddrinfo->spinfo_state,
-				error))
-			return STATUS_ERR;
+		evaluate_sctp_paddrinfo_expression(in, out, error);
 		break;
-	case EXPR_SCTP_STATUS:	/* copy as-is */
+	case EXPR_SCTP_STATUS:
 		result = evaluate_sctp_status_expression(in, out, error);
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
-		memcpy(&out->value.sctp_paddrparams, &in->value.sctp_paddrparams,
-			sizeof(in->value.sctp_paddrparams));
-		if (evaluate(in->value.sctp_paddrparams->spp_flags,
-				&out->value.sctp_paddrparams->spp_flags,
-				error))
-			return STATUS_ERR;
+		result = evaluate_sctp_peer_addr_param_expression(in, out, error);
 		break;
 #endif
 #ifdef SCTP_SS_VALUE
