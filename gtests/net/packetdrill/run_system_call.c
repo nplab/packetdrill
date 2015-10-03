@@ -1963,7 +1963,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrparams->spp_flags != spp_flags) {
-			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_flags: expected: %u actual: %u",
+			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_flags: expected: 0x%08x actual: 0x%08x",
 				 spp_flags, sctp_paddrparams->spp_flags);
 			return STATUS_ERR;
 		}
