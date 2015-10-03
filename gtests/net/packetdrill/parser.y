@@ -2831,14 +2831,13 @@ spp_dscp
 ;
 
 sctp_paddrparams
-: '{' spp_address ',' spp_hbinterval ',' spp_pathmtu ',' spp_pathmaxrxt ',' spp_flags
-	',' spp_ipv6_flowlabel ',' spp_dscp'}' {
+: '{' spp_address ',' spp_hbinterval ',' spp_pathmaxrxt ',' spp_pathmtu ','spp_flags ',' spp_ipv6_flowlabel ',' spp_dscp'}' {
 	$$ = new_expression(EXPR_SCTP_PEER_ADDR_PARAMS);
 	$$->value.sctp_paddrparams = calloc(1, sizeof(struct sctp_paddrparams_expr));
 	$$->value.sctp_paddrparams->spp_address = $2;
 	$$->value.sctp_paddrparams->spp_hbinterval = $4;
-	$$->value.sctp_paddrparams->spp_pathmtu = $6;
-	$$->value.sctp_paddrparams->spp_pathmaxrxt = $8;
+	$$->value.sctp_paddrparams->spp_pathmaxrxt = $6;
+	$$->value.sctp_paddrparams->spp_pathmtu = $8;
 	$$->value.sctp_paddrparams->spp_flags = $10;
 	$$->value.sctp_paddrparams->spp_ipv6_flowlabel = $12;
 	$$->value.sctp_paddrparams->spp_dscp = $14;
