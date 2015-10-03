@@ -1968,8 +1968,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 	}
 	if (expr->spp_ipv6_flowlabel->type != EXPR_ELLIPSIS) {
 #ifdef linux
-		asprintf(error, "Bad getsockopt linux doesn't support sctp_paddrparams.spp_ipv6_flowlabel",
-			 spp_ipv6_flowlabel, sctp_paddrparams->spp_ipv6_flowlabel);
+		asprintf(error, "Bad getsockopt linux doesn't support sctp_paddrparams.spp_ipv6_flowlabel");
 		return STATUS_ERR;
 #else
 		u32 spp_ipv6_flowlabel;
@@ -1986,8 +1985,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 #endif
 	if (expr->spp_dscp->type != EXPR_ELLIPSIS) {
 #ifdef linux
-		asprintf(error, "Bad getsockopt linux doesn't support sctp_paddrparams.spp_dscp",
-			 spp_ipv6_flowlabel, sctp_paddrparams->spp_ipv6_flowlabel);
+		asprintf(error, "Bad getsockopt linux doesn't support sctp_paddrparams.spp_dscp");
 		return STATUS_ERR;
 #else
 		u8 spp_dscp;
