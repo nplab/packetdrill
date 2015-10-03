@@ -2225,6 +2225,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	struct sctp_stream_value stream_value;
 #endif
 	struct sctp_paddrparams paddrparams;
+#ifdef linux
+	u32 spp_ipv6_flowlabel;
+	u8 spp_dscp;
+#endif
 
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
@@ -2355,17 +2359,32 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		            &paddrparams.spp_flags, error)) {
 			return STATUS_ERR;
 		}
-#ifdef SPP_IPV6_FLOWLABEL
+#ifdef __FreeBSD__
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel,
 		            &paddrparams.spp_ipv6_flowlabel, error)) {
 			return STATUS_ERR;
 		}
-#endif
-#ifdef SPP_DSCP
 		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
 		           &paddrparams.spp_dscp, error)) {
 			return STATUS_ERR;
 		}
+#endif
+#ifdef linux
+		if (get_u32(val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel,
+		            &spp_ipv6_flowlabel, error)) {
+			return STATUS_ERR;
+		} else if (spp_ipv6_flowlabel != 0) {
+			asprintf(error, "Bad setsockopt, Linux doesn't support paddrparams.spp_ipv6_flowlabel");
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
+		           &spp_dscp, error)) {
+			return STATUS_ERR;
+		} else if (spp_dscp != 0) {
+			asprintf(error, "Bad setsockopt, Linux doesn't support paddrparams.spp_dscp");
+			return STATUS_ERR;
+		}
+		paddrparams.spp_sackdelay = 0;
 #endif
 		optval = &paddrparams;
 		break;
