@@ -100,34 +100,16 @@ struct int_symbol platform_symbols_table[] = {
 	{ IPV6_MTU,                         "IPV6_MTU"                        },
 #endif
 
-#ifdef SCTP_RTOINFO
 	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
-#endif
-#ifdef SCTP_INITMSG
 	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
-#endif
-#ifdef SCTP_NODELAY
 	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
-#endif
-#ifdef SCTP_MAXSEG
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
-#endif
-#ifdef SCTP_DELAYED_SACK
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
-#endif
-#ifdef SCTP_MAX_BURST
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
-#endif
-#ifdef SCTP_PEER_ADDR_PARAMS
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
-#endif
-#ifdef SCTP_STATUS
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
-#endif
-#ifdef SCTP_FRAGMENT_INTERLEAVE
 	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
-#endif
-#ifdef SCTP_INTERLEAVING_SUPPORTED
+#if 0
 	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },
 #endif
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
@@ -145,33 +127,17 @@ struct int_symbol platform_symbols_table[] = {
         { SCTP_UNCONFIRMED,                 "SCTP_UNCONFIRMED"                },
         { SCTP_ACTIVE,                      "SCTP_ACTIVE"                     },
         { SCTP_INACTIVE,                    "SCTP_INACTIVE"                   },
-#ifdef SPP_HB_ENABLE
         { SPP_HB_ENABLE,                    "SPP_HB_ENABLE"                   },
-#endif
-#ifdef SPP_HB_DISABLE
-        { SPP_HB_DISABLE,                    "SPP_HB_DISABLE"                 },
-#endif
-#ifdef SPP_HB_DEMAND
+        { SPP_HB_DISABLE,                   "SPP_HB_DISABLE"                  },
         { SPP_HB_DEMAND,                    "SPP_HB_DEMAND"                   },
-#endif
-#ifdef SPP_PMTUD_ENABLE
-        { SPP_PMTUD_ENABLE,                 "SPP_PMTUD_ENABLE"                },
-#endif
-#ifdef SPP_PMTUD_DISABLE
-	{ SPP_PMTUD_DISABLE,                "SPP_PMTUD_DISABLE"               },
-#endif
-#ifdef SPP_HB_TIME_IS_ZERO
 	{ SPP_HB_TIME_IS_ZERO,              "SPP_HB_TIME_IS_ZERO"             },
-#endif
-#ifdef SPP_IPV6_FLOWLABEL
+        { SPP_PMTUD_ENABLE,                 "SPP_PMTUD_ENABLE"                },
+	{ SPP_PMTUD_DISABLE,                "SPP_PMTUD_DISABLE"               },
+#if 0
 	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
-#endif
-#ifdef SPP_DSCP
 	{ SPP_DSCP,                         "SPP_DSCP"                        },
 #endif
-#ifdef SPP_IPV4_TOS
-	{ SPP_IPV4_TOS,                     "SPP_IPV4_TOS"                    },
-#endif
+
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },
 	{ TCP_CORK,                         "TCP_CORK"                        },

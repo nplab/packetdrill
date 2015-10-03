@@ -153,12 +153,11 @@ struct int_symbol platform_symbols_table[] = {
 	{ SPP_HB_ENABLE,                    "SPP_HB_ENABLE"                   },
 	{ SPP_HB_DISABLE,                   "SPP_HB_DISABLE"                  },
 	{ SPP_HB_DEMAND,                    "SPP_HB_DEMAND"                   },
+	{ SPP_HB_TIME_IS_ZERO,              "SPP_HB_TIME_IS_ZERO"             },
 	{ SPP_PMTUD_ENABLE,                 "SPP_PMTUD_ENABLE"                },
 	{ SPP_PMTUD_DISABLE,                "SPP_PMTUD_DISABLE"               },
-	{ SPP_HB_TIME_IS_ZERO,              "SPP_HB_TIME_IS_ZERO"             },
 	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
 	{ SPP_DSCP,                         "SPP_DSCP"                        },
-	{ SPP_IPV4_TOS,                     "SPP_IPV4_TOS"                    },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
