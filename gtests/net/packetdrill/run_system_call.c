@@ -262,7 +262,6 @@ static int get_s16(struct expression *expression,
 }
 #endif
 
-#ifdef SPP_DSCP
 /* Sets the value from the expression argument, checking that it is a
  * valid u8, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -282,7 +281,6 @@ static int get_u8(struct expression *expression,
         *value = expression->value.num;
         return STATUS_OK;
 }
-#endif
 
 #if 0
 /* Sets the value from the expression argument, checking that it is a
