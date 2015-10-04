@@ -314,6 +314,12 @@ void free_expression(struct expression *expression)
 #endif
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
+		assert(expression->value.sctp_initmsg);
+		free_expression(expression->value.sctp_initmsg->sinit_num_ostreams);
+		free_expression(expression->value.sctp_initmsg->sinit_max_instreams);
+		free_expression(expression->value.sctp_initmsg->sinit_max_attempts);
+		free_expression(expression->value.sctp_initmsg->sinit_max_init_timeo);
+		break;
 #endif
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
@@ -581,6 +587,43 @@ static int evaluate_sctp_rtoinfo_expression(struct expression *in,
 }
 #endif
 
+#ifdef SCTP_INITMSG
+static int evaluate_sctp_initmsg_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+	struct sctp_initmsg_expr *in_initmsg;
+	struct sctp_initmsg_expr *out_initmsg;
+
+	assert(in->type == EXPR_SCTP_INITMSG);
+	assert(in->value.sctp_initmsg);
+	assert(out->type == EXPR_SCTP_INITMSG);
+
+	out->value.sctp_initmsg = calloc(1, sizeof(struct sctp_initmsg_expr));
+
+	in_initmsg = in->value.sctp_initmsg;
+	out_initmsg = out->value.sctp_initmsg;
+
+	if (evaluate(in_initmsg->sinit_num_ostreams,
+		     &out_initmsg->sinit_num_ostreams,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_initmsg->sinit_max_instreams,
+		     &out_initmsg->sinit_max_instreams,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_initmsg->sinit_max_attempts,
+		     &out_initmsg->sinit_max_attempts,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_initmsg->sinit_max_init_timeo,
+		     &out_initmsg->sinit_max_init_timeo,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+#endif
+
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 static int evaluate_sctp_assoc_value_expression(struct expression *in,
 						struct expression *out,
@@ -814,9 +857,8 @@ static int evaluate(struct expression *in,
 		break;
 #endif
 #ifdef SCTP_INITMSG
-	case EXPR_SCTP_INITMSG:		/* copy as-is */
-		memcpy(&out->value.sctp_initmsg, &in->value.sctp_initmsg,
-		       sizeof(in->value.sctp_initmsg));
+	case EXPR_SCTP_INITMSG:
+		evaluate_sctp_initmsg_expression(in, out, error);
 		break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)

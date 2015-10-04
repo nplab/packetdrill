@@ -91,7 +91,7 @@ struct expression {
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 #endif
 #ifdef SCTP_INITMSG
-		struct sctp_initmsg sctp_initmsg;
+		struct sctp_initmsg_expr *sctp_initmsg;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 		struct sctp_assoc_value_expr *sctp_assoc_value;
@@ -161,6 +161,17 @@ struct sctp_rtoinfo_expr {
 	struct expression *srto_initial;
 	struct expression *srto_max;
 	struct expression *srto_min;
+};
+#endif
+
+
+#ifdef SCTP_INITMSG
+/* Parse tree for a sctp_initmsg struct in a [gs]etsockopt syscall. */
+struct sctp_initmsg_expr {
+	struct expression *sinit_num_ostreams;
+	struct expression *sinit_max_instreams;
+	struct expression *sinit_max_attempts;
+	struct expression *sinit_max_init_timeo;
 };
 #endif
 

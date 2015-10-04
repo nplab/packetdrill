@@ -1755,6 +1755,62 @@ static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 }
 #endif
 
+#ifdef SCTP_INITMSG
+static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
+                              struct sctp_initmsg *sctp_initmsg, char **error)
+{
+	if (expr->sinit_num_ostreams->type != EXPR_ELLIPSIS) {
+		u16 sinit_num_ostreams;
+
+		if (get_u16(expr->sinit_num_ostreams, &sinit_num_ostreams, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_initmsg->sinit_num_ostreams != sinit_num_ostreams) {
+			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_num_ostreams: expected: %hu actual: %hu",
+				 sinit_num_ostreams, sctp_initmsg->sinit_num_ostreams);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sinit_max_instreams->type != EXPR_ELLIPSIS) {
+		u16 sinit_max_instreams;
+
+		if (get_u16(expr->sinit_max_instreams, &sinit_max_instreams, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_initmsg->sinit_max_instreams != sinit_max_instreams) {
+			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_max_instreams: expected: %hu actual: %hu",
+				 sinit_max_instreams, sctp_initmsg->sinit_max_instreams);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sinit_max_attempts->type != EXPR_ELLIPSIS) {
+		u16 sinit_max_attempts;
+
+		if (get_u16(expr->sinit_max_attempts, &sinit_max_attempts, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_initmsg->sinit_max_attempts != sinit_max_attempts) {
+			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_max_attempts: expected: %hu actual: %hu",
+				 sinit_max_attempts, sctp_initmsg->sinit_max_attempts);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sinit_max_init_timeo->type != EXPR_ELLIPSIS) {
+		u16 sinit_max_init_timeo;
+
+		if (get_u16(expr->sinit_max_init_timeo, &sinit_max_init_timeo, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_initmsg->sinit_max_init_timeo != sinit_max_init_timeo) {
+			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_max_init_timeo: expected: %hu actual: %hu",
+				 sinit_max_init_timeo, sctp_initmsg->sinit_max_init_timeo);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 #ifdef SCTP_STATUS
 static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			        struct sctp_paddrinfo *sctp_paddrinfo,
@@ -2100,6 +2156,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
 		((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
 #endif
+#ifdef SCTP_INITMSG
+	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
+		live_optval = malloc(sizeof(struct sctp_initmsg));
+		live_optlen = (socklen_t)sizeof(struct sctp_initmsg);
+#endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
 		live_optval = malloc(sizeof(struct sctp_status));
@@ -2180,6 +2241,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#ifdef SCTP_INITMSG
+	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
+		if (check_sctp_initmsg(val_expression->value.sctp_initmsg, live_optval, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
 		if (check_sctp_status(val_expression->value.sctp_status, live_optval, error)) {
@@ -2229,6 +2297,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	struct linger linger;
 #ifdef SCTP_RTOINFO
 	struct sctp_rtoinfo rtoinfo;
+#endif
+#ifdef SCTP_INITMSG
+	struct sctp_initmsg initmsg;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	struct sctp_assoc_value assoc_value;
@@ -2299,7 +2370,23 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
-		optval = &val_expression->value.sctp_initmsg;
+		if (get_u16(val_expression->value.sctp_initmsg->sinit_num_ostreams,
+			    &initmsg.sinit_num_ostreams, error)) {
+		return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_initmsg->sinit_max_instreams,
+			    &initmsg.sinit_max_instreams, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_initmsg->sinit_max_attempts,
+			    &initmsg.sinit_max_attempts, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_initmsg->sinit_max_init_timeo,
+			    &initmsg.sinit_max_init_timeo, error)) {
+			return STATUS_ERR;
+		}
+		optval = &initmsg;
 		break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
