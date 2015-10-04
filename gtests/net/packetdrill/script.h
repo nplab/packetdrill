@@ -65,7 +65,9 @@ enum expression_t {
 #ifdef SCTP_SS_VALUE
 	EXPR_SCTP_STREAM_VALUE,	  /* struct sctp_stream_value for SCTP_SS_VALUE */
 #endif
+#ifdef SCTP_PEER_ADDR_PARAMS
 	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS*/
+#endif
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
