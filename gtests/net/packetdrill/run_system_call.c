@@ -181,6 +181,7 @@ static int check_type(struct expression *expression,
 	}
 }
 
+#if defined(SCTP_RTOINFO) || defined(SCTP_STATUS) || defined(SCTP_PEER_ADDR_PARAMS) || defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 /* Sets the value from the expression argument, checking that it is a
  * valid u32, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -200,6 +201,7 @@ static int get_u32(struct expression *expression,
 	*value = expression->value.num;
 	return STATUS_OK;
 }
+#endif
 
 /* Sets the value from the expression argument, checking that it is a
  * valid s32 or u32, and matches the expected type. Returns STATUS_OK on
@@ -221,6 +223,7 @@ static int get_s32(struct expression *expression,
 	return STATUS_OK;
 }
 
+#if defined(SCTP_STATUS) || defined(SCTP_PEER_ADDR_PARAMS) || defined(SCTP_SS_VALUE)
 /* Sets the value from the expression argument, checking that it is a
  * valid u16, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -240,6 +243,7 @@ static int get_u16(struct expression *expression,
 	*value = expression->value.num;
 	return STATUS_OK;
 }
+#endif
 
 #if 0
 /* Sets the value from the expression argument, checking that it is a
@@ -263,6 +267,7 @@ static int get_s16(struct expression *expression,
 }
 #endif
 
+#if defined(SCTP_PEER_ADDR_PARAMS)
 /* Sets the value from the expression argument, checking that it is a
  * valid u8, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -282,6 +287,7 @@ static int get_u8(struct expression *expression,
         *value = expression->value.num;
         return STATUS_OK;
 }
+#endif
 
 #if 0
 /* Sets the value from the expression argument, checking that it is a
@@ -2221,18 +2227,24 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	void *optval = NULL;
 	struct expression *val_expression;
 	struct linger linger;
+#ifdef SCTP_RTOINFO
 	struct sctp_rtoinfo rtoinfo;
+#endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	struct sctp_assoc_value assoc_value;
 #endif
+#ifdef SCTP_STATUS
 	struct sctp_status status;
+#endif
 #if defined(SCTP_SS_VALUE)
 	struct sctp_stream_value stream_value;
 #endif
+#ifdef SCTP_PEER_ADDR_PARAMS
 	struct sctp_paddrparams paddrparams;
 #ifdef linux
 	u32 spp_ipv6_flowlabel;
 	u8 spp_dscp;
+#endif
 #endif
 
 	if (check_arg_count(args, 5, error))
