@@ -36,12 +36,12 @@
  * Platform-specific functions and macros
  */
 
-static __always_inline u32 rotl32(u32 x, s8 r)
+static __inline u32 rotl32(u32 x, s8 r)
 {
 	return (x << r) | (x >> (32 - r));
 }
 
-static __always_inline u64 rotl64(u64 x, s8 r)
+static __inline u64 rotl64(u64 x, s8 r)
 {
 	return (x << r) | (x >> (64 - r));
 }
@@ -56,12 +56,12 @@ static __always_inline u64 rotl64(u64 x, s8 r)
  * handle aligned reads, do the conversion here
  */
 
-static __always_inline u32 getblock_32(const u32 *p, int i)
+static __inline u32 getblock_32(const u32 *p, int i)
 {
 	return p[i];
 }
 
-static __always_inline u64 getblock_64(const u64 *p, int i)
+static __inline u64 getblock_64(const u64 *p, int i)
 {
 	return p[i];
 }
@@ -70,7 +70,7 @@ static __always_inline u64 getblock_64(const u64 *p, int i)
  * Finalization mix - force all bits of a hash block to avalanche
  */
 
-static __always_inline u32 fmix_32(u32 h)
+static __inline u32 fmix_32(u32 h)
 {
 	h ^= h >> 16;
 	h *= 0x85ebca6b;
@@ -83,7 +83,7 @@ static __always_inline u32 fmix_32(u32 h)
 
 /*---------*/
 
-static __always_inline u64 fmix_64(u64 k)
+static __inline u64 fmix_64(u64 k)
 {
 	k ^= k >> 33;
 	k *= BIG_CONSTANT(0xff51afd7ed558ccd);
