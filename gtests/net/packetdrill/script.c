@@ -326,8 +326,11 @@ void free_expression(struct expression *expression)
 #endif
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
-#endif
+		assert(expression->value.sctp_sack_info);
+		free_expression(expression->value.sctp_sack_info->sack_delay);
+		free_expression(expression->value.sctp_sack_info->sack_freq);		
 		break;
+#endif
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
 		assert(expression->value.sctp_paddrinfo);
@@ -662,6 +665,36 @@ static int evaluate_sctp_assoc_value_expression(struct expression *in,
 }
 #endif
 
+#ifdef SCTP_DELAYED_SACK
+static int evaluate_sctp_sack_info_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+	struct sctp_sack_info_expr *in_sack_info;
+	struct sctp_sack_info_expr *out_sack_info;
+
+	assert(in->type == EXPR_SCTP_SACKINFO);
+	assert(in->value.sctp_sack_info);
+	assert(out->type == EXPR_SCTP_SACKINFO);
+
+	out->value.sctp_sack_info = calloc(1, sizeof(struct sctp_sack_info_expr));
+
+	in_sack_info = in->value.sctp_sack_info;
+	out_sack_info = out->value.sctp_sack_info;
+
+	if (evaluate(in_sack_info->sack_delay,
+		     &out_sack_info->sack_delay,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sack_info->sack_freq,
+		     &out_sack_info->sack_freq,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 #ifdef SCTP_STATUS
 static int evaluate_sctp_paddrinfo_expression(struct expression *in,
 					      struct expression *out,
@@ -926,9 +959,8 @@ static int evaluate(struct expression *in,
 		break;
 #endif
 #ifdef SCTP_DELAYED_SACK
-	case EXPR_SCTP_SACKINFO:	/* copy as-is */
-		memcpy(&out->value.sctp_sack_info, &in->value.sctp_sack_info,
-		       sizeof(in->value.sctp_sack_info));
+	case EXPR_SCTP_SACKINFO:
+		evaluate_sctp_sack_info_expression(in, out, error);	
 		break;
 #endif
 #ifdef SCTP_STATUS
