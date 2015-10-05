@@ -87,6 +87,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
+	{ SCTP_GET_PEER_ADDR_INFO,          "SCTP_GET_PEER_ADDR_INFO"         },
 	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
 #if defined(SCTP_INTERLEAVING_SUPPORTED)
 	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },
