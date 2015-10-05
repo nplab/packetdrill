@@ -55,7 +55,7 @@ enum expression_t {
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
 #endif
 #ifdef SCTP_DELAYED_SACK
-	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info for
+	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for
 				   * SCTP_DELAYED_SACK */
 #endif
 #ifdef SCTP_STATUS
@@ -97,7 +97,7 @@ struct expression {
 		struct sctp_assoc_value_expr *sctp_assoc_value;
 #endif
 #ifdef SCTP_DELAYED_SACK
-		struct sctp_sack_info sctp_sack_info;
+		struct sctp_sack_info_expr *sctp_sack_info;
 #endif
 #ifdef SCTP_STATUS
 		struct sctp_status_expr *sctp_status;
@@ -190,6 +190,13 @@ struct sctp_stream_value_expr {
 };
 #endif
 
+#ifdef SCTP_DELAYED_SACK
+/* Parse tree for a sctp_sack_info struct in a [gs]etsockopt syscall. */
+struct sctp_sack_info_expr {
+	struct expression *sack_delay;
+	struct expression *sack_freq;
+};
+#endif
 /* Parse tree for a sctp_status struct in a [gs]etsockopt syscall. */
 #ifdef SCTP_STATUS
 struct sctp_status_expr {

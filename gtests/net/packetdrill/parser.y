@@ -574,7 +574,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
 %type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts 
-%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value sctp_sackinfo
+%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value 
+%type <expression> sctp_sackinfo sack_delay sack_freq
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
@@ -2629,18 +2630,31 @@ sctp_assoc_value
 }
 ;
 
-sctp_sackinfo
-: '{' SACK_DELAY '=' INTEGER ',' SACK_FREQ '=' INTEGER '}' {
-#ifdef SCTP_DELAYED_SACK
-	$$ = new_expression(EXPR_SCTP_SACKINFO);
-	if (!is_valid_u32($4)) {
+sack_delay
+: SACK_DELAY '=' INTEGER {
+	if (!is_valid_u32($3)) {
 		semantic_error("sack_delay out of range");
 	}
-	$$->value.sctp_sack_info.sack_delay = $4;
-	if (!is_valid_u32($8)) {
+	$$ = new_integer_expression($3, "%u");
+}
+| SACK_DELAY '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+
+sack_freq
+: SACK_FREQ '=' INTEGER {
+	if (!is_valid_u32($3)) {
 		semantic_error("sack_freq out of range");
 	}
-	$$->value.sctp_sack_info.sack_freq  = $8;
+	$$ = new_integer_expression($3, "%u");
+}
+| SACK_FREQ '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+
+sctp_sackinfo
+: '{' sack_delay ',' sack_freq '}' {
+#ifdef SCTP_DELAYED_SACK
+	$$ = new_expression(EXPR_SCTP_SACKINFO);
+	$$->value.sctp_sack_info = calloc(1, sizeof(struct sctp_sack_info_expr));
+	$$->value.sctp_sack_info->sack_delay = $2;
+	$$->value.sctp_sack_info->sack_freq = $4;	
 #else
 	$$ = NULL;
 #endif
