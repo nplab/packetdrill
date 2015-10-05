@@ -511,7 +511,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
 %token <reserved> SSTAT_PRIMARY
-%token <reserved> SPINFO_STATE SPINFO_CWND SPINFO_SRTT SPINFO_RTO SPINFO_MTU
+%token <reserved> SPINFO_ADDRESS SPINFO_STATE SPINFO_CWND SPINFO_SRTT SPINFO_RTO
+%token <reserved> SPINFO_MTU
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE I_DATA PAD
@@ -581,7 +582,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
-%type <expression> spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
+%type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd 
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <errno_info> opt_errno
@@ -2737,6 +2738,11 @@ sstat_primary
 | SSTAT_PRIMARY '=' sctp_paddrinfo  { $$ = $3; }
 ;
 
+spinfo_address
+: SPINFO_ADDRESS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SPINFO_ADDRESS '=' sockaddr { $$ = $3; }
+;
+
 spinfo_state
 : SPINFO_STATE '=' INTEGER {
 	if (!is_valid_s32($3)) {
@@ -2792,14 +2798,15 @@ spinfo_mtu
 ;
 
 sctp_paddrinfo
-: '{' spinfo_state ',' spinfo_cwnd ',' spinfo_srtt ',' spinfo_rto ',' spinfo_mtu '}' {
+: '{' spinfo_address ',' spinfo_state ',' spinfo_cwnd ',' spinfo_srtt ',' spinfo_rto ',' spinfo_mtu '}' {
 	$$ = new_expression(EXPR_SCTP_PADDRINFO);
 	$$->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_paddrinfo_expr));
-	$$->value.sctp_paddrinfo->spinfo_state = $2;
-	$$->value.sctp_paddrinfo->spinfo_cwnd = $4;
-	$$->value.sctp_paddrinfo->spinfo_srtt = $6;
-	$$->value.sctp_paddrinfo->spinfo_rto = $8;
-	$$->value.sctp_paddrinfo->spinfo_mtu = $10;
+	$$->value.sctp_paddrinfo->spinfo_address = $2;
+	$$->value.sctp_paddrinfo->spinfo_state = $4;
+	$$->value.sctp_paddrinfo->spinfo_cwnd = $6;
+	$$->value.sctp_paddrinfo->spinfo_srtt = $8;
+	$$->value.sctp_paddrinfo->spinfo_rto = $10;
+	$$->value.sctp_paddrinfo->spinfo_mtu = $12;
 }
 ;
 

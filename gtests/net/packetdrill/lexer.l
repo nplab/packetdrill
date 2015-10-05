@@ -227,6 +227,7 @@ sstat_instrms			return SSTAT_INSTRMS;
 sstat_outstrms			return SSTAT_OUTSTRMS;
 sstat_fragmentation_point	return SSTAT_FRAGMENTATION_POINT;
 sstat_primary			return SSTAT_PRIMARY;
+spinfo_address			return SPINFO_ADDRESS;
 spinfo_state			return SPINFO_STATE;
 spinfo_cwnd			return SPINFO_CWND;
 spinfo_srtt			return SPINFO_SRTT;
