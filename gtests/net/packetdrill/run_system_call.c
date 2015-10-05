@@ -2154,6 +2154,76 @@ static int check_sctp_stream_value(struct sctp_stream_value_expr *expr,
 }
 #endif
 
+#ifdef SCTP_ASSOCINFO
+static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
+			     struct sctp_assocparams *sctp_assocparams,
+			     char **error)
+{
+	if (expr->sasoc_asocmaxrxt->type != EXPR_ELLIPSIS) {
+		u16 sasoc_asocmaxrxt;
+
+		if (get_u16(expr->sasoc_asocmaxrxt, &sasoc_asocmaxrxt, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_assocparams->sasoc_asocmaxrxt != sasoc_asocmaxrxt) {
+			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_asocmaxrxt: expected: %hu actual: %hu",
+				 sasoc_asocmaxrxt, sctp_assocparams->sasoc_asocmaxrxt);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sasoc_number_peer_destinations->type != EXPR_ELLIPSIS) {
+		u16 sasoc_number_peer_destinations;
+
+		if (get_u16(expr->sasoc_number_peer_destinations, &sasoc_number_peer_destinations, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_assocparams->sasoc_number_peer_destinations != sasoc_number_peer_destinations) {
+			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_number_peer_destinations: expected: %hu actual: %hu",
+				 sasoc_number_peer_destinations, sctp_assocparams->sasoc_number_peer_destinations);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sasoc_peer_rwnd->type != EXPR_ELLIPSIS) {
+		u32 sasoc_peer_rwnd;
+
+		if (get_u32(expr->sasoc_peer_rwnd, &sasoc_peer_rwnd, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_assocparams->sasoc_peer_rwnd != sasoc_peer_rwnd) {
+			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_peer_rwnd: expected: %u actual: %u",
+				 sasoc_peer_rwnd, sctp_assocparams->sasoc_peer_rwnd);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sasoc_local_rwnd->type != EXPR_ELLIPSIS) {
+		u32 sasoc_local_rwnd;
+
+		if (get_u32(expr->sasoc_local_rwnd, &sasoc_local_rwnd, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_assocparams->sasoc_local_rwnd != sasoc_local_rwnd) {
+			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_local_rwnd: expected: %u actual: %u",
+				 sasoc_local_rwnd, sctp_assocparams->sasoc_local_rwnd);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sasoc_cookie_life->type != EXPR_ELLIPSIS) {
+		u32 sasoc_cookie_life;
+
+		if (get_u32(expr->sasoc_cookie_life, &sasoc_cookie_life, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_assocparams->sasoc_cookie_life != sasoc_cookie_life) {
+			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_cookie_life: expected: %u actual: %u",
+				 sasoc_cookie_life, sctp_assocparams->sasoc_cookie_life);
+			return STATUS_ERR;
+		}
+	}
+
+	return STATUS_OK;
+}
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -2189,6 +2259,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
 		((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
 #endif
+#ifdef SCTP_ASSOCINFO
+	} else if (val_expression->type == EXPR_SCTP_ASSOCPARAMS) {
+		live_optval = malloc(sizeof(struct sctp_assocparams));
+		live_optlen = (socklen_t)sizeof(struct sctp_assocparams);
+		((struct sctp_assocparams*) live_optval)->sasoc_assoc_id = 0;
+#endif
 #ifdef SCTP_INITMSG
 	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
 		live_optval = malloc(sizeof(struct sctp_initmsg));
@@ -2214,7 +2290,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		if (expr_params->spp_address->type == EXPR_ELLIPSIS) {
 			socklen_t len_addr = sizeof(live_params->spp_address);
 			if (getpeername(live_fd, (struct sockaddr*) &live_params->spp_address, &len_addr)) {
-				asprintf(error, "Bad setsockopt, bad get primary peer address");
+				asprintf(error, "Bad getsockopt, bad get primary peer address");
 				free(live_params);
 				return STATUS_ERR;
 			}
@@ -2223,7 +2299,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
 			memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
 		} else {
-			asprintf(error, "Bad setsockopt, bad get input for spp_address");
+			asprintf(error, "Bad getsockopt, bad get input for spp_address");
 			free(live_params);
 			return STATUS_ERR;
 		}
@@ -2276,6 +2352,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_RTOINFO
 	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
 		if (check_sctp_rtoinfo(val_expression->value.sctp_rtoinfo, live_optval, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
+#ifdef SCTP_ASSOCINFO
+	} else if (val_expression->type == EXPR_SCTP_ASSOCPARAMS) {
+		if (check_sctp_assocparams(val_expression->value.sctp_assocparams, live_optval, error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
@@ -2343,6 +2426,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	struct linger linger;
 #ifdef SCTP_RTOINFO
 	struct sctp_rtoinfo rtoinfo;
+#endif
+#ifdef SCTP_ASSOCINFO
+	struct sctp_assocparams assocparams;
 #endif
 #ifdef SCTP_INITMSG
 	struct sctp_initmsg initmsg;
@@ -2415,6 +2501,32 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &rtoinfo;
+		break;
+#endif
+#ifdef SCTP_ASSOCINFO
+	case EXPR_SCTP_ASSOCPARAMS:
+		assocparams.sasoc_assoc_id = 0;
+		if (get_u16(val_expression->value.sctp_assocparams->sasoc_asocmaxrxt,
+		            &assocparams.sasoc_asocmaxrxt, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_assocparams->sasoc_number_peer_destinations,
+		            &assocparams.sasoc_number_peer_destinations, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_assocparams->sasoc_peer_rwnd,
+		            &assocparams.sasoc_peer_rwnd, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_assocparams->sasoc_local_rwnd,
+		            &assocparams.sasoc_local_rwnd, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_assocparams->sasoc_cookie_life,
+		            &assocparams.sasoc_cookie_life, error)) {
+			return STATUS_ERR;
+		}
+		optval = &assocparams;
 		break;
 #endif
 #ifdef SCTP_INITMSG

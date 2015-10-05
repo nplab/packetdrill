@@ -101,6 +101,7 @@ struct int_symbol platform_symbols_table[] = {
 #endif
 
 	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
+	{ SCTP_ASSOCINFO,                   "SCTP_ASSOCINFO"                  },
 	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
 	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },

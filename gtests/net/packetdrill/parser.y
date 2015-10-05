@@ -534,6 +534,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> STALENESS CHK PARAM UNRECOGNIZED_PARAMETERS
 %token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
+%token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND 
+%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -580,6 +582,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
 %type <expression> spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
+%type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd 
+%type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2362,6 +2366,9 @@ expression
 | sctp_paddrparams  {
 	$$ = $1;
 }
+| sctp_assocparams   {
+	$$ = $1;
+}
 ;
 
 decimal_integer
@@ -2882,6 +2889,72 @@ sctp_paddrparams
 	$$->value.sctp_paddrparams->spp_flags = $10;
 	$$->value.sctp_paddrparams->spp_ipv6_flowlabel = $12;
 	$$->value.sctp_paddrparams->spp_dscp = $14;
+}
+;
+
+sasoc_asocmaxrxt
+: SASOC_ASOCMAXRXT '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sasoc_asocmaxrxt out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SASOC_ASOCMAXRXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sasoc_number_peer_destinations
+: SASOC_NUMBER_PEER_DESTINATIONS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sasoc_number_peer_destinations out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SASOC_NUMBER_PEER_DESTINATIONS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sasoc_peer_rwnd
+: SASOC_PEER_RWND '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sasoc_peer_rwnd out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SASOC_PEER_RWND '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sasoc_local_rwnd
+: SASOC_LOCAL_RWND '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sasoc_local_rwnd out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SASOC_LOCAL_RWND '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sasoc_cookie_life
+: SASOC_COOKIE_LIFE '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sasoc_cookie_life out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SASOC_COOKIE_LIFE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_assocparams
+: '{' sasoc_asocmaxrxt ',' sasoc_number_peer_destinations ',' sasoc_peer_rwnd ',' sasoc_local_rwnd ',' sasoc_cookie_life '}' {
+#ifdef SCTP_ASSOCINFO
+	$$ = new_expression(EXPR_SCTP_ASSOCPARAMS);
+        $$->value.sctp_assocparams = calloc(1, sizeof(struct sctp_assocparams_expr));
+        $$->value.sctp_assocparams->sasoc_asocmaxrxt = $2;
+        $$->value.sctp_assocparams->sasoc_number_peer_destinations = $4;
+        $$->value.sctp_assocparams->sasoc_peer_rwnd = $6;
+        $$->value.sctp_assocparams->sasoc_local_rwnd = $8;
+        $$->value.sctp_assocparams->sasoc_cookie_life = $10;
+#elif
+	$$ = NULL;
+#endif
 }
 ;
 
