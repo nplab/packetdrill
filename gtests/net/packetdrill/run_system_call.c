@@ -1811,6 +1811,39 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 }
 #endif
 
+#ifdef SCTP_DELAYED_SACK
+static int check_sctp_sack_info(struct sctp_sack_info_expr *expr,
+				struct sctp_sack_info *sctp_sack_info,
+				char **error)
+{
+	if (expr->sack_delay->type != EXPR_ELLIPSIS) {
+		u32 sack_delay;
+
+		if (get_u32(expr->sack_delay, &sack_delay, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sack_info->sack_delay != sack_delay) {
+			asprintf(error, "Bad getsockopt sctp_sack_info.sack_delay: expected: %u actual: %u",
+				 sack_delay, sctp_sack_info->sack_delay);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sack_freq->type != EXPR_ELLIPSIS) {
+		u32 sack_freq;
+
+		if (get_u32(expr->sack_freq, &sack_freq, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sack_info->sack_freq != sack_freq) {
+			asprintf(error, "Bad getsockopt sctp_sack_info.sack_freq: expected: %u actual: %u",
+				 sack_freq, sctp_sack_info->sack_freq);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 #ifdef SCTP_STATUS
 static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			        struct sctp_paddrinfo *sctp_paddrinfo,
@@ -2161,6 +2194,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optval = malloc(sizeof(struct sctp_initmsg));
 		live_optlen = (socklen_t)sizeof(struct sctp_initmsg);
 #endif
+#ifdef SCTP_DELAYED_SACK
+	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
+		live_optval = malloc(sizeof(struct sctp_sack_info));
+		live_optlen = (socklen_t)sizeof(struct sctp_sack_info);
+		((struct sctp_sack_info*) live_optval)->sack_assoc_id = 0;
+#endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
 		live_optval = malloc(sizeof(struct sctp_status));
@@ -2248,6 +2287,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#ifdef SCTP_DELAYED_SACK
+	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
+		if (check_sctp_sack_info(val_expression->value.sctp_sack_info, live_optval, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
 #ifdef SCTP_STATUS
 	} else if (val_expression->type == EXPR_SCTP_STATUS) {
 		if (check_sctp_status(val_expression->value.sctp_status, live_optval, error)) {
@@ -2303,6 +2349,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	struct sctp_assoc_value assoc_value;
+#endif
+#ifdef SCTP_DELAYED_SACK
+	struct sctp_sack_info sack_info;
 #endif
 #ifdef SCTP_STATUS
 	struct sctp_status status;
@@ -2415,7 +2464,16 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
-		optval = &val_expression->value.sctp_sack_info;
+		sack_info.sack_assoc_id = 0;
+		if (get_u32(val_expression->value.sctp_sack_info->sack_delay,
+		            &sack_info.sack_delay, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_sack_info->sack_freq,
+		            &sack_info.sack_freq, error)) {
+			return STATUS_ERR;
+		}		
+		optval = &sack_info;
 		break;
 #endif
 #ifdef SCTP_STATUS
