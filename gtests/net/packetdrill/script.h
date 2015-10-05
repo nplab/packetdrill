@@ -68,6 +68,9 @@ enum expression_t {
 #ifdef SCTP_PEER_ADDR_PARAMS
 	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS*/
 #endif
+#ifdef SCTP_ASSOCINFO
+	EXPR_SCTP_ASSOCPARAMS,    /* struct sctp_assocparams for SCTP_ASSOCINFO */
+#endif
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -108,6 +111,9 @@ struct expression {
 #endif
 #ifdef SCTP_SS_VALUE
 		struct sctp_stream_value_expr *sctp_stream_value;
+#endif
+#ifdef SCTP_ASSOCINFO
+		struct sctp_assocparams_expr *sctp_assocparams;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -163,7 +169,6 @@ struct sctp_rtoinfo_expr {
 	struct expression *srto_min;
 };
 #endif
-
 
 #ifdef SCTP_INITMSG
 /* Parse tree for a sctp_initmsg struct in a [gs]etsockopt syscall. */
@@ -231,6 +236,17 @@ struct sctp_paddrparams_expr {
 	struct expression *spp_ipv6_flowlabel;
 	struct expression *spp_dscp;
 };
+
+#ifdef SCTP_ASSOCINFO
+/* Parse tree for sctp_assocparams struct in [gs]etsockopt syscall. */
+struct sctp_assocparams_expr {
+	struct expression *sasoc_asocmaxrxt;
+	struct expression *sasoc_number_peer_destinations;
+	struct expression *sasoc_peer_rwnd;
+	struct expression *sasoc_local_rwnd;
+	struct expression *sasoc_cookie_life;
+};
+#endif
 
 /* The errno-related info from strace to summarize a system call error */
 struct errno_spec {

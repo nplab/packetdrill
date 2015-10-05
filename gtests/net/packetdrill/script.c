@@ -85,7 +85,10 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_PEER_ADDR_PARAMS,	"sctp_peer_addr_params"},
 #endif
 #ifdef SCTP_SS_VALUE
-	{ EXPR_SCTP_STREAM_VALUE,     "sctp_stream_value"},
+	{ EXPR_SCTP_STREAM_VALUE,    "sctp_stream_value"},
+#endif
+#ifdef SCTP_ASSOCINFO
+	{ EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
 #endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
@@ -367,6 +370,15 @@ void free_expression(struct expression *expression)
 		assert(expression->value.sctp_stream_value);
 		free_expression(expression->value.sctp_stream_value->stream_id);
 		free_expression(expression->value.sctp_stream_value->stream_value);
+		break;
+#endif
+#ifdef SCTP_ASSOCINFO
+	case EXPR_SCTP_ASSOCPARAMS:
+		free_expression(expression->value.sctp_assocparams->sasoc_asocmaxrxt);
+		free_expression(expression->value.sctp_assocparams->sasoc_number_peer_destinations);
+		free_expression(expression->value.sctp_assocparams->sasoc_peer_rwnd);
+		free_expression(expression->value.sctp_assocparams->sasoc_local_rwnd);
+		free_expression(expression->value.sctp_assocparams->sasoc_cookie_life);
 		break;
 #endif
 	case EXPR_WORD:
@@ -857,6 +869,48 @@ static int evaluate_sctp_stream_value_expression(struct expression *in,
 }
 #endif
 
+#ifdef SCTP_ASSOCINFO
+static int evaluate_sctp_accocparams_expression(struct expression *in,
+						struct expression *out,
+						char **error)
+{
+	struct sctp_assocparams_expr *in_params;
+	struct sctp_assocparams_expr *out_params;
+
+	assert(in->type == EXPR_SCTP_ASSOCPARAMS);
+	assert(in->value.sctp_assocparams);
+	assert(out->type == EXPR_SCTP_ASSOCPARAMS);
+
+	out->value.sctp_assocparams = calloc(1, sizeof(struct sctp_assocparams_expr));
+
+	in_params = in->value.sctp_assocparams;
+	out_params = out->value.sctp_assocparams;
+
+	if (evaluate(in_params->sasoc_asocmaxrxt,
+		     &out_params->sasoc_asocmaxrxt,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_params->sasoc_number_peer_destinations,
+		     &out_params->sasoc_number_peer_destinations,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_params->sasoc_peer_rwnd,
+		     &out_params->sasoc_peer_rwnd,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_params->sasoc_local_rwnd,
+		     &out_params->sasoc_local_rwnd,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_params->sasoc_cookie_life,
+		     &out_params->sasoc_cookie_life,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -885,6 +939,11 @@ static int evaluate(struct expression *in,
 		evaluate_sctp_rtoinfo_expression(in, out, error);
 		break;
 #endif
+#ifdef SCTP_ASSOCINFO
+	case EXPR_SCTP_ASSOCPARAMS:
+		evaluate_sctp_accocparams_expression(in, out, error);
+		break;
+#endif	
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
 		evaluate_sctp_initmsg_expression(in, out, error);
