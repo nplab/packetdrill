@@ -90,6 +90,9 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_ASSOCINFO
 	{ EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
 #endif
+#ifdef SCTP_EVENT
+	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
+#endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -379,6 +382,12 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_assocparams->sasoc_peer_rwnd);
 		free_expression(expression->value.sctp_assocparams->sasoc_local_rwnd);
 		free_expression(expression->value.sctp_assocparams->sasoc_cookie_life);
+		break;
+#endif
+#ifdef SCTP_EVENT
+	case EXPR_SCTP_EVENT:
+		free_expression(expression->value.sctp_event->se_type);
+		free_expression(expression->value.sctp_event->se_on);
 		break;
 #endif
 	case EXPR_WORD:
@@ -869,6 +878,36 @@ static int evaluate_sctp_stream_value_expression(struct expression *in,
 }
 #endif
 
+#ifdef SCTP_EVENT
+static int evaluate_sctp_event_expression(struct expression *in,
+						 struct expression *out,
+						 char **error)
+{
+	struct sctp_event_expr *in_event;
+	struct sctp_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_EVENT);
+	assert(in->value.sctp_event);
+	assert(out->type == EXPR_SCTP_EVENT);
+
+	out->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
+
+	in_event = in->value.sctp_event;
+	out_event = out->value.sctp_event;
+
+	if (evaluate(in_event->se_type,
+		    &out_event->se_type,
+		    error))
+		return STATUS_ERR;
+ 	if (evaluate(in_event->se_on,
+		    &out_event->se_on,
+		    error))
+		return STATUS_ERR;
+
+	return STATUS_OK; 
+}
+#endif
+
 #ifdef SCTP_ASSOCINFO
 static int evaluate_sctp_accocparams_expression(struct expression *in,
 						struct expression *out,
@@ -975,6 +1014,11 @@ static int evaluate(struct expression *in,
 #ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
 		evaluate_sctp_stream_value_expression(in, out, error);
+		break;
+#endif
+#ifdef SCTP_EVENT
+	case EXPR_SCTP_EVENT:
+		result = evaluate_sctp_event_expression(in, out, error);
 		break;
 #endif
 	case EXPR_WORD:
