@@ -140,25 +140,37 @@ struct int_symbol platform_symbols_table[] = {
 	{ SPP_SACKDELAY_DISABLE,            "SPP_SACKDELAY_DISABLE"           },
 #ifdef SCTP_ASSOC_CHANGE
 	{ SCTP_ASSOC_CHANGE,                "SCTP_ASSOC_CHANGE"               },
+#endif
 #ifdef SCTP_PEER_ADDR_CHANGE
 	{ SCTP_PEER_ADDR_CHANGE,            "SCTP_PEER_ADDR_CHANGE"           },
+#endif
 #ifdef SCTP_REMOTE_ERROR
 	{ SCTP_REMOTE_ERROR,                "SCTP_REMOTE_ERROR"               },
+#endif
 #ifdef SCTP_SEND_FAILED
 	{ SCTP_SEND_FAILED,                 "SCTP_SEND_FAILED"                },
+#endif
 #ifdef SCTP_SHUTDOWN_EVENT
 	{ SCTP_SHUTDOWN_EVENT,              "SCTP_SHUTDOWN_EVENT"             },
+#endif
 #ifdef SCTP_ADAPTATION_INDICATION
 	{ SCTP_ADAPTATION_INDICATION,       "SCTP_ADAPTATION_INDICATION"      },
+#endif
 #ifdef SCTP_ADAPTION_INDICATION
         { SCTP_ADAPTION_INDICATION,         "SCTP_ADAPTION_INDICATION"        },
+#endif
 #ifdef SCTP_PARTIAL_DELIVERY_EVENT
 	{ SCTP_PARTIAL_DELIVERY_EVENT,      "SCTP_PARTIAL_DELIVERY_EVENT"     },
+#endif
 #ifdef SCTP_AUTHENTICATION_EVENT
 	{ SCTP_AUTHENTICATION_EVENT,        "SCTP_AUTHENTICATION_EVENT"       },
+#endif
 #ifdef SCTP_SENDER_DRY_EVENT
         { SCTP_SENDER_DRY_EVENT,            "SCTP_SENDER_DRY_EVENT"           },
-
+#endif
+#ifdef SCTP_ADAPTATION_LAYER
+	{ SCTP_ADAPTATION_LAYER,            "SCTP_ADAPTATION_LAYER"           },
+#endif
 #if 0
 	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
 	{ SPP_DSCP,                         "SPP_DSCP"                        },

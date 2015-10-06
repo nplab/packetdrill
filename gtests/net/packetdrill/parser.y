@@ -536,7 +536,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND 
-%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
+%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON SSB_ADAPTATION_IND
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -585,7 +585,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd 
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams 
-%type <expression> sctp_event se_type se_on
+%type <expression> sctp_event se_type se_on sctp_setadaptation
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2374,6 +2374,9 @@ expression
 | sctp_event        {
 	$$ = $1;
 }
+| sctp_setadaptation{
+	$$ = $1;
+}
 ;
 
 decimal_integer
@@ -2999,6 +3002,21 @@ sctp_event
 	$$->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
 	$$->value.sctp_event->se_type = $2;
 	$$->value.sctp_event->se_on = $4;
+#elif
+	$$ = NULL;
+#endif
+}
+;
+
+sctp_setadaptation
+: '{' SSB_ADAPTATION_IND '=' INTEGER '}' {
+#ifdef SCTP_ADAPTATION_LAYER
+	$$ = new_expression(EXPR_SCTP_SETADAPTATION);
+	$$->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation));
+	if (!is_valid_u32($4)) {
+		semantic_error("ssb_adaptation_ind out of range");
+	}
+	$$->value.sctp_setadaptation->ssb_adaptation_ind = new_integer_expression($4, "%u");
 #elif
 	$$ = NULL;
 #endif

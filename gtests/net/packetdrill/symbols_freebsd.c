@@ -83,6 +83,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ASSOCINFO,                   "SCTP_ASSOCINFO"                  },
 	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
 	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
+	{ SCTP_ADAPTATION_LAYER,	    "SCTP_ADAPTATION_LAYER"           },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },

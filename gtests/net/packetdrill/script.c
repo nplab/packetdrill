@@ -93,6 +93,10 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_EVENT
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
 #endif
+#ifdef SCTP_ADAPTATION_LAYER
+	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
+#endif
+
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -388,6 +392,11 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_EVENT:
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
+		break;
+#endif
+#ifdef SCTP_ADAPTATION_LAYER
+	case EXPR_SCTP_SETADAPTATION:
+		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
 		break;
 #endif
 	case EXPR_WORD:
@@ -950,6 +959,32 @@ static int evaluate_sctp_accocparams_expression(struct expression *in,
 }
 #endif
 
+#ifdef SCTP_ADAPTATION_LAYER
+static int evaluate_sctp_setadaptation_expression(struct expression *in,
+						  struct expression *out,
+						  char **error)
+{
+        struct sctp_setadaptation_expr *in_adaptation;
+        struct sctp_setadaptation_expr *out_adaptation;
+
+        assert(in->type == EXPR_SCTP_SETADAPTATION);
+        assert(in->value.sctp_setadaptation);
+        assert(out->type == EXPR_SCTP_SETADAPTATION);
+
+        out->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation_expr));
+                     
+        in_adaptation = in->value.sctp_setadaptation;
+        out_adaptation = out->value.sctp_setadaptation;
+                     
+        if (evaluate(in_adaptation->ssb_adaptation_ind,
+		     &out_adaptation->ssb_adaptation_ind,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -1019,6 +1054,11 @@ static int evaluate(struct expression *in,
 #ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
 		result = evaluate_sctp_event_expression(in, out, error);
+		break;
+#endif
+#ifdef SCTP_ADAPTATION_LAYER
+	case EXPR_SCTP_SETADAPTATION:
+		result = evaluate_sctp_setadaptation_expression(in, out, error);
 		break;
 #endif
 	case EXPR_WORD:
