@@ -2257,6 +2257,27 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 }
 #endif
 
+#ifdef SCTP_ADAPTATION_LAYER
+static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
+				    struct sctp_setadaptation *sctp_setadaptation,
+				    char **error)
+{
+	if (expr->ssb_adaptation_ind->type != EXPR_ELLIPSIS) {
+		u32 ssb_adaptation_ind;
+
+		if (get_u32(expr->ssb_adaptation_ind, &ssb_adaptation_ind, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_setadaptation->ssb_adaptation_ind != ssb_adaptation_ind) {
+			asprintf(error, "Bad getsockopt sctp_setadaptation.ssb_adaptation_ind: expected: %u actual: %u",
+				 ssb_adaptation_ind, sctp_setadaptation->ssb_adaptation_ind);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -2395,6 +2416,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
                         return STATUS_ERR;
                 }
 #endif
+#ifdef SCTP_ADAPTATION_LAYER
+	} else if (val_expression->type == EXPR_SCTP_SETADAPTATION) {
+		live_optval = malloc(sizeof(struct sctp_setadaptation));
+		live_optlen = sizeof(struct sctp_setadaptation);
+#endif
 	} else {
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -2490,6 +2516,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#ifdef SCTP_ADAPTATION_LAYER
+	} else if (val_expression->type == EXPR_SCTP_SETADAPTATION) {
+		if (check_sctp_setadaptation(val_expression->value.sctp_setadaptation, live_optval, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
 	} else {
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
@@ -2535,6 +2568,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_EVENT
 	struct sctp_event event;
+#endif
+#ifdef SCTP_ADAPTATION_LAYER
+	struct sctp_setadaptation setadaptation;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	struct sctp_paddrparams paddrparams;
@@ -2723,6 +2759,15 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &event;
+		break;
+#endif
+#ifdef SCTP_ADAPTATION_LAYER
+	case EXPR_SCTP_SETADAPTATION:
+		if (get_u32(val_expression->value.sctp_setadaptation->ssb_adaptation_ind,
+			   &setadaptation.ssb_adaptation_ind, error)) {
+			return STATUS_ERR;
+		}
+		optval = &setadaptation;
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS

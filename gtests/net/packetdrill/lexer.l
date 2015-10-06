@@ -242,6 +242,7 @@ spp_ipv6_flowlabel		return SPP_IPV6_FLOWLABEL_; /* avoid name clash */
 spp_dscp			return SPP_DSCP_; /* avoid name clash */
 se_type				return SE_TYPE;
 se_on				return SE_ON;
+ssb_adaptation_ind		return SSB_ADAPTATION_IND;
 CHUNK				return CHUNK;
 DATA				return DATA;
 INIT				return INIT;

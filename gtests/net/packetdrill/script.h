@@ -74,6 +74,9 @@ enum expression_t {
 #ifdef SCTP_EVENT
 	EXPR_SCTP_EVENT,	  /* struct sctp_event to for SCTP_EVENT */
 #endif
+#ifdef SCTP_ADAPTATION_LAYER
+	EXPR_SCTP_SETADAPTATION, /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
+#endif
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -121,6 +124,10 @@ struct expression {
 #ifdef SCTP_EVENT
 		struct sctp_event_expr *sctp_event;
 #endif
+#ifdef SCTP_ADAPTATION_LAYER
+		struct sctp_setadaptation_expr *sctp_setadaptation;
+#endif
+
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -255,10 +262,17 @@ struct sctp_assocparams_expr {
 #endif
 
 #ifdef SCTP_EVENT
-/* Parse tree for sctp_enevt struct in [gs]etsockopt syscall. */
+/* Parse tree for sctp_event struct in [gs]etsockopt syscall. */
 struct sctp_event_expr {
 	struct expression *se_type;
 	struct expression *se_on;
+};
+#endif
+
+#ifdef SCTP_ADAPTATION_LAYER
+/* Parse tree for sctp_setadaptation struct in [gs]etsockopt syscall. */
+struct sctp_setadaptation_expr {
+	struct expression *ssb_adaptation_ind;
 };
 #endif
 
