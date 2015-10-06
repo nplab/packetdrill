@@ -240,6 +240,8 @@ spp_pathmtu			return SPP_PATHMTU;
 spp_flags			return SPP_FLAGS;
 spp_ipv6_flowlabel		return SPP_IPV6_FLOWLABEL_; /* avoid name clash */
 spp_dscp			return SPP_DSCP_; /* avoid name clash */
+se_type				return SE_TYPE;
+se_on				return SE_ON;
 CHUNK				return CHUNK;
 DATA				return DATA;
 INIT				return INIT;

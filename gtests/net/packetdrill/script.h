@@ -66,10 +66,13 @@ enum expression_t {
 	EXPR_SCTP_STREAM_VALUE,	  /* struct sctp_stream_value for SCTP_SS_VALUE */
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
-	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS*/
+	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS */
 #endif
 #ifdef SCTP_ASSOCINFO
 	EXPR_SCTP_ASSOCPARAMS,    /* struct sctp_assocparams for SCTP_ASSOCINFO */
+#endif
+#ifdef SCTP_EVENT
+	EXPR_SCTP_EVENT,	  /* struct sctp_event to for SCTP_EVENT */
 #endif
 	NUM_EXPR_TYPES,
 };
@@ -114,6 +117,9 @@ struct expression {
 #endif
 #ifdef SCTP_ASSOCINFO
 		struct sctp_assocparams_expr *sctp_assocparams;
+#endif
+#ifdef SCTP_EVENT
+		struct sctp_event_expr *sctp_event;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -245,6 +251,14 @@ struct sctp_assocparams_expr {
 	struct expression *sasoc_peer_rwnd;
 	struct expression *sasoc_local_rwnd;
 	struct expression *sasoc_cookie_life;
+};
+#endif
+
+#ifdef SCTP_EVENT
+/* Parse tree for sctp_enevt struct in [gs]etsockopt syscall. */
+struct sctp_event_expr {
+	struct expression *se_type;
+	struct expression *se_on;
 };
 #endif
 

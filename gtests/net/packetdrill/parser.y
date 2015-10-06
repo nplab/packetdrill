@@ -536,7 +536,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND 
-%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE
+%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -584,7 +584,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd 
-%type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
+%type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams 
+%type <expression> sctp_event se_type se_on
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2367,7 +2368,10 @@ expression
 | sctp_paddrparams  {
 	$$ = $1;
 }
-| sctp_assocparams   {
+| sctp_assocparams  {
+	$$ = $1;
+} 
+| sctp_event        {
 	$$ = $1;
 }
 ;
@@ -2959,6 +2963,42 @@ sctp_assocparams
         $$->value.sctp_assocparams->sasoc_peer_rwnd = $6;
         $$->value.sctp_assocparams->sasoc_local_rwnd = $8;
         $$->value.sctp_assocparams->sasoc_cookie_life = $10;
+#elif
+	$$ = NULL;
+#endif
+}
+;
+
+se_type
+: SE_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("se_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SE_TYPE '=' WORD { 
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3; 
+}
+;
+
+se_on
+: SE_ON '=' INTEGER {
+	if (!is_valid_u8($3)) {
+		semantic_error("se_on out of range");
+	}
+	$$ = new_integer_expression($3, "%hhu");
+}
+| SE_ON '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_event
+: '{' se_type ',' se_on '}' {
+#ifdef SCTP_EVENT
+	$$ = new_expression(EXPR_SCTP_EVENT);
+	$$->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
+	$$->value.sctp_event->se_type = $2;
+	$$->value.sctp_event->se_on = $4;
 #elif
 	$$ = NULL;
 #endif

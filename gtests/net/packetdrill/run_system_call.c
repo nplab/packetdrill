@@ -2224,6 +2224,39 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 }
 #endif
 
+#ifdef SCTP_EVENT
+static int check_sctp_event(struct sctp_event_expr *expr,
+			    struct sctp_event *sctp_event,
+			    char **error)
+{
+	if (expr->se_type->type != EXPR_ELLIPSIS) {
+		u16 se_type;
+
+		if (get_u16(expr->se_type, &se_type, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->se_type != se_type) {
+			asprintf(error, "Bad getsockopt sctp_event.se_type: expected: %hu actual: %hu",
+				 se_type, sctp_event->se_type);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->se_on->type != EXPR_ELLIPSIS) {
+		u8 se_on;
+
+		if (get_u8(expr->se_on, &se_on, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->se_on != se_on) {
+			asprintf(error, "Bad getsockopt sctp_event.se_on: expected: %hhu actual: %hhu",
+				 se_on, sctp_event->se_on);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -2350,6 +2383,18 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#ifdef SCTP_EVENT
+	} else if (val_expression->type == EXPR_SCTP_EVENT) {
+		live_optval = malloc(sizeof(struct sctp_event));
+		live_optlen = sizeof(struct sctp_event);
+		((struct sctp_event *)live_optval)->se_assoc_id = 0; 
+		if (get_u16(val_expression->value.sctp_event->se_type,
+		            &((struct sctp_event *)live_optval)->se_type,
+			    error)) {
+                        free(live_optval);
+                        return STATUS_ERR;
+                }
+#endif
 	} else {
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -2438,6 +2483,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#ifdef SCTP_EVENT
+	} else if (val_expression->type == EXPR_SCTP_EVENT) {
+		if (check_sctp_event(val_expression->value.sctp_event, live_optval, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
 	} else {
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
@@ -2480,6 +2532,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #if defined(SCTP_SS_VALUE)
 	struct sctp_stream_value stream_value;
+#endif
+#ifdef SCTP_EVENT
+	struct sctp_event event;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	struct sctp_paddrparams paddrparams;
@@ -2654,6 +2709,20 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &paddrinfo;
+		break;
+#endif
+#ifdef SCTP_EVENT
+	case EXPR_SCTP_EVENT:
+		event.se_assoc_id = 0;
+		if (get_u16(val_expression->value.sctp_event->se_type,
+			    &event.se_type, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event->se_on,
+			    &event.se_on, error)) {
+			return STATUS_ERR;
+		}
+		optval = &event;
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
