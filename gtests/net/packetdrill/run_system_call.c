@@ -2257,6 +2257,63 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 }
 #endif
 
+#ifdef SCTP_DEFAULT_SNDINFO
+static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
+			      struct sctp_sndinfo *sctp_sndinfo,
+			      char **error)
+{
+	if (expr->snd_sid->type != EXPR_ELLIPSIS) {
+		u16 snd_sid;
+
+		if (get_u16(expr->snd_sid, &snd_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_sid != snd_sid) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_sid: expected: %hu actual: %hu",
+				 snd_sid, sctp_sndinfo->snd_sid);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->snd_flags->type != EXPR_ELLIPSIS) {
+		u16 snd_flags;
+
+		if (get_u16(expr->snd_flags, &snd_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_flags != snd_flags) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_flags: expected: %hu actual: %hu",
+				 snd_flags, sctp_sndinfo->snd_flags);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->snd_ppid->type != EXPR_ELLIPSIS) {
+		u32 snd_ppid;
+
+		if (get_u32(expr->snd_ppid, &snd_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_ppid != snd_ppid) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_ppid: expected: %u actual: %u",
+				 snd_ppid, sctp_sndinfo->snd_ppid);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->snd_context->type != EXPR_ELLIPSIS) {
+		u32 snd_context;
+
+		if (get_u32(expr->snd_context, &snd_context, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_context != snd_context) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_context: expected: %u actual: %u",
+				 snd_context, sctp_sndinfo->snd_context);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -2395,6 +2452,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
                         return STATUS_ERR;
                 }
 #endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	} else if (val_expression->type == EXPR_SCTP_SNDINFO) {
+		live_optval = malloc(sizeof(struct sctp_sndinfo));
+		live_optlen = sizeof(struct sctp_sndinfo);
+		((struct sctp_sndinfo *)live_optval)->snd_assoc_id = 0; 
+#endif
 	} else {
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -2490,6 +2553,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	} else if (val_expression->type == EXPR_SCTP_SNDINFO) {
+		if (check_sctp_sndinfo(val_expression->value.sctp_sndinfo, live_optval, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
 	} else {
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
@@ -2535,6 +2605,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_EVENT
 	struct sctp_event event;
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	struct sctp_sndinfo sndinfo;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	struct sctp_paddrparams paddrparams;
@@ -2713,16 +2786,33 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
-		event.se_assoc_id = 0;
-		if (get_u16(val_expression->value.sctp_event->se_type,
-			    &event.se_type, error)) {
-			return STATUS_ERR;
-		}
 		if (get_u8(val_expression->value.sctp_event->se_on,
 			    &event.se_on, error)) {
 			return STATUS_ERR;
 		}
 		optval = &event;
+		break;
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	case EXPR_SCTP_SNDINFO:
+		sndinfo.snd_assoc_id = 0;
+		if (get_u16(val_expression->value.sctp_sndinfo->snd_sid,
+			    &sndinfo.snd_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_sndinfo->snd_flags,
+			    &sndinfo.snd_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_sndinfo->snd_ppid,
+			    &sndinfo.snd_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_sndinfo->snd_context,
+			    &sndinfo.snd_context, error)) {
+			return STATUS_ERR;
+		}
+		optval = &sndinfo;
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS

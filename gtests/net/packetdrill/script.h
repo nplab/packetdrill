@@ -72,7 +72,10 @@ enum expression_t {
 	EXPR_SCTP_ASSOCPARAMS,    /* struct sctp_assocparams for SCTP_ASSOCINFO */
 #endif
 #ifdef SCTP_EVENT
-	EXPR_SCTP_EVENT,	  /* struct sctp_event to for SCTP_EVENT */
+	EXPR_SCTP_EVENT,	  /* struct sctp_event for SCTP_EVENT */
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	EXPR_SCTP_SNDINFO,	  /* struct sctp_sndinfo for SCTP_DEFAULT_SNDINFO */
 #endif
 	NUM_EXPR_TYPES,
 };
@@ -120,6 +123,9 @@ struct expression {
 #endif
 #ifdef SCTP_EVENT
 		struct sctp_event_expr *sctp_event;
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+		struct sctp_sndinfo_expr *sctp_sndinfo;
 #endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -259,6 +265,16 @@ struct sctp_assocparams_expr {
 struct sctp_event_expr {
 	struct expression *se_type;
 	struct expression *se_on;
+};
+#endif
+
+#ifdef SCTP_DEFAULT_SNDINFO
+/* Parse tree for sctp_sndinfo struct in [gs]etsockopt syscall. */
+struct sctp_sndinfo_expr {
+	struct expression *snd_sid;
+	struct expression *snd_flags;
+	struct expression *snd_ppid;
+	struct expression *snd_context;
 };
 #endif
 
