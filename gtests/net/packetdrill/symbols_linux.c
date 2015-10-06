@@ -107,6 +107,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+	{ SCTP_EVENT,                       "SCTP_EVENT"                      },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_GET_PEER_ADDR_INFO,          "SCTP_GET_PEER_ADDR_INFO"         },
@@ -137,6 +138,27 @@ struct int_symbol platform_symbols_table[] = {
 	{ SPP_PMTUD_DISABLE,                "SPP_PMTUD_DISABLE"               },
 	{ SPP_SACKDELAY_ENABLE,             "SPP_SACKDELAY_ENABLE"            },
 	{ SPP_SACKDELAY_DISABLE,            "SPP_SACKDELAY_DISABLE"           },
+#ifdef SCTP_ASSOC_CHANGE
+	{ SCTP_ASSOC_CHANGE,                "SCTP_ASSOC_CHANGE"               },
+#ifdef SCTP_PEER_ADDR_CHANGE
+	{ SCTP_PEER_ADDR_CHANGE,            "SCTP_PEER_ADDR_CHANGE"           },
+#ifdef SCTP_REMOTE_ERROR
+	{ SCTP_REMOTE_ERROR,                "SCTP_REMOTE_ERROR"               },
+#ifdef SCTP_SEND_FAILED
+	{ SCTP_SEND_FAILED,                 "SCTP_SEND_FAILED"                },
+#ifdef SCTP_SHUTDOWN_EVENT
+	{ SCTP_SHUTDOWN_EVENT,              "SCTP_SHUTDOWN_EVENT"             },
+#ifdef SCTP_ADAPTATION_INDICATION
+	{ SCTP_ADAPTATION_INDICATION,       "SCTP_ADAPTATION_INDICATION"      },
+#ifdef SCTP_ADAPTION_INDICATION
+        { SCTP_ADAPTION_INDICATION,         "SCTP_ADAPTION_INDICATION"        },
+#ifdef SCTP_PARTIAL_DELIVERY_EVENT
+	{ SCTP_PARTIAL_DELIVERY_EVENT,      "SCTP_PARTIAL_DELIVERY_EVENT"     },
+#ifdef SCTP_AUTHENTICATION_EVENT
+	{ SCTP_AUTHENTICATION_EVENT,        "SCTP_AUTHENTICATION_EVENT"       },
+#ifdef SCTP_SENDER_DRY_EVENT
+        { SCTP_SENDER_DRY_EVENT,            "SCTP_SENDER_DRY_EVENT"           },
+
 #if 0
 	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
 	{ SPP_DSCP,                         "SPP_DSCP"                        },
