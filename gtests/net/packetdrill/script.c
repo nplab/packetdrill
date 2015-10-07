@@ -96,6 +96,9 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_DEFAULT_SNDINFO
 	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
 #endif
+#ifdef SCTP_ADAPTATION_LAYER
+	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
+#endif
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -400,6 +403,11 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sndinfo->snd_ppid);
 		free_expression(expression->value.sctp_sndinfo->snd_context);
 		break;		
+#endif
+#ifdef SCTP_ADAPTATION_LAYER
+	case EXPR_SCTP_SETADAPTATION:
+		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
+		break;
 #endif
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -995,7 +1003,33 @@ static int evaluate_sctp_sndinfo_expression(struct expression *in,
 		     error))
 		return STATUS_ERR;
 	return STATUS_OK;
-	}
+}
+#endif
+
+#ifdef SCTP_ADAPTATION_LAYER
+static int evaluate_sctp_setadaptation_expression(struct expression *in,
+						  struct expression *out,
+						  char **error)
+{
+        struct sctp_setadaptation_expr *in_adaptation;
+        struct sctp_setadaptation_expr *out_adaptation;
+
+        assert(in->type == EXPR_SCTP_SETADAPTATION);
+        assert(in->value.sctp_setadaptation);
+        assert(out->type == EXPR_SCTP_SETADAPTATION);
+
+        out->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation_expr));
+                     
+        in_adaptation = in->value.sctp_setadaptation;
+        out_adaptation = out->value.sctp_setadaptation;
+                     
+        if (evaluate(in_adaptation->ssb_adaptation_ind,
+		     &out_adaptation->ssb_adaptation_ind,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
 #endif
 
 static int evaluate(struct expression *in,
@@ -1072,6 +1106,11 @@ static int evaluate(struct expression *in,
 #ifdef SCTP_DEFAULT_SNDINFO
 	case EXPR_SCTP_SNDINFO:
 		result = evaluate_sctp_sndinfo_expression(in, out, error);
+		break;
+#endif
+#ifdef SCTP_ADAPTATION_LAYER
+	case EXPR_SCTP_SETADAPTATION:
+		result = evaluate_sctp_setadaptation_expression(in, out, error);
 		break;
 #endif
 	case EXPR_WORD:

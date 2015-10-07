@@ -246,6 +246,7 @@ snd_sid				return SND_SID;
 snd_flags			return SND_FLAGS;
 snd_ppid			return SND_PPID;
 snd_context			return SND_CONTEXT;
+ssb_adaptation_ind		return SSB_ADAPTATION_IND;
 CHUNK				return CHUNK;
 DATA				return DATA;
 INIT				return INIT;

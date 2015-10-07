@@ -168,6 +168,9 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SCTP_SENDER_DRY_EVENT
         { SCTP_SENDER_DRY_EVENT,            "SCTP_SENDER_DRY_EVENT"           },
 #endif
+#ifdef SCTP_ADAPTATION_LAYER
+	{ SCTP_ADAPTATION_LAYER,            "SCTP_ADAPTATION_LAYER"           },
+#endif
 
 #if 0
 	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
