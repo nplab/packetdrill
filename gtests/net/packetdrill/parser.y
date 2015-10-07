@@ -2971,7 +2971,7 @@ sctp_assocparams
         $$->value.sctp_assocparams->sasoc_peer_rwnd = $6;
         $$->value.sctp_assocparams->sasoc_local_rwnd = $8;
         $$->value.sctp_assocparams->sasoc_cookie_life = $10;
-#elif
+#else
 	$$ = NULL;
 #endif
 }
@@ -3007,7 +3007,7 @@ sctp_event
 	$$->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
 	$$->value.sctp_event->se_type = $2;
 	$$->value.sctp_event->se_on = $4;
-#elif
+#else
 	$$ = NULL;
 #endif
 }
@@ -3080,7 +3080,7 @@ sctp_setadaptation
 		semantic_error("ssb_adaptation_ind out of range");
 	}
 	$$->value.sctp_setadaptation->ssb_adaptation_ind = new_integer_expression($4, "%u");
-#elif
+#else
 	$$ = NULL;
 #endif
 }
