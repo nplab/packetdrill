@@ -3066,7 +3066,7 @@ sctp_sndinfo
 	$$->value.sctp_sndinfo->snd_flags = $4;
 	$$->value.sctp_sndinfo->snd_ppid = $6;
 	$$->value.sctp_sndinfo->snd_context = $8;
-#elif
+#else
 	$$ = NULL;
 #endif
 }
