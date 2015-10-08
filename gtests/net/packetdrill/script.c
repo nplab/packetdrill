@@ -65,38 +65,17 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_IOVEC,                "iovec" },
 	{ EXPR_MSGHDR,               "msghdr" },
 	{ EXPR_POLLFD,               "pollfd" },
-#ifdef SCTP_RTOINFO
 	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
-#endif
-#ifdef SCTP_INITMSG
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
-#endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
-#endif
-#ifdef SCTP_DELAYED_SACK
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
-#endif
-#ifdef SCTP_STATUS
 	{ EXPR_SCTP_STATUS,          "sctp_status"},
 	{ EXPR_SCTP_PADDRINFO,	     "sctp_paddrinfo"},
-#endif
-#ifdef SCTP_PEER_ADDR_PARAMS
-	{ EXPR_SCTP_PEER_ADDR_PARAMS,	"sctp_peer_addr_params"},
-#endif
-#ifdef SCTP_SS_VALUE
+	{ EXPR_SCTP_PEER_ADDR_PARAMS,"sctp_peer_addr_params"},
 	{ EXPR_SCTP_STREAM_VALUE,    "sctp_stream_value"},
-#endif
-#ifdef SCTP_ASSOCINFO
 	{ EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
-#endif
-#ifdef SCTP_EVENT
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
-#endif
-#ifdef SCTP_ADAPTATION_LAYER
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
-#endif
-
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -308,21 +287,16 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.linger->l_onoff);
 		free_expression(expression->value.linger->l_linger);
 		break;
-#ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
 		assert(expression->value.sctp_rtoinfo);
 		free_expression(expression->value.sctp_rtoinfo->srto_initial);
 		free_expression(expression->value.sctp_rtoinfo->srto_max);
 		free_expression(expression->value.sctp_rtoinfo->srto_min);
 		break;
-#endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	case EXPR_SCTP_ASSOC_VALUE:
 		assert(expression->value.sctp_assoc_value);
 		free_expression(expression->value.sctp_assoc_value->assoc_value);
 		break;
-#endif
-#ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
 		assert(expression->value.sctp_initmsg);
 		free_expression(expression->value.sctp_initmsg->sinit_num_ostreams);
@@ -330,15 +304,11 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_initmsg->sinit_max_attempts);
 		free_expression(expression->value.sctp_initmsg->sinit_max_init_timeo);
 		break;
-#endif
-#ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
 		assert(expression->value.sctp_sack_info);
 		free_expression(expression->value.sctp_sack_info->sack_delay);
 		free_expression(expression->value.sctp_sack_info->sack_freq);		
 		break;
-#endif
-#ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
 		assert(expression->value.sctp_paddrinfo);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_address);
@@ -359,8 +329,6 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_status->sstat_fragmentation_point);
 		free_expression(expression->value.sctp_status->sstat_primary);
 		break;
-#endif
-#ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		assert(expression->value.sctp_paddrparams);
 		free_expression(expression->value.sctp_paddrparams->spp_address);
@@ -371,15 +339,11 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_paddrparams->spp_ipv6_flowlabel);
 		free_expression(expression->value.sctp_paddrparams->spp_dscp);
 		break;
-#endif
-#ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
 		assert(expression->value.sctp_stream_value);
 		free_expression(expression->value.sctp_stream_value->stream_id);
 		free_expression(expression->value.sctp_stream_value->stream_value);
 		break;
-#endif
-#ifdef SCTP_ASSOCINFO
 	case EXPR_SCTP_ASSOCPARAMS:
 		free_expression(expression->value.sctp_assocparams->sasoc_asocmaxrxt);
 		free_expression(expression->value.sctp_assocparams->sasoc_number_peer_destinations);
@@ -387,18 +351,13 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_assocparams->sasoc_local_rwnd);
 		free_expression(expression->value.sctp_assocparams->sasoc_cookie_life);
 		break;
-#endif
-#ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
 		break;
-#endif
-#ifdef SCTP_ADAPTATION_LAYER
 	case EXPR_SCTP_SETADAPTATION:
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
 		break;
-#endif
 	case EXPR_WORD:
 		assert(expression->value.string);
 		free(expression->value.string);
@@ -584,7 +543,6 @@ static int evaluate_pollfd_expression(struct expression *in,
 	return STATUS_OK;
 }
 
-#ifdef SCTP_RTOINFO
 static int evaluate_sctp_rtoinfo_expression(struct expression *in,
 					    struct expression *out,
 					    char **error)
@@ -616,9 +574,7 @@ static int evaluate_sctp_rtoinfo_expression(struct expression *in,
 
 	return STATUS_OK;
 }
-#endif
 
-#ifdef SCTP_INITMSG
 static int evaluate_sctp_initmsg_expression(struct expression *in,
 					    struct expression *out,
 					    char **error)
@@ -653,9 +609,7 @@ static int evaluate_sctp_initmsg_expression(struct expression *in,
 		return STATUS_ERR;
 	return STATUS_OK;
 }
-#endif
 
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 static int evaluate_sctp_assoc_value_expression(struct expression *in,
 						struct expression *out,
 						char **error)
@@ -679,9 +633,7 @@ static int evaluate_sctp_assoc_value_expression(struct expression *in,
 
 	return STATUS_OK;
 }
-#endif
 
-#ifdef SCTP_DELAYED_SACK
 static int evaluate_sctp_sack_info_expression(struct expression *in,
 					    struct expression *out,
 					    char **error)
@@ -709,9 +661,7 @@ static int evaluate_sctp_sack_info_expression(struct expression *in,
 
 	return STATUS_OK;
 }
-#endif
 
-#ifdef SCTP_STATUS
 static int evaluate_sctp_paddrinfo_expression(struct expression *in,
 					      struct expression *out,
 					      char **error)
@@ -806,9 +756,7 @@ static int evaluate_sctp_status_expression(struct expression *in,
 		return STATUS_ERR;
 	return STATUS_OK;
 }
-#endif
 
-#ifdef SCTP_PEER_ADDR_PARAMS
 static int evaluate_sctp_peer_addr_param_expression(struct expression *in,
 						    struct expression *out,
 						    char **error)
@@ -855,9 +803,7 @@ static int evaluate_sctp_peer_addr_param_expression(struct expression *in,
 		return STATUS_ERR;
 	return STATUS_OK;
 }
-#endif
 
-#ifdef SCTP_SS_VALUE
 static int evaluate_sctp_stream_value_expression(struct expression *in,
 						 struct expression *out,
 						 char **error)
@@ -885,9 +831,7 @@ static int evaluate_sctp_stream_value_expression(struct expression *in,
 
 	return STATUS_OK;
 }
-#endif
 
-#ifdef SCTP_EVENT
 static int evaluate_sctp_event_expression(struct expression *in,
 						 struct expression *out,
 						 char **error)
@@ -915,9 +859,7 @@ static int evaluate_sctp_event_expression(struct expression *in,
 
 	return STATUS_OK; 
 }
-#endif
 
-#ifdef SCTP_ASSOCINFO
 static int evaluate_sctp_accocparams_expression(struct expression *in,
 						struct expression *out,
 						char **error)
@@ -957,9 +899,7 @@ static int evaluate_sctp_accocparams_expression(struct expression *in,
 
 	return STATUS_OK;
 }
-#endif
 
-#ifdef SCTP_ADAPTATION_LAYER
 static int evaluate_sctp_setadaptation_expression(struct expression *in,
 						  struct expression *out,
 						  char **error)
@@ -983,7 +923,6 @@ static int evaluate_sctp_setadaptation_expression(struct expression *in,
 
 	return STATUS_OK;
 }
-#endif
 
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
@@ -1008,59 +947,39 @@ static int evaluate(struct expression *in,
 		memcpy(&out->value.linger, &in->value.linger,
 		       sizeof(in->value.linger));
 		break;
-#ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
-		evaluate_sctp_rtoinfo_expression(in, out, error);
+		result = evaluate_sctp_rtoinfo_expression(in, out, error);
 		break;
-#endif
-#ifdef SCTP_ASSOCINFO
 	case EXPR_SCTP_ASSOCPARAMS:
-		evaluate_sctp_accocparams_expression(in, out, error);
+		result = evaluate_sctp_accocparams_expression(in, out, error);
 		break;
-#endif	
-#ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
-		evaluate_sctp_initmsg_expression(in, out, error);
+		result = evaluate_sctp_initmsg_expression(in, out, error);
 		break;
-#endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	case EXPR_SCTP_ASSOC_VALUE:
-		evaluate_sctp_assoc_value_expression(in, out, error);
+		result = evaluate_sctp_assoc_value_expression(in, out, error);
 		break;
-#endif
-#ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
-		evaluate_sctp_sack_info_expression(in, out, error);	
+		result = evaluate_sctp_sack_info_expression(in, out, error);	
 		break;
-#endif
-#ifdef SCTP_STATUS
 	case EXPR_SCTP_PADDRINFO:
-		evaluate_sctp_paddrinfo_expression(in, out, error);
+		result = evaluate_sctp_paddrinfo_expression(in, out, error);
 		break;
 	case EXPR_SCTP_STATUS:
 		result = evaluate_sctp_status_expression(in, out, error);
 		break;
-#endif
-#ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		result = evaluate_sctp_peer_addr_param_expression(in, out, error);
 		break;
-#endif
-#ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
-		evaluate_sctp_stream_value_expression(in, out, error);
+		result = evaluate_sctp_stream_value_expression(in, out, error);
 		break;
-#endif
-#ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
 		result = evaluate_sctp_event_expression(in, out, error);
 		break;
-#endif
-#ifdef SCTP_ADAPTATION_LAYER
 	case EXPR_SCTP_SETADAPTATION:
 		result = evaluate_sctp_setadaptation_expression(in, out, error);
 		break;
-#endif
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;
 		if (symbol_to_int(in->value.string,
