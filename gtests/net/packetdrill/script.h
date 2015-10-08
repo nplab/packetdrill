@@ -48,7 +48,7 @@ enum expression_t {
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
-	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for
+	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for */
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
 	EXPR_SCTP_PADDRINFO,
 	EXPR_SCTP_STREAM_VALUE,	  /* struct sctp_stream_value for SCTP_SS_VALUE */
