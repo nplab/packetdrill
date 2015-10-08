@@ -2281,7 +2281,7 @@ static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
-	int script_fd, live_fd, level, optname, result;
+	int script_fd, live_fd, level, optname, live_result, result = STATUS_OK;
 	s32 script_optval, script_optlen, expected;
 	void *live_optval;
 	socklen_t live_optlen;
@@ -2304,134 +2304,156 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	val_expression = get_arg(args, 3, error);
 	if (val_expression == NULL) {
 		return STATUS_ERR;
-	} else if (val_expression->type == EXPR_LINGER) {
-		live_optval = malloc(sizeof(struct linger));
-		live_optlen = (socklen_t)sizeof(struct linger);
+	} 
+	switch (val_expression->type) {
+		case EXPR_LINGER:
+			live_optval = malloc(sizeof(struct linger));
+			live_optlen = (socklen_t)sizeof(struct linger);
+			break;
 #ifdef SCTP_RTOINFO
-	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		live_optval = malloc(sizeof(struct sctp_rtoinfo));
-		live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
-		((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
+		case EXPR_SCTP_RTOINFO:
+			live_optval = malloc(sizeof(struct sctp_rtoinfo));
+			live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
+			((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
+			break;
 #endif
 #ifdef SCTP_ASSOCINFO
-	} else if (val_expression->type == EXPR_SCTP_ASSOCPARAMS) {
-		live_optval = malloc(sizeof(struct sctp_assocparams));
-		live_optlen = (socklen_t)sizeof(struct sctp_assocparams);
-		((struct sctp_assocparams*) live_optval)->sasoc_assoc_id = 0;
+		case EXPR_SCTP_ASSOCPARAMS:
+			live_optval = malloc(sizeof(struct sctp_assocparams));
+			live_optlen = (socklen_t)sizeof(struct sctp_assocparams);
+			((struct sctp_assocparams*) live_optval)->sasoc_assoc_id = 0;
+			break;
 #endif
 #ifdef SCTP_INITMSG
-	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
-		live_optval = malloc(sizeof(struct sctp_initmsg));
-		live_optlen = (socklen_t)sizeof(struct sctp_initmsg);
+		case EXPR_SCTP_INITMSG:
+			live_optval = malloc(sizeof(struct sctp_initmsg));
+			live_optlen = (socklen_t)sizeof(struct sctp_initmsg);
+			break;
 #endif
 #ifdef SCTP_DELAYED_SACK
-	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
-		live_optval = malloc(sizeof(struct sctp_sack_info));
-		live_optlen = (socklen_t)sizeof(struct sctp_sack_info);
-		((struct sctp_sack_info*) live_optval)->sack_assoc_id = 0;
+		case EXPR_SCTP_SACKINFO:
+			live_optval = malloc(sizeof(struct sctp_sack_info));
+			live_optlen = (socklen_t)sizeof(struct sctp_sack_info);
+			((struct sctp_sack_info*) live_optval)->sack_assoc_id = 0;
+			break;
 #endif
 #ifdef SCTP_STATUS
-	} else if (val_expression->type == EXPR_SCTP_STATUS) {
-		live_optval = malloc(sizeof(struct sctp_status));
-		live_optlen = (socklen_t)sizeof(struct sctp_status);
-		((struct sctp_status*) live_optval)->sstat_assoc_id = 0;
+		case EXPR_SCTP_STATUS:
+			live_optval = malloc(sizeof(struct sctp_status));
+			live_optlen = (socklen_t)sizeof(struct sctp_status);
+			((struct sctp_status*) live_optval)->sstat_assoc_id = 0;
+			break;
 #endif
 #ifdef SCTP_GET_PEER_ADDR_INFO
-	} else if (val_expression->type == EXPR_SCTP_PADDRINFO) {
-		struct sctp_paddrinfo_expr *expr_paddrinfo = val_expression->value.sctp_paddrinfo;
-		struct sctp_paddrinfo *live_paddrinfo = malloc(sizeof(struct sctp_paddrinfo));
-		live_optlen = (socklen_t)sizeof(struct sctp_paddrinfo);
-		memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
-		live_paddrinfo->spinfo_assoc_id = 0;
-		if (expr_paddrinfo->spinfo_address->type == EXPR_ELLIPSIS) {
-			socklen_t len_addr = sizeof(live_paddrinfo->spinfo_address);
-			if (getpeername(live_fd, (struct sockaddr*) &live_paddrinfo->spinfo_address, &len_addr)) {
-				asprintf(error, "Bad setsockopt, bad get primary peer address");
+		case EXPR_SCTP_PADDRINFO: {
+			struct sctp_paddrinfo_expr *expr_paddrinfo = val_expression->value.sctp_paddrinfo;
+			struct sctp_paddrinfo *live_paddrinfo = malloc(sizeof(struct sctp_paddrinfo));
+			live_optlen = (socklen_t)sizeof(struct sctp_paddrinfo);
+			memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
+			live_paddrinfo->spinfo_assoc_id = 0;
+			if (expr_paddrinfo->spinfo_address->type == EXPR_ELLIPSIS) {
+				socklen_t len_addr = sizeof(live_paddrinfo->spinfo_address);
+				if (getpeername(live_fd, (struct sockaddr*) &live_paddrinfo->spinfo_address, &len_addr)) {
+					asprintf(error, "Bad setsockopt, bad get primary peer address");
+					free(live_paddrinfo);
+					return STATUS_ERR;
+				}
+			} else if (expr_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
+				memcpy(&live_paddrinfo->spinfo_address, expr_paddrinfo->spinfo_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+			} else if (expr_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
+				memcpy(&live_paddrinfo->spinfo_address, expr_paddrinfo->spinfo_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+			} else {
+				asprintf(error, "Bad setsockopt, bad get input for spinfo_address");
 				free(live_paddrinfo);
 				return STATUS_ERR;
 			}
-		} else if (expr_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-			memcpy(&live_paddrinfo->spinfo_address, expr_paddrinfo->spinfo_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
-		} else if (expr_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
-			memcpy(&live_paddrinfo->spinfo_address, expr_paddrinfo->spinfo_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
-		} else {
-			asprintf(error, "Bad setsockopt, bad get input for spinfo_address");
-			free(live_paddrinfo);
-			return STATUS_ERR;
+			live_optval = live_paddrinfo;
+			break;
 		}
-		live_optval = live_paddrinfo;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
-	} else if (val_expression->type == EXPR_SCTP_PEER_ADDR_PARAMS) {
-		struct sctp_paddrparams_expr *expr_params = val_expression->value.sctp_paddrparams;
-		struct sctp_paddrparams *live_params = malloc(sizeof(struct sctp_paddrparams));
-		memset(live_params, 0, sizeof(struct sctp_paddrparams));
-		live_optlen = sizeof(struct sctp_paddrparams);
-		if (expr_params->spp_address->type == EXPR_ELLIPSIS) {
-			socklen_t len_addr = sizeof(live_params->spp_address);
-			if (getpeername(live_fd, (struct sockaddr*) &live_params->spp_address, &len_addr)) {
-				asprintf(error, "Bad getsockopt, bad get primary peer address");
+		case EXPR_SCTP_PEER_ADDR_PARAMS: {
+			struct sctp_paddrparams_expr *expr_params = val_expression->value.sctp_paddrparams;
+			struct sctp_paddrparams *live_params = malloc(sizeof(struct sctp_paddrparams));
+			memset(live_params, 0, sizeof(struct sctp_paddrparams));
+			live_optlen = sizeof(struct sctp_paddrparams);
+			if (expr_params->spp_address->type == EXPR_ELLIPSIS) {
+				socklen_t len_addr = sizeof(live_params->spp_address);
+				if (getpeername(live_fd, (struct sockaddr*) &live_params->spp_address, &len_addr)) {
+					asprintf(error, "Bad getsockopt, bad get primary peer address");
+					free(live_params);
+					return STATUS_ERR;
+				}
+			} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
+				memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+			} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
+				memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+			} else {
+				asprintf(error, "Bad getsockopt, bad get input for spp_address");
 				free(live_params);
 				return STATUS_ERR;
 			}
-		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-			memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
-		} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
-			memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
-		} else {
-			asprintf(error, "Bad getsockopt, bad get input for spp_address");
-			free(live_params);
-			return STATUS_ERR;
+			live_params->spp_assoc_id = 0;
+			live_optval = live_params;
+			break;
 		}
-		live_params->spp_assoc_id = 0;
-		live_optval = live_params;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	} else if (val_expression->type == EXPR_SCTP_ASSOC_VALUE) {
-		live_optval = malloc(sizeof(struct sctp_assoc_value));
-		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
-		((struct sctp_assoc_value *) live_optval)->assoc_id = 0;
+		case EXPR_SCTP_ASSOC_VALUE:
+			live_optval = malloc(sizeof(struct sctp_assoc_value));
+			live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
+			((struct sctp_assoc_value *) live_optval)->assoc_id = 0;
+			break;
 #endif
 #ifdef SCTP_SS_VALUE
-	} else if (val_expression->type == EXPR_SCTP_STREAM_VALUE) {
-		live_optval = malloc(sizeof(struct sctp_stream_value));
-		live_optlen = (socklen_t)sizeof(struct sctp_stream_value);
-		((struct sctp_stream_value *) live_optval)->assoc_id = 0;
-		if (get_u16(val_expression->value.sctp_stream_value->stream_id,
-		            &((struct sctp_stream_value *)live_optval)->stream_id,
-		            error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_STREAM_VALUE:
+			live_optval = malloc(sizeof(struct sctp_stream_value));
+			live_optlen = (socklen_t)sizeof(struct sctp_stream_value);
+			((struct sctp_stream_value *) live_optval)->assoc_id = 0;
+			if (get_u16(val_expression->value.sctp_stream_value->stream_id,
+			            &((struct sctp_stream_value *)live_optval)->stream_id,
+			            error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+			break;
 #endif
 #ifdef SCTP_EVENT
-	} else if (val_expression->type == EXPR_SCTP_EVENT) {
-		live_optval = malloc(sizeof(struct sctp_event));
-		live_optlen = sizeof(struct sctp_event);
-		((struct sctp_event *)live_optval)->se_assoc_id = 0; 
-		if (get_u16(val_expression->value.sctp_event->se_type,
-		            &((struct sctp_event *)live_optval)->se_type,
-			    error)) {
-                        free(live_optval);
-                        return STATUS_ERR;
-                }
+		case EXPR_SCTP_EVENT:
+			live_optval = malloc(sizeof(struct sctp_event));
+			live_optlen = sizeof(struct sctp_event);
+			((struct sctp_event *)live_optval)->se_assoc_id = 0; 
+			if (get_u16(val_expression->value.sctp_event->se_type,
+			            &((struct sctp_event *)live_optval)->se_type,
+				    error)) {
+				free(live_optval);
+				return STATUS_ERR;
+                	}
+			break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
-	} else if (val_expression->type == EXPR_SCTP_SETADAPTATION) {
-		live_optval = malloc(sizeof(struct sctp_setadaptation));
-		live_optlen = sizeof(struct sctp_setadaptation);
+		case EXPR_SCTP_SETADAPTATION:
+			live_optval = malloc(sizeof(struct sctp_setadaptation));
+			live_optlen = sizeof(struct sctp_setadaptation);
+			break;
 #endif
-	} else {
-		s32_bracketed_arg(args, 3, &script_optval, error);
-		live_optval = malloc(sizeof(int));
-		live_optlen = (socklen_t)sizeof(int);
+		case EXPR_INTEGER:
+			s32_bracketed_arg(args, 3, &script_optval, error);
+			live_optval = malloc(sizeof(int));
+			live_optlen = (socklen_t)sizeof(int);
+			break;
+		default:
+			asprintf(error, "unsupported getsockopt value type: %s",
+				 expression_type_to_string(val_expression->type));
+			return STATUS_ERR;
+			break;		
 	}
 
 	begin_syscall(state, syscall);
 
-	result = getsockopt(live_fd, level, optname, live_optval, &live_optlen);
+	live_result = getsockopt(live_fd, level, optname, live_optval, &live_optlen);
 
-	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error)) {
+	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, live_result, error)) {
 		return STATUS_ERR;
 	}
 
@@ -2441,98 +2463,80 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		free(live_optval);
 		return STATUS_ERR;
 	}
-	if (val_expression->type == EXPR_LINGER) {
-		if (check_linger(val_expression->value.linger, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+	
+	switch (val_expression->type) {
+		case EXPR_LINGER:
+			result = check_linger(val_expression->value.linger, live_optval, error);
+			break;
 #ifdef SCTP_RTOINFO
-	} else if (val_expression->type == EXPR_SCTP_RTOINFO) {
-		if (check_sctp_rtoinfo(val_expression->value.sctp_rtoinfo, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_RTOINFO:
+			result = check_sctp_rtoinfo(val_expression->value.sctp_rtoinfo, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_ASSOCINFO
-	} else if (val_expression->type == EXPR_SCTP_ASSOCPARAMS) {
-		if (check_sctp_assocparams(val_expression->value.sctp_assocparams, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_ASSOCPARAMS:
+			result = check_sctp_assocparams(val_expression->value.sctp_assocparams, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_INITMSG
-	} else if (val_expression->type == EXPR_SCTP_INITMSG) {
-		if (check_sctp_initmsg(val_expression->value.sctp_initmsg, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_INITMSG:
+			result = check_sctp_initmsg(val_expression->value.sctp_initmsg, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_DELAYED_SACK
-	} else if (val_expression->type == EXPR_SCTP_SACKINFO) {
-		if (check_sctp_sack_info(val_expression->value.sctp_sack_info, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_SACKINFO:
+			result = check_sctp_sack_info(val_expression->value.sctp_sack_info, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_STATUS
-	} else if (val_expression->type == EXPR_SCTP_STATUS) {
-		if (check_sctp_status(val_expression->value.sctp_status, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_STATUS:
+			result = check_sctp_status(val_expression->value.sctp_status, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_GET_PEER_ADDR_INFO
-	} else if (val_expression->type == EXPR_SCTP_PADDRINFO) {
-		if (check_sctp_paddrinfo(val_expression->value.sctp_paddrinfo, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_PADDRINFO:
+			result = check_sctp_paddrinfo(val_expression->value.sctp_paddrinfo, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
-	} else if (val_expression->type == EXPR_SCTP_PEER_ADDR_PARAMS) {
-		if (check_sctp_paddrparams(val_expression->value.sctp_paddrparams, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_PEER_ADDR_PARAMS:
+			result = check_sctp_paddrparams(val_expression->value.sctp_paddrparams, live_optval, error);
+			break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
-	} else if (val_expression->type == EXPR_SCTP_ASSOC_VALUE) {
-		if (check_sctp_assoc_value(val_expression->value.sctp_assoc_value, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_ASSOC_VALUE:
+			result = check_sctp_assoc_value(val_expression->value.sctp_assoc_value, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_SS_VALUE
-	} else if (val_expression->type == EXPR_SCTP_STREAM_VALUE) {
-		if (check_sctp_stream_value(val_expression->value.sctp_stream_value, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_STREAM_VALUE:
+			result = check_sctp_stream_value(val_expression->value.sctp_stream_value, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_EVENT
-	} else if (val_expression->type == EXPR_SCTP_EVENT) {
-		if (check_sctp_event(val_expression->value.sctp_event, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_EVENT:
+			result = check_sctp_event(val_expression->value.sctp_event, live_optval, error);
+			break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
-	} else if (val_expression->type == EXPR_SCTP_SETADAPTATION) {
-		if (check_sctp_setadaptation(val_expression->value.sctp_setadaptation, live_optval, error)) {
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_SCTP_SETADAPTATION:
+			result = check_sctp_setadaptation(val_expression->value.sctp_setadaptation, live_optval, error);
+			break;
 #endif
-	} else {
-		if (*(int*)live_optval != script_optval) {
-			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
-				(int)script_optval, *(int*)live_optval);
-			free(live_optval);
-			return STATUS_ERR;
-		}
+		case EXPR_INTEGER:
+			if (*(int*)live_optval != script_optval) {
+				asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
+					(int)script_optval, *(int*)live_optval);
+				result = STATUS_ERR;
+			}
+			break;
+		default:
+			asprintf(error, "Cannot check getsockopt value type: %s",
+				 expression_type_to_string(val_expression->type));
+			break;
 	}
 	free(live_optval);
-	return STATUS_OK;
+	return result;
 }
 
 static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
