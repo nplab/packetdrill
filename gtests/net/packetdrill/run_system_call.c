@@ -359,6 +359,27 @@ static int ellipsis_arg(struct expression_list *args, int index, char **error)
 	return STATUS_OK;
 }
 
+/* Return STATUS_OK if the argumant in from type sockaddr_in or
+ * sockaddr_in6
+ */
+static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *sock_addr, int live_fd, char **error)
+{
+	if (arg->type == EXPR_ELLIPSIS) {
+		socklen_t len_addr;
+		if (getpeername(live_fd, (struct sockaddr*) sock_addr, &len_addr)) {
+			asprintf(error, "Bad setsockopt, bad get primary peer address");
+			return STATUS_ERR;
+		}
+	} else if (arg->type == EXPR_SOCKET_ADDRESS_IPV4) {
+		memcpy(sock_addr, arg->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+	} else if (arg->type == EXPR_SOCKET_ADDRESS_IPV6) {
+		memcpy(sock_addr, arg->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
 /* Free all the space used by the given iovec. */
 static void iovec_free(struct iovec *iov, size_t iov_len)
 {
@@ -2351,21 +2372,10 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			live_optlen = (socklen_t)sizeof(struct sctp_paddrinfo);
 			memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
 			live_paddrinfo->spinfo_assoc_id = 0;
-			if (expr_paddrinfo->spinfo_address->type == EXPR_ELLIPSIS) {
-				socklen_t len_addr = sizeof(live_paddrinfo->spinfo_address);
-				if (getpeername(live_fd, (struct sockaddr*) &live_paddrinfo->spinfo_address, &len_addr)) {
-					asprintf(error, "Bad setsockopt, bad get primary peer address");
-					free(live_paddrinfo);
-					return STATUS_ERR;
-				}
-			} else if (expr_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-				memcpy(&live_paddrinfo->spinfo_address, expr_paddrinfo->spinfo_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
-			} else if (expr_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
-				memcpy(&live_paddrinfo->spinfo_address, expr_paddrinfo->spinfo_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
-			} else {
-				asprintf(error, "Bad setsockopt, bad get input for spinfo_address");
+			if (get_sockstorage_arg(expr_paddrinfo->spinfo_address, &(live_paddrinfo->spinfo_address), live_fd, error)){
+				asprintf(error, "Bad getsockopt, bad get input for spinfo_address");
 				free(live_paddrinfo);
-				return STATUS_ERR;
+				return STATUS_ERR;			
 			}
 			live_optval = live_paddrinfo;
 			break;
@@ -2377,21 +2387,10 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			struct sctp_paddrparams *live_params = malloc(sizeof(struct sctp_paddrparams));
 			memset(live_params, 0, sizeof(struct sctp_paddrparams));
 			live_optlen = sizeof(struct sctp_paddrparams);
-			if (expr_params->spp_address->type == EXPR_ELLIPSIS) {
-				socklen_t len_addr = sizeof(live_params->spp_address);
-				if (getpeername(live_fd, (struct sockaddr*) &live_params->spp_address, &len_addr)) {
-					asprintf(error, "Bad getsockopt, bad get primary peer address");
-					free(live_params);
-					return STATUS_ERR;
-				}
-			} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-				memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv4, sizeof(struct sockaddr_in));
-			} else if (expr_params->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
-				memcpy(&live_params->spp_address, expr_params->spp_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
-			} else {
+			if (get_sockstorage_arg(expr_params->spp_address, &live_params->spp_address, live_fd, error)){
 				asprintf(error, "Bad getsockopt, bad get input for spp_address");
 				free(live_params);
-				return STATUS_ERR;
+				return STATUS_ERR;			
 			}
 			live_params->spp_assoc_id = 0;
 			live_optval = live_params;
@@ -2728,27 +2727,12 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_GET_PEER_ADDR_INFO
 	case EXPR_SCTP_PADDRINFO:
 		paddrinfo.spinfo_assoc_id = 0;
-		if (val_expression->value.sctp_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-			memcpy(&paddrinfo.spinfo_address,
-			       val_expression->value.sctp_paddrinfo->spinfo_address->value.socket_address_ipv4,
-			       sizeof(struct sockaddr_in));
-		} else if (val_expression->value.sctp_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
-			memcpy(&paddrinfo.spinfo_address,
-			       val_expression->value.sctp_paddrinfo->spinfo_address->value.socket_address_ipv6,
-			       sizeof(struct sockaddr_in6));
-		} else if (val_expression->value.sctp_paddrinfo->spinfo_address->type == EXPR_ELLIPSIS) {
-			socklen_t len_addr = sizeof(struct sockaddr_storage);
-			if (getpeername(live_fd,
-			                (struct sockaddr*)&paddrinfo.spinfo_address,
-			                &len_addr)) {
-				asprintf(error, "Bad setsockopt, bad get primary peer address");
-				return STATUS_ERR;
-			}
-		} else {
-			asprintf(error, "Bad setsockopt, bad input for spinfo_address for socketoption SCTP_GET_PEER_ADDR_INFO");
-			return STATUS_ERR;
+		if (get_sockstorage_arg(val_expression->value.sctp_paddrinfo->spinfo_address, 
+					&paddrinfo.spinfo_address, live_fd, error)){
+			asprintf(error, "Bad getsockopt, bad get input for spp_address");
+			return STATUS_ERR;			
 		}
-		optval = &paddrinfo;
+		optval = &paddrinfo;			
 		break;
 #endif
 #ifdef SCTP_EVENT
