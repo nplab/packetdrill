@@ -1865,7 +1865,7 @@ static int check_sctp_sack_info(struct sctp_sack_info_expr *expr,
 }
 #endif
 
-#ifdef SCTP_STATUS
+#if defined(SCTP_GET_PEER_ADDR_INFO) || defined(SCTP_STATUS)
 static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			        struct sctp_paddrinfo *sctp_paddrinfo,
 			        char **error)
@@ -1932,7 +1932,9 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 	}
 	return STATUS_OK;
 }
+#endif
 
+#ifdef SCTP_STATUS
 static int check_sctp_status(struct sctp_status_expr *expr,
 			     struct sctp_status *sctp_status,
 			     char **error)
