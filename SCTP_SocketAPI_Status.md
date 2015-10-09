@@ -36,7 +36,7 @@
 |`SCTP_ASSOCINFO`              | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.2)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported           | supported |
 |`SCTP_INITMSG`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.3)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported           | supported |
 |`SCTP_NODELAY`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported           | supported |
-|`SCTP_AUTOCLOSE`              | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.8)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
+|`SCTP_AUTOCLOSE`              | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.8)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported           | supported |
 |`SCTP_PRIMARY_ADDR`           | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
 |`SCTP_ADAPTATION_LAYER`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.10) | [RFC5061](https://tools.ietf.org/html/rfc5061) | supported   | supported           | supported |
 |`SCTP_DISABLE_FRAGMENTS`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.11) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
@@ -65,8 +65,8 @@
 |`SCTP_GET_PEER_ADDR_INFO`     | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.2)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported           | supported |
 |`SCTP_PEER_AUTH_CHUNKS`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.3)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported           | supported |
 |`SCTP_LOCAL_AUTH_CHUNKS`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.4)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported           | supported |
-|`SCTP_GET_ASSOC_NUMBER`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
-|`SCTP_GET_ASSOC_ID_LIST`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.6)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | unsupported         | supported |
+|`SCTP_GET_ASSOC_NUMBER`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported           | supported |
+|`SCTP_GET_ASSOC_ID_LIST`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.6)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported         | supported |
 |`SCTP_SET_PEER_PRIMARY_ADDR`  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.1)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported           | supported |
 |`SCTP_AUTH_CHUNK`             | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.2)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported           | supported |
 |`SCTP_AUTH_KEY`               | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.3)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported           | supported |
