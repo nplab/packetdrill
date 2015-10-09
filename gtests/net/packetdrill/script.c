@@ -93,10 +93,12 @@ struct expression_type_entry expression_type_table[] = {
 #ifdef SCTP_EVENT
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
 #endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
+#endif
 #ifdef SCTP_ADAPTATION_LAYER
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
 #endif
-
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -393,6 +395,14 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
 		break;
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	case EXPR_SCTP_SNDINFO:
+		free_expression(expression->value.sctp_sndinfo->snd_sid);
+		free_expression(expression->value.sctp_sndinfo->snd_flags);
+		free_expression(expression->value.sctp_sndinfo->snd_ppid);
+		free_expression(expression->value.sctp_sndinfo->snd_context);
+		break;		
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
 	case EXPR_SCTP_SETADAPTATION:
@@ -959,6 +969,43 @@ static int evaluate_sctp_accocparams_expression(struct expression *in,
 }
 #endif
 
+#ifdef SCTP_DEFAULT_SNDINFO
+static int evaluate_sctp_sndinfo_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+	struct sctp_sndinfo_expr *in_sndinfo;
+	struct sctp_sndinfo_expr *out_sndinfo;
+
+	assert(in->type == EXPR_SCTP_SNDINFO);
+	assert(in->value.sctp_sndinfo);
+	assert(out->type == EXPR_SCTP_SNDINFO);
+
+	out->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo_expr));
+
+	in_sndinfo = in->value.sctp_sndinfo;
+	out_sndinfo = out->value.sctp_sndinfo;
+
+	if (evaluate(in_sndinfo->snd_sid,
+		     &out_sndinfo->snd_sid,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sndinfo->snd_flags,
+		     &out_sndinfo->snd_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sndinfo->snd_ppid,
+		     &out_sndinfo->snd_ppid,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sndinfo->snd_context,
+		     &out_sndinfo->snd_context,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+#endif
+
 #ifdef SCTP_ADAPTATION_LAYER
 static int evaluate_sctp_setadaptation_expression(struct expression *in,
 						  struct expression *out,
@@ -1054,6 +1101,11 @@ static int evaluate(struct expression *in,
 #ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
 		result = evaluate_sctp_event_expression(in, out, error);
+		break;
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	case EXPR_SCTP_SNDINFO:
+		result = evaluate_sctp_sndinfo_expression(in, out, error);
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER

@@ -107,6 +107,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+	{ SCTP_DEFAULT_SNDINFO,             "SCTP_DEFAULT_SNDINFO"            },
 #if 0
 	{ SCTP_EVENT,                       "SCTP_EVENT"                      },
 #endif
@@ -173,11 +174,20 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SCTP_ADAPTATION_LAYER
 	{ SCTP_ADAPTATION_LAYER,            "SCTP_ADAPTATION_LAYER"           },
 #endif
+
 #if 0
 	{ SPP_IPV6_FLOWLABEL,               "SPP_IPV6_FLOWLABEL"              },
 	{ SPP_DSCP,                         "SPP_DSCP"                        },
 #endif
-
+        { SCTP_UNORDERED,                   "SCTP_UNORDERED"                  },
+        { SCTP_ADDR_OVER,                   "SCTP_ADDR_OVER"                  },
+        { SCTP_ABORT,                       "SCTP_ABORT"                      },
+        { SCTP_EOF,                         "SCTP_EOF"                        },
+	{ SCTP_SACK_IMMEDIATELY,	    "SCTP_SACK_IMMEDIATELY"	      },
+	{ SCTP_NOTIFICATION,		    "SCTP_NOTIFICATION"		      },
+#if 0
+        { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
+#endif
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },
 	{ TCP_CORK,                         "TCP_CORK"                        },

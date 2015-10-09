@@ -96,11 +96,16 @@ spp_hbinterval=300, spp_pathmaxrxt=..., spp_pathmtu=1468, spp_flags=521, spp_ipv
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_INITMSG, {sinit_num_ostreams=2, sinit_max_instreams=..., sinit_max_attempts=2, sinit_max_init_timeo=30}, [8]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_INITMSG, {sinit_num_ostreams=2, sinit_max_instreams=2, sinit_max_attempts=..., sinit_max_init_timeo=30}, [8]) = 0
 
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=3, sasoc_peer_rwnd=1800, sasoc_local_rwnd=2000, sasoc_cookie_life=40000}, 20) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=1, sasoc_peer_rwnd=1500, sasoc_local_rwnd=1864135, sasoc_cookie_life=40000}, [20]) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=..., sasoc_number_peer_destinations=..., sasoc_peer_rwnd=..., sasoc_local_rwnd=..., sasoc_cookie_life=40000}, [20]) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=..., sasoc_peer_rwnd=..., sasoc_local_rwnd=..., sasoc_cookie_life=40000}, [20]) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=..., sasoc_peer_rwnd=..., sasoc_local_rwnd=..., sasoc_cookie_life=...}, [20]) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=3, sasoc_peer_rwnd=1800, sasoc_local_rwnd=2000, 
+sasoc_cookie_life=40000}, 20) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=1, sasoc_peer_rwnd=1500, sasoc_local_rwnd=1864135, 
+sasoc_cookie_life=40000}, [20]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=..., sasoc_number_peer_destinations=..., sasoc_peer_rwnd=..., sasoc_local_rwnd=..., 
+sasoc_cookie_life=40000}, [20]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=..., sasoc_peer_rwnd=..., sasoc_local_rwnd=..., 
+sasoc_cookie_life=40000}, [20]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5, sasoc_number_peer_destinations=..., sasoc_peer_rwnd=..., sasoc_local_rwnd=..., 
+sasoc_cookie_life=...}, [20]) = 0
 
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=250, sack_freq=1}, 12) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=250, sack_freq=1}, [12]) = 0
@@ -109,6 +114,15 @@ spp_hbinterval=300, spp_pathmaxrxt=..., spp_pathmtu=1468, spp_flags=521, spp_ipv
 
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, 8) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, [8]) = 0
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=0, snd_ppid=1, snd_context=1}, 16) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=0, snd_ppid=1, snd_context=1}, [16]) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=2}, 16) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=2}, [16]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=...}, [16]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=..., snd_context=2}, [16]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=..., snd_ppid=2, snd_context=2}, [16]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=..., snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=2}, [16]) = 0
 
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_ADAPTATION_LAYER, {ssb_adaptation_ind=2}, 4) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_ADAPTATION_LAYER, {ssb_adaptation_ind=2}, [4]) = 0

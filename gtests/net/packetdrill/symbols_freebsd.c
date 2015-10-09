@@ -89,6 +89,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_EVENT,			    "SCTP_EVENT"		      },
+	{ SCTP_DEFAULT_SNDINFO,             "SCTP_DEFAULT_SNDINFO"            },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_GET_PEER_ADDR_INFO,          "SCTP_GET_PEER_ADDR_INFO"         },
 	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
@@ -177,6 +178,12 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ASSOC_RESET_EVENT,           "SCTP_ASSOC_RESET_EVENT"          },
 	{ SCTP_STREAM_CHANGE_EVENT,         "SCTP_STREAM_CHANGE_EVENT"        },
 	{ SCTP_SEND_FAILED_EVENT,           "SCTP_SEND_FAILED_EVENT"          },
+        { SCTP_UNORDERED,                   "SCTP_UNORDERED"                  },
+        { SCTP_ADDR_OVER,                   "SCTP_ADDR_OVER"                  },
+        { SCTP_ABORT,                       "SCTP_ABORT"                      },
+        { SCTP_EOF,                         "SCTP_EOF"                        },
+        { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
+
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

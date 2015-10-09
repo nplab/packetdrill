@@ -2257,6 +2257,63 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 }
 #endif
 
+#ifdef SCTP_DEFAULT_SNDINFO
+static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
+			      struct sctp_sndinfo *sctp_sndinfo,
+			      char **error)
+{
+	if (expr->snd_sid->type != EXPR_ELLIPSIS) {
+		u16 snd_sid;
+
+		if (get_u16(expr->snd_sid, &snd_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_sid != snd_sid) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_sid: expected: %hu actual: %hu",
+				 snd_sid, sctp_sndinfo->snd_sid);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->snd_flags->type != EXPR_ELLIPSIS) {
+		u16 snd_flags;
+
+		if (get_u16(expr->snd_flags, &snd_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_flags != snd_flags) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_flags: expected: %hu actual: %hu",
+				 snd_flags, sctp_sndinfo->snd_flags);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->snd_ppid->type != EXPR_ELLIPSIS) {
+		u32 snd_ppid;
+
+		if (get_u32(expr->snd_ppid, &snd_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_ppid != snd_ppid) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_ppid: expected: %u actual: %u",
+				 snd_ppid, sctp_sndinfo->snd_ppid);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->snd_context->type != EXPR_ELLIPSIS) {
+		u32 snd_context;
+
+		if (get_u32(expr->snd_context, &snd_context, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_sndinfo->snd_context != snd_context) {
+			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_context: expected: %u actual: %u",
+				 snd_context, sctp_sndinfo->snd_context);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 #ifdef SCTP_ADAPTATION_LAYER
 static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 				    struct sctp_setadaptation *sctp_setadaptation,
@@ -2346,7 +2403,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		if (expr_paddrinfo->spinfo_address->type == EXPR_ELLIPSIS) {
 			socklen_t len_addr = sizeof(live_paddrinfo->spinfo_address);
 			if (getpeername(live_fd, (struct sockaddr*) &live_paddrinfo->spinfo_address, &len_addr)) {
-				asprintf(error, "Bad setsockopt, bad get primary peer address");
+				asprintf(error, "Bad getsockopt, bad get primary peer address");
 				free(live_paddrinfo);
 				return STATUS_ERR;
 			}
@@ -2355,7 +2412,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		} else if (expr_paddrinfo->spinfo_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
 			memcpy(&live_paddrinfo->spinfo_address, expr_paddrinfo->spinfo_address->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
 		} else {
-			asprintf(error, "Bad setsockopt, bad get input for spinfo_address");
+			asprintf(error, "Bad getsockopt, bad get input for spinfo_address");
 			free(live_paddrinfo);
 			return STATUS_ERR;
 		}
@@ -2415,6 +2472,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
                         free(live_optval);
                         return STATUS_ERR;
                 }
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	} else if (val_expression->type == EXPR_SCTP_SNDINFO) {
+		live_optval = malloc(sizeof(struct sctp_sndinfo));
+		live_optlen = sizeof(struct sctp_sndinfo);
+		((struct sctp_sndinfo *)live_optval)->snd_assoc_id = 0; 
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
 	} else if (val_expression->type == EXPR_SCTP_SETADAPTATION) {
@@ -2516,6 +2579,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 #endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	} else if (val_expression->type == EXPR_SCTP_SNDINFO) {
+		if (check_sctp_sndinfo(val_expression->value.sctp_sndinfo, live_optval, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+#endif
 #ifdef SCTP_ADAPTATION_LAYER
 	} else if (val_expression->type == EXPR_SCTP_SETADAPTATION) {
 		if (check_sctp_setadaptation(val_expression->value.sctp_setadaptation, live_optval, error)) {
@@ -2568,6 +2638,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_EVENT
 	struct sctp_event event;
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	struct sctp_sndinfo sndinfo;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
 	struct sctp_setadaptation setadaptation;
@@ -2759,6 +2832,28 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &event;
+		break;
+#endif
+#ifdef SCTP_DEFAULT_SNDINFO
+	case EXPR_SCTP_SNDINFO:
+		sndinfo.snd_assoc_id = 0;
+		if (get_u16(val_expression->value.sctp_sndinfo->snd_sid,
+			    &sndinfo.snd_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_sndinfo->snd_flags,
+			    &sndinfo.snd_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_sndinfo->snd_ppid,
+			    &sndinfo.snd_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_sndinfo->snd_context,
+			    &sndinfo.snd_context, error)) {
+			return STATUS_ERR;
+		}
+		optval = &sndinfo;
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
