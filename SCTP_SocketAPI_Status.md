@@ -21,7 +21,7 @@
 |SCTP_EVENTS                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.14) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
 |SCTP_I_WANT_MAPPED_V4_ADDR  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.15) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
 |SCTP_MAXSEG                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.16) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | Check structure     | supported |
-|SCTP_HMAC_IDENT             | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.17) | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | TBD                 | supported |
+|SCTP_HMAC_IDENT             | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.17) | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | supported           | supported |
 |SCTP_AUTH_ACTIVE_KEY        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.18) | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | supported           | supported |
 |SCTP_DELAYED_SACK           | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.19) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
 |SCTP_FRAGMENT_INTERLEAVE    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.20) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
@@ -45,7 +45,7 @@
 |SCTP_GET_ASSOC_ID_LIST      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.2.6)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | TBD                 | supported |
 |SCTP_SET_PEER_PRIMARY_ADDR  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.1)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | TBD         | supported           | supported |
 |SCTP_AUTH_CHUNK             | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.2)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | supported           | supported |
-|SCTP_AUTH_KEY               | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.3)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | TBD                 | supported |
+|SCTP_AUTH_KEY               | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.3)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | supported           | supported |
 |SCTP_AUTH_DEACTIVATE_KEY    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.4)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | TBD                 | supported |
 |SCTP_AUTH_DELETE_KEY        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.5)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | TBD         | supported           | supported |
 
