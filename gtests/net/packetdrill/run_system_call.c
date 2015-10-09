@@ -2024,7 +2024,8 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 		}
 	}
 	if (expr->sstat_primary->type != EXPR_ELLIPSIS) {
-		if (check_sctp_paddrinfo(expr->sstat_primary->value.sctp_paddrinfo,  &sctp_status->sstat_primary, error)) {
+		if (check_sctp_paddrinfo(expr->sstat_primary->value.sctp_paddrinfo,
+					 &sctp_status->sstat_primary, error)) {
 			return STATUS_ERR;
 		}
 	}
@@ -2201,8 +2202,9 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assocparams->sasoc_number_peer_destinations != sasoc_number_peer_destinations) {
-			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_number_peer_destinations: expected: %hu actual: %hu",
-				 sasoc_number_peer_destinations, sctp_assocparams->sasoc_number_peer_destinations);
+			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_number_peer_destinations: 
+				 expected: %hu actual: %hu", sasoc_number_peer_destinations,
+				 sctp_assocparams->sasoc_number_peer_destinations);
 			return STATUS_ERR;
 		}
 	}
@@ -2435,7 +2437,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 					&(live_paddrinfo->spinfo_address), live_fd, error)) {
 			asprintf(error, "Bad getsockopt, bad get input for spinfo_address");
 			free(live_paddrinfo);
-			return STATUS_ERR;			
+			return STATUS_ERR;
 		}
 		live_optval = live_paddrinfo;
 		break;
@@ -2451,7 +2453,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 					live_fd, error)) {
 			asprintf(error, "Bad getsockopt, bad get input for spp_address");
 			free(live_params);
-			return STATUS_ERR;			
+			return STATUS_ERR;
 		}
 		live_params->spp_assoc_id = 0;
 		live_optval = live_params;
@@ -2482,7 +2484,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_EVENT:
 		live_optval = malloc(sizeof(struct sctp_event));
 		live_optlen = sizeof(struct sctp_event);
-		((struct sctp_event *)live_optval)->se_assoc_id = 0; 
+		((struct sctp_event *)live_optval)->se_assoc_id = 0;
 		if (get_u16(val_expression->value.sctp_event->se_type,
 			    &((struct sctp_event *)live_optval)->se_type,
 			    error)) {
@@ -2495,7 +2497,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_SNDINFO:
 		live_optval = malloc(sizeof(struct sctp_sndinfo));
 		live_optlen = sizeof(struct sctp_sndinfo);
-		((struct sctp_sndinfo *)live_optval)->snd_assoc_id = 0; 
+		((struct sctp_sndinfo *)live_optval)->snd_assoc_id = 0;
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
@@ -2790,7 +2792,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		if (get_u32(val_expression->value.sctp_sack_info->sack_freq,
 		            &sack_info.sack_freq, error)) {
 			return STATUS_ERR;
-		}		
+		}
 		optval = &sack_info;
 		break;
 #endif
@@ -2803,12 +2805,12 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_GET_PEER_ADDR_INFO
 	case EXPR_SCTP_PADDRINFO:
 		paddrinfo.spinfo_assoc_id = 0;
-		if (get_sockstorage_arg(val_expression->value.sctp_paddrinfo->spinfo_address, 
+		if (get_sockstorage_arg(val_expression->value.sctp_paddrinfo->spinfo_address,
 					&paddrinfo.spinfo_address, live_fd, error)) {
 			asprintf(error, "Bad getsockopt, bad get input for spp_address");
-			return STATUS_ERR;			
+			return STATUS_ERR;
 		}
-		optval = &paddrinfo;			
+		optval = &paddrinfo;
 		break;
 #endif
 #ifdef SCTP_EVENT
