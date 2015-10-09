@@ -107,7 +107,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+#if 0
 	{ SCTP_DEFAULT_SNDINFO,             "SCTP_DEFAULT_SNDINFO"            },
+#endif
 #if 0
 	{ SCTP_EVENT,                       "SCTP_EVENT"                      },
 #endif
@@ -171,6 +173,10 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SCTP_SENDER_DRY_EVENT
         { SCTP_SENDER_DRY_EVENT,            "SCTP_SENDER_DRY_EVENT"           },
 #endif
+#ifdef SCTP_NOTIFICATIONS_STOPPED_EVENT
+        { SCTP_NOTIFICATIONS_STOPPED_EVENT, "SCTP_NOTIFICATIONS_STOPPED_EVENT"},
+#endif
+
 #ifdef SCTP_ADAPTATION_LAYER
 	{ SCTP_ADAPTATION_LAYER,            "SCTP_ADAPTATION_LAYER"           },
 #endif
@@ -184,7 +190,6 @@ struct int_symbol platform_symbols_table[] = {
         { SCTP_ABORT,                       "SCTP_ABORT"                      },
         { SCTP_EOF,                         "SCTP_EOF"                        },
 	{ SCTP_SACK_IMMEDIATELY,	    "SCTP_SACK_IMMEDIATELY"	      },
-	{ SCTP_NOTIFICATION,		    "SCTP_NOTIFICATION"		      },
 #if 0
         { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
 #endif
