@@ -1,11 +1,22 @@
 # Status of the socket API support
 
 ## SCTP cmsgs
+|CMSG Name        | API Spec                                                    | Protocol Spec                                    | packetdrill | Linux       | FreeBSD   |
+|:----------------|:-----------------------------------------------------------:|:------------------------------------------------:|:-----------:|:-----------:|:---------:|
+|`SCTP_INIT`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.1)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
+|`SCTP_SNDRCV`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.2)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
+|`SCTP_EXTRCV`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.3)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`SCTP_SNDINFO`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.4)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`SCTP_RCVINFO`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`SCTP_NXTINFO`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.6)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`SCTP_PRINFO`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.7)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | unsupported | supported |
+|`SCTP_AUTHINFO`  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.8)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`SCTP_DSTADDRV4` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`SCTP_DSTADDRV6` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
 
 ## SCTP Notifications
 
 ## SCTP Socket Options
-
 |Name                          | API Spec                                                      | Protocol Spec                                  | packetdrill | Linux               | FreeBSD   |
 |:-----------------------------|:-------------------------------------------------------------:|:----------------------------------------------:|:-----------:|:-------------------:|:---------:|
 |`SCTP_RTOINFO`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.1)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
