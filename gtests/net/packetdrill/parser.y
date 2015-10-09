@@ -3058,7 +3058,7 @@ sctp_sndinfo
 sctp_setadaptation
 : '{' SSB_ADAPTATION_IND '=' INTEGER '}' {
 	$$ = new_expression(EXPR_SCTP_SETADAPTATION);
-	$$->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation));
+	$$->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation_expr));
 	if (!is_valid_u32($4)) {
 		semantic_error("ssb_adaptation_ind out of range");
 	}
