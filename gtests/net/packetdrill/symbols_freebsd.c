@@ -183,6 +183,8 @@ struct int_symbol platform_symbols_table[] = {
         { SCTP_ABORT,                       "SCTP_ABORT"                      },
         { SCTP_EOF,                         "SCTP_EOF"                        },
         { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
+	{ SCTP_EOR,                         "SCTP_EOR"                        },
+	{ SCTP_SACK_IMMEDIATELY,            "SCTP_SACK_IMMEDIATELY"           },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
