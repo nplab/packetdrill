@@ -7,7 +7,7 @@
 ## SCTP Socket Options
 
 |Name                        | Implemented | Supported by Linux | Supported by FreeBSD |
-|:---------------------------|:-----------:|:------------------:|:---------------------|
+|:---------------------------|:-----------:|:------------------:|:--------------------:|
 |SCTP_RTOINFO                | TBD         | TBD                | TBD                  |
 |SCTP_ASSOCINFO              | TBD         | TBD                | TBD                  |
 |SCTP_INITMSG                | TBD         | TBD                | TBD                  |
