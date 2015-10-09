@@ -2202,9 +2202,8 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assocparams->sasoc_number_peer_destinations != sasoc_number_peer_destinations) {
-			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_number_peer_destinations: 
-				 expected: %hu actual: %hu", sasoc_number_peer_destinations,
-				 sctp_assocparams->sasoc_number_peer_destinations);
+			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_number_peer_destinations: expected: %hu actual: %hu",
+					 sasoc_number_peer_destinations, sctp_assocparams->sasoc_number_peer_destinations);
 			return STATUS_ERR;
 		}
 	}
@@ -2506,7 +2505,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = sizeof(struct sctp_setadaptation);
 		break;
 #endif
-	case EXPR_INTEGER:
+	case EXPR_LIST:
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
 		live_optlen = (socklen_t)sizeof(int);
@@ -2597,7 +2596,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_setadaptation(val_expression->value.sctp_setadaptation, live_optval, error);
 		break;
 #endif
-	case EXPR_INTEGER:
+	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
 				(int)script_optval, *(int*)live_optval);
