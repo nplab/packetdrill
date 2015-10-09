@@ -193,6 +193,16 @@ struct int_symbol platform_symbols_table[] = {
 #if 0
         { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
 #endif
+        { SCTP_UNORDERED,                   "SCTP_UNORDERED"                  },
+        { SCTP_ADDR_OVER,                   "SCTP_ADDR_OVER"                  },
+        { SCTP_ABORT,                       "SCTP_ABORT"                      },
+        { SCTP_EOF,                         "SCTP_EOF"                        },
+#if 0
+        { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
+        { SCTP_EOR,                         "SCTP_EOR"                        },
+#endif
+        { SCTP_SACK_IMMEDIATELY,            "SCTP_SACK_IMMEDIATELY"           },
+
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },
 	{ TCP_CORK,                         "TCP_CORK"                        },
