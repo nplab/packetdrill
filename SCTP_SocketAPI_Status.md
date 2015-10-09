@@ -9,12 +9,25 @@
 |`SCTP_SNDINFO`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.4)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
 |`SCTP_RCVINFO`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
 |`SCTP_NXTINFO`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.6)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
-|`SCTP_PRINFO`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.7)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | unsupported | supported |
-|`SCTP_AUTHINFO`  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.8)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`SCTP_PRINFO`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.7)  | [RFC3758](https://tools.ietf.org/html/rfc3758) | unsupported | unsupported | supported |
+|`SCTP_AUTHINFO`  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.8)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | unsupported | supported |
 |`SCTP_DSTADDRV4` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
 |`SCTP_DSTADDRV6` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
 
 ## SCTP Notifications
+| Type                              | API Spec                                                      | Protocol Spec                                  | packetdrill | Linux       | FreeBSD     |
+|:----------------------------------|:-------------------------------------------------------------:|:----------------------------------------------:|:-----------:|:-----------:|:-----------:|
+|`SCTP_ASSOC_CHANGE`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.1)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
+|`SCTP_PEER_ADDR_CHANGE`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.2)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
+|`SCTP_REMOTE_ERROR`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.3)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
+|`SCTP_SEND_FAILED`                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.4)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
+|`SCTP_SHUTDOWN_EVENT`              | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
+|`SCTP_ADAPTATION_INDICATION`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.6)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported   | supported   |
+|`SCTP_PARTIAL_DELIVERY_EVENT`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.7)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported   | supported   |
+|`SCTP_AUTHENTICATION_EVENT`        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.8)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported   | supported   |
+|`SCTP_SENDER_DRY_EVENT`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
+|`SCTP_NOTIFICATIONS_STOPPED_EVENT` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | unsupported |
+|`SCTP_SEND_FAILED_EVENT`           | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported   |
 
 ## SCTP Socket Options
 |Name                          | API Spec                                                      | Protocol Spec                                  | packetdrill | Linux               | FreeBSD   |
