@@ -535,7 +535,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> STALENESS CHK PARAM UNRECOGNIZED_PARAMETERS
 %token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
-%token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND 
+%token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SSB_ADAPTATION_IND
 %token <floating> FLOAT
@@ -577,15 +577,15 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> linger l_onoff l_linger
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
-%type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts 
-%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value 
+%type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts
+%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value
 %type <expression> sctp_sackinfo sack_delay sack_freq
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
-%type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd 
-%type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams 
+%type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
+%type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
 %type <expression> sctp_event se_type se_on sctp_setadaptation
 %type <errno_info> opt_errno
@@ -2372,7 +2372,7 @@ expression
 }
 | sctp_assocparams  {
 	$$ = $1;
-} 
+}
 | sctp_event        {
 	$$ = $1;
 }
@@ -2610,7 +2610,7 @@ sinit_max_init_timeo
 ;
 
 sctp_initmsg
-: '{' sinit_num_ostreams ',' sinit_max_instreams ',' sinit_max_attempts ',' sinit_max_init_timeo '}' 
+: '{' sinit_num_ostreams ',' sinit_max_instreams ',' sinit_max_attempts ',' sinit_max_init_timeo '}'
 {
 	$$ = new_expression(EXPR_SCTP_INITMSG);
 	$$->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_initmsg_expr));
@@ -2669,7 +2669,7 @@ sctp_sackinfo
 	$$ = new_expression(EXPR_SCTP_SACKINFO);
 	$$->value.sctp_sack_info = calloc(1, sizeof(struct sctp_sack_info_expr));
 	$$->value.sctp_sack_info->sack_delay = $2;
-	$$->value.sctp_sack_info->sack_freq = $4;	
+	$$->value.sctp_sack_info->sack_freq = $4;
 }
 ;
 
@@ -2972,9 +2972,9 @@ se_type
 	}
 	$$ = new_integer_expression($3, "%hu");
 }
-| SE_TYPE '=' WORD { 
+| SE_TYPE '=' WORD {
 	$$ = new_expression(EXPR_WORD);
-	$$->value.string = $3; 
+	$$->value.string = $3;
 }
 ;
 
@@ -2997,7 +2997,7 @@ sctp_event
 }
 ;
 
-snd_sid 
+snd_sid
 : SND_SID '=' INTEGER {
 	if (!is_valid_u16($3)) {
 		semantic_error("snd_sid out of range");
@@ -3007,7 +3007,7 @@ snd_sid
 | SND_SID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
-snd_flags 
+snd_flags
 : SND_FLAGS '=' INTEGER {
 	if (!is_valid_u16($3)) {
 		semantic_error("snd_flags out of range");
@@ -3016,12 +3016,12 @@ snd_flags
 }
 | SND_FLAGS '=' WORD {
 	$$ = new_expression(EXPR_WORD);
-	$$->value.string = $3; 
+	$$->value.string = $3;
 }
 | SND_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
-snd_ppid 
+snd_ppid
 : SND_PPID '=' INTEGER {
 	if (!is_valid_u32($3)) {
 		semantic_error("snd_ppid out of range");
