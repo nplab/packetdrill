@@ -45,41 +45,18 @@ enum expression_t {
 	EXPR_IOVEC,		  /* expression tree for an iovec struct */
 	EXPR_MSGHDR,		  /* expression tree for a msghdr struct */
 	EXPR_POLLFD,		  /* expression tree for a pollfd struct */
-#ifdef SCTP_RTOINFO
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
-#endif
-#ifdef SCTP_INITMSG
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
-#endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
-#endif
-#ifdef SCTP_DELAYED_SACK
-	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for
-				   * SCTP_DELAYED_SACK */
-#endif
-#ifdef SCTP_STATUS
+	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for */
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
 	EXPR_SCTP_PADDRINFO,
-#endif
-#ifdef SCTP_SS_VALUE
 	EXPR_SCTP_STREAM_VALUE,	  /* struct sctp_stream_value for SCTP_SS_VALUE */
-#endif
-#ifdef SCTP_PEER_ADDR_PARAMS
 	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS */
-#endif
-#ifdef SCTP_ASSOCINFO
 	EXPR_SCTP_ASSOCPARAMS,    /* struct sctp_assocparams for SCTP_ASSOCINFO */
-#endif
-#ifdef SCTP_EVENT
 	EXPR_SCTP_EVENT,	  /* struct sctp_event for SCTP_EVENT */
-#endif
-#ifdef SCTP_DEFAULT_SNDINFO
 	EXPR_SCTP_SNDINFO,	  /* struct sctp_sndinfo for SCTP_DEFAULT_SNDINFO */
-#endif
-#ifdef SCTP_ADAPTATION_LAYER
 	EXPR_SCTP_SETADAPTATION, /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
-#endif
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -99,40 +76,18 @@ struct expression {
 		struct iovec_expr *iovec;
 		struct msghdr_expr *msghdr;
 		struct pollfd_expr *pollfd;
-#ifdef SCTP_RTOINFO
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
-#endif
-#ifdef SCTP_INITMSG
 		struct sctp_initmsg_expr *sctp_initmsg;
-#endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 		struct sctp_assoc_value_expr *sctp_assoc_value;
-#endif
-#ifdef SCTP_DELAYED_SACK
 		struct sctp_sack_info_expr *sctp_sack_info;
-#endif
-#ifdef SCTP_STATUS
 		struct sctp_status_expr *sctp_status;
 		struct sctp_paddrinfo_expr *sctp_paddrinfo;
-#endif
-#ifdef SCTP_PEER_ADDR_PARAMS
 		struct sctp_paddrparams_expr *sctp_paddrparams;
-#endif
-#ifdef SCTP_SS_VALUE
 		struct sctp_stream_value_expr *sctp_stream_value;
-#endif
-#ifdef SCTP_ASSOCINFO
 		struct sctp_assocparams_expr *sctp_assocparams;
-#endif
-#ifdef SCTP_EVENT
 		struct sctp_event_expr *sctp_event;
-#endif
-#ifdef SCTP_DEFAULT_SNDINFO
 		struct sctp_sndinfo_expr *sctp_sndinfo;
-#endif
-#ifdef SCTP_ADAPTATION_LAYER
 		struct sctp_setadaptation_expr *sctp_setadaptation;
-#endif
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -180,15 +135,12 @@ struct linger_expr {
 	struct expression *l_linger;
 };
 /* Parse tree for a sctp_rtoinfo struct in a [gs]etsockopt syscall. */
-#ifdef SCTP_RTOINFO
 struct sctp_rtoinfo_expr {
 	struct expression *srto_initial;
 	struct expression *srto_max;
 	struct expression *srto_min;
 };
-#endif
 
-#ifdef SCTP_INITMSG
 /* Parse tree for a sctp_initmsg struct in a [gs]etsockopt syscall. */
 struct sctp_initmsg_expr {
 	struct expression *sinit_num_ostreams;
@@ -196,32 +148,25 @@ struct sctp_initmsg_expr {
 	struct expression *sinit_max_attempts;
 	struct expression *sinit_max_init_timeo;
 };
-#endif
 
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 /* Parse tree for a sctp_assoc_value struct in a [gs]etsockopt syscall. */
 struct sctp_assoc_value_expr {
 	struct expression *assoc_value;
 };
-#endif
 
-#ifdef SCTP_SS_VALUE
 /* Parse tree for a sctp_stream_value struct in a [gs]etsockopt syscall. */
 struct sctp_stream_value_expr {
 	struct expression *stream_id;
 	struct expression *stream_value;
 };
-#endif
 
-#ifdef SCTP_DELAYED_SACK
 /* Parse tree for a sctp_sack_info struct in a [gs]etsockopt syscall. */
 struct sctp_sack_info_expr {
 	struct expression *sack_delay;
 	struct expression *sack_freq;
 };
-#endif
+
 /* Parse tree for a sctp_status struct in a [gs]etsockopt syscall. */
-#ifdef SCTP_STATUS
 struct sctp_status_expr {
 	struct expression *sstat_state;
 	struct expression *sstat_rwnd;
@@ -242,7 +187,6 @@ struct sctp_paddrinfo_expr {
 	struct expression *spinfo_rto;
 	struct expression *spinfo_mtu;
 };
-#endif
 
 /* Parse tree for a sctp_paddrparams struct in a [gs]etsockopt syscall. */
 struct sctp_paddrparams_expr {
@@ -255,7 +199,6 @@ struct sctp_paddrparams_expr {
 	struct expression *spp_dscp;
 };
 
-#ifdef SCTP_ASSOCINFO
 /* Parse tree for sctp_assocparams struct in [gs]etsockopt syscall. */
 struct sctp_assocparams_expr {
 	struct expression *sasoc_asocmaxrxt;
@@ -264,17 +207,13 @@ struct sctp_assocparams_expr {
 	struct expression *sasoc_local_rwnd;
 	struct expression *sasoc_cookie_life;
 };
-#endif
 
-#ifdef SCTP_EVENT
 /* Parse tree for sctp_event struct in [gs]etsockopt syscall. */
 struct sctp_event_expr {
 	struct expression *se_type;
 	struct expression *se_on;
 };
-#endif
 
-#ifdef SCTP_DEFAULT_SNDINFO
 /* Parse tree for sctp_sndinfo struct in [gs]etsockopt syscall. */
 struct sctp_sndinfo_expr {
 	struct expression *snd_sid;
@@ -282,14 +221,11 @@ struct sctp_sndinfo_expr {
 	struct expression *snd_ppid;
 	struct expression *snd_context;
 };
-#endif
 
-#ifdef SCTP_ADAPTATION_LAYER
 /* Parse tree for sctp_setadaptation struct in [gs]etsockopt syscall. */
 struct sctp_setadaptation_expr {
 	struct expression *ssb_adaptation_ind;
 };
-#endif
 
 /* The errno-related info from strace to summarize a system call error */
 struct errno_spec {
