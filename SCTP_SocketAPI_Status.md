@@ -1,5 +1,7 @@
 # Status of the socket API support
 
+For Linux the following tables are based on [sctp.h](https://github.com/sctp/lksctp-tools/blob/master/src/include/netinet/sctp.h).
+
 ## SCTP cmsgs
 |CMSG Name        | API Spec                                                    | Protocol Spec                                    | packetdrill | Linux       | FreeBSD   |
 |:----------------|:-----------------------------------------------------------:|:------------------------------------------------:|:-----------:|:-----------:|:---------:|
