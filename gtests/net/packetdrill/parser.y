@@ -536,7 +536,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND 
-%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON SSB_ADAPTATION_IND
+%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
+%token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SSB_ADAPTATION_IND
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -585,6 +586,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd 
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams 
+%type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
 %type <expression> sctp_event se_type se_on sctp_setadaptation
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2374,6 +2376,9 @@ expression
 | sctp_event        {
 	$$ = $1;
 }
+| sctp_sndinfo      {
+	$$ = $1;
+}
 | sctp_setadaptation{
 	$$ = $1;
 }
@@ -2991,6 +2996,64 @@ sctp_event
 	$$->value.sctp_event->se_on = $4;
 }
 ;
+
+snd_sid 
+: SND_SID '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("snd_sid out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SND_SID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+snd_flags 
+: SND_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("snd_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SND_FLAGS '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3; 
+}
+| SND_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+snd_ppid 
+: SND_PPID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("snd_ppid out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SND_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+snd_context
+: SND_CONTEXT '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("snd_context out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SND_CONTEXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_sndinfo
+: '{' snd_sid ',' snd_flags ',' snd_ppid ',' snd_context '}' {
+#ifdef SCTP_DEFAULT_SNDINFO
+	$$ = new_expression(EXPR_SCTP_SNDINFO);
+	$$->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo));
+	$$->value.sctp_sndinfo->snd_sid = $2;
+	$$->value.sctp_sndinfo->snd_flags = $4;
+	$$->value.sctp_sndinfo->snd_ppid = $6;
+	$$->value.sctp_sndinfo->snd_context = $8;
+#else
+	$$ = NULL;
+#endif
+}
 
 sctp_setadaptation
 : '{' SSB_ADAPTATION_IND '=' INTEGER '}' {

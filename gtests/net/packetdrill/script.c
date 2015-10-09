@@ -75,6 +75,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_STREAM_VALUE,    "sctp_stream_value"},
 	{ EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
+	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
@@ -355,6 +356,12 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
 		break;
+	case EXPR_SCTP_SNDINFO:
+		free_expression(expression->value.sctp_sndinfo->snd_sid);
+		free_expression(expression->value.sctp_sndinfo->snd_flags);
+		free_expression(expression->value.sctp_sndinfo->snd_ppid);
+		free_expression(expression->value.sctp_sndinfo->snd_context);
+		break;		
 	case EXPR_SCTP_SETADAPTATION:
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
 		break;
@@ -900,6 +907,41 @@ static int evaluate_sctp_accocparams_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_sndinfo_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+	struct sctp_sndinfo_expr *in_sndinfo;
+	struct sctp_sndinfo_expr *out_sndinfo;
+
+	assert(in->type == EXPR_SCTP_SNDINFO);
+	assert(in->value.sctp_sndinfo);
+	assert(out->type == EXPR_SCTP_SNDINFO);
+
+	out->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo_expr));
+
+	in_sndinfo = in->value.sctp_sndinfo;
+	out_sndinfo = out->value.sctp_sndinfo;
+
+	if (evaluate(in_sndinfo->snd_sid,
+		     &out_sndinfo->snd_sid,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sndinfo->snd_flags,
+		     &out_sndinfo->snd_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sndinfo->snd_ppid,
+		     &out_sndinfo->snd_ppid,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sndinfo->snd_context,
+		     &out_sndinfo->snd_context,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_setadaptation_expression(struct expression *in,
 						  struct expression *out,
 						  char **error)
@@ -976,6 +1018,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_EVENT:
 		result = evaluate_sctp_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SNDINFO:
+		result = evaluate_sctp_sndinfo_expression(in, out, error);
 		break;
 	case EXPR_SCTP_SETADAPTATION:
 		result = evaluate_sctp_setadaptation_expression(in, out, error);

@@ -54,7 +54,8 @@ enum expression_t {
 	EXPR_SCTP_STREAM_VALUE,	  /* struct sctp_stream_value for SCTP_SS_VALUE */
 	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS */
 	EXPR_SCTP_ASSOCPARAMS,    /* struct sctp_assocparams for SCTP_ASSOCINFO */
-	EXPR_SCTP_EVENT,	  /* struct sctp_event to for SCTP_EVENT */
+	EXPR_SCTP_EVENT,	  /* struct sctp_event for SCTP_EVENT */
+	EXPR_SCTP_SNDINFO,	  /* struct sctp_sndinfo for SCTP_DEFAULT_SNDINFO */
 	EXPR_SCTP_SETADAPTATION, /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
 	NUM_EXPR_TYPES,
 };
@@ -85,6 +86,7 @@ struct expression {
 		struct sctp_stream_value_expr *sctp_stream_value;
 		struct sctp_assocparams_expr *sctp_assocparams;
 		struct sctp_event_expr *sctp_event;
+		struct sctp_sndinfo_expr *sctp_sndinfo;
 		struct sctp_setadaptation_expr *sctp_setadaptation;
 	} value;
 	const char *format;	/* the printf format for printing the value */
@@ -210,6 +212,14 @@ struct sctp_assocparams_expr {
 struct sctp_event_expr {
 	struct expression *se_type;
 	struct expression *se_on;
+};
+
+/* Parse tree for sctp_sndinfo struct in [gs]etsockopt syscall. */
+struct sctp_sndinfo_expr {
+	struct expression *snd_sid;
+	struct expression *snd_flags;
+	struct expression *snd_ppid;
+	struct expression *snd_context;
 };
 
 /* Parse tree for sctp_setadaptation struct in [gs]etsockopt syscall. */
