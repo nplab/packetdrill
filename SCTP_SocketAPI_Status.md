@@ -23,7 +23,7 @@
 |`SCTP_SEND_FAILED`                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.4)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
 |`SCTP_SHUTDOWN_EVENT`              | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
 |`SCTP_ADAPTATION_INDICATION`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.6)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported   | supported   |
-|`SCTP_PARTIAL_DELIVERY_EVENT`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.7)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported   | supported   |
+|`SCTP_PARTIAL_DELIVERY_EVENT`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.7)  | [RFC3758](https://tools.ietf.org/html/rfc3758) | unsupported | supported   | supported   |
 |`SCTP_AUTHENTICATION_EVENT`        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.8)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported   | supported   |
 |`SCTP_SENDER_DRY_EVENT`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
 |`SCTP_NOTIFICATIONS_STOPPED_EVENT` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | unsupported |
