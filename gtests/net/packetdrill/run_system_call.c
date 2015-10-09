@@ -359,7 +359,8 @@ static int ellipsis_arg(struct expression_list *args, int index, char **error)
 	return STATUS_OK;
 }
 
-/* Return STATUS_OK if the argumant in from type sockaddr_in or
+#if defined(SCTP_GET_PEER_ADDR_INFO) || defined(SCTP_PEER_ADDR_PARAMS)
+/* Return STATUS_OK if the argument in from type sockaddr_in or
  * sockaddr_in6
  */
 static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *sock_addr, int live_fd, char **error)
@@ -379,6 +380,7 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 	}
 	return STATUS_OK;
 }
+#endif
 
 /* Free all the space used by the given iovec. */
 static void iovec_free(struct iovec *iov, size_t iov_len)
@@ -2385,7 +2387,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	val_expression = get_arg(args, 3, error);
 	if (val_expression == NULL) {
 		return STATUS_ERR;
-	} 
+	}
 	switch (val_expression->type) {
 	case EXPR_LINGER:
 		live_optval = malloc(sizeof(struct linger));
@@ -2514,7 +2516,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		asprintf(error, "unsupported getsockopt value type: %s",
 			 expression_type_to_string(val_expression->type));
 		return STATUS_ERR;
-		break;		
+		break;
 	}
 
 	begin_syscall(state, syscall);
@@ -2531,7 +2533,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		free(live_optval);
 		return STATUS_ERR;
 	}
-	
+
 	switch (val_expression->type) {
 	case EXPR_LINGER:
 		result = check_linger(val_expression->value.linger, live_optval, error);
@@ -2860,7 +2862,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		paddrparams.spp_assoc_id = 0;
-		if (get_sockstorage_arg(val_expression->value.sctp_paddrparams->spp_address, 
+		if (get_sockstorage_arg(val_expression->value.sctp_paddrparams->spp_address,
 				        &paddrparams.spp_address, live_fd, error)) {
 			asprintf(error, "Bad setsockopt, bad input for spp_address for socketoption SCTP_PADDRPARAMS");
 			return STATUS_ERR;
