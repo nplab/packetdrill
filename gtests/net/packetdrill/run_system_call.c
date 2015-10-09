@@ -275,17 +275,17 @@ static int get_s16(struct expression *expression,
 static int get_u8(struct expression *expression,
 		  u8 *value, char **error)
 {
-        if (check_type(expression, EXPR_INTEGER, error))
-                return STATUS_ERR;
-        if ((expression->value.num > UINT8_MAX) ||
-                (expression->value.num < 0)) {
-                asprintf(error,
-                        "Value out of range for 8-bit unsigned integer: %lld",
-                        expression->value.num);
-                return STATUS_ERR;
-        }
-        *value = expression->value.num;
-        return STATUS_OK;
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if ((expression->value.num > UINT8_MAX) ||
+		(expression->value.num < 0)) {
+		asprintf(error,
+			 "Value out of range for 8-bit unsigned integer: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
 }
 #endif
 
@@ -297,17 +297,17 @@ static int get_u8(struct expression *expression,
 static int get_s8(struct expression *expression,
 		  s8 *value, char **error)
 {
-        if (check_type(expression, EXPR_INTEGER, error))
-                return STATUS_ERR;
-        if ((expression->value.num > INT8_MAX) ||
-                (expression->value.num < INT8_MIN)) {
-                asprintf(error,
-                        "Value out of range for 8-bit integer: %lld",
-                        expression->value.num);
-                return STATUS_ERR;
-        }
-        *value = expression->value.num;
-        return STATUS_OK;
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if ((expression->value.num > INT8_MAX) ||
+		(expression->value.num < INT8_MIN)) {
+		asprintf(error,
+			 "Value out of range for 8-bit integer: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
 }
 #endif
 
@@ -1778,7 +1778,7 @@ static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 
 #ifdef SCTP_INITMSG
 static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
-                              struct sctp_initmsg *sctp_initmsg, char **error)
+			      struct sctp_initmsg *sctp_initmsg, char **error)
 {
 	if (expr->sinit_num_ostreams->type != EXPR_ELLIPSIS) {
 		u16 sinit_num_ostreams;
@@ -1867,8 +1867,8 @@ static int check_sctp_sack_info(struct sctp_sack_info_expr *expr,
 
 #if defined(SCTP_GET_PEER_ADDR_INFO) || defined(SCTP_STATUS)
 static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
-			        struct sctp_paddrinfo *sctp_paddrinfo,
-			        char **error)
+				struct sctp_paddrinfo *sctp_paddrinfo,
+				char **error)
 {
 	if (expr->spinfo_state->type != EXPR_ELLIPSIS) {
 		s32 spinfo_state;
@@ -2431,7 +2431,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct sctp_paddrinfo);
 		memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
 		live_paddrinfo->spinfo_assoc_id = 0;
-		if (get_sockstorage_arg(expr_paddrinfo->spinfo_address, &(live_paddrinfo->spinfo_address), live_fd, error)){
+		if (get_sockstorage_arg(expr_paddrinfo->spinfo_address,
+					&(live_paddrinfo->spinfo_address), live_fd, error)) {
 			asprintf(error, "Bad getsockopt, bad get input for spinfo_address");
 			free(live_paddrinfo);
 			return STATUS_ERR;			
@@ -2446,7 +2447,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_paddrparams *live_params = malloc(sizeof(struct sctp_paddrparams));
 		memset(live_params, 0, sizeof(struct sctp_paddrparams));
 		live_optlen = sizeof(struct sctp_paddrparams);
-		if (get_sockstorage_arg(expr_params->spp_address, &live_params->spp_address, live_fd, error)){
+		if (get_sockstorage_arg(expr_params->spp_address, &live_params->spp_address,
+					live_fd, error)) {
 			asprintf(error, "Bad getsockopt, bad get input for spp_address");
 			free(live_params);
 			return STATUS_ERR;			
@@ -2469,8 +2471,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct sctp_stream_value);
 		((struct sctp_stream_value *) live_optval)->assoc_id = 0;
 		if (get_u16(val_expression->value.sctp_stream_value->stream_id,
-		            &((struct sctp_stream_value *)live_optval)->stream_id,
-		            error)) {
+			    &((struct sctp_stream_value *)live_optval)->stream_id,
+			    error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
@@ -2482,11 +2484,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = sizeof(struct sctp_event);
 		((struct sctp_event *)live_optval)->se_assoc_id = 0; 
 		if (get_u16(val_expression->value.sctp_event->se_type,
-		            &((struct sctp_event *)live_optval)->se_type,
+			    &((struct sctp_event *)live_optval)->se_type,
 			    error)) {
 			free(live_optval);
 			return STATUS_ERR;
-               	}
+		}
 		break;
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO
@@ -2802,7 +2804,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_PADDRINFO:
 		paddrinfo.spinfo_assoc_id = 0;
 		if (get_sockstorage_arg(val_expression->value.sctp_paddrinfo->spinfo_address, 
-					&paddrinfo.spinfo_address, live_fd, error)){
+					&paddrinfo.spinfo_address, live_fd, error)) {
 			asprintf(error, "Bad getsockopt, bad get input for spp_address");
 			return STATUS_ERR;			
 		}
@@ -2857,23 +2859,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		paddrparams.spp_assoc_id = 0;
-		if (val_expression->value.sctp_paddrparams->spp_address->type == EXPR_SOCKET_ADDRESS_IPV4) {
-			memcpy(&paddrparams.spp_address,
-			       val_expression->value.sctp_paddrparams->spp_address->value.socket_address_ipv4,
-			       sizeof(struct sockaddr_in));
-		} else if (val_expression->value.sctp_paddrparams->spp_address->type == EXPR_SOCKET_ADDRESS_IPV6) {
-			memcpy(&paddrparams.spp_address,
-			       val_expression->value.sctp_paddrparams->spp_address->value.socket_address_ipv6,
-			       sizeof(struct sockaddr_in6));
-		} else if (val_expression->value.sctp_paddrparams->spp_address->type == EXPR_ELLIPSIS) {
-			socklen_t len_addr = sizeof(struct sockaddr_storage);
-			if (getpeername(live_fd,
-			                (struct sockaddr*)&paddrparams.spp_address,
-			                &len_addr)) {
-				asprintf(error, "Bad setsockopt, bad get primary peer address");
-				return STATUS_ERR;
-			}
-		} else {
+		if (get_sockstorage_arg(val_expression->value.sctp_paddrparams->spp_address, 
+				        &paddrparams.spp_address, live_fd, error)) {
 			asprintf(error, "Bad setsockopt, bad input for spp_address for socketoption SCTP_PADDRPARAMS");
 			return STATUS_ERR;
 		}
