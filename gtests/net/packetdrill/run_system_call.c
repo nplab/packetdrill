@@ -672,8 +672,7 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 	if (mode == CHECK_NON_NEGATIVE) {
 		if (actual < 0) {
 			asprintf(error,
-				 "Expected non-negative result but got %d"
-				 "with errno %d (%s)",
+				 "Expected non-negative result but got %d with errno %d (%s)",
 				 actual, actual_errno, strerror(actual_errno));
 			return STATUS_ERR;
 		}
@@ -681,8 +680,7 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 		if (actual != expected) {
 			if (actual < 0)
 				asprintf(error,
-					 "Expected result %d but got %d "
-					 "with errno %d (%s)",
+					 "Expected result %d but got %d with errno %d (%s)",
 					 expected,
 					 actual,
 					 actual_errno, strerror(actual_errno));
@@ -695,8 +693,7 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 	} else if (mode == CHECK_ALLOW_MAPPING) {
 		if ((expected >= 0)  && (actual < 0)) {
 			asprintf(error,
-				 "Expected non-negative result but got %d "
-				 "with errno %d (%s)",
+				 "Expected non-negative result but got %d with errno %d (%s)",
 				 actual, actual_errno, strerror(actual_errno));
 			return STATUS_ERR;
 		} else if ((expected < 0) && (actual != expected)) {
