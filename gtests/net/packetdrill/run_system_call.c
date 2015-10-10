@@ -367,6 +367,8 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 {
 	if (arg->type == EXPR_ELLIPSIS) {
 		socklen_t len_addr;
+
+		len_addr = (socklen_t)sizeof(struct sockaddr_storage);
 		if (getpeername(live_fd, (struct sockaddr*) sock_addr, &len_addr)) {
 			asprintf(error, "Bad setsockopt, bad get primary peer address");
 			return STATUS_ERR;
