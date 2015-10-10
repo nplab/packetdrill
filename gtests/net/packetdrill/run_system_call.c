@@ -363,20 +363,19 @@ static int ellipsis_arg(struct expression_list *args, int index, char **error)
 /* Return STATUS_OK if the argument in from type sockaddr_in or
  * sockaddr_in6
  */
-static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *sock_addr, int live_fd, char **error)
+static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *addr, int live_fd)
 {
 	if (arg->type == EXPR_ELLIPSIS) {
-		socklen_t len_addr;
+		socklen_t len;
 
-		len_addr = (socklen_t)sizeof(struct sockaddr_storage);
-		if (getpeername(live_fd, (struct sockaddr*) sock_addr, &len_addr)) {
-			asprintf(error, "Bad setsockopt, bad get primary peer address");
+		len = (socklen_t)sizeof(struct sockaddr_storage);
+		if (getpeername(live_fd, (struct sockaddr *)addr, &len)) {
 			return STATUS_ERR;
 		}
 	} else if (arg->type == EXPR_SOCKET_ADDRESS_IPV4) {
-		memcpy(sock_addr, arg->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+		memcpy(addr, arg->value.socket_address_ipv4, sizeof(struct sockaddr_in));
 	} else if (arg->type == EXPR_SOCKET_ADDRESS_IPV6) {
-		memcpy(sock_addr, arg->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+		memcpy(addr, arg->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
 	} else {
 		return STATUS_ERR;
 	}
@@ -1713,7 +1712,7 @@ static int check_linger(struct linger_expr *expr,
 			return STATUS_ERR;
 		}
 		if (linger->l_onoff != l_onoff) {
-			asprintf(error, "Bad getsockopt linger.l_onoff: expected: %d actual: %d",
+			asprintf(error, "linger.l_onoff: expected: %d actual: %d",
 				 l_onoff, linger->l_onoff);
 			return STATUS_ERR;
 		}
@@ -1725,7 +1724,7 @@ static int check_linger(struct linger_expr *expr,
 			return STATUS_ERR;
 		}
 		if (linger->l_linger != l_linger) {
-			asprintf(error, "Bad getsockopt linger.l_linger: expected: %d actual: %d",
+			asprintf(error, "linger.l_linger: expected: %d actual: %d",
 				 l_linger, linger->l_linger);
 			return STATUS_ERR;
 		}
@@ -1744,7 +1743,7 @@ static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_rtoinfo->srto_initial != srto_initial) {
-			asprintf(error, "Bad getsockopt sctp_rtoinfo.srto_initial: expected: %u actual: %u",
+			asprintf(error, "sctp_rtoinfo.srto_initial: expected: %u actual: %u",
 				 srto_initial, sctp_rtoinfo->srto_initial);
 			return STATUS_ERR;
 		}
@@ -1756,7 +1755,7 @@ static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_rtoinfo->srto_max != srto_max) {
-			asprintf(error, "Bad getsockopt sctp_rtoinfo.srto_max: expected: %u actual: %u",
+			asprintf(error, "sctp_rtoinfo.srto_max: expected: %u actual: %u",
 				 srto_max, sctp_rtoinfo->srto_max);
 			return STATUS_ERR;
 		}
@@ -1768,7 +1767,7 @@ static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_rtoinfo->srto_min != srto_min) {
-			asprintf(error, "Bad getsockopt sctp_rtoinfo.srto_min: expected: %u actual: %u",
+			asprintf(error, "sctp_rtoinfo.srto_min: expected: %u actual: %u",
 				srto_min, sctp_rtoinfo->srto_min);
 			return STATUS_ERR;
 		}
@@ -1788,7 +1787,7 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_initmsg->sinit_num_ostreams != sinit_num_ostreams) {
-			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_num_ostreams: expected: %hu actual: %hu",
+			asprintf(error, "sctp_initmsg.sinit_num_ostreams: expected: %hu actual: %hu",
 				 sinit_num_ostreams, sctp_initmsg->sinit_num_ostreams);
 			return STATUS_ERR;
 		}
@@ -1800,7 +1799,7 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_initmsg->sinit_max_instreams != sinit_max_instreams) {
-			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_max_instreams: expected: %hu actual: %hu",
+			asprintf(error, "sctp_initmsg.sinit_max_instreams: expected: %hu actual: %hu",
 				 sinit_max_instreams, sctp_initmsg->sinit_max_instreams);
 			return STATUS_ERR;
 		}
@@ -1812,7 +1811,7 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_initmsg->sinit_max_attempts != sinit_max_attempts) {
-			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_max_attempts: expected: %hu actual: %hu",
+			asprintf(error, "sctp_initmsg.sinit_max_attempts: expected: %hu actual: %hu",
 				 sinit_max_attempts, sctp_initmsg->sinit_max_attempts);
 			return STATUS_ERR;
 		}
@@ -1824,7 +1823,7 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_initmsg->sinit_max_init_timeo != sinit_max_init_timeo) {
-			asprintf(error, "Bad getsockopt sctp_initmsg.sinit_max_init_timeo: expected: %hu actual: %hu",
+			asprintf(error, "sctp_initmsg.sinit_max_init_timeo: expected: %hu actual: %hu",
 				 sinit_max_init_timeo, sctp_initmsg->sinit_max_init_timeo);
 			return STATUS_ERR;
 		}
@@ -1845,7 +1844,7 @@ static int check_sctp_sack_info(struct sctp_sack_info_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_sack_info->sack_delay != sack_delay) {
-			asprintf(error, "Bad getsockopt sctp_sack_info.sack_delay: expected: %u actual: %u",
+			asprintf(error, "sctp_sack_info.sack_delay: expected: %u actual: %u",
 				 sack_delay, sctp_sack_info->sack_delay);
 			return STATUS_ERR;
 		}
@@ -1857,7 +1856,7 @@ static int check_sctp_sack_info(struct sctp_sack_info_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_sack_info->sack_freq != sack_freq) {
-			asprintf(error, "Bad getsockopt sctp_sack_info.sack_freq: expected: %u actual: %u",
+			asprintf(error, "sctp_sack_info.sack_freq: expected: %u actual: %u",
 				 sack_freq, sctp_sack_info->sack_freq);
 			return STATUS_ERR;
 		}
@@ -1878,7 +1877,7 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrinfo->spinfo_state != spinfo_state) {
-			asprintf(error, "Bad getsockopt sctp_paddrinfo.spinfo_state: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrinfo.spinfo_state: expected: %u actual: %u",
 				spinfo_state, sctp_paddrinfo->spinfo_state);
 			return STATUS_ERR;
 		}
@@ -1890,7 +1889,7 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrinfo->spinfo_cwnd != spinfo_cwnd) {
-			asprintf(error, "Bad getsockopt sctp_paddrinfo.spinfo_cwnd: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrinfo.spinfo_cwnd: expected: %u actual: %u",
 				 spinfo_cwnd, sctp_paddrinfo->spinfo_cwnd);
 			return STATUS_ERR;
 		}
@@ -1902,7 +1901,7 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrinfo->spinfo_srtt != spinfo_srtt) {
-			asprintf(error, "Bad getsockopt sctp_paddrinfo.spinfo_srtt: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrinfo.spinfo_srtt: expected: %u actual: %u",
 				 spinfo_srtt, sctp_paddrinfo->spinfo_srtt);
 			return STATUS_ERR;
 		}
@@ -1914,7 +1913,7 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrinfo->spinfo_rto != spinfo_rto) {
-			asprintf(error, "Bad getsockopt sctp_paddrinfo.spinfo_rto: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrinfo.spinfo_rto: expected: %u actual: %u",
 				 spinfo_rto, sctp_paddrinfo->spinfo_rto);
 			return STATUS_ERR;
 		}
@@ -1926,7 +1925,7 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrinfo->spinfo_mtu != spinfo_mtu) {
-			asprintf(error, "Bad getsockopt sctp_paddrinfo.spinfo_mtu: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrinfo.spinfo_mtu: expected: %u actual: %u",
 				 spinfo_mtu, sctp_paddrinfo->spinfo_mtu);
 			return STATUS_ERR;
 		}
@@ -1947,7 +1946,7 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_status->sstat_state != sstat_state) {
-			asprintf(error, "Bad getsockopt sctp_status.sstat_state: expected: %d actual: %d",
+			asprintf(error, "sctp_status.sstat_state: expected: %d actual: %d",
 				 sstat_state, sctp_status->sstat_state);
 			return STATUS_ERR;
 		}
@@ -1959,7 +1958,7 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_status->sstat_rwnd != sstat_rwnd) {
-			asprintf(error, "Bad getsockopt sctp_status.sstat_rwnd: expected: %u actual: %u",
+			asprintf(error, "sctp_status.sstat_rwnd: expected: %u actual: %u",
 				 sstat_rwnd, sctp_status->sstat_rwnd);
 			return STATUS_ERR;
 		}
@@ -1971,7 +1970,7 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_status->sstat_unackdata != sstat_unackdata) {
-			asprintf(error, "Bad getsockopt sctp_status.sstat_unackdata: expected: %hu actual: %hu",
+			asprintf(error, "sctp_status.sstat_unackdata: expected: %hu actual: %hu",
 				 sstat_unackdata, sctp_status->sstat_unackdata);
 			return STATUS_ERR;
 		}
@@ -1983,7 +1982,7 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_status->sstat_penddata != sstat_penddata) {
-			asprintf(error, "Bad getsockopt sctp_status.sstat_penddata: expected: %hu actual: %hu",
+			asprintf(error, "sctp_status.sstat_penddata: expected: %hu actual: %hu",
 				 sstat_penddata, sctp_status->sstat_penddata);
 			return STATUS_ERR;
 		}
@@ -1995,7 +1994,7 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_status->sstat_instrms != sstat_instrms) {
-			asprintf(error, "Bad getsockopt sctp_status.sstat_instrms: expected: %hu actual: %hu",
+			asprintf(error, "sctp_status.sstat_instrms: expected: %hu actual: %hu",
 				 sstat_instrms, sctp_status->sstat_instrms);
 			return STATUS_ERR;
 		}
@@ -2007,7 +2006,7 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_status->sstat_outstrms != sstat_outstrms) {
-			asprintf(error, "Bad getsockopt sctp_status.sstat_outstrms: expected: %hu actual: %hu",
+			asprintf(error, "sctp_status.sstat_outstrms: expected: %hu actual: %hu",
 				 sstat_outstrms, sctp_status->sstat_outstrms);
 			return STATUS_ERR;
 		}
@@ -2019,7 +2018,7 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_status->sstat_fragmentation_point != sstat_fragmentation_point) {
-			asprintf(error, "Bad getsockopt sctp_status.sstat_fragmentation_point: expected: %u actual: %u",
+			asprintf(error, "sctp_status.sstat_fragmentation_point: expected: %u actual: %u",
 				sstat_fragmentation_point, sctp_status->sstat_fragmentation_point);
 			return STATUS_ERR;
 		}
@@ -2046,7 +2045,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrparams->spp_hbinterval != spp_hbinterval) {
-			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_hbinterval: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrparams.spp_hbinterval: expected: %u actual: %u",
 				 spp_hbinterval, sctp_paddrparams->spp_hbinterval);
 			return STATUS_ERR;
 		}
@@ -2058,7 +2057,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrparams->spp_pathmaxrxt != spp_pathmaxrxt) {
-			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_pathmaxrxt: expected: %hu actual: %hu",
+			asprintf(error, "sctp_paddrparams.spp_pathmaxrxt: expected: %hu actual: %hu",
 				 spp_pathmaxrxt, sctp_paddrparams->spp_pathmaxrxt);
 			return STATUS_ERR;
 		}
@@ -2070,7 +2069,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrparams->spp_pathmtu != spp_pathmtu) {
-			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_pathmtu: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrparams.spp_pathmtu: expected: %u actual: %u",
 				 spp_pathmtu, sctp_paddrparams->spp_pathmtu);
 			return STATUS_ERR;
 		}
@@ -2082,14 +2081,14 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrparams->spp_flags != spp_flags) {
-			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_flags: expected: 0x%08x actual: 0x%08x",
+			asprintf(error, "sctp_paddrparams.spp_flags: expected: 0x%08x actual: 0x%08x",
 				 spp_flags, sctp_paddrparams->spp_flags);
 			return STATUS_ERR;
 		}
 	}
 	if (expr->spp_ipv6_flowlabel->type != EXPR_ELLIPSIS) {
 #ifdef linux
-		asprintf(error, "Bad getsockopt linux doesn't support sctp_paddrparams.spp_ipv6_flowlabel");
+		asprintf(error, "linux doesn't support sctp_paddrparams.spp_ipv6_flowlabel");
 		return STATUS_ERR;
 #else
 		u32 spp_ipv6_flowlabel;
@@ -2098,7 +2097,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrparams->spp_ipv6_flowlabel != spp_ipv6_flowlabel) {
-			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_ipv6_flowlabel: expected: %u actual: %u",
+			asprintf(error, "sctp_paddrparams.spp_ipv6_flowlabel: expected: %u actual: %u",
 				 spp_ipv6_flowlabel, sctp_paddrparams->spp_ipv6_flowlabel);
 			return STATUS_ERR;
 		}
@@ -2106,7 +2105,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 	}
 	if (expr->spp_dscp->type != EXPR_ELLIPSIS) {
 #ifdef linux
-		asprintf(error, "Bad getsockopt linux doesn't support sctp_paddrparams.spp_dscp");
+		asprintf(error, "linux doesn't support sctp_paddrparams.spp_dscp");
 		return STATUS_ERR;
 #else
 		u8 spp_dscp;
@@ -2115,7 +2114,7 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_paddrparams->spp_dscp != spp_dscp) {
-			asprintf(error, "Bad getsockopt sctp_paddrparams.spp_dscp: expected: %hhu actual: %hhu",
+			asprintf(error, "sctp_paddrparams.spp_dscp: expected: %hhu actual: %hhu",
 				 spp_dscp, sctp_paddrparams->spp_dscp);
 			return STATUS_ERR;
 		}
@@ -2137,7 +2136,7 @@ static int check_sctp_assoc_value(struct sctp_assoc_value_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assoc_value->assoc_value != assoc_value) {
-			asprintf(error, "Bad getsockopt sctp_assoc_value.assoc_value: expected: %u actual: %u",
+			asprintf(error, "sctp_assoc_value.assoc_value: expected: %u actual: %u",
 				 assoc_value, sctp_assoc_value->assoc_value);
 			return STATUS_ERR;
 		}
@@ -2158,7 +2157,7 @@ static int check_sctp_stream_value(struct sctp_stream_value_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_stream_value->stream_id != stream_id) {
-			asprintf(error, "Bad getsockopt sctp_stream_value.stream_id: expected: %u actual: %u",
+			asprintf(error, "sctp_stream_value.stream_id: expected: %u actual: %u",
 				 stream_id, sctp_stream_value->stream_id);
 			return STATUS_ERR;
 		}
@@ -2170,7 +2169,7 @@ static int check_sctp_stream_value(struct sctp_stream_value_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_stream_value->stream_value != stream_value) {
-			asprintf(error, "Bad getsockopt sctp_stream_value.stream_value: expected: %u actual: %u",
+			asprintf(error, "sctp_stream_value.stream_value: expected: %u actual: %u",
 				 stream_value, sctp_stream_value->stream_value);
 			return STATUS_ERR;
 		}
@@ -2191,7 +2190,7 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assocparams->sasoc_asocmaxrxt != sasoc_asocmaxrxt) {
-			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_asocmaxrxt: expected: %hu actual: %hu",
+			asprintf(error, "sctp_assocparams.sasoc_asocmaxrxt: expected: %hu actual: %hu",
 				 sasoc_asocmaxrxt, sctp_assocparams->sasoc_asocmaxrxt);
 			return STATUS_ERR;
 		}
@@ -2203,7 +2202,7 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assocparams->sasoc_number_peer_destinations != sasoc_number_peer_destinations) {
-			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_number_peer_destinations: expected: %hu actual: %hu",
+			asprintf(error, "sctp_assocparams.sasoc_number_peer_destinations: expected: %hu actual: %hu",
 					 sasoc_number_peer_destinations, sctp_assocparams->sasoc_number_peer_destinations);
 			return STATUS_ERR;
 		}
@@ -2215,7 +2214,7 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assocparams->sasoc_peer_rwnd != sasoc_peer_rwnd) {
-			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_peer_rwnd: expected: %u actual: %u",
+			asprintf(error, "sctp_assocparams.sasoc_peer_rwnd: expected: %u actual: %u",
 				 sasoc_peer_rwnd, sctp_assocparams->sasoc_peer_rwnd);
 			return STATUS_ERR;
 		}
@@ -2227,7 +2226,7 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assocparams->sasoc_local_rwnd != sasoc_local_rwnd) {
-			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_local_rwnd: expected: %u actual: %u",
+			asprintf(error, "sctp_assocparams.sasoc_local_rwnd: expected: %u actual: %u",
 				 sasoc_local_rwnd, sctp_assocparams->sasoc_local_rwnd);
 			return STATUS_ERR;
 		}
@@ -2239,7 +2238,7 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_assocparams->sasoc_cookie_life != sasoc_cookie_life) {
-			asprintf(error, "Bad getsockopt sctp_assocparams.sasoc_cookie_life: expected: %u actual: %u",
+			asprintf(error, "sctp_assocparams.sasoc_cookie_life: expected: %u actual: %u",
 				 sasoc_cookie_life, sctp_assocparams->sasoc_cookie_life);
 			return STATUS_ERR;
 		}
@@ -2261,7 +2260,7 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_event->se_type != se_type) {
-			asprintf(error, "Bad getsockopt sctp_event.se_type: expected: %hu actual: %hu",
+			asprintf(error, "sctp_event.se_type: expected: %hu actual: %hu",
 				 se_type, sctp_event->se_type);
 			return STATUS_ERR;
 		}
@@ -2273,7 +2272,7 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_event->se_on != se_on) {
-			asprintf(error, "Bad getsockopt sctp_event.se_on: expected: %hhu actual: %hhu",
+			asprintf(error, "sctp_event.se_on: expected: %hhu actual: %hhu",
 				 se_on, sctp_event->se_on);
 			return STATUS_ERR;
 		}
@@ -2294,7 +2293,7 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_sndinfo->snd_sid != snd_sid) {
-			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_sid: expected: %hu actual: %hu",
+			asprintf(error, "sctp_sndinfo.snd_sid: expected: %hu actual: %hu",
 				 snd_sid, sctp_sndinfo->snd_sid);
 			return STATUS_ERR;
 		}
@@ -2306,7 +2305,7 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_sndinfo->snd_flags != snd_flags) {
-			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_flags: expected: %hu actual: %hu",
+			asprintf(error, "sctp_sndinfo.snd_flags: expected: %hu actual: %hu",
 				 snd_flags, sctp_sndinfo->snd_flags);
 			return STATUS_ERR;
 		}
@@ -2318,7 +2317,7 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_sndinfo->snd_ppid != snd_ppid) {
-			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_ppid: expected: %u actual: %u",
+			asprintf(error, "sctp_sndinfo.snd_ppid: expected: %u actual: %u",
 				 snd_ppid, sctp_sndinfo->snd_ppid);
 			return STATUS_ERR;
 		}
@@ -2330,7 +2329,7 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_sndinfo->snd_context != snd_context) {
-			asprintf(error, "Bad getsockopt sctp_sndinfo.snd_context: expected: %u actual: %u",
+			asprintf(error, "sctp_sndinfo.snd_context: expected: %u actual: %u",
 				 snd_context, sctp_sndinfo->snd_context);
 			return STATUS_ERR;
 		}
@@ -2351,7 +2350,7 @@ static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 			return STATUS_ERR;
 		}
 		if (sctp_setadaptation->ssb_adaptation_ind != ssb_adaptation_ind) {
-			asprintf(error, "Bad getsockopt sctp_setadaptation.ssb_adaptation_ind: expected: %u actual: %u",
+			asprintf(error, "sctp_setadaptation.ssb_adaptation_ind: expected: %u actual: %u",
 				 ssb_adaptation_ind, sctp_setadaptation->ssb_adaptation_ind);
 			return STATUS_ERR;
 		}
@@ -2434,8 +2433,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
 		live_paddrinfo->spinfo_assoc_id = 0;
 		if (get_sockstorage_arg(expr_paddrinfo->spinfo_address,
-					&(live_paddrinfo->spinfo_address), live_fd, error)) {
-			asprintf(error, "Bad getsockopt, bad get input for spinfo_address");
+					&(live_paddrinfo->spinfo_address), live_fd)) {
+			asprintf(error, "can't determine spinfo_address");
 			free(live_paddrinfo);
 			return STATUS_ERR;
 		}
@@ -2450,8 +2449,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		memset(live_params, 0, sizeof(struct sctp_paddrparams));
 		live_optlen = sizeof(struct sctp_paddrparams);
 		if (get_sockstorage_arg(expr_params->spp_address, &live_params->spp_address,
-					live_fd, error)) {
-			asprintf(error, "Bad getsockopt, bad get input for spp_address");
+					live_fd)) {
+			asprintf(error, "can't determine spp_address");
 			free(live_params);
 			return STATUS_ERR;
 		}
@@ -2512,7 +2511,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(int);
 		break;
 	default:
-		asprintf(error, "unsupported getsockopt value type: %s",
+		asprintf(error, "unsupported value type: %s",
 			 expression_type_to_string(val_expression->type));
 		return STATUS_ERR;
 		break;
@@ -2527,7 +2526,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	}
 
 	if (live_optlen != script_optlen) {
-		asprintf(error, "Bad getsockopt optlen: expected: %d actual: %d",
+		asprintf(error, "optlen: expected: %d actual: %d",
 		         (int)script_optlen, (int)live_optlen);
 		free(live_optval);
 		return STATUS_ERR;
@@ -2599,13 +2598,13 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {
-			asprintf(error, "Bad getsockopt optval: expected: %d actual: %d",
+			asprintf(error, "optval: expected: %d actual: %d",
 				(int)script_optval, *(int*)live_optval);
 			result = STATUS_ERR;
 		}
 		break;
 	default:
-		asprintf(error, "Cannot check getsockopt value type: %s",
+		asprintf(error, "Cannot check value type: %s",
 			 expression_type_to_string(val_expression->type));
 		break;
 	}
@@ -2806,8 +2805,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_PADDRINFO:
 		paddrinfo.spinfo_assoc_id = 0;
 		if (get_sockstorage_arg(val_expression->value.sctp_paddrinfo->spinfo_address,
-					&paddrinfo.spinfo_address, live_fd, error)) {
-			asprintf(error, "Bad getsockopt, bad get input for spp_address");
+					&paddrinfo.spinfo_address, live_fd)) {
+			asprintf(error, "can't determine spp_address");
 			return STATUS_ERR;
 		}
 		optval = &paddrinfo;
@@ -2862,8 +2861,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		paddrparams.spp_assoc_id = 0;
 		if (get_sockstorage_arg(val_expression->value.sctp_paddrparams->spp_address,
-				        &paddrparams.spp_address, live_fd, error)) {
-			asprintf(error, "Bad setsockopt, bad input for spp_address for socketoption SCTP_PADDRPARAMS");
+				        &paddrparams.spp_address, live_fd)) {
+			asprintf(error, "can't determine spp_address");
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_hbinterval,
@@ -2897,14 +2896,14 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		            &spp_ipv6_flowlabel, error)) {
 			return STATUS_ERR;
 		} else if (spp_ipv6_flowlabel != 0) {
-			asprintf(error, "Bad setsockopt, Linux doesn't support paddrparams.spp_ipv6_flowlabel");
+			asprintf(error, "Linux doesn't support paddrparams.spp_ipv6_flowlabel");
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
 		           &spp_dscp, error)) {
 			return STATUS_ERR;
 		} else if (spp_dscp != 0) {
-			asprintf(error, "Bad setsockopt, Linux doesn't support paddrparams.spp_dscp");
+			asprintf(error, "Linux doesn't support paddrparams.spp_dscp");
 			return STATUS_ERR;
 		}
 		paddrparams.spp_sackdelay = 0;
@@ -2913,7 +2912,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 #endif
 	default:
-		asprintf(error, "unsupported setsockopt value type: %s",
+		asprintf(error, "unsupported value type: %s",
 			 expression_type_to_string(val_expression->type));
 		return STATUS_ERR;
 		break;
