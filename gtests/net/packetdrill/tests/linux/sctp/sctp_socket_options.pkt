@@ -1,0 +1,51 @@
+0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=200, srto_min=50}, 16) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=50, srto_max=200, srto_min=50}, 16) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=200, srto_max=200, srto_min=50}, 16) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=50, srto_max=50, srto_min=50}, 16) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=200, srto_min=50}, 17) = -1 EINVAL (Invalid argument) 
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=..., srto_max=200, srto_min=50}, 15) = -1 EINVAL (Invalid argument)
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=25, srto_max=200, srto_min=50}, 16) = -1 EINVAL (Invalid argument)
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=225, srto_max=200, srto_min=50}, 16) = -1 EINVAL (Invalid argument)
++0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=50, srto_max=50, srto_min=200}, 16) = -1 EINVAL (Invalid argument)
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_INITMSG, {sinit_num_ostreams=1024, sinit_max_instreams=1024, sinit_max_attempts=5, sinit_max_init_timeo=100}, 8) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_INITMSG, {sinit_num_ostreams=1024, sinit_max_instreams=1024, sinit_max_attempts=5, sinit_max_init_timeo=100}, 9) = -1 EINVAL (Invalid argument)
++0 setsockopt(3, IPPROTO_SCTP, SCTP_INITMSG, {sinit_num_ostreams=1024, sinit_max_instreams=1024, sinit_max_attempts=5, sinit_max_init_timeo=100}, 7) = -1  EINVAL (Invalid argument)
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_NODELAY, [1], 4) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_NODELAY, [5], 4) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_NODELAY, [1], 5) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_NODELAY, [1], 3) = -1 EINVAL (Invalid argument)
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, [1000], 4) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, [1000], [4]) = 0
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, {assoc_value=1}, 8) = 0
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, {assoc_value=0}, 8) = 0
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, {assoc_value=1024}, 8) = 0
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, {assoc_value=1}, 9) = 0
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAXSEG, {assoc_value=1}, 7) = -1 EINVAL (Invalid argument)
+
+//+0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=1000, sack_freq=0}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=500, sack_freq=0}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=200, sack_freq=0}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=100, sack_freq=0}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=10, sack_freq=0}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=0, sack_freq=1}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=0, sack_freq=2}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=0, sack_freq=4}, 12) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=200, sack_freq=2}, 13) = -1 EINVAL (Invalid argument)
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=200, sack_freq=2}, 11) = -1 EINVAL (Invalid argument)
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 8) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=0}, 8) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1024}, 8) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 9) = -1 EINVAL (Invalid argument)
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 7) = -1 EINVAL (Invalid argument)
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address=..., spp_hbinterval=30000, spp_pathmaxrxt=100, spp_pathmtu=1468, spp_flags=0, spp_ipv6_flowlabel=0, spp_dscp=0}, [152]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(0), sin_addr=inet_addr("0.0.0.0")},
+spp_hbinterval=30000, spp_pathmaxrxt=6, spp_pathmtu=..., spp_flags=..., spp_ipv6_flowlabel=..., spp_dscp=...}, [152]) = 0
+
++0 close(3) = 0

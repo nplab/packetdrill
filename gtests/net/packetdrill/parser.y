@@ -2577,15 +2577,11 @@ srto_min
 
 sctp_rtoinfo
 : '{' srto_initial ',' srto_max ',' srto_min '}' {
-#ifdef SCTP_RTOINFO
 	$$ = new_expression(EXPR_SCTP_RTOINFO);
 	$$->value.sctp_rtoinfo = calloc(1, sizeof(struct sctp_rtoinfo_expr));
 	$$->value.sctp_rtoinfo->srto_initial = $2;
 	$$->value.sctp_rtoinfo->srto_max = $4;
 	$$->value.sctp_rtoinfo->srto_min = $6;
-#else
-	$$ = NULL;
-#endif
 }
 ;
 
@@ -2686,14 +2682,10 @@ sack_freq
 
 sctp_sackinfo
 : '{' sack_delay ',' sack_freq '}' {
-#ifdef SCTP_DELAYED_SACK
 	$$ = new_expression(EXPR_SCTP_SACKINFO);
 	$$->value.sctp_sack_info = calloc(1, sizeof(struct sctp_sack_info_expr));
 	$$->value.sctp_sack_info->sack_delay = $2;
 	$$->value.sctp_sack_info->sack_freq = $4;
-#else
-	$$ = NULL;
-#endif
 }
 ;
 
@@ -2979,7 +2971,6 @@ sasoc_cookie_life
 
 sctp_assocparams
 : '{' sasoc_asocmaxrxt ',' sasoc_number_peer_destinations ',' sasoc_peer_rwnd ',' sasoc_local_rwnd ',' sasoc_cookie_life '}' {
-#ifdef SCTP_ASSOCINFO
 	$$ = new_expression(EXPR_SCTP_ASSOCPARAMS);
         $$->value.sctp_assocparams = calloc(1, sizeof(struct sctp_assocparams_expr));
         $$->value.sctp_assocparams->sasoc_asocmaxrxt = $2;
@@ -2987,9 +2978,6 @@ sctp_assocparams
         $$->value.sctp_assocparams->sasoc_peer_rwnd = $6;
         $$->value.sctp_assocparams->sasoc_local_rwnd = $8;
         $$->value.sctp_assocparams->sasoc_cookie_life = $10;
-#else
-	$$ = NULL;
-#endif
 }
 ;
 
@@ -3018,14 +3006,10 @@ se_on
 
 sctp_event
 : '{' se_type ',' se_on '}' {
-#ifdef SCTP_EVENT
 	$$ = new_expression(EXPR_SCTP_EVENT);
 	$$->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
 	$$->value.sctp_event->se_type = $2;
 	$$->value.sctp_event->se_on = $4;
-#else
-	$$ = NULL;
-#endif
 }
 ;
 
@@ -3089,16 +3073,12 @@ sctp_sndinfo
 
 sctp_setadaptation
 : '{' SSB_ADAPTATION_IND '=' INTEGER '}' {
-#ifdef SCTP_ADAPTATION_LAYER
 	$$ = new_expression(EXPR_SCTP_SETADAPTATION);
-	$$->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation));
+	$$->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation_expr));
 	if (!is_valid_u32($4)) {
 		semantic_error("ssb_adaptation_ind out of range");
 	}
 	$$->value.sctp_setadaptation->ssb_adaptation_ind = new_integer_expression($4, "%u");
-#else
-	$$ = NULL;
-#endif
 }
 ;
 
