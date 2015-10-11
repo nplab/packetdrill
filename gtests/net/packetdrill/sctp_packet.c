@@ -2499,7 +2499,7 @@ new_sctp_packet(int address_family,
 	} else {
 		if (bad_crc32c) {
 			asprintf(error,
-				 "bad CRC32C can only be requested for outbound packets");
+				 "bad CRC32C can only be requested for inbound packets");
 			return NULL;
 		}
 	}
