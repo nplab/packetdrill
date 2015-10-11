@@ -2971,6 +2971,76 @@ error_out:
 	return status;
 }
 
+static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
+			struct expression_list *args, char **error)
+{
+	int result, script_fd, live_fd, len;
+	void *msg = NULL;
+	struct sockaddr_storage to;
+	socklen_t tolen;
+	u32 ppid, flags, timetolive, context;
+	u16 stream_no;
+	struct expression *sockaddr_expr, *tolen_expr, *ppid_expr, *flags_expr, *ttl_expr, *stream_no_expr, *context_expr;
+	
+	if (check_arg_count(args, 10, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	if (ellipsis_arg(args, 1, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 2, &len, error))
+		return STATUS_ERR;
+	sockaddr_expr = get_arg(args, 3, error);
+	if (sockaddr_expr->type == EXPR_ELLIPSIS) {
+		socklen_t len = (socklen_t)sizeof(struct sockaddr_storage);
+		if (getpeername(live_fd, (struct sockaddr *)&to, &len)) {
+			return STATUS_ERR;
+		}
+		tolen = len;
+	} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+		memcpy(&to, sockaddr_expr->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+	} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+		memcpy(&to, sockaddr_expr->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+	}
+	tolen_expr = get_arg(args, 4, error);
+	if (!(tolen_expr->type == EXPR_ELLIPSIS && sockaddr_expr->type == EXPR_ELLIPSIS)) {
+		if (get_u32(tolen_expr, &tolen, error))
+			return STATUS_ERR;
+	}
+	ppid_expr = get_arg(args, 5, error);
+	if (get_u32(ppid_expr, &ppid, error))
+		return STATUS_ERR;
+	flags_expr = get_arg(args, 6, error);
+	if (get_u32(flags_expr, &flags, error))
+		return STATUS_ERR;
+	stream_no_expr =get_arg(args, 7, error);
+	if (get_u16(stream_no_expr, &stream_no, error))
+		return STATUS_ERR;
+	ttl_expr = get_arg(args, 8, error);
+	if (get_u32(ttl_expr, &timetolive, error))
+		return STATUS_ERR;
+	context_expr = get_arg(args, 9, error);
+	if (get_u32(context_expr, &context, error))
+		return STATUS_ERR;
+
+	msg = calloc(len, 1);
+	assert(msg != NULL);	
+
+	begin_syscall(state, syscall);
+	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr*) &to, 
+			      tolen, ppid, flags, stream_no, timetolive, context);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
+		free(msg);
+		return STATUS_ERR;
+	}
+
+	free(msg);
+	return STATUS_OK;
+}
+
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
 	const char *name;
@@ -3002,6 +3072,7 @@ struct system_call_entry system_call_table[] = {
 	{"getsockopt", syscall_getsockopt},
 	{"setsockopt", syscall_setsockopt},
 	{"poll",       syscall_poll},
+	{"sctp_sendmsg", syscall_sctp_sendmsg},
 };
 
 /* Evaluate the system call arguments and invoke the system call. */

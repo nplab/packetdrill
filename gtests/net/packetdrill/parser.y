@@ -3061,7 +3061,7 @@ sctp_sndinfo
 : '{' snd_sid ',' snd_flags ',' snd_ppid ',' snd_context '}' {
 #ifdef SCTP_DEFAULT_SNDINFO
 	$$ = new_expression(EXPR_SCTP_SNDINFO);
-	$$->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo));
+	$$->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo_expr));
 	$$->value.sctp_sndinfo->snd_sid = $2;
 	$$->value.sctp_sndinfo->snd_flags = $4;
 	$$->value.sctp_sndinfo->snd_ppid = $6;
