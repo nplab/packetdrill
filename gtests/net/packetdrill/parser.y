@@ -821,7 +821,7 @@ sctp_packet_spec
 	enum direction_t direction = outer->direction;
 
 	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
-	                        false, $5, &error);
+	                        -1, false, $5, &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
@@ -836,7 +836,43 @@ sctp_packet_spec
 	enum direction_t direction = outer->direction;
 
 	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
-	                        true, $8, &error);
+	                        -1, true, $8, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' TAG '=' INTEGER ')' ':' sctp_chunk_list_spec {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	if (!is_valid_u32($7)) {
+		semantic_error("tag value out of range");
+	}
+	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
+	                        $7, false, $10, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ',' TAG '=' INTEGER ')' ':' sctp_chunk_list_spec {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	if (!is_valid_u32($9)) {
+		semantic_error("tag value out of range");
+	}
+	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
+	                        $9, true, $12, &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);

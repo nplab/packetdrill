@@ -2242,6 +2242,7 @@ struct packet *
 new_sctp_packet(int address_family,
                 enum direction_t direction,
                 enum ip_ecn_t ecn,
+                s64 tag,
                 bool bad_crc32c,
                 struct sctp_chunk_list *list,
                 char **error)
@@ -2512,6 +2513,9 @@ new_sctp_packet(int address_family,
 	if (bad_crc32c) {
 		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
 	}
+	if (tag != -1) {
+		packet->flags |= FLAGS_SCTP_EXPLICIT_TAG;
+	}
 	packet->ecn = ecn;
 
 	/* Set IP header fields */
@@ -2528,7 +2532,7 @@ new_sctp_packet(int address_family,
 	/* Set SCTP header fields */
 	packet->sctp->src_port = htons(0);
 	packet->sctp->dst_port = htons(0);
-	packet->sctp->v_tag = htonl(0);
+	packet->sctp->v_tag = htonl((u32)tag);
 	packet->sctp->crc32c = htonl(0);
 
 	for (chunk_item = list->first;

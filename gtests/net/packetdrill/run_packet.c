@@ -2695,7 +2695,7 @@ int abort_association(struct state *state, struct socket *socket)
 	chunk_list = sctp_chunk_list_new();
 	sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(flgs, cause_list));
 	packet = new_sctp_packet(socket->address_family,
-				 DIRECTION_INBOUND, ECN_NONE, false,
+				 DIRECTION_INBOUND, ECN_NONE, -1, false,
 				 chunk_list, &error);
 	if (packet == NULL)
 		die("%s", error);
