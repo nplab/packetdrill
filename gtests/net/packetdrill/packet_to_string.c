@@ -134,7 +134,11 @@ static int sctp_packet_to_string(FILE *s, struct packet *packet,
 		fputc(' ', s);
 	}
 
-	fputs("sctp:", s);
+	fputs("sctp", s);
+	if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
+		fputs("(bad_crc32c)", s);
+	}
+	fputc(':', s);
 
 	index = 0;
 	for (chunk = sctp_chunks_begin(packet, &iter, error);

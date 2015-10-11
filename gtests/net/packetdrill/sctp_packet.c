@@ -2242,6 +2242,7 @@ struct packet *
 new_sctp_packet(int address_family,
                 enum direction_t direction,
                 enum ip_ecn_t ecn,
+                bool bad_crc32c,
                 struct sctp_chunk_list *list,
                 char **error)
 {
@@ -2494,6 +2495,12 @@ new_sctp_packet(int address_family,
 				break;
 			}
 		}
+	} else {
+		if (bad_crc32c) {
+			asprintf(error,
+				 "bad CRC32C can only be requested for outbound packets");
+			return NULL;
+		}
 	}
 
 	/* Allocate and zero out a packet object of the desired size */
@@ -2502,6 +2509,9 @@ new_sctp_packet(int address_family,
 
 	packet->direction = direction;
 	packet->flags = 0;
+	if (bad_crc32c) {
+		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
+	}
 	packet->ecn = ecn;
 
 	/* Set IP header fields */

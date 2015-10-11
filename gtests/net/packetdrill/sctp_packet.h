@@ -423,6 +423,7 @@ sctp_cause_list_free(struct sctp_cause_list *list);
 extern struct packet *new_sctp_packet(int address_family,
 				      enum direction_t direction,
 				      enum ip_ecn_t ecn,
+				      bool bad_crc32c,
 				      struct sctp_chunk_list *chunk_list,
 				      char **error);
 #endif /* __SCTP_PACKET_H__ */

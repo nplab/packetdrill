@@ -47,8 +47,11 @@ static void checksum_ipv4_packet(struct packet *packet)
 	/* Fill in IPv4-based layer 4 checksum. */
 	if (packet->sctp != NULL) {
 		struct sctp_common_header *sctp = packet->sctp;
-		sctp->crc32c = 0;
+		sctp->crc32c = htonl(0);
 		sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
+			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
+		}
 	} else if (packet->tcp != NULL) {
 		struct tcp *tcp = packet->tcp;
 		tcp->check = 0;
@@ -98,8 +101,11 @@ static void checksum_ipv6_packet(struct packet *packet)
 	/* Fill in IPv6-based layer 4 checksum. */
 	if (packet->sctp != NULL) {
 		struct sctp_common_header *sctp = packet->sctp;
-		sctp->crc32c = 0;
+		sctp->crc32c = htonl(0);
 		sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
+			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
+		}
 	} else if (packet->tcp != NULL) {
 		struct tcp *tcp = packet->tcp;
 		tcp->check = 0;
@@ -134,7 +140,7 @@ static void checksum_ipv6_packet(struct packet *packet)
 					    &ipv6->dst_ip,
 					    IPPROTO_ICMPV6, icmpv6, l4_bytes);
 	} else {
-		assert(!"not TCP or UDP or UDPLite or ICMP");
+		assert(!"not SCTP or TCP or UDP or UDPLite or ICMP");
 	}
 }
 
