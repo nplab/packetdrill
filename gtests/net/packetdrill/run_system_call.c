@@ -3055,6 +3055,12 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
+static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
+			struct expression_list *args, char **error)
+{
+	return STATUS_OK;
+}
+
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
 	const char *name;
@@ -3087,6 +3093,7 @@ struct system_call_entry system_call_table[] = {
 	{"setsockopt", syscall_setsockopt},
 	{"poll",       syscall_poll},
 	{"sctp_sendmsg", syscall_sctp_sendmsg},
+	{"sctp_recvmsg", syscall_sctp_recvmsg},
 };
 
 /* Evaluate the system call arguments and invoke the system call. */
