@@ -2974,6 +2974,7 @@ error_out:
 static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
+#if defined(__FreeBSD__) || defined(__Linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
 	int result, script_fd, live_fd, len;
 	void *msg = NULL;
 	struct sockaddr_storage to;
@@ -3049,6 +3050,10 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	}
 	free(msg);
 	return STATUS_OK;
+#else
+	asprintf(error, "sctp_sendmsg is not supported");
+	return STATUS_ERR;
+#endif
 }
 
 /* A dispatch table with all the system calls that we support... */
