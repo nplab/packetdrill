@@ -3035,7 +3035,6 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	context_expr = get_arg(args, 9, error);
 	if (get_u32(context_expr, &context, error))
 		return STATUS_ERR;
-	sockaddr_expr = get_arg(args, 3, error);
 
 	msg = calloc(len, 1);
 	assert(msg != NULL);	
