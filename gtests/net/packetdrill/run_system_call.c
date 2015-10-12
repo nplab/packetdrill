@@ -3055,7 +3055,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
+static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
 	return STATUS_OK;

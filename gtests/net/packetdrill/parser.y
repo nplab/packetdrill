@@ -539,6 +539,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SSB_ADAPTATION_IND
 %token <reserved> BAD_CRC32C NULL_
+%token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT
+%token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -589,6 +591,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
 %type <expression> sctp_event se_type se_on sctp_setadaptation null
+%type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context 
+%type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2401,6 +2405,9 @@ expression
 | null              {
 	$$ = $1;
 }
+| sctp_sndrcvinfo   {
+	$$ = $1;
+}
 ;
 
 decimal_integer
@@ -3069,6 +3076,7 @@ sctp_sndinfo
 	$$->value.sctp_sndinfo->snd_ppid = $6;
 	$$->value.sctp_sndinfo->snd_context = $8;
 }
+;
 
 sctp_setadaptation
 : '{' SSB_ADAPTATION_IND '=' INTEGER '}' {
@@ -3081,6 +3089,99 @@ sctp_setadaptation
 }
 ;
 
+sinfo_stream
+: SINFO_STREAM '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sinfo_stream out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_STREAM '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinfo_ssn
+: SINFO_SSN '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sinfo_ssn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_SSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinfo_flags
+: SINFO_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sinfo_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinfo_ppid
+: SINFO_PPID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sinfo_ppid out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinfo_context
+: SINFO_CONTEXT '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sinfo_context out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_CONTEXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinfo_timetolive
+: SINFO_TIMETOLIVE '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("snd_timetolive out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_TIMETOLIVE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinfo_tsn
+: SINFO_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sinfo_tsn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_TSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sinfo_cumtsn
+: SINFO_CUMTSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sinfo_cumtsn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_CUMTSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_sndrcvinfo
+: '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_timetolive ',' sinfo_tsn ',' sinfo_cumtsn '}' {
+	$$ = new_expression(EXPR_SCTP_SNDRCVINFO);
+	$$->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo));
+	$$->value.sctp_sndrcvinfo->sinfo_stream = $2;
+	$$->value.sctp_sndrcvinfo->sinfo_ssn = $4;
+	$$->value.sctp_sndrcvinfo->sinfo_flags = $6;
+	$$->value.sctp_sndrcvinfo->sinfo_ppid = $8;
+	$$->value.sctp_sndrcvinfo->sinfo_context = $10;
+	$$->value.sctp_sndrcvinfo->sinfo_timetolive = $12;
+	$$->value.sctp_sndrcvinfo->sinfo_tsn = $14;
+	$$->value.sctp_sndrcvinfo->sinfo_cumtsn = $16;
+};
 opt_errno
 :                   { $$ = NULL; }
 | WORD note         {
