@@ -3,6 +3,7 @@
 +0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
 +0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
 +0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=200, srto_min=50}, 16) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_INITMSG, {sinit_num_ostreams=0, sinit_max_instreams=0, sinit_max_attempts=0, sinit_max_init_timeo=200}, 8) = 0
 +0.0 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
 // Check the number and the timing of the restransmissions
 +0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=0, ...]
@@ -14,6 +15,6 @@
 +0.2 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=0, ...]
 +0.2 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=0, ...]
 +0.2 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=0, ...]
-+0.2 > sctp: ABORT[flgs=T]
+//+0.2 > sctp: ABORT[flgs=T]
 +1.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [ETIMEDOUT], [4]) = 0
 +0.0 close(3) = 0
