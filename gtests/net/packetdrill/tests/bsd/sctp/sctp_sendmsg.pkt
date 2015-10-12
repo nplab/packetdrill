@@ -8,7 +8,6 @@
 +0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
 +0.1 < sctp: COOKIE_ACK[flgs=0]
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
-// Tear down the association
 //sctp_sendmsg(int sd, const void * msg, size_t len, struct sockaddr *to, socklen_t tolen, 
 //             uint32_t ppid, uint32_t flags, uint16_t stream_no, uint32_t timetolive, uint32_t context);
 +0.0 sctp_sendmsg(3, ..., 1000, ..., ..., 0, 0, 0, 0, 0) = 1000
@@ -17,6 +16,9 @@
 +0.0 sctp_sendmsg(3, ..., 1000, {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}, 16, 0, 0, 0, 0, 0) = 1000
 +0.0 > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=0, ssn=1, ppid=0]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=1500, gaps=[], dups=[]]
++0.0 sctp_sendmsg(3, ..., 1000, NULL, 0, 0, 0, 0, 0, 0) = 1000
++0.0 > sctp: DATA[flgs=BE, len=1016, tsn=3, sid=0, ssn=2, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=1500, gaps=[], dups=[]]
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
 +0.1 < sctp: SHUTDOWN_ACK[flgs=0]

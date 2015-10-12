@@ -538,7 +538,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SSB_ADAPTATION_IND
-%token <reserved> BAD_CRC32C
+%token <reserved> BAD_CRC32C NULL_
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -588,7 +588,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
-%type <expression> sctp_event se_type se_on sctp_setadaptation
+%type <expression> sctp_event se_type se_on sctp_setadaptation null
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2398,6 +2398,9 @@ expression
 | sctp_setadaptation{
 	$$ = $1;
 }
+| null              {
+	$$ = $1;
+}
 ;
 
 decimal_integer
@@ -3059,16 +3062,12 @@ snd_context
 
 sctp_sndinfo
 : '{' snd_sid ',' snd_flags ',' snd_ppid ',' snd_context '}' {
-#ifdef SCTP_DEFAULT_SNDINFO
 	$$ = new_expression(EXPR_SCTP_SNDINFO);
 	$$->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo_expr));
 	$$->value.sctp_sndinfo->snd_sid = $2;
 	$$->value.sctp_sndinfo->snd_flags = $4;
 	$$->value.sctp_sndinfo->snd_ppid = $6;
 	$$->value.sctp_sndinfo->snd_context = $8;
-#else
-	$$ = NULL;
-#endif
 }
 
 sctp_setadaptation
@@ -3121,3 +3120,8 @@ code_spec
  }
 ;
 
+null
+: NULL_ {
+	$$ = new_expression(EXPR_NULL);
+}
+;

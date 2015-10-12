@@ -319,6 +319,7 @@ staleness			return STALENESS;
 param				return PARAM;
 chk				return CHK;
 bad_crc32c			return BAD_CRC32C;
+NULL				return NULL_;
 --[a-zA-Z0-9_]+			yylval.string	= option(yytext); return OPTION;
 [-]?[0-9]*[.][0-9]+		yylval.floating	= atof(yytext);   return FLOAT;
 [-]?[0-9]+			yylval.integer	= atoll(yytext);  return INTEGER;

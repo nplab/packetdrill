@@ -53,6 +53,7 @@ struct expression_type_entry {
 };
 struct expression_type_entry expression_type_table[] = {
 	{ EXPR_NONE,                 "none" },
+	{ EXPR_NULL,		     "null" },
 	{ EXPR_ELLIPSIS,             "ellipsis" },
 	{ EXPR_INTEGER,              "integer" },
 	{ EXPR_WORD,                 "word" },
@@ -280,6 +281,7 @@ void free_expression(struct expression *expression)
 	    (expression->type >= NUM_EXPR_TYPES))
 		assert(!"bad expression type");
 	switch (expression->type) {
+	case EXPR_NULL:
 	case EXPR_ELLIPSIS:
 	case EXPR_INTEGER:
 		break;
@@ -980,6 +982,8 @@ static int evaluate(struct expression *in,
 		return STATUS_ERR;
 	}
 	switch (in->type) {
+	case EXPR_NULL:
+		break;
 	case EXPR_ELLIPSIS:
 		break;
 	case EXPR_INTEGER:		/* copy as-is */

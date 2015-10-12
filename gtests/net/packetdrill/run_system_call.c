@@ -2977,7 +2977,8 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	int result, script_fd, live_fd, len;
 	void *msg = NULL;
 	struct sockaddr_storage to;
-	socklen_t tolen;
+	struct sockaddr_storage *to_ptr = &to;
+	socklen_t tolen = 0;
 	u32 ppid, flags, timetolive, context;
 	u16 stream_no;
 	struct expression *sockaddr_expr, *tolen_expr, *ppid_expr, *flags_expr, *ttl_expr, *stream_no_expr, *context_expr;
@@ -2995,20 +2996,29 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	sockaddr_expr = get_arg(args, 3, error);
 	if (sockaddr_expr->type == EXPR_ELLIPSIS) {
 		socklen_t len = (socklen_t)sizeof(struct sockaddr_storage);
-		if (getpeername(live_fd, (struct sockaddr *)&to, &len)) {
+		if (getpeername(live_fd, (struct sockaddr *)to_ptr, &len)) {
 			return STATUS_ERR;
 		}
 		tolen = len;
-	} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
-		memcpy(&to, sockaddr_expr->value.socket_address_ipv4, sizeof(struct sockaddr_in));
-	} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-		memcpy(&to, sockaddr_expr->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+	} else if (sockaddr_expr->type == EXPR_NULL) {
+		to_ptr = NULL;
+		tolen = 0;
+	} else {
+		if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+			memcpy(to_ptr, sockaddr_expr->value.socket_address_ipv4, sizeof(struct sockaddr_in));
+			tolen = sizeof(struct sockaddr_in);
+		} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+			memcpy(to_ptr, sockaddr_expr->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
+			tolen = sizeof(struct sockaddr_in6);
+		} else {
+			asprintf(error, "Bad input for reciever in sctp_sentmsg");
+			return STATUS_ERR;
+		}
 	}
-	tolen_expr = get_arg(args, 4, error);
-	if (!(tolen_expr->type == EXPR_ELLIPSIS && sockaddr_expr->type == EXPR_ELLIPSIS)) {
+	tolen_expr = get_arg(args, 4, error);	
+	if (tolen_expr->type != EXPR_ELLIPSIS)
 		if (get_u32(tolen_expr, &tolen, error))
 			return STATUS_ERR;
-	}
 	ppid_expr = get_arg(args, 5, error);
 	if (get_u32(ppid_expr, &ppid, error))
 		return STATUS_ERR;
@@ -3024,19 +3034,19 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	context_expr = get_arg(args, 9, error);
 	if (get_u32(context_expr, &context, error))
 		return STATUS_ERR;
+	sockaddr_expr = get_arg(args, 3, error);
 
 	msg = calloc(len, 1);
 	assert(msg != NULL);	
 
 	begin_syscall(state, syscall);
-	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr*) &to, 
+	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr*) to_ptr, 
 			      tolen, ppid, flags, stream_no, timetolive, context);
 
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
 		free(msg);
 		return STATUS_ERR;
 	}
-
 	free(msg);
 	return STATUS_OK;
 }
