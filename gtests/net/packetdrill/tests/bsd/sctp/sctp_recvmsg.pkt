@@ -1,0 +1,30 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+//sctp_recvmsg(int sd, void * msg, size_t len, struct sockaddr * from, socklen_t * fromlen, struct sctp_sndrcvinfo* sinfo, int * msg_flags);
+
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvmsg(3, ..., 1000, ..., ..., ..., 8) = 1000
+
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=2, sid=0, ssn=1, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvmsg(3, ..., 1000, ..., ..., {sinfo_stream=0, sinfo_ssn=1, sinfo_flags=0,
+sinfo_ppid=0, sinfo_context=0, sinfo_timetolive=0, sinfo_tsn=2, sinfo_cumtsn=2}, 8) = 1000
+
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=3, sid=0, ssn=2, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvmsg(3, ..., 1000, {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}, 16,
+{sinfo_stream=0, sinfo_ssn=2, sinfo_flags=0, sinfo_ppid=0, sinfo_context=0, sinfo_timetolive=0, sinfo_tsn=3, sinfo_cumtsn=3}, 8) = 1000
+
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=3]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]

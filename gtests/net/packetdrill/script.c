@@ -53,6 +53,7 @@ struct expression_type_entry {
 };
 struct expression_type_entry expression_type_table[] = {
 	{ EXPR_NONE,                 "none" },
+	{ EXPR_NULL,		     "null" },
 	{ EXPR_ELLIPSIS,             "ellipsis" },
 	{ EXPR_INTEGER,              "integer" },
 	{ EXPR_WORD,                 "word" },
@@ -77,6 +78,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
 	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
+	{ EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -280,6 +282,7 @@ void free_expression(struct expression *expression)
 	    (expression->type >= NUM_EXPR_TYPES))
 		assert(!"bad expression type");
 	switch (expression->type) {
+	case EXPR_NULL:
 	case EXPR_ELLIPSIS:
 	case EXPR_INTEGER:
 		break;
@@ -364,6 +367,16 @@ void free_expression(struct expression *expression)
 		break;		
 	case EXPR_SCTP_SETADAPTATION:
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
+		break;
+	case EXPR_SCTP_SNDRCVINFO:
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_stream);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_ssn);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_flags);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_ppid);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_context);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_timetolive);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_tsn);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_cumtsn);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -966,6 +979,58 @@ static int evaluate_sctp_setadaptation_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_sndrcvinfo_expression(struct expression *in,
+						  struct expression *out,
+						  char **error)
+{
+        struct sctp_sndrcvinfo_expr *in_info;
+        struct sctp_sndrcvinfo_expr *out_info;
+
+        assert(in->type == EXPR_SCTP_SNDRCVINFO);
+        assert(in->value.sctp_sndrcvinfo);
+        assert(out->type == EXPR_SCTP_SNDRCVINFO);
+
+        out->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo_expr));
+                     
+        in_info = in->value.sctp_sndrcvinfo;
+        out_info = out->value.sctp_sndrcvinfo;
+                     
+        if (evaluate(in_info->sinfo_stream,
+		     &out_info->sinfo_stream,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_ssn,
+		     &out_info->sinfo_ssn,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_flags,
+		     &out_info->sinfo_flags,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_ppid,
+		     &out_info->sinfo_ppid,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_context,
+		     &out_info->sinfo_context,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_timetolive,
+		     &out_info->sinfo_timetolive,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_tsn,
+		     &out_info->sinfo_tsn,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_cumtsn,
+		     &out_info->sinfo_cumtsn,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -980,6 +1045,8 @@ static int evaluate(struct expression *in,
 		return STATUS_ERR;
 	}
 	switch (in->type) {
+	case EXPR_NULL:
+		break;
 	case EXPR_ELLIPSIS:
 		break;
 	case EXPR_INTEGER:		/* copy as-is */
@@ -1024,6 +1091,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SETADAPTATION:
 		result = evaluate_sctp_setadaptation_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SNDRCVINFO:
+		result = evaluate_sctp_sndrcvinfo_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

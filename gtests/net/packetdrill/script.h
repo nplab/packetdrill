@@ -33,6 +33,7 @@
 /* The types of expressions in a script */
 enum expression_t {
 	EXPR_NONE,
+	EXPR_NULL,	          /* Expression to handle NULL */
 	EXPR_ELLIPSIS,		  /* ... but no value */
 	EXPR_INTEGER,		  /* integer in 'num' */
 	EXPR_LINGER,		  /* struct linger for SO_LINGER */
@@ -56,7 +57,8 @@ enum expression_t {
 	EXPR_SCTP_ASSOCPARAMS,    /* struct sctp_assocparams for SCTP_ASSOCINFO */
 	EXPR_SCTP_EVENT,	  /* struct sctp_event for SCTP_EVENT */
 	EXPR_SCTP_SNDINFO,	  /* struct sctp_sndinfo for SCTP_DEFAULT_SNDINFO */
-	EXPR_SCTP_SETADAPTATION, /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
+	EXPR_SCTP_SETADAPTATION,  /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
+	EXPR_SCTP_SNDRCVINFO,     /* struct sctp_sndrcvinfo for syscall sctp_recvmsg */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -88,6 +90,7 @@ struct expression {
 		struct sctp_event_expr *sctp_event;
 		struct sctp_sndinfo_expr *sctp_sndinfo;
 		struct sctp_setadaptation_expr *sctp_setadaptation;
+		struct sctp_sndrcvinfo_expr *sctp_sndrcvinfo;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -225,6 +228,18 @@ struct sctp_sndinfo_expr {
 /* Parse tree for sctp_setadaptation struct in [gs]etsockopt syscall. */
 struct sctp_setadaptation_expr {
 	struct expression *ssb_adaptation_ind;
+};
+
+/* Parse tree for sctp_sndrcvinfo in sctp_recvmsg syscall. */
+struct sctp_sndrcvinfo_expr {
+	struct expression *sinfo_stream;
+	struct expression *sinfo_ssn;
+	struct expression *sinfo_flags;
+	struct expression *sinfo_ppid;
+	struct expression *sinfo_context;
+	struct expression *sinfo_timetolive;
+	struct expression *sinfo_tsn;
+	struct expression *sinfo_cumtsn;
 };
 
 /* The errno-related info from strace to summarize a system call error */
