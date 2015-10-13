@@ -2983,7 +2983,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	u32 ppid, flags, timetolive, context;
 	u16 stream_no;
 	struct expression *sockaddr_expr, *tolen_expr, *ppid_expr, *flags_expr, *ttl_expr, *stream_no_expr, *context_expr;
-	
+
 	if (check_arg_count(args, 10, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -3012,11 +3012,11 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 			memcpy(to_ptr, sockaddr_expr->value.socket_address_ipv6, sizeof(struct sockaddr_in6));
 			tolen = sizeof(struct sockaddr_in6);
 		} else {
-			asprintf(error, "Bad input for reciever in sctp_sentmsg");
+			asprintf(error, "Bad input for receiver in sctp_sendmsg");
 			return STATUS_ERR;
 		}
 	}
-	tolen_expr = get_arg(args, 4, error);	
+	tolen_expr = get_arg(args, 4, error);
 	if (tolen_expr->type != EXPR_ELLIPSIS)
 		if (get_u32(tolen_expr, &tolen, error))
 			return STATUS_ERR;
@@ -3037,10 +3037,10 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 		return STATUS_ERR;
 
 	msg = calloc(len, 1);
-	assert(msg != NULL);	
+	assert(msg != NULL);
 
 	begin_syscall(state, syscall);
-	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr*) to_ptr, 
+	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr *) to_ptr,
 			      tolen, ppid, flags, stream_no, timetolive, context);
 
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
@@ -3057,7 +3057,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 
 #if defined(__FreeBSD__) || defined(__Linux__)
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
-				 struct sctp_sndrcvinfo *sctp_sndrcvinfo, 
+				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error) {
 	if (expr->sinfo_stream->type != EXPR_ELLIPSIS) {
 		u16 sinfo_stream;
@@ -3101,9 +3101,9 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 		if (get_u32(expr->sinfo_ppid, &sinfo_ppid, error)) {
 			return STATUS_ERR;
 		}
-		if (sctp_sndrcvinfo->sinfo_ppid != sinfo_ppid) {
+		if (ntohl(sctp_sndrcvinfo->sinfo_ppid) != ntohl(sinfo_ppid)) {
 			asprintf(error, "sctp_sndrcvinfo.sinfo_ppid: expected: %u actual: %u",
-				 sinfo_ppid, sctp_sndrcvinfo->sinfo_ppid);
+				 ntohl(sinfo_ppid), ntohl(sctp_sndrcvinfo->sinfo_ppid));
 			return STATUS_ERR;
 		}
 	}
@@ -3192,7 +3192,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	result = sctp_recvmsg(live_fd, msg, len, (struct sockaddr*) &live_from,
 			      &live_fromlen, &live_sinfo, &live_msg_flags);
 	free(msg);
-	
+
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
 		return STATUS_ERR;
 	}
@@ -3206,7 +3206,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 			script_addr = (struct sockaddr*)script_from_expr->value.socket_address_ipv6;
 		} else {
 			asprintf(error, "sctp_recvmsg fromlen: can't check sctp_recvmsg from");
-			return STATUS_ERR;			
+			return STATUS_ERR;
 		}
 		if (script_addr->sa_family != live_from.sa_family) {
 			asprintf(error, "sctp_recvmsg from.sa_family: expected: %d actual: %d",
@@ -3214,7 +3214,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 			return STATUS_ERR;
 		}
 		switch(script_addr->sa_family) {
-		case AF_INET: 
+		case AF_INET:
 			{
 				struct sockaddr_in *script_sockaddr = (struct sockaddr_in*)script_addr;
 				struct sockaddr_in *live_sockaddr = (struct sockaddr_in*)&live_from;
@@ -3234,7 +3234,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 				}
 			}
 			break;
-		case AF_INET6: 
+		case AF_INET6:
 			{
 				struct sockaddr_in6 *script_sockaddr = (struct sockaddr_in6*)script_addr;
 				struct sockaddr_in6 *live_sockaddr = (struct sockaddr_in6*)&live_from;

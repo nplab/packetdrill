@@ -1292,6 +1292,12 @@ opt_ppid
 	}
 	$$ = $3;
 }
+| PPID '=' HEX_INTEGER  {
+	if (!is_valid_u32($3)) {
+		semantic_error("ppid value out of range");
+	}
+	$$ = $3;
+}
 ;
 
 opt_fsn
@@ -2328,6 +2334,18 @@ expression
 }
 | decimal_integer   { $$ = $1; }
 | hex_integer       { $$ = $1; }
+| _HTONL_ '(' INTEGER ')' {
+	if (!is_valid_u32($3)) {
+		semantic_error("number out of range");
+	}
+	$$ = new_integer_expression(htonl((u32)$3), "%lu");
+}
+| _HTONL_ '(' HEX_INTEGER ')' {
+	if (!is_valid_u32($3)) {
+		semantic_error("number out of range");
+	}
+	$$ = new_integer_expression(htonl((u32)$3), "%#lx");
+}
 | WORD              {
 	$$ = new_expression(EXPR_WORD);
 	$$->value.string = $1;
@@ -3040,11 +3058,11 @@ snd_flags
 ;
 
 snd_ppid
-: SND_PPID '=' INTEGER {
-	if (!is_valid_u32($3)) {
+: SND_PPID '=' _HTONL_ '(' INTEGER ')'{
+	if (!is_valid_u32($5)) {
 		semantic_error("snd_ppid out of range");
 	}
-	$$ = new_integer_expression($3, "%u");
+	$$ = new_integer_expression(htonl((u32)$5), "%u");
 }
 | SND_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
@@ -3112,11 +3130,11 @@ sinfo_flags
 ;
 
 sinfo_ppid
-: SINFO_PPID '=' INTEGER {
-	if (!is_valid_u32($3)) {
+: SINFO_PPID '=' _HTONL_ '(' INTEGER ')' {
+	if (!is_valid_u32($5)) {
 		semantic_error("sinfo_ppid out of range");
 	}
-	$$ = new_integer_expression($3, "%u");
+	$$ = new_integer_expression(htonl((u32)$5), "%u");
 }
 | SINFO_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;

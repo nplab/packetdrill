@@ -11,11 +11,11 @@
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 //sctp_sendmsg(int sd, const void * msg, size_t len, struct sockaddr *to, socklen_t tolen,
 //             uint32_t ppid, uint32_t flags, uint16_t stream_no, uint32_t timetolive, uint32_t context);
-+0.0 sctp_sendmsg(3, ..., 1000, ..., ..., 1234, SCTP_UNORDERED, 1, 0, 0) = 1000
++0.0 sctp_sendmsg(3, ..., 1000, ..., ..., htonl(1234), SCTP_UNORDERED, 1, 0, 0) = 1000
 +0.0 > sctp: DATA[flgs=UBE, len=1016, tsn=1, sid=1, ssn=0, ppid=1234]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
-+0.0 sctp_sendmsg(3, ..., 1000, {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}, 16, 0, 0, 0, 0, 0) = 1000
-+0.0 > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=0, ssn=0, ppid=0]
++0.0 sctp_sendmsg(3, ..., 1000, {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}, 16, htonl(0x1234), 0, 0, 0, 0) = 1000
++0.0 > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=0, ssn=0, ppid=0x1234]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=1500, gaps=[], dups=[]]
 +0.0 sctp_sendmsg(3, ..., 1000, NULL, 0, 0, 0, 0, 0, 0) = 1000
 +0.0 > sctp: DATA[flgs=BE, len=1016, tsn=3, sid=0, ssn=1, ppid=0]
