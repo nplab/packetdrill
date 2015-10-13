@@ -3172,7 +3172,7 @@ sinfo_cumtsn
 sctp_sndrcvinfo
 : '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_timetolive ',' sinfo_tsn ',' sinfo_cumtsn '}' {
 	$$ = new_expression(EXPR_SCTP_SNDRCVINFO);
-	$$->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo));
+	$$->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo_expr));
 	$$->value.sctp_sndrcvinfo->sinfo_stream = $2;
 	$$->value.sctp_sndrcvinfo->sinfo_ssn = $4;
 	$$->value.sctp_sndrcvinfo->sinfo_flags = $6;
