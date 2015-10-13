@@ -2974,7 +2974,7 @@ error_out:
 static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
-#if defined(__FreeBSD__) || defined(__Linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__) || defined(__Linux__)
 	int result, script_fd, live_fd, len;
 	void *msg = NULL;
 	struct sockaddr_storage to;
@@ -3055,7 +3055,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-#if defined(__FreeBSD__) || defined(__Linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__) || defined(__Linux__)
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo, 
 				 char** error) {
@@ -3163,7 +3163,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 				struct expression_list *args,
 				char **error)
 {
-#if defined(__FreeBSD__) || defined(__Linux__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__) || defined(__Linux__)
 	int script_fd, live_fd, live_msg_flags, result;
 	void *msg;
 	u32 len;
