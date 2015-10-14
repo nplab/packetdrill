@@ -493,7 +493,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
  * have ALL_CAPS names, and nonterminal symbols have lower_case names.
  */
 %token ELLIPSIS
-%token <reserved> SA_FAMILY SIN_PORT SIN_ADDR _HTONS_ INET_ADDR
+%token <reserved> SA_FAMILY SIN_PORT SIN_ADDR _HTONS_ _HTONL_ INET_ADDR
 %token <reserved> MSG_NAME MSG_IOV MSG_FLAGS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
@@ -591,7 +591,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
 %type <expression> sctp_event se_type se_on sctp_setadaptation null
-%type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context 
+%type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -1323,6 +1323,12 @@ opt_mid
 opt_ppid
 : PPID '=' ELLIPSIS { $$ = -1; }
 | PPID '=' INTEGER  {
+	if (!is_valid_u32($3)) {
+		semantic_error("ppid value out of range");
+	}
+	$$ = $3;
+}
+| PPID '=' HEX_INTEGER  {
 	if (!is_valid_u32($3)) {
 		semantic_error("ppid value out of range");
 	}
@@ -2364,6 +2370,18 @@ expression
 }
 | decimal_integer   { $$ = $1; }
 | hex_integer       { $$ = $1; }
+| _HTONL_ '(' INTEGER ')' {
+	if (!is_valid_u32($3)) {
+		semantic_error("number out of range");
+	}
+	$$ = new_integer_expression(htonl((u32)$3), "%lu");
+}
+| _HTONL_ '(' HEX_INTEGER ')' {
+	if (!is_valid_u32($3)) {
+		semantic_error("number out of range");
+	}
+	$$ = new_integer_expression(htonl((u32)$3), "%#lx");
+}
 | WORD              {
 	$$ = new_expression(EXPR_WORD);
 	$$->value.string = $1;
@@ -2685,26 +2703,18 @@ sctp_initmsg
 
 sctp_stream_value
 : '{' STREAM_ID '=' expression ',' STREAM_VALUE '=' expression '}' {
-#if defined(SCTP_SS_VALUE)
 	$$ = new_expression(EXPR_SCTP_STREAM_VALUE);
 	$$->value.sctp_stream_value = calloc(1, sizeof(struct sctp_stream_value_expr));
 	$$->value.sctp_stream_value->stream_id = $4;
 	$$->value.sctp_stream_value->stream_value = $8;
-#else
-	$$ = NULL;
-#endif
 }
 ;
 
 sctp_assoc_value
 : '{' ASSOC_VALUE '=' expression '}' {
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	$$ = new_expression(EXPR_SCTP_ASSOC_VALUE);
 	$$->value.sctp_assoc_value = calloc(1, sizeof(struct sctp_assoc_value_expr));
 	$$->value.sctp_assoc_value->assoc_value = $4;
-#else
-	$$ = NULL;
-#endif
 }
 ;
 
@@ -3084,11 +3094,11 @@ snd_flags
 ;
 
 snd_ppid
-: SND_PPID '=' INTEGER {
-	if (!is_valid_u32($3)) {
+: SND_PPID '=' _HTONL_ '(' INTEGER ')'{
+	if (!is_valid_u32($5)) {
 		semantic_error("snd_ppid out of range");
 	}
-	$$ = new_integer_expression($3, "%u");
+	$$ = new_integer_expression(htonl((u32)$5), "%u");
 }
 | SND_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
@@ -3156,11 +3166,11 @@ sinfo_flags
 ;
 
 sinfo_ppid
-: SINFO_PPID '=' INTEGER {
-	if (!is_valid_u32($3)) {
+: SINFO_PPID '=' _HTONL_ '(' INTEGER ')' {
+	if (!is_valid_u32($5)) {
 		semantic_error("sinfo_ppid out of range");
 	}
-	$$ = new_integer_expression($3, "%u");
+	$$ = new_integer_expression(htonl((u32)$5), "%u");
 }
 | SINFO_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
@@ -3208,7 +3218,7 @@ sinfo_cumtsn
 sctp_sndrcvinfo
 : '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_timetolive ',' sinfo_tsn ',' sinfo_cumtsn '}' {
 	$$ = new_expression(EXPR_SCTP_SNDRCVINFO);
-	$$->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo));
+	$$->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo_expr));
 	$$->value.sctp_sndrcvinfo->sinfo_stream = $2;
 	$$->value.sctp_sndrcvinfo->sinfo_ssn = $4;
 	$$->value.sctp_sndrcvinfo->sinfo_flags = $6;

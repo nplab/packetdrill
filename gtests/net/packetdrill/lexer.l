@@ -171,6 +171,7 @@ revents				return REVENTS;
 onoff				return ONOFF;
 linger				return LINGER;
 htons				return _HTONS_;
+htonl				return _HTONL_;
 ipv4				return IPV4;
 ipv6				return IPV6;
 icmp				return ICMP;
