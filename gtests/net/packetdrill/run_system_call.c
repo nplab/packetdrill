@@ -122,44 +122,7 @@ static int get_arg_count(struct expression_list *args)
 {
 	return expression_list_length(args);
 }
-/* This table maps expression types to human-readable strings */
-struct expression_type_entry {
-        enum expression_t type;
-        const char *name;
-};
-struct expression_type_entry expression_type_table2[] = {
-        { EXPR_NONE,                 "none" },
-        { EXPR_NULL,                 "null" },
-        { EXPR_ELLIPSIS,             "ellipsis" },
-        { EXPR_INTEGER,              "integer" },
-        { EXPR_WORD,                 "word" },
-        { EXPR_STRING,               "string" },
-        { EXPR_SOCKET_ADDRESS_IPV4,  "sockaddr_in" },
-        { EXPR_SOCKET_ADDRESS_IPV6,  "sockaddr_in6" },
-        { EXPR_LINGER,               "linger" },
-        { EXPR_BINARY,               "binary_expression" },
-        { EXPR_LIST,                 "list" },
-        { EXPR_IOVEC,                "iovec" },
-        { EXPR_MSGHDR,               "msghdr" },
-        { EXPR_POLLFD,               "pollfd" },
-        { EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
-        { EXPR_SCTP_INITMSG,         "sctp_initmsg"},
-        { EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
-        { EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
-        { EXPR_SCTP_STATUS,          "sctp_status"},
-        { EXPR_SCTP_PADDRINFO,       "sctp_paddrinfo"},
-        { EXPR_SCTP_PEER_ADDR_PARAMS,"sctp_peer_addr_params"},
-        { EXPR_SCTP_STREAM_VALUE,    "sctp_stream_value"},
-        { EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
-        { EXPR_SCTP_EVENT,           "sctp_event"      },
-        { EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
-        { EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
-        { EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
-        { EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
-        { EXPR_SCTP_AUTHINFO,        "sctp_authinfo"   },
-        { EXPR_SCTP_SENDV_SPA,       "sctp_sendv_spa"  },
-        { NUM_EXPR_TYPES,            NULL}
-};
+
 /* Verify that the expression list has the expected number of
  * expressions. Returns STATUS_OK on success; on failure returns
  * STATUS_ERR and sets error message.
@@ -3446,7 +3409,7 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 		int addrlen = expression_list_length(addrs_expr_list);
 		int i = 0;
 		size_t size = 0;
-		struct sockaddr *addr_ptr;
+		char *addr_ptr;
 		for (i = 0; i < addrlen; i++) {
 			expr = get_arg(addrs_expr_list, i, error); 
 			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
@@ -3458,23 +3421,24 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			}
 		}
 		addrs = malloc(size);
-		addr_ptr = (struct sockaddr *)addrs;
+		addr_ptr = (char *)addrs;
 		for(i = 0; i < addrlen; i++) {
 			expr = get_arg(addrs_expr_list, i, error);
                         if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
 				size = sizeof(struct sockaddr_in);
-                                memcpy(expr->value.socket_address_ipv4, addr_ptr, size);
-				addr_ptr = addr_ptr + sizeof(struct sockaddr_in);
-                        } else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-                                size = sizeof(struct sockaddr_in);
-                                memcpy(expr->value.socket_address_ipv6, addr_ptr, size);
-				addr_ptr = addr_ptr + sizeof(struct sockaddr_in6);
+				memcpy(addr_ptr, expr->value.socket_address_ipv4, size);
+				addr_ptr += size;
+			} else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+				size = sizeof(struct sockaddr_in6);
+				memcpy(addr_ptr, expr->value.socket_address_ipv6, size);
+				addr_ptr += size;
+			} else {
+				return STATUS_ERR;
 			}
 		}
 	} else {
 		return STATUS_ERR;
 	}
-
 	addrcnt_expr = get_arg(args, 4, error);
 	if (get_s32(addrcnt_expr, &addrcnt, error))
 		return STATUS_ERR;
