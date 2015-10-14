@@ -59,6 +59,9 @@ enum expression_t {
 	EXPR_SCTP_SNDINFO,	  /* struct sctp_sndinfo for SCTP_DEFAULT_SNDINFO */
 	EXPR_SCTP_SETADAPTATION,  /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
 	EXPR_SCTP_SNDRCVINFO,     /* struct sctp_sndrcvinfo for syscall sctp_recvmsg */
+	EXPR_SCTP_PRINFO,	  /* struct sctp_prinfo for syscall sctp_sendv */
+	EXPR_SCTP_AUTHINFO,	  /* struct sctp_authinfo for syscall sctp_sendv */
+	EXPR_SCTP_SENDV_SPA,	  /* struct sctp_sendv_spa for syscall sctp_sendv */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -91,6 +94,9 @@ struct expression {
 		struct sctp_sndinfo_expr *sctp_sndinfo;
 		struct sctp_setadaptation_expr *sctp_setadaptation;
 		struct sctp_sndrcvinfo_expr *sctp_sndrcvinfo;
+		struct sctp_prinfo_expr *sctp_prinfo;
+		struct sctp_authinfo_expr *sctp_authinfo;
+		struct sctp_sendv_spa_expr *sctp_sendv_spa;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -137,6 +143,7 @@ struct linger_expr {
 	struct expression *l_onoff;
 	struct expression *l_linger;
 };
+
 /* Parse tree for a sctp_rtoinfo struct in a [gs]etsockopt syscall. */
 struct sctp_rtoinfo_expr {
 	struct expression *srto_initial;
@@ -240,6 +247,25 @@ struct sctp_sndrcvinfo_expr {
 	struct expression *sinfo_timetolive;
 	struct expression *sinfo_tsn;
 	struct expression *sinfo_cumtsn;
+};
+
+/* Parse tree for sctp_prinfo in sctp_sendv syscall. */
+struct sctp_prinfo_expr {
+	struct expression *pr_policy;
+	struct expression *pr_value;
+};
+
+/* Parse tree for sctp_authinfo in sctp_sendv syscall. */
+struct sctp_authinfo_expr {
+	struct expression *auth_keynumber;
+};
+
+/* Parse tree for sctp_sendv_spa in sctp_sendv syscall. */
+struct sctp_sendv_spa_expr {
+	struct expression *sendv_flags;
+	struct expression *sendv_sndinfo;
+	struct expression *sendv_prinfo;
+	struct expression *sendv_authinfo;
 };
 
 /* The errno-related info from strace to summarize a system call error */

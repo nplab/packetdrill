@@ -185,6 +185,16 @@ struct int_symbol platform_symbols_table[] = {
         { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
 	{ SCTP_EOR,                         "SCTP_EOR"                        },
 	{ SCTP_SACK_IMMEDIATELY,            "SCTP_SACK_IMMEDIATELY"           },
+	{ SCTP_PR_SCTP_NONE,                "SCTP_PR_SCTP_NONE"		      },
+	{ SCTP_PR_SCTP_TTL,                 "SCTP_PR_SCTP_TTL"		      },
+	{ SCTP_SENDV_NOINFO,                "SCTP_SENDV_NOINFO"               },
+	{ SCTP_SENDV_SNDINFO,               "SCTP_SENDV_SNDINFO"              },
+	{ SCTP_SENDV_PRINFO,                "SCTP_SENDV_PRINFO"               },
+	{ SCTP_SENDV_AUTHINFO,              "SCTP_SENDV_AUTHINFO"             },
+	{ SCTP_SENDV_SPA,                   "SCTP_SENDV_SPA"                  },
+	{ SCTP_SEND_SNDINFO_VALID,          "SCTP_SEND_SNDINFO_VALID"         },
+	{ SCTP_SEND_PRINFO_VALID,           "SCTP_SEND_PRINFO_VALID"          },
+	{ SCTP_SEND_AUTHINFO_VALID,         "SCTP_SEND_AUTHINFO_VALID"        },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },

@@ -122,7 +122,44 @@ static int get_arg_count(struct expression_list *args)
 {
 	return expression_list_length(args);
 }
-
+/* This table maps expression types to human-readable strings */
+struct expression_type_entry {
+        enum expression_t type;
+        const char *name;
+};
+struct expression_type_entry expression_type_table2[] = {
+        { EXPR_NONE,                 "none" },
+        { EXPR_NULL,                 "null" },
+        { EXPR_ELLIPSIS,             "ellipsis" },
+        { EXPR_INTEGER,              "integer" },
+        { EXPR_WORD,                 "word" },
+        { EXPR_STRING,               "string" },
+        { EXPR_SOCKET_ADDRESS_IPV4,  "sockaddr_in" },
+        { EXPR_SOCKET_ADDRESS_IPV6,  "sockaddr_in6" },
+        { EXPR_LINGER,               "linger" },
+        { EXPR_BINARY,               "binary_expression" },
+        { EXPR_LIST,                 "list" },
+        { EXPR_IOVEC,                "iovec" },
+        { EXPR_MSGHDR,               "msghdr" },
+        { EXPR_POLLFD,               "pollfd" },
+        { EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
+        { EXPR_SCTP_INITMSG,         "sctp_initmsg"},
+        { EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
+        { EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
+        { EXPR_SCTP_STATUS,          "sctp_status"},
+        { EXPR_SCTP_PADDRINFO,       "sctp_paddrinfo"},
+        { EXPR_SCTP_PEER_ADDR_PARAMS,"sctp_peer_addr_params"},
+        { EXPR_SCTP_STREAM_VALUE,    "sctp_stream_value"},
+        { EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
+        { EXPR_SCTP_EVENT,           "sctp_event"      },
+        { EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
+        { EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
+        { EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
+        { EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
+        { EXPR_SCTP_AUTHINFO,        "sctp_authinfo"   },
+        { EXPR_SCTP_SENDV_SPA,       "sctp_sendv_spa"  },
+        { NUM_EXPR_TYPES,            NULL}
+};
 /* Verify that the expression list has the expected number of
  * expressions. Returns STATUS_OK on success; on failure returns
  * STATUS_ERR and sets error message.
@@ -3043,11 +3080,10 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr *) to_ptr,
 			      tolen, ppid, flags, stream_no, timetolive, context);
 
+	free(msg);
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
-		free(msg);
 		return STATUS_ERR;
 	}
-	free(msg);
 	return STATUS_OK;
 #else
 	asprintf(error, "sctp_sendmsg is not supported");
@@ -3294,6 +3330,207 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
+int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
+	if (expr->type == EXPR_SCTP_SNDINFO) {
+		struct sctp_sndinfo_expr *sndinfo_expr = expr->value.sctp_sndinfo;
+		info->snd_assoc_id = 0;
+		if (get_u16(sndinfo_expr->snd_sid, &info->snd_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(sndinfo_expr->snd_flags, &info->snd_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndinfo_expr->snd_ppid, &info->snd_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndinfo_expr->snd_context, &info->snd_context, error)) {
+			return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+int parse_expression_to_sctp_authinfo(struct expression *expr, struct sctp_authinfo *info, char **error) {
+	if (expr->type == EXPR_SCTP_AUTHINFO) {
+		struct sctp_authinfo_expr *auth_expr = expr->value.sctp_authinfo;
+		if (get_u16(auth_expr->auth_keynumber, &info->auth_keynumber, error)) {
+			return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info, char **error) {
+	if (expr->type == EXPR_SCTP_PRINFO) {
+		struct sctp_prinfo_expr *prinfo_expr = expr->value.sctp_prinfo;
+		if (get_u16(prinfo_expr->pr_policy, &info->pr_policy, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(prinfo_expr->pr_value, &info->pr_value, error)) {
+			return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sctp_sendv_spa *info, char **error) {
+	if (expr->type == EXPR_SCTP_SENDV_SPA) {
+		struct sctp_sendv_spa_expr *spa_expr = expr->value.sctp_sendv_spa;
+		if (get_u32(spa_expr->sendv_flags, &info->sendv_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (spa_expr->sendv_sndinfo->type != EXPR_ELLIPSIS) {
+			if (parse_expression_to_sctp_sndinfo(spa_expr->sendv_sndinfo, &info->sendv_sndinfo, error))
+				return STATUS_ERR;
+		}
+		if (spa_expr->sendv_sndinfo->type != EXPR_ELLIPSIS) {
+			if (parse_expression_to_sctp_prinfo(spa_expr->sendv_prinfo, &info->sendv_prinfo, error))
+				return STATUS_ERR;
+		}
+		if (spa_expr->sendv_sndinfo->type != EXPR_ELLIPSIS) {
+			if (parse_expression_to_sctp_authinfo(spa_expr->sendv_authinfo, &info->sendv_authinfo, error))
+				return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
+			      struct expression_list *args,
+			      char **error)
+{
+#if defined(__FreeBSD__)
+	int script_fd, live_fd, iovcnt, addrcnt, result, flags;
+	u32 infotype, script_iovec_list_len = 0;
+	socklen_t infolen;
+	struct sockaddr *addrs;
+	void *info;
+	struct iovec *iov;
+	struct expression *iovec_expr_list, *iovcnt_expr, *addrs_expr, *addrcnt_expr;
+	struct expression *info_expr, *infolen_expr, *infotype_expr, *flags_expr;
+	struct sctp_sndinfo sndinfo;
+	struct sctp_prinfo prinfo;
+	struct sctp_authinfo authinfo;
+	struct sctp_sendv_spa spa;
+
+	if (check_arg_count(args, 9, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	iovec_expr_list = get_arg(args, 1, error);
+	iovec_new(iovec_expr_list, &iov,  &script_iovec_list_len, error);	
+	iovcnt_expr = get_arg(args, 2, error);
+	if (get_s32(iovcnt_expr, &iovcnt, error))
+		return STATUS_ERR;
+	addrs_expr = get_arg(args, 3, error);
+	if (addrs_expr->type == EXPR_NULL) {
+		addrs = NULL;
+	} else if (addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV4 ||
+		   addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV6 ||
+		   addrs_expr->type == EXPR_ELLIPSIS) {
+		addrs = malloc(sizeof(struct sockaddr_storage));
+		get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd);
+	} else if (addrs_expr->type == EXPR_LIST) {
+		struct expression_list *addrs_expr_list = (struct expression_list *)addrs_expr->value.list;
+		struct expression *expr;
+		int addrlen = expression_list_length(addrs_expr_list);
+		int i = 0;
+		size_t size = 0;
+		struct sockaddr *addr_ptr;
+		for (i = 0; i < addrlen; i++) {
+			expr = get_arg(addrs_expr_list, i, error); 
+			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+				size += sizeof(struct sockaddr_in);
+			} else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+				size += sizeof(struct sockaddr_in);
+			} else {
+				return STATUS_ERR;
+			}
+		}
+		addrs = malloc(size);
+		addr_ptr = (struct sockaddr *)addrs;
+		for(i = 0; i < addrlen; i++) {
+			expr = get_arg(addrs_expr_list, i, error);
+                        if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+				size = sizeof(struct sockaddr_in);
+                                memcpy(expr->value.socket_address_ipv4, addr_ptr, size);
+				addr_ptr = addr_ptr + sizeof(struct sockaddr_in);
+                        } else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+                                size = sizeof(struct sockaddr_in);
+                                memcpy(expr->value.socket_address_ipv6, addr_ptr, size);
+				addr_ptr = addr_ptr + sizeof(struct sockaddr_in6);
+			}
+		}
+	} else {
+		return STATUS_ERR;
+	}
+
+	addrcnt_expr = get_arg(args, 4, error);
+	if (get_s32(addrcnt_expr, &addrcnt, error))
+		return STATUS_ERR;
+	info_expr = get_arg(args, 5, error);
+	if (info_expr->type == EXPR_SCTP_SNDINFO) {
+		if (parse_expression_to_sctp_sndinfo(info_expr, &sndinfo, error))
+			return STATUS_ERR;
+		info = &sndinfo;
+	} else if (info_expr->type == EXPR_SCTP_PRINFO) {
+		info = malloc(sizeof(struct sctp_prinfo));
+		if (parse_expression_to_sctp_prinfo(info_expr, &prinfo, error))
+			return STATUS_ERR;
+		info = &prinfo;
+	} else if (info_expr->type == EXPR_SCTP_AUTHINFO) {
+		if (parse_expression_to_sctp_authinfo(info_expr, &authinfo, error))
+			return STATUS_ERR;
+		info = &authinfo;
+	} else if (info_expr->type == EXPR_SCTP_SENDV_SPA) {
+		if (parse_expression_to_sctp_sendv_spa(info_expr, &spa, error))
+			return STATUS_ERR;
+		info = &spa;
+	} else if (info_expr->type == EXPR_NULL) {
+		info = NULL;
+	} else {
+		asprintf(error, "Bad input for info");
+		return STATUS_ERR;
+	}
+	infolen_expr = get_arg(args, 6, error);
+	if (get_u32(infolen_expr, &infolen, error))
+		return STATUS_ERR;
+	infotype_expr = get_arg(args, 7, error);
+	if (get_u32(infotype_expr, &infotype, error))
+		return STATUS_ERR;
+	flags_expr = get_arg(args, 8, error);
+	if (get_s32(flags_expr, &flags, error))
+		return STATUS_ERR;
+
+	begin_syscall(state, syscall);
+
+	result = sctp_sendv(live_fd, iov, iovcnt, addrs, addrcnt, info, infolen, infotype, flags);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
+		free(addrs);
+		iovec_free(iov, script_iovec_list_len);
+		return STATUS_ERR;
+	}
+	free(addrs);
+	iovec_free(iov, script_iovec_list_len);
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_sendv is not supported");
+	return STATUS_ERR;
+#endif
+}
+
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
 	const char *name;
@@ -3327,6 +3564,7 @@ struct system_call_entry system_call_table[] = {
 	{"poll",       syscall_poll},
 	{"sctp_sendmsg", syscall_sctp_sendmsg},
 	{"sctp_recvmsg", syscall_sctp_recvmsg},
+	{"sctp_sendv", syscall_sctp_sendv},
 };
 
 /* Evaluate the system call arguments and invoke the system call. */
