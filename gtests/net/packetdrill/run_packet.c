@@ -578,19 +578,22 @@ static int map_inbound_sctp_packet(
 	struct sctp_init_chunk *init;
 	struct sctp_init_ack_chunk *init_ack;
 	struct sctp_sack_chunk *sack;
+	struct sctp_abort_chunk *abort;
 	struct sctp_shutdown_chunk *shutdown;
 	struct sctp_ecne_chunk *ecne;
 	struct sctp_cwr_chunk *cwr;
+	struct sctp_shutdown_complete_chunk *shutdown_complete;
 	struct sctp_i_data_chunk *i_data;
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
+	bool mapped_vtag;
 
 	DEBUGP("live remote initiate tag 0x%08x, script remote initiate tag 0x%08x\n",
 	       socket->live.remote_initiate_tag, socket->script.remote_initiate_tag);
 	DEBUGP("live local initiate tag 0x%08x, script local initiate tag 0x%08x\n",
 	       socket->live.local_initiate_tag, socket->script.local_initiate_tag);
 
-	live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+	mapped_vtag = false;
 	for (chunk = sctp_chunks_begin(live_packet, &iter, error);
 	     chunk != NULL;
 	     chunk = sctp_chunks_next(&iter, error)) {
@@ -613,6 +616,7 @@ static int map_inbound_sctp_packet(
 			init->initial_tsn = htonl(ntohl(init->initial_tsn) + remote_diff);
 			/* XXX: Does this work in all cases? */
 			live_packet->sctp->v_tag = htonl(0);
+			mapped_vtag = true;
 			if (ntohl(init->initiate_tag) == socket->script.local_initiate_tag) {
 				init->initiate_tag = htonl(socket->live.local_initiate_tag);
 			}
@@ -636,6 +640,15 @@ static int map_inbound_sctp_packet(
 				sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
 			}
 			break;
+		case SCTP_ABORT_CHUNK_TYPE:
+			abort = (struct sctp_abort_chunk *)chunk;
+			if (abort->flags & SCTP_ABORT_CHUNK_T_BIT) {
+				live_packet->sctp->v_tag = htonl(socket->live.remote_initiate_tag);
+			} else {
+				live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+			}
+			mapped_vtag = true;
+			break;
 		case SCTP_SHUTDOWN_CHUNK_TYPE:
 			shutdown = (struct sctp_shutdown_chunk *)chunk;
 			shutdown->cum_tsn = htonl(ntohl(shutdown->cum_tsn) + local_diff);
@@ -648,6 +661,15 @@ static int map_inbound_sctp_packet(
 			cwr = (struct sctp_cwr_chunk *)chunk;
 			cwr->lowest_tsn = htonl(ntohl(cwr->lowest_tsn) + local_diff);
 			break;
+		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
+			shutdown_complete = (struct sctp_shutdown_complete_chunk *)chunk;
+			if (shutdown_complete->flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT) {
+				live_packet->sctp->v_tag = htonl(socket->live.remote_initiate_tag);
+			} else {
+				live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+			}
+			mapped_vtag = true;
+			break;
 		case SCTP_I_DATA_CHUNK_TYPE:
 			i_data = (struct sctp_i_data_chunk *)chunk;
 			i_data->tsn = htonl(ntohl(i_data->tsn) + remote_diff);
@@ -656,6 +678,12 @@ static int map_inbound_sctp_packet(
 			break;
 		}
 	}
+	if (!mapped_vtag) {
+		live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+	}
+	DEBUGP("verification tag of inbound packet: 0x%08x\n",
+	       ntohl(live_packet->sctp->v_tag));
+
 	return STATUS_OK;
 }
 
