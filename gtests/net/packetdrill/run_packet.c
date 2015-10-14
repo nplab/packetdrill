@@ -585,6 +585,11 @@ static int map_inbound_sctp_packet(
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
 
+	DEBUGP("live remote initiate tag 0x%08x, script remote initiate tag 0x%08x\n",
+	       socket->live.remote_initiate_tag, socket->script.remote_initiate_tag);
+	DEBUGP("live local initiate tag 0x%08x, script local initiate tag 0x%08x\n",
+	       socket->live.local_initiate_tag, socket->script.local_initiate_tag);
+
 	live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
 	for (chunk = sctp_chunks_begin(live_packet, &iter, error);
 	     chunk != NULL;
@@ -592,9 +597,9 @@ static int map_inbound_sctp_packet(
 		if (*error != NULL) {
 			return STATUS_ERR;
 		}
-		DEBUGP("live remote tsn 0x%08x, scripte remote tsn 0x%08x\n",
+		DEBUGP("live remote tsn 0x%08x, script remote tsn 0x%08x\n",
 		       socket->live.remote_initial_tsn, socket->script.remote_initial_tsn);
-		DEBUGP("live local tsn 0x%08x, scripte local tsn 0x%08x\n",
+		DEBUGP("live local tsn 0x%08x, script local tsn 0x%08x\n",
 		       socket->live.local_initial_tsn, socket->script.local_initial_tsn);
 		remote_diff = socket->live.remote_initial_tsn - socket->script.remote_initial_tsn;
 		local_diff = socket->live.local_initial_tsn - socket->script.local_initial_tsn;
