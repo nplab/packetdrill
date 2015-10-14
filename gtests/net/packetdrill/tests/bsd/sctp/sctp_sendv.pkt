@@ -61,10 +61,20 @@ sendv_authinfo={auth_keynumber=123}}, 32, SCTP_SENDV_SPA, 0) = 1000
 *    > sctp: DATA[flgs=BE, len=1016, tsn=9, sid=1, ssn=0, ppid=1234]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=9, a_rwnd=1500, gaps=[], dups=[]]
 
-//test with struct sockaddr
-+1.0 sctp_sendv(3, [{..., 1000}], 1, [{sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}], 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
-*    > sctp: DATA[flgs=BE, len=1016, tsn=10, sid=5, ssn=0, ppid=1234]
+//test base
++1.0 sctp_sendv(3, [{..., 1000}], 1, ..., 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=10, sid=0, ssn=7, ppid=0]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=10, a_rwnd=1500, gaps=[], dups=[]]
+
+//test with struct sockaddr
++1.0 sctp_sendv(3, [{..., 1000}], 1, {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}, 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=11, sid=0, ssn=8, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=11, a_rwnd=1500, gaps=[], dups=[]]
+
+//test with struct sockaddr as array
++1.0 sctp_sendv(3, [{..., 1000}], 1, [{sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}], 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=12, sid=0, ssn=9, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=12, a_rwnd=1500, gaps=[], dups=[]]
 
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]

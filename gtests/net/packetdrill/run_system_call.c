@@ -3415,7 +3415,7 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
 				size += sizeof(struct sockaddr_in);
 			} else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-				size += sizeof(struct sockaddr_in);
+				size += sizeof(struct sockaddr_in6);
 			} else {
 				return STATUS_ERR;
 			}
@@ -3477,7 +3477,11 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 
 	begin_syscall(state, syscall);
-
+//Debug print
+	if(addrs!= NULL)
+		printf("live_fd=%d, iov=..., iovcnt=%d, addrs={family=%d, sockaddr:%s, port=%d}, addrcnt=%d, info=..., infolen=%d, infotype=%d, flags=%d\n",
+			live_fd, iovcnt, ((struct sockaddr_in*)addrs)->sin_family, inet_ntoa(((struct sockaddr_in*)addrs)->sin_addr),
+			htons(((struct sockaddr_in*)addrs)->sin_port), addrcnt, infolen, infotype, flags);
 	result = sctp_sendv(live_fd, iov, iovcnt, addrs, addrcnt, info, infolen, infotype, flags);
 
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
