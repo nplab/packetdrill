@@ -2522,8 +2522,7 @@ static int do_inbound_script_packet(
 				}
 				break;
 			case SCTP_COOKIE_ECHO_CHUNK_TYPE:
-				if ((socket->state == SOCKET_PASSIVE_INIT_ACK_SENT) &&
-				    (item->flags & FLAG_CHUNK_VALUE_NOCHECK)) {
+				if (item->flags & FLAG_CHUNK_VALUE_NOCHECK) {
 					temp_offset = socket->prepared_cookie_echo_length - item->length;
 					assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
 					memmove((u8 *)item->chunk + item->length + temp_offset,
@@ -2550,8 +2549,13 @@ static int do_inbound_script_packet(
 					assert(packet->headers[i + 1].type == HEADER_SCTP);
 					packet->headers[i].total_bytes += temp_offset;
 					packet->headers[i + 1].total_bytes += temp_offset;
-					socket->state = SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED;
 					offset += temp_offset;
+				}
+				if (((packet->flags & FLAGS_SCTP_BAD_CRC32C) == 0) &&
+				    (((packet->flags & FLAGS_SCTP_EXPLICIT_TAG) == 0) ||
+				     ((ntohl(packet->sctp->v_tag) == socket->script.local_initiate_tag) &&
+				      (socket->script.local_initiate_tag != 0)))) {
+					socket->state = SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED;
 				}
 				break;
 			case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
