@@ -2,16 +2,16 @@
 // Check the handshake with en empty(!) cookie
 +0.0 bind(3, ..., ...) = 0
 +0.0 listen(3, 1) = 0
-+0.0 < sctp(tag=1): INIT[flgs=0, tag=1, a_rwnd=1500, os=1, is=1, tsn=0]
++0.0 < sctp(tag=0): INIT[flgs=0, tag=1, a_rwnd=1500, os=1, is=1, tsn=0]
 +0.0 > sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=..., os=..., is=..., tsn=10, ...]
-+0.1 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]
++0.1 < sctp(tag=2): COOKIE_ECHO[flgs=0, len=..., val=...]
 +0.0 > sctp: COOKIE_ACK[flgs=0]
 +0.0 accept(3, ..., ...) = 4
 +0.0 close(3) = 0
-+0.1 < sctp: SHUTDOWN_COMPLETE[flgs=0]
-+0.1 < sctp: SHUTDOWN_COMPLETE[flgs=T]
-+0.1 < sctp: ABORT[flgs=0]
-+0.1 < sctp: ABORT[flgs=T]
++0.1 < sctp(tag=2): SHUTDOWN_COMPLETE[flgs=0]
++0.1 < sctp(tag=1): SHUTDOWN_COMPLETE[flgs=T]
++0.1 < sctp(tag=2): ABORT[flgs=0]
++0.1 < sctp(tag=1): ABORT[flgs=T]
 //Send some data.
 //+1.0 write(4, ..., 1000) = 1000
 //+0.0 > sctp: DATA[flgs=BE, len=1016, tsn=10, sid=0, ssn=0, ppid=0]

@@ -585,15 +585,15 @@ static int map_inbound_sctp_packet(
 	struct sctp_shutdown_complete_chunk *shutdown_complete;
 	struct sctp_i_data_chunk *i_data;
 	u32 local_diff, remote_diff;
+	u32 v_tag;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
-	bool mapped_vtag;
+	bool reflect_v_tag;
+	bool contains_init_chunk;
 
-	DEBUGP("live remote initiate tag 0x%08x, script remote initiate tag 0x%08x\n",
-	       socket->live.remote_initiate_tag, socket->script.remote_initiate_tag);
-	DEBUGP("live local initiate tag 0x%08x, script local initiate tag 0x%08x\n",
-	       socket->live.local_initiate_tag, socket->script.local_initiate_tag);
+	reflect_v_tag = false;
+	contains_init_chunk = false;
 
-	mapped_vtag = false;
+	/* Map the TSNs and the initiate tags in the INIT and INIT-ACK chunk */
 	for (chunk = sctp_chunks_begin(live_packet, &iter, error);
 	     chunk != NULL;
 	     chunk = sctp_chunks_next(&iter, error)) {
@@ -615,11 +615,10 @@ static int map_inbound_sctp_packet(
 			init = (struct sctp_init_chunk *)chunk;
 			init->initial_tsn = htonl(ntohl(init->initial_tsn) + remote_diff);
 			/* XXX: Does this work in all cases? */
-			live_packet->sctp->v_tag = htonl(0);
-			mapped_vtag = true;
 			if (ntohl(init->initiate_tag) == socket->script.local_initiate_tag) {
 				init->initiate_tag = htonl(socket->live.local_initiate_tag);
 			}
+			contains_init_chunk = true;
 			break;
 		case SCTP_INIT_ACK_CHUNK_TYPE:
 			init_ack = (struct sctp_init_ack_chunk *)chunk;
@@ -643,11 +642,8 @@ static int map_inbound_sctp_packet(
 		case SCTP_ABORT_CHUNK_TYPE:
 			abort = (struct sctp_abort_chunk *)chunk;
 			if (abort->flags & SCTP_ABORT_CHUNK_T_BIT) {
-				live_packet->sctp->v_tag = htonl(socket->live.remote_initiate_tag);
-			} else {
-				live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+				reflect_v_tag = true;
 			}
-			mapped_vtag = true;
 			break;
 		case SCTP_SHUTDOWN_CHUNK_TYPE:
 			shutdown = (struct sctp_shutdown_chunk *)chunk;
@@ -664,11 +660,8 @@ static int map_inbound_sctp_packet(
 		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
 			shutdown_complete = (struct sctp_shutdown_complete_chunk *)chunk;
 			if (shutdown_complete->flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT) {
-				live_packet->sctp->v_tag = htonl(socket->live.remote_initiate_tag);
-			} else {
-				live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+				reflect_v_tag = true;
 			}
-			mapped_vtag = true;
 			break;
 		case SCTP_I_DATA_CHUNK_TYPE:
 			i_data = (struct sctp_i_data_chunk *)chunk;
@@ -678,11 +671,45 @@ static int map_inbound_sctp_packet(
 			break;
 		}
 	}
-	if (!mapped_vtag) {
-		live_packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);
+	/* Map the verification tag in the common header */
+	DEBUGP("live remote initiate tag 0x%08x, script remote initiate tag 0x%08x\n",
+	       socket->live.remote_initiate_tag, socket->script.remote_initiate_tag);
+	DEBUGP("live local initiate tag 0x%08x, script local initiate tag 0x%08x\n",
+	       socket->live.local_initiate_tag, socket->script.local_initiate_tag);
+	if (live_packet->flags & FLAGS_SCTP_EXPLICIT_TAG) {
+		v_tag = ntohl(live_packet->sctp->v_tag);
+		DEBUGP("verification tag specified in script: 0x%08x\n", v_tag);
+		if (v_tag != 0) {
+			if (reflect_v_tag) {
+				u32 diff;
+
+				diff = v_tag - socket->script.remote_initiate_tag;
+				v_tag = socket->live.remote_initiate_tag + diff;
+			} else {
+				u32 diff;
+
+				diff = v_tag - socket->script.local_initiate_tag;
+				v_tag = socket->live.local_initiate_tag + diff;
+			}
+			if (v_tag == 0) {
+				DEBUGP("Need to increment, since it would be zero.\n");
+				v_tag = 1;
+			}
+		}
+	} else {
+		DEBUGP("verification tag not specified in script.\n")
+		if (contains_init_chunk) {
+			v_tag = 0;
+		} else {
+			if (reflect_v_tag) {
+				v_tag = socket->live.remote_initiate_tag;
+			} else {
+				v_tag = socket->live.local_initiate_tag;
+			}
+		}
 	}
-	DEBUGP("verification tag of inbound packet: 0x%08x\n",
-	       ntohl(live_packet->sctp->v_tag));
+	DEBUGP("verification tag of inbound packet: 0x%08x\n", v_tag);
+	live_packet->sctp->v_tag = htonl(v_tag);
 
 	return STATUS_OK;
 }
