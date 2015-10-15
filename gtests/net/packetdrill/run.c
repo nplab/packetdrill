@@ -241,7 +241,7 @@ static const char *event_description(struct event *event)
 
 	if ((event->type <= INVALID_EVENT) ||
 	    (event->type >= NUM_EVENT_TYPES)) {
-		die("bogus event type: %d", event->type);
+		die("bogus event type: %d\n", event->type);
 	}
 	switch (event->type) {
 	case PACKET_EVENT:
@@ -404,7 +404,7 @@ static void run_local_packet_event(struct state *state, struct event *event,
 		free(error);
 	} else if (result == STATUS_ERR) {
 		state_free(state);
-		die("%s", error);
+		die("%s\n", error);
 	}
 }
 
@@ -499,7 +499,7 @@ void signal_handler(int signal_number) {
 	if (state != NULL)
 		close_all_sockets(state);
 	
-	die("Handled signal %d", signal_number);
+	die("Handled signal %d\n", signal_number);
 }
 
 void run_script(struct config *config, struct script *script)
@@ -555,7 +555,7 @@ void run_script(struct config *config, struct script *script)
 	while (1) {
 		if (get_next_event(state, &error)) {
 			state_free(state);
-			die("%s", error);
+			die("%s\n", error);
 		}
 		event = state->event;
 		if (event == NULL)
