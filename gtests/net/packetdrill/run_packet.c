@@ -2396,7 +2396,7 @@ static int do_outbound_script_packet(
 						}
 						socket->prepared_cookie_echo = cookie_echo;
 						socket->prepared_cookie_echo_length = chunk_length + padding_length;
-						DEBUGP("COOKIE_ECHO of length %u prepeared\n",
+						DEBUGP("COOKIE_ECHO of length %u prepared\n",
 						       chunk_length);
 						break;
 					}
