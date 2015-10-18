@@ -498,6 +498,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> FAST_OPEN
+%token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
 %token <reserved> MPLS LABEL TC TTL
@@ -541,6 +542,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> BAD_CRC32C NULL_
 %token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN
+%token <reserved> PR_POLICY PR_VALUE AUTH_KEYNUMBER SENDV_FLAGS SENDV_SNDINFO
+%token <reserved> SENDV_PRINFO SENDV_AUTHINFO
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -593,6 +596,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_event se_type se_on sctp_setadaptation null
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn
+%type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2456,10 +2460,19 @@ expression
 | sctp_setadaptation{
 	$$ = $1;
 }
-| null              {
+| sctp_sndrcvinfo   {
 	$$ = $1;
 }
-| sctp_sndrcvinfo   {
+| sctp_prinfo       {
+	$$ = $1;
+}
+| sctp_authinfo     {
+	$$ = $1;
+}
+| sctp_sendv_spa    {
+	$$ = $1;
+}
+| null              {
 	$$ = $1;
 }
 ;
@@ -2514,6 +2527,9 @@ sockaddr
 		struct sockaddr_in *ipv4 = malloc(sizeof(struct sockaddr_in));
 		memset(ipv4, 0, sizeof(*ipv4));
 		ipv4->sin_family = AF_INET;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+		ipv4->sin_len = sizeof(*ipv4);
+#endif
 		ipv4->sin_port = htons($10);
 		if (inet_pton(AF_INET, $17, &ipv4->sin_addr) == 1) {
 			$$ = new_expression(EXPR_SOCKET_ADDRESS_IPV4);
@@ -2526,6 +2542,9 @@ sockaddr
 		struct sockaddr_in6 *ipv6 = malloc(sizeof(struct sockaddr_in6));
 		memset(ipv6, 0, sizeof(*ipv6));
 		ipv6->sin6_family = AF_INET6;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+		ipv6->sin6_len = sizeof(*ipv6);
+#endif
 		ipv6->sin6_port = htons($10);
 		if (inet_pton(AF_INET6, $17, &ipv6->sin6_addr) == 1) {
 			$$ = new_expression(EXPR_SOCKET_ADDRESS_IPV6);
@@ -2561,6 +2580,13 @@ iovec
 	$$->value.iovec = iov_expr;
 	iov_expr->iov_base = new_expression(EXPR_ELLIPSIS);
 	iov_expr->iov_len = $4;
+}
+| '{' IOV_BASE '=' ELLIPSIS ',' IOV_LEN '=' decimal_integer '}' {
+	struct iovec_expr *iov_expr = calloc(1, sizeof(struct iovec_expr));
+	$$ = new_expression(EXPR_IOVEC);
+	$$->value.iovec = iov_expr;
+	iov_expr->iov_base = new_expression(EXPR_ELLIPSIS);
+	iov_expr->iov_len = $8;
 }
 ;
 
@@ -3228,6 +3254,53 @@ sctp_sndrcvinfo
 	$$->value.sctp_sndrcvinfo->sinfo_tsn = $14;
 	$$->value.sctp_sndrcvinfo->sinfo_cumtsn = $16;
 };
+
+pr_policy
+: PR_POLICY '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| PR_POLICY '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("pr_policy out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+};
+
+sctp_prinfo
+: '{' pr_policy ',' PR_VALUE '=' INTEGER'}' {
+	$$ = new_expression(EXPR_SCTP_PRINFO);
+	$$->value.sctp_prinfo = calloc(1, sizeof(struct sctp_prinfo_expr));
+	$$->value.sctp_prinfo->pr_policy = $2;
+	if (!is_valid_u32($6)) {
+		semantic_error("pr_value out of range");
+	}
+	$$->value.sctp_prinfo->pr_value = new_integer_expression($6, "%u");
+}
+;
+
+sctp_authinfo
+: '{' AUTH_KEYNUMBER '=' INTEGER '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHINFO);
+	$$->value.sctp_authinfo = calloc(1, sizeof(struct sctp_authinfo_expr));
+	if (!is_valid_u16($4)) {
+		semantic_error("auth_keynumber out of range");
+	}
+	$$->value.sctp_authinfo->auth_keynumber = new_integer_expression($4, "%hu");
+}
+;
+
+sctp_sendv_spa
+: '{' SENDV_FLAGS '=' expression ',' SENDV_SNDINFO '=' expression ',' SENDV_PRINFO '=' expression ',' SENDV_AUTHINFO '=' expression '}' {
+	$$ = new_expression(EXPR_SCTP_SENDV_SPA);
+	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_sendv_spa_expr));
+	$$->value.sctp_sendv_spa->sendv_flags = $4;
+	$$->value.sctp_sendv_spa->sendv_sndinfo = $8;
+	$$->value.sctp_sendv_spa->sendv_prinfo = $12;
+	$$->value.sctp_sendv_spa->sendv_authinfo = $16;
+}
+;
+
 opt_errno
 :                   { $$ = NULL; }
 | WORD note         {
