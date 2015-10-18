@@ -79,6 +79,9 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
 	{ EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
+	{ EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
+	{ EXPR_SCTP_AUTHINFO,        "sctp_authinfo"   },
+	{ EXPR_SCTP_SENDV_SPA,       "sctp_sendv_spa"  },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -377,6 +380,19 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_timetolive);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_tsn);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_cumtsn);
+		break;
+	case EXPR_SCTP_PRINFO:
+		free_expression(expression->value.sctp_prinfo->pr_policy);
+		free_expression(expression->value.sctp_prinfo->pr_value);
+		break;		
+	case EXPR_SCTP_AUTHINFO:
+		free_expression(expression->value.sctp_authinfo->auth_keynumber);
+		break;
+	case EXPR_SCTP_SENDV_SPA:
+		free_expression(expression->value.sctp_sendv_spa->sendv_flags);
+		free_expression(expression->value.sctp_sendv_spa->sendv_sndinfo);
+		free_expression(expression->value.sctp_sendv_spa->sendv_prinfo);
+		free_expression(expression->value.sctp_sendv_spa->sendv_authinfo);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -1031,6 +1047,94 @@ static int evaluate_sctp_sndrcvinfo_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_prinfo_expression(struct expression *in,
+					   struct expression *out,
+					   char **error)
+{
+        struct sctp_prinfo_expr *in_info;
+        struct sctp_prinfo_expr *out_info;
+
+        assert(in->type == EXPR_SCTP_PRINFO);
+        assert(in->value.sctp_prinfo);
+        assert(out->type == EXPR_SCTP_PRINFO);
+
+        out->value.sctp_prinfo = calloc(1, sizeof(struct sctp_prinfo_expr));
+                     
+        in_info = in->value.sctp_prinfo;
+        out_info = out->value.sctp_prinfo;
+                     
+        if (evaluate(in_info->pr_policy,
+		     &out_info->pr_policy,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->pr_value,
+		     &out_info->pr_value,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;	
+}
+
+static int evaluate_sctp_authinfo_expression(struct expression *in,
+					     struct expression *out,
+					     char **error)
+{
+        struct sctp_authinfo_expr *in_info;
+        struct sctp_authinfo_expr *out_info;
+
+        assert(in->type == EXPR_SCTP_AUTHINFO);
+        assert(in->value.sctp_authinfo);
+        assert(out->type == EXPR_SCTP_AUTHINFO);
+
+        out->value.sctp_authinfo = calloc(1, sizeof(struct sctp_authinfo_expr));
+                     
+        in_info = in->value.sctp_authinfo;
+        out_info = out->value.sctp_authinfo;
+                     
+        if (evaluate(in_info->auth_keynumber,
+		     &out_info->auth_keynumber,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_sendv_spa_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+        struct sctp_sendv_spa_expr *in_spa;
+        struct sctp_sendv_spa_expr *out_spa;
+
+        assert(in->type == EXPR_SCTP_SENDV_SPA);
+        assert(in->value.sctp_sendv_spa);
+        assert(out->type == EXPR_SCTP_SENDV_SPA);
+
+        out->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_sendv_spa_expr));
+                     
+        in_spa = in->value.sctp_sendv_spa;
+        out_spa = out->value.sctp_sendv_spa;
+                     
+        if (evaluate(in_spa->sendv_flags,
+		     &out_spa->sendv_flags,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_spa->sendv_sndinfo,
+		     &out_spa->sendv_sndinfo,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_spa->sendv_prinfo,
+		     &out_spa->sendv_prinfo,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_spa->sendv_authinfo,
+		     &out_spa->sendv_authinfo,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -1094,6 +1198,15 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SNDRCVINFO:
 		result = evaluate_sctp_sndrcvinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_PRINFO:
+		result = evaluate_sctp_prinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHINFO:
+		result = evaluate_sctp_authinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SENDV_SPA:
+		result = evaluate_sctp_sendv_spa_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;
