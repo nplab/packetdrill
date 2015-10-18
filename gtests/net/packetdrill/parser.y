@@ -2527,6 +2527,9 @@ sockaddr
 		struct sockaddr_in *ipv4 = malloc(sizeof(struct sockaddr_in));
 		memset(ipv4, 0, sizeof(*ipv4));
 		ipv4->sin_family = AF_INET;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+		ipv4->sin_len = sizeof(*ipv4);
+#endif
 		ipv4->sin_port = htons($10);
 		if (inet_pton(AF_INET, $17, &ipv4->sin_addr) == 1) {
 			$$ = new_expression(EXPR_SOCKET_ADDRESS_IPV4);
@@ -2539,6 +2542,9 @@ sockaddr
 		struct sockaddr_in6 *ipv6 = malloc(sizeof(struct sockaddr_in6));
 		memset(ipv6, 0, sizeof(*ipv6));
 		ipv6->sin6_family = AF_INET6;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+		ipv6->sin6_len = sizeof(*ipv6);
+#endif
 		ipv6->sin6_port = htons($10);
 		if (inet_pton(AF_INET6, $17, &ipv6->sin6_addr) == 1) {
 			$$ = new_expression(EXPR_SOCKET_ADDRESS_IPV6);
