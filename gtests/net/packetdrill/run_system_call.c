@@ -3372,7 +3372,8 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 {
 #if defined(__FreeBSD__)
 	int script_fd, live_fd, iovcnt, addrcnt, result, flags;
-	u32 infotype, script_iovec_list_len = 0;
+	u32 infotype;
+	size_t script_iovec_list_len = 0;
 	socklen_t infolen;
 	struct sockaddr *addrs;
 	void *info;
@@ -3391,7 +3392,7 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	if (to_live_fd(state, script_fd, &live_fd, error))
 		return STATUS_ERR;
 	iovec_expr_list = get_arg(args, 1, error);
-	iovec_new(iovec_expr_list, &iov,  &script_iovec_list_len, error);	
+	iovec_new(iovec_expr_list, &iov,  &script_iovec_list_len, error);
 	iovcnt_expr = get_arg(args, 2, error);
 	if (get_s32(iovcnt_expr, &iovcnt, error))
 		return STATUS_ERR;
@@ -3411,20 +3412,20 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 		size_t size = 0;
 		char *addr_ptr;
 		for (i = 0; i < addrlen; i++) {
-			expr = get_arg(addrs_expr_list, i, error); 
+			expr = get_arg(addrs_expr_list, i, error);
 			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
 				size += sizeof(struct sockaddr_in);
 			} else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-				size += sizeof(struct sockaddr_in);
+				size += sizeof(struct sockaddr_in6);
 			} else {
 				return STATUS_ERR;
 			}
 		}
 		addrs = malloc(size);
 		addr_ptr = (char *)addrs;
-		for(i = 0; i < addrlen; i++) {
+		for (i = 0; i < addrlen; i++) {
 			expr = get_arg(addrs_expr_list, i, error);
-                        if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
 				size = sizeof(struct sockaddr_in);
 				memcpy(addr_ptr, expr->value.socket_address_ipv4, size);
 				addr_ptr += size;
