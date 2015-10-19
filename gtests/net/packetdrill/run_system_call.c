@@ -346,6 +346,31 @@ static int s32_bracketed_arg(struct expression_list *args,
 	return get_s32(list->expression, value, error);
 }
 
+/* Return the value of the argument with the given index, and verify
+ * that it has the expected type: a list with a single integer.
+ */
+#ifdef __FreeBSD__
+static int u32_bracketed_arg(struct expression_list *args,
+			     int index, u32 *value, char **error)
+{
+	struct expression_list *list;
+	struct expression *expression;
+
+	expression = get_arg(args, index, error);
+	if (expression == NULL)
+		return STATUS_ERR;
+	if (check_type(expression, EXPR_LIST, error))
+		return STATUS_ERR;
+	list = expression->value.list;
+	if (expression_list_length(list) != 1) {
+		asprintf(error,
+			 "Expected [<integer>] but got multiple elements");
+		return STATUS_ERR;
+	}
+	return get_u32(list->expression, value, error);
+}
+#endif
+
 /* Return STATUS_OK iff the argument with the given index is an
  * ellipsis (...).
  */
@@ -3691,8 +3716,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	struct iovec *iov;
 	struct sockaddr *from = NULL;
 	struct expression *iovec_expr_list, *iovcnt_expr, *addr_expr, *fromlen_expr;
-	struct expression *infolen_expr, *info_expr, *infotype_expr, *flags_expr;
-	struct expression *infolen_list_expr, *infotype_list_expr, *flags_list_expr;
+	struct expression *info_expr, *infotype_expr, *flags_expr;
 	struct sctp_recvv_rn recvv_rn;
 	struct sctp_rcvinfo rcvinfo;
 	struct sctp_nxtinfo nxtinfo;
@@ -3724,15 +3748,9 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	} else {
 		return STATUS_ERR;
 	}
-	infolen_list_expr = get_arg(args, 6, error);
-	if (infolen_list_expr->type == EXPR_LIST) {
-		if (check_arg_count(infolen_list_expr->value.list, 1, error)) {
-			return STATUS_ERR;
-		}
-	}
-	infolen_expr = get_arg(infolen_list_expr->value.list, 0, error);
-	if (get_u32(infolen_expr, &infolen, error))
+	if (u32_bracketed_arg(args, 6, &infolen, error)) {
 		return STATUS_ERR;
+	}
 	infotype = 0;
 	flags = 0;
 	addr_expr = get_arg(args, 3, error);
@@ -3759,17 +3777,13 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 		}
 	}
 	free(from);
-	infotype_list_expr = get_arg(args, 7, error);
-	if (infotype_list_expr->type != EXPR_ELLIPSIS) {
-		if (check_arg_count(infotype_list_expr->value.list, 1, error)) {
-			return STATUS_ERR;
-		}
-		infotype_expr = get_arg(infotype_list_expr->value.list, 0, error);
-		s32 script_infotype;
 
-		if (get_s32(infotype_expr, &script_infotype, error)) {
-			return STATUS_ERR;
-		}
+	infotype_expr = get_arg(args, 7, error);
+	if (infotype_expr->type != EXPR_ELLIPSIS) {
+		s32 script_infotype;
+		if (s32_bracketed_arg(args, 7, &script_infotype, error))
+			return STATUS_ERR;	
+
 		if (infotype != script_infotype) {
 			asprintf(error, "sctp_recvv infotype: expected: %u actual: %u",
 				 script_infotype, infotype);
@@ -3814,13 +3828,12 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 		break;
 	}
-	flags_list_expr = get_arg(args, 8, error);
-	if (flags_list_expr->type != EXPR_ELLIPSIS) {
-		if (check_arg_count(flags_list_expr->value.list, 1, error))
-			return STATUS_ERR;
-		flags_expr = get_arg(flags_list_expr->value.list, 0, error);
+	flags_expr = get_arg(args, 8, error);
+	if (flags_expr->type != EXPR_ELLIPSIS) {
 		s32 script_flags;
-		if (get_s32(flags_expr, &script_flags, error)) {
+		if (s32_bracketed_arg(args, 8, &script_flags, error))
+			return STATUS_ERR;	
+		if (flags != script_flags) {
 			asprintf(error, "sctp_recvv flags bad return value. expected %d, actual %d",
 				 script_flags, flags);
 			return STATUS_ERR;
