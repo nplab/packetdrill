@@ -3293,7 +3293,8 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
+#if defined(__FreeBSD__)
+static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
 	if (expr->type == EXPR_SCTP_SNDINFO) {
 		struct sctp_sndinfo_expr *sndinfo_expr = expr->value.sctp_sndinfo;
 		info->snd_assoc_id = 0;
@@ -3315,7 +3316,7 @@ int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinf
 	return STATUS_OK;
 }
 
-int parse_expression_to_sctp_authinfo(struct expression *expr, struct sctp_authinfo *info, char **error) {
+static int parse_expression_to_sctp_authinfo(struct expression *expr, struct sctp_authinfo *info, char **error) {
 	if (expr->type == EXPR_SCTP_AUTHINFO) {
 		struct sctp_authinfo_expr *auth_expr = expr->value.sctp_authinfo;
 		if (get_u16(auth_expr->auth_keynumber, &info->auth_keynumber, error)) {
@@ -3327,7 +3328,7 @@ int parse_expression_to_sctp_authinfo(struct expression *expr, struct sctp_authi
 	return STATUS_OK;
 }
 
-int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info, char **error) {
+static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info, char **error) {
 	if (expr->type == EXPR_SCTP_PRINFO) {
 		struct sctp_prinfo_expr *prinfo_expr = expr->value.sctp_prinfo;
 		if (get_u16(prinfo_expr->pr_policy, &info->pr_policy, error)) {
@@ -3342,7 +3343,7 @@ int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo 
 	return STATUS_OK;
 }
 
-int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sctp_sendv_spa *info, char **error) {
+static int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sctp_sendv_spa *info, char **error) {
 	if (expr->type == EXPR_SCTP_SENDV_SPA) {
 		struct sctp_sendv_spa_expr *spa_expr = expr->value.sctp_sendv_spa;
 		if (get_u32(spa_expr->sendv_flags, &info->sendv_flags, error)) {
@@ -3365,6 +3366,7 @@ int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sctp_send
 	}
 	return STATUS_OK;
 }
+#endif
 
 static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
