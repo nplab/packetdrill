@@ -3554,7 +3554,7 @@ static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 		}
 		if (sctp_rcvinfo->rcv_ppid != rcv_ppid) {
 			asprintf(error, "sctp_rcvinfo.rcv_ppid: expected: %u actual: %u",
-				 rcv_ppid, sctp_rcvinfo->rcv_ppid);
+				 htonl(rcv_ppid), htonl(sctp_rcvinfo->rcv_ppid));
 			return STATUS_ERR;
 		}
 	}
@@ -3683,14 +3683,13 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 			      char **error)
 {
 #if defined(__FreeBSD__)
-	int flags, iovlen, script_fd, live_fd, result_val, result = STATUS_OK;
+	int flags, iovlen, script_fd, live_fd, result;
 	size_t script_iovec_list_len = 0;
 	unsigned int infotype = 0;
 	socklen_t infolen, fromlen;
 	void *info;
 	struct iovec *iov;
 	struct sockaddr *from = NULL;
-	begin_syscall(state, syscall);
 	struct expression *iovec_expr_list, *iovcnt_expr, *addr_expr, *fromlen_expr;
 	struct expression *infolen_expr, *info_expr, *infotype_expr, *flags_expr;
 	struct expression *infolen_list_expr, *infotype_list_expr, *flags_list_expr;
@@ -3745,11 +3744,11 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 
 	begin_syscall(state, syscall);
 
-	result_val = sctp_recvv(live_fd, iov, iovlen, (struct sockaddr *)from, &fromlen, info, &infolen, &infotype, &flags);
+	result = sctp_recvv(live_fd, iov, iovlen, (struct sockaddr *)from, &fromlen, info, &infolen, &infotype, &flags);
 
 	iovec_free(iov, script_iovec_list_len);
 	
-	if (end_syscall(state, syscall, CHECK_EXACT, result_val, error)) {
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
 		free(from);
 		return STATUS_ERR;
 	}
@@ -3777,39 +3776,42 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 	}
-	switch(infotype){
+	switch(infotype) {
 	case SCTP_RECVV_NOINFO:
-		if (infolen != 0){
+		if (infolen != 0) {
 			asprintf(error, "infolen returned bad size for null. expected 0, actual %u", infolen);
 			return STATUS_ERR;
 		}
 		break;
 	case SCTP_RECVV_RCVINFO:
-		if (infolen != sizeof(struct sctp_rcvinfo)){
+		if (infolen != sizeof(struct sctp_rcvinfo)) {
 			asprintf(error, "infolen returned bad size for sctp_rcvinfo. expected %u, actual %u",
 				 sizeof(struct sctp_rcvinfo), infolen);
 			return STATUS_ERR;
 		}
-		result = check_sctp_rcvinfo(info_expr->value.sctp_rcvinfo, info, error);
+		if (check_sctp_rcvinfo(info_expr->value.sctp_rcvinfo, info, error))
+			return STATUS_ERR;
 		break;
 	case SCTP_RECVV_NXTINFO:
-		if (infolen != sizeof(struct sctp_nxtinfo)){
+		if (infolen != sizeof(struct sctp_nxtinfo)) {
 			asprintf(error, "infolen returned bad size for sctp_nxtinfo. expected %u, actual %u",
 				 sizeof(struct sctp_nxtinfo), infolen);
 			return STATUS_ERR;
 		}
-		result = check_sctp_nxtinfo(info_expr->value.sctp_nxtinfo, info, error);
+		if (check_sctp_nxtinfo(info_expr->value.sctp_nxtinfo, info, error))
+			return STATUS_ERR;
 		break;
 	case SCTP_RECVV_RN:
-		if (infolen != sizeof(struct sctp_recvv_rn)){
+		if (infolen != sizeof(struct sctp_recvv_rn)) {
 			asprintf(error, "infolen returned bad size for sctp_recvv_rn. expected %u, actual %u",
 				 sizeof(struct sctp_recvv_rn), infolen);
 			return STATUS_ERR;
 		}
-		result = check_sctp_recvv_rn(info_expr->value.sctp_recvv_rn, info, error);
+		if (check_sctp_recvv_rn(info_expr->value.sctp_recvv_rn, info, error))
+			return STATUS_ERR;
 		break;
 	default:
-		result = STATUS_ERR;
+		return STATUS_ERR;
 		break;
 	}
 	flags_list_expr = get_arg(args, 8, error);
@@ -3824,7 +3826,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 	}
-	return result;
+	return STATUS_OK;
 #else
 	asprintf(error, "sctp_recvv is not supported");
 	return STATUS_ERR;
