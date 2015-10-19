@@ -195,7 +195,12 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_SEND_SNDINFO_VALID,          "SCTP_SEND_SNDINFO_VALID"         },
 	{ SCTP_SEND_PRINFO_VALID,           "SCTP_SEND_PRINFO_VALID"          },
 	{ SCTP_SEND_AUTHINFO_VALID,         "SCTP_SEND_AUTHINFO_VALID"        },
-
+	{ SCTP_RECVV_NOINFO,                "SCTP_RECVV_NOINFO"               },
+	{ SCTP_RECVV_RCVINFO,               "SCTP_RECVV_RCVINFO"              },
+	{ SCTP_RECVV_NXTINFO,               "SCTP_RECVV_NXTINFO"              },
+	{ SCTP_RECVV_RN,                    "SCTP_RECVV_RN"                   },
+	{ SCTP_RECVRCVINFO,                 "SCTP_RECVRCVINFO"                },
+	{ SCTP_RECVNXTINFO,                 "SCTP_RECVNXTINFO"                },
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

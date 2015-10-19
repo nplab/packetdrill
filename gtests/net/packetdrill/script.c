@@ -82,6 +82,9 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
 	{ EXPR_SCTP_AUTHINFO,        "sctp_authinfo"   },
 	{ EXPR_SCTP_SENDV_SPA,       "sctp_sendv_spa"  },
+	{ EXPR_SCTP_RCVINFO,         "sctp_rcvinfo"    },
+	{ EXPR_SCTP_NXTINFO,         "sctp_nxtinfo"    },
+	{ EXPR_SCTP_RECVV_RN,        "sctp_recvv_rn "  },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -393,6 +396,25 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sendv_spa->sendv_sndinfo);
 		free_expression(expression->value.sctp_sendv_spa->sendv_prinfo);
 		free_expression(expression->value.sctp_sendv_spa->sendv_authinfo);
+		break;
+	case EXPR_SCTP_RCVINFO:
+		free_expression(expression->value.sctp_rcvinfo->rcv_sid);
+		free_expression(expression->value.sctp_rcvinfo->rcv_ssn);
+		free_expression(expression->value.sctp_rcvinfo->rcv_flags);
+		free_expression(expression->value.sctp_rcvinfo->rcv_ppid);
+		free_expression(expression->value.sctp_rcvinfo->rcv_tsn);
+		free_expression(expression->value.sctp_rcvinfo->rcv_cumtsn);
+		free_expression(expression->value.sctp_rcvinfo->rcv_context);
+		break;
+	case EXPR_SCTP_NXTINFO:
+		free_expression(expression->value.sctp_nxtinfo->nxt_sid);
+		free_expression(expression->value.sctp_nxtinfo->nxt_flags);
+		free_expression(expression->value.sctp_nxtinfo->nxt_ppid);
+		free_expression(expression->value.sctp_nxtinfo->nxt_length);
+		break;
+	case EXPR_SCTP_RECVV_RN:
+		free_expression(expression->value.sctp_recvv_rn->recvv_rcvinfo);
+		free_expression(expression->value.sctp_recvv_rn->recvv_nxtinfo);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -1135,6 +1157,112 @@ static int evaluate_sctp_sendv_spa_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_rcvinfo_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+        struct sctp_rcvinfo_expr *in_info;
+        struct sctp_rcvinfo_expr *out_info;
+
+        assert(in->type == EXPR_SCTP_RCVINFO);
+        assert(in->value.sctp_rcvinfo);
+        assert(out->type == EXPR_SCTP_RCVINFO);
+
+        out->value.sctp_rcvinfo = calloc(1, sizeof(struct sctp_rcvinfo_expr));
+                     
+        in_info = in->value.sctp_rcvinfo;
+        out_info = out->value.sctp_rcvinfo;
+                     
+        if (evaluate(in_info->rcv_sid,
+		     &out_info->rcv_sid,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->rcv_ssn,
+		     &out_info->rcv_ssn,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->rcv_flags,
+		     &out_info->rcv_flags,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->rcv_ppid,
+		     &out_info->rcv_ppid,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->rcv_tsn,
+		     &out_info->rcv_tsn,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->rcv_cumtsn,
+		     &out_info->rcv_cumtsn,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->rcv_context,
+		     &out_info->rcv_context,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_nxtinfo_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+        struct sctp_nxtinfo_expr *in_info;
+        struct sctp_nxtinfo_expr *out_info;
+
+        assert(in->type == EXPR_SCTP_NXTINFO);
+        assert(in->value.sctp_nxtinfo);
+        assert(out->type == EXPR_SCTP_NXTINFO);
+
+        out->value.sctp_nxtinfo = calloc(1, sizeof(struct sctp_nxtinfo_expr));
+                     
+        in_info = in->value.sctp_nxtinfo;
+        out_info = out->value.sctp_nxtinfo;
+                     
+        if (evaluate(in_info->nxt_sid,
+		     &out_info->nxt_sid,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->nxt_flags,
+		     &out_info->nxt_flags,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->nxt_ppid,
+		     &out_info->nxt_ppid,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->nxt_length,
+		     &out_info->nxt_length,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_recvv_rn_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+        struct sctp_recvv_rn_expr *in_rn;
+        struct sctp_recvv_rn_expr *out_rn;
+
+        assert(in->type == EXPR_SCTP_RECVV_RN);
+        assert(in->value.sctp_recvv_rn);
+        assert(out->type == EXPR_SCTP_RECVV_RN);
+
+        out->value.sctp_recvv_rn = calloc(1, sizeof(struct sctp_recvv_rn_expr));
+                     
+        in_rn = in->value.sctp_recvv_rn;
+        out_rn = out->value.sctp_recvv_rn;
+                     
+        if (evaluate(in_rn->recvv_rcvinfo,
+		     &out_rn->recvv_rcvinfo,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -1207,6 +1335,15 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SENDV_SPA:
 		result = evaluate_sctp_sendv_spa_expression(in, out, error);
+		break;
+	case EXPR_SCTP_RCVINFO:
+		result = evaluate_sctp_rcvinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_NXTINFO:
+		result = evaluate_sctp_nxtinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_RECVV_RN:
+		result = evaluate_sctp_recvv_rn_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

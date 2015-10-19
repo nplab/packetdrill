@@ -544,6 +544,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN
 %token <reserved> PR_POLICY PR_VALUE AUTH_KEYNUMBER SENDV_FLAGS SENDV_SNDINFO
 %token <reserved> SENDV_PRINFO SENDV_AUTHINFO
+%token <reserved> RCV_SID RCV_SSN RCV_FLAGS RCV_PPID RCV_TSN RCV_CUMTSN RCV_CONTEXT
+%token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH
+%token <reserved> RECVV_RCVINFO RECVV_NXTINFO
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -597,6 +600,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn
 %type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa
+%type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context
+%type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length sctp_recvv_rn
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2472,6 +2477,15 @@ expression
 | sctp_sendv_spa    {
 	$$ = $1;
 }
+| sctp_rcvinfo      {
+	$$ = $1;
+}
+| sctp_nxtinfo      {
+	$$ = $1;
+}
+| sctp_recvv_rn     {
+	$$ = $1;
+}
 | null              {
 	$$ = $1;
 }
@@ -3255,6 +3269,91 @@ sctp_sndrcvinfo
 	$$->value.sctp_sndrcvinfo->sinfo_cumtsn = $16;
 };
 
+rcv_sid
+: RCV_SID '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("rcv_sid out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_SID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+rcv_ssn
+: RCV_SSN '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("rcv_ssn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_SSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+rcv_flags
+: RCV_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("rcv_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+rcv_ppid
+: RCV_PPID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sinfo_cumtsn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+rcv_tsn
+: RCV_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("rcv_tsn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_TSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+rcv_cumtsn
+: RCV_CUMTSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("rcv_cumtsn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_CUMTSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+rcv_context
+: RCV_CONTEXT '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("rcv_context out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_CONTEXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+
+sctp_rcvinfo
+: '{' rcv_sid ',' rcv_ssn ',' rcv_flags ',' rcv_ppid ',' rcv_tsn ',' rcv_cumtsn ',' rcv_context '}' {
+	$$ = new_expression(EXPR_SCTP_RCVINFO);
+	$$->value.sctp_rcvinfo = calloc(1, sizeof(struct sctp_rcvinfo_expr));
+	$$->value.sctp_rcvinfo->rcv_sid = $2;
+	$$->value.sctp_rcvinfo->rcv_ssn = $4;
+	$$->value.sctp_rcvinfo->rcv_flags = $6;
+	$$->value.sctp_rcvinfo->rcv_ppid = $8;
+	$$->value.sctp_rcvinfo->rcv_tsn = $10;
+	$$->value.sctp_rcvinfo->rcv_cumtsn = $12;
+	$$->value.sctp_rcvinfo->rcv_context = $14;
+}
+;
+
 pr_policy
 : PR_POLICY '=' WORD {
 	$$ = new_expression(EXPR_WORD);
@@ -3298,6 +3397,66 @@ sctp_sendv_spa
 	$$->value.sctp_sendv_spa->sendv_sndinfo = $8;
 	$$->value.sctp_sendv_spa->sendv_prinfo = $12;
 	$$->value.sctp_sendv_spa->sendv_authinfo = $16;
+}
+;
+
+nxt_sid
+: NXT_SID '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("nxt_sid out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| NXT_SID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+nxt_flags
+: NXT_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("nxt_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| NXT_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+nxt_ppid
+: NXT_PPID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("nxt_ppid out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| NXT_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+nxt_length 
+: NXT_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("nxt_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| NXT_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_nxtinfo
+: '{' nxt_sid ',' nxt_flags ',' nxt_ppid ',' nxt_length '}' {
+	$$ = new_expression(EXPR_SCTP_NXTINFO);
+	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_nxtinfo_expr));
+	$$->value.sctp_nxtinfo->nxt_sid = $2;
+	$$->value.sctp_nxtinfo->nxt_flags = $4;
+	$$->value.sctp_nxtinfo->nxt_ppid = $6;
+	$$->value.sctp_nxtinfo->nxt_length = $8;
+}
+;
+
+sctp_recvv_rn
+: '{' RECVV_RCVINFO '=' sctp_rcvinfo ',' RECVV_NXTINFO '=' sctp_nxtinfo '}' {
+	$$ = new_expression(EXPR_SCTP_RECVV_RN);
+	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_recvv_rn_expr));
+	$$->value.sctp_recvv_rn->recvv_rcvinfo = $4;
+	$$->value.sctp_recvv_rn->recvv_nxtinfo = $8;
 }
 ;
 

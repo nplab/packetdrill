@@ -62,6 +62,9 @@ enum expression_t {
 	EXPR_SCTP_PRINFO,	  /* struct sctp_prinfo for syscall sctp_sendv */
 	EXPR_SCTP_AUTHINFO,	  /* struct sctp_authinfo for syscall sctp_sendv */
 	EXPR_SCTP_SENDV_SPA,	  /* struct sctp_sendv_spa for syscall sctp_sendv */
+	EXPR_SCTP_RCVINFO,        /* struct sctp_rcvinfo for syscall sctp_recvv */
+	EXPR_SCTP_NXTINFO,        /* struct sctp_nxtinfo for syscall sctp_recvv */
+	EXPR_SCTP_RECVV_RN,       /* struct sctp_recvv_rn for syscall sctp_recvv */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -97,6 +100,9 @@ struct expression {
 		struct sctp_prinfo_expr *sctp_prinfo;
 		struct sctp_authinfo_expr *sctp_authinfo;
 		struct sctp_sendv_spa_expr *sctp_sendv_spa;
+		struct sctp_rcvinfo_expr *sctp_rcvinfo;
+		struct sctp_nxtinfo_expr *sctp_nxtinfo;
+		struct sctp_recvv_rn_expr *sctp_recvv_rn;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -266,6 +272,31 @@ struct sctp_sendv_spa_expr {
 	struct expression *sendv_sndinfo;
 	struct expression *sendv_prinfo;
 	struct expression *sendv_authinfo;
+};
+
+/* Parse tree for sctp_rcvinfo in sctp_recvv syscall. */
+struct sctp_rcvinfo_expr {
+	struct expression *rcv_sid;
+	struct expression *rcv_ssn;
+	struct expression *rcv_flags;
+	struct expression *rcv_ppid;
+	struct expression *rcv_tsn;
+	struct expression *rcv_cumtsn;
+	struct expression *rcv_context;
+};
+
+/* Parse tree for sctp_nxtinfo in sctp_recvv syscall. */
+struct sctp_nxtinfo_expr {
+	struct expression *nxt_sid;
+	struct expression *nxt_flags;
+	struct expression *nxt_ppid;
+	struct expression *nxt_length;
+};
+
+/* Parse tree for sctp_recvv_rn in sctp_recvv syscall. */
+struct sctp_recvv_rn_expr {
+	struct expression *recvv_rcvinfo;
+	struct expression *recvv_nxtinfo;
 };
 
 /* The errno-related info from strace to summarize a system call error */
