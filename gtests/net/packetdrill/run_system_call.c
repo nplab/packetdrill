@@ -3729,7 +3729,6 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	} else {
 		from = malloc(fromlen);
 	}
-	printf("fd=%d, iovlen=%d, fromlen=%d, infolen=%d, infotype=%d, flags=%d\n",live_fd, iovlen, fromlen, infolen, infotype, flags);
 
 	begin_syscall(state, syscall);
 
