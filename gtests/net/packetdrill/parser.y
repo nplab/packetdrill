@@ -3300,11 +3300,11 @@ rcv_flags
 ;
 
 rcv_ppid
-: RCV_PPID '=' INTEGER {
-	if (!is_valid_u32($3)) {
-		semantic_error("sinfo_cumtsn out of range");
+: RCV_PPID '=' _HTONL_ '(' INTEGER ')' {
+	if (!is_valid_u32($5)) {
+		semantic_error("rcv_ppid out of range");
 	}
-	$$ = new_integer_expression($3, "%u");
+	$$ = new_integer_expression(htonl($5), "%u");
 }
 | RCV_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
@@ -3421,11 +3421,11 @@ nxt_flags
 ;
 
 nxt_ppid
-: NXT_PPID '=' INTEGER {
-	if (!is_valid_u32($3)) {
+: NXT_PPID '=' _HTONL_ '(' INTEGER ')' {
+	if (!is_valid_u32($5)) {
 		semantic_error("nxt_ppid out of range");
 	}
-	$$ = new_integer_expression($3, "%u");
+	$$ = new_integer_expression(htonl((u32)$5), "%u");
 }
 | NXT_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
@@ -3452,7 +3452,7 @@ sctp_nxtinfo
 ;
 
 sctp_recvv_rn
-: '{' RECVV_RCVINFO '=' sctp_rcvinfo ',' RECVV_NXTINFO '=' sctp_nxtinfo '}' {
+: '{' RECVV_RCVINFO '=' expression ',' RECVV_NXTINFO '=' expression '}' {
 	$$ = new_expression(EXPR_SCTP_RECVV_RN);
 	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_recvv_rn_expr));
 	$$->value.sctp_recvv_rn->recvv_rcvinfo = $4;

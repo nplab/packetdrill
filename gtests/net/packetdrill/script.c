@@ -1260,6 +1260,10 @@ static int evaluate_sctp_recvv_rn_expression(struct expression *in,
 		     &out_rn->recvv_rcvinfo,
 		     error))
 		return STATUS_ERR;
+        if (evaluate(in_rn->recvv_nxtinfo,
+		     &out_rn->recvv_nxtinfo,
+		     error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
