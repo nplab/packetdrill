@@ -3826,57 +3826,6 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 		return STATUS_ERR;
 	if (expr->ssfe_info->type != EXPR_ELLIPSIS) {
 		if (check_sctp_sndinfo(expr->ssfe_info->value.sctp_sndinfo, &sctp_event->ssfe_info, error))
-=======
-#if defined(__FreeBSD__) || defined(linux)
-static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
-				       struct sctp_sender_dry_event *sctp_event,
-				       char **error) {
-	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
-		u16 sender_dry_type;
-
-		if (get_u16(expr->sender_dry_type, &sender_dry_type, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_type != sender_dry_type) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_type: expected: %hu actual: %hu",
-				 sender_dry_type, sctp_event->sender_dry_type);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sender_dry_flags->type != EXPR_ELLIPSIS) {
-		u16 sender_dry_flags;
-
-		if (get_u16(expr->sender_dry_flags, &sender_dry_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_flags != sender_dry_flags) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_flags: expected: %hu actual: %hu",
-				 sender_dry_flags, sctp_event->sender_dry_flags);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
-		u32 sender_dry_length;
-
-		if (get_u32(expr->sender_dry_length, &sender_dry_length, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_length != sender_dry_length) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_length: expected: %u actual: %u",
-				 sender_dry_length, sctp_event->sender_dry_length);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sender_dry_assoc_id->type != EXPR_ELLIPSIS) {
-		u32 sender_dry_assoc_id;
-
-		if (get_u32(expr->sender_dry_assoc_id, &sender_dry_assoc_id, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_assoc_id != sender_dry_assoc_id) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_assoc_id: expected: %u actual: %u",
-				 sender_dry_assoc_id, sctp_event->sender_dry_assoc_id);
->>>>>>> master
 			return STATUS_ERR;
 	}
 	if (check_u32_expr(expr->ssfe_assoc_id, sctp_event->ssfe_assoc_id,
