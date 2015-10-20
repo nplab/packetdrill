@@ -3759,6 +3759,9 @@ static int check_sctp_notification(struct iovec *iov,
 		case EXPR_ELLIPSIS:
 			break;
 		default:
+			asprintf(error, "Bad type for iov_base. Can't check type %s", 
+				expression_type_to_string(script_iov_base->type));
+			return STATUS_ERR;
 			break;
 		}
 		i++;
