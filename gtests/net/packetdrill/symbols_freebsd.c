@@ -211,7 +211,11 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_COMM_LOST,                   "SCTP_COMM_LOST"                  },
 	{ SCTP_RESTART,                     "SCTP_RESTART"                    },
 	{ SCTP_SHUTDOWN_COMP,               "SCTP_SHUTDOWN_COMP"              },
-	{ SCTP_CANT_STR_ASSOC,              "SCTP_CANT_STR_ASSOC"             },
+	{ SCTP_ASSOC_SUPPORTS_PR,           "SCTP_ASSOC_SUPPORTS_PR"          },
+	{ SCTP_ASSOC_SUPPORTS_AUTH,         "SCTP_ASSOC_SUPPORTS_AUTH"        },
+	{ SCTP_ASSOC_SUPPORTS_ASCONF,       "SCTP_ASSOC_SUPPORTS_ASCONF"      },
+	{ SCTP_ASSOC_SUPPORTS_MULTIBUF,     "SCTP_ASSOC_SUPPORTS_MULTIBUF"    },
+
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

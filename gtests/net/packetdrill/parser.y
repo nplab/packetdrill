@@ -549,7 +549,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> RECVV_RCVINFO RECVV_NXTINFO
 %token <reserved> SSE_TYPE SSE_FLAGS SSE_LENGTH
 %token <reserved> SENDER_DRY_TYPE SENDER_DRY_FLAGS SENDER_DRY_LENGTH SENDER_DRY_ASSOC_ID
-%token <rexerved> _SCTP_DATA_IO_EVENT_ _SCTP_ASSOCIATION_EVENT_ _SCTP_ADDRESS_EVENT_
+%token <reserved> _SCTP_DATA_IO_EVENT_ _SCTP_ASSOCIATION_EVENT_ _SCTP_ADDRESS_EVENT_
 %token <reserved> _SCTP_SEND_FAILURE_EVENT_ _SCTP_PEER_ERROR_EVENT_ _SCTP_SHUTDOWN_EVENT_
 %token <reserved> _SCTP_PARTIAL_DELIVERY_EVENT_ _SCTP_ADAPTATION_LAYER_EVENT_
 %token <reserved> _SCTP_AUTHENTICATION_EVENT_ _SCTP_SENDER_DRY_EVENT_
@@ -615,7 +615,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_sender_dry_event sender_dry_type sender_dry_flags sender_dry_length sender_dry_assoc_id
 %type <expression> sctp_event_subscribe
 %type <expression> sctp_assoc_change sac_type sac_flags sac_length sac_state sac_error sac_outbound_streams
-%type <expression> sac_inbound_streams sac_assoc_id
+%type <expression> sac_inbound_streams sac_assoc_id sac_info
 %type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -3793,9 +3793,14 @@ sac_assoc_id
 | SAC_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+sac_info
+: SAC_INFO '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SAC_INFO '=' array { $$ = $3; }
+;
+
 sctp_assoc_change
 : '{' sac_type ',' sac_flags ',' sac_length ',' sac_state ',' sac_error ',' sac_outbound_streams ','
-sac_inbound_streams ',' sac_assoc_id ',' SAC_INFO '=' ELLIPSIS '}' {
+sac_inbound_streams ',' sac_assoc_id ',' sac_info '}' {
 	$$ = new_expression(EXPR_SCTP_ASSOC_CHANGE);
 	$$->value.sctp_assoc_change = calloc(1, sizeof(struct sctp_assoc_change_expr));
 	$$->value.sctp_assoc_change->sac_type = $2;
@@ -3806,7 +3811,7 @@ sac_inbound_streams ',' sac_assoc_id ',' SAC_INFO '=' ELLIPSIS '}' {
 	$$->value.sctp_assoc_change->sac_outbound_streams = $12;
 	$$->value.sctp_assoc_change->sac_inbound_streams = $14;
 	$$->value.sctp_assoc_change->sac_assoc_id = $16;
-	$$->value.sctp_assoc_change->sac_info = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_assoc_change->sac_info = $18;
 }
 ;
 
