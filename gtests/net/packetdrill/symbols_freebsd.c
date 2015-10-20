@@ -170,6 +170,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_SEND_FAILED,                 "SCTP_SEND_FAILED"                },
 	{ SCTP_SHUTDOWN_EVENT,              "SCTP_SHUTDOWN_EVENT"             },
 	{ SCTP_SENDER_DRY_EVENT,            "SCTP_SENDER_DRY_EVENT"           },
+	{ SCTP_SEND_FAILED_EVENT,           "SCTP_SEND_FAILED_EVENT"          },
 	{ SCTP_ADAPTATION_INDICATION,       "SCTP_ADAPTATION_INDICATION"      }, 
 	{ SCTP_ADAPTION_INDICATION,         "SCTP_ADAPTION_INDICATION"        },
 	{ SCTP_PARTIAL_DELIVERY_EVENT,      "SCTP_PARTIAL_DELIVERY_EVENT"     },
@@ -203,6 +204,8 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_RECVV_RN,                    "SCTP_RECVV_RN"                   },
 	{ SCTP_RECVRCVINFO,                 "SCTP_RECVRCVINFO"                },
 	{ SCTP_RECVNXTINFO,                 "SCTP_RECVNXTINFO"                },
+	{ SCTP_DATA_SENT,                   "SCTP_DATA_SENT"                  },
+	{ SCTP_DATA_UNSENT,                 "SCTP_DATA_UNSENT"                },
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

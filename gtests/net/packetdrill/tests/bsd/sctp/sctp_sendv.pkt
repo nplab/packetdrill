@@ -14,7 +14,7 @@
 //sctp_sendv(int sd, const struct iovec *iov, int iovcnt, struct sockaddr *addrs, int addrcnt, void *info, socklen_t infolen, unsigned int infotype, int flags);
 
 //test with sctp_sendv_authinfo
-+1.0 sctp_sendv(3, [{iov_base=..., iov_len=500}, {iov_base=..., iov_len=500}], 2, ..., 1, {auth_keynumber=123}, 2, SCTP_SENDV_AUTHINFO, 0) = 1000
++1.0 sctp_sendv(3, [{iov_base=..., iov_len=500}, {iov_base=..., iov_len=500}], 2, NULL, 0, {auth_keynumber=123}, 2, SCTP_SENDV_AUTHINFO, 0) = 1000
 *    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
 

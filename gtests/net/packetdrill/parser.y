@@ -553,6 +553,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> _SCTP_SEND_FAILURE_EVENT_ _SCTP_PEER_ERROR_EVENT_ _SCTP_SHUTDOWN_EVENT_
 %token <reserved> _SCTP_PARTIAL_DELIVERY_EVENT_ _SCTP_ADAPTATION_LAYER_EVENT_
 %token <reserved> _SCTP_AUTHENTICATION_EVENT_ _SCTP_SENDER_DRY_EVENT_
+%token <reserved> SSFE_TYPE SSFE_FLAGS SSFE_LENGTH SSFE_ERROR SSFE_INFO SSFE_ASSOC_ID SSFE_DATA
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -611,6 +612,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_shutdown_event sse_type sse_flags sse_length
 %type <expression> sctp_sender_dry_event sender_dry_type sender_dry_flags sender_dry_length sender_dry_assoc_id
 %type <expression> sctp_event_subscribe
+%type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2584,9 +2586,10 @@ sockaddr
 ;
 
 data
-: ELLIPSIS { new_expression(EXPR_ELLIPSIS); }
-| sctp_shutdown_event { $$ = $1; }
-| sctp_sender_dry_event { $$ = $1; }
+: ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| sctp_shutdown_event        { $$ = $1; }
+| sctp_sender_dry_event      { $$ = $1; }
+| sctp_send_failed_event     { $$ = $1; }
 ;
 
 msghdr
@@ -3626,6 +3629,76 @@ sctp_sender_dry_event
 	$$->value.sctp_sender_dry_event->sender_dry_assoc_id = $8;
 }
 ;
+ssfe_type
+: SSFE_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("ssfe_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSFE_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SSFE_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+ssfe_flags
+: SSFE_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("ssfe_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSFE_FLAGS '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SSFE_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+ssfe_length
+: SSFE_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("ssfe_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SSFE_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+ssfe_error
+: SSFE_ERROR '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("ssfe_error out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SSFE_ERROR '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+ssfe_assoc_id
+: SSFE_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("ssfe_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SSFE_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_send_failed_event
+: '{' ssfe_type ',' ssfe_flags ',' ssfe_length ',' ssfe_error ',' SSFE_INFO '=' sctp_sndinfo ',' ssfe_assoc_id ',' SSFE_DATA '=' ELLIPSIS '}' {
+	$$ = new_expression(EXPR_SCTP_SEND_FAILED_EVENT);
+	$$->value.sctp_send_failed_event = calloc(1, sizeof(struct sctp_send_failed_event_expr));
+	$$->value.sctp_send_failed_event->ssfe_type = $2;
+	$$->value.sctp_send_failed_event->ssfe_flags = $4;
+	$$->value.sctp_send_failed_event->ssfe_length = $6;
+	$$->value.sctp_send_failed_event->ssfe_error = $8;
+	$$->value.sctp_send_failed_event->ssfe_info = $12;
+	$$->value.sctp_send_failed_event->ssfe_assoc_id = $14;
+	$$->value.sctp_send_failed_event->ssfe_data = new_expression(EXPR_ELLIPSIS);
+};
 
 opt_errno
 :                   { $$ = NULL; }

@@ -461,7 +461,8 @@ static int iovec_new(struct expression *expression,
 
 		assert(iov_expr->iov_base->type == EXPR_ELLIPSIS ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
-		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT);
+		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT ||
+		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED_EVENT);
 		assert(iov_expr->iov_len->type == EXPR_INTEGER);
 
 		len = iov_expr->iov_len->value.num;
@@ -3727,6 +3728,37 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 #endif
 }
 
+int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		u16 script_val;
+		 
+		if (get_u16(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %hu actual: %hu", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
+int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		u32 script_val;
+		 
+		if (get_u32(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %u actual: %u", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
+
 #if defined(__FreeBSD__)
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 			      struct sctp_rcvinfo *sctp_rcvinfo,
@@ -3825,30 +3857,10 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 			      struct sctp_nxtinfo *sctp_nxtinfo,
 			      char **error)
 {
-	if (expr->nxt_sid->type != EXPR_ELLIPSIS) {
-		u16 nxt_sid;
-
-		if (get_u16(expr->nxt_sid, &nxt_sid, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_nxtinfo->nxt_sid != nxt_sid) {
-			asprintf(error, "sctp_nxtinfo.nxt_sid: expected: %hu actual: %hu",
-				 nxt_sid, sctp_nxtinfo->nxt_sid);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->nxt_flags->type != EXPR_ELLIPSIS) {
-		u16 nxt_flags;
-
-		if (get_u16(expr->nxt_flags, &nxt_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_nxtinfo->nxt_flags != nxt_flags) {
-			asprintf(error, "sctp_nxtinfo.nxt_flags: expected: %hu actual: %hu",
-				 nxt_flags, sctp_nxtinfo->nxt_flags);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u16_expr(expr->nxt_sid, sctp_nxtinfo->nxt_sid, "sctp_nxtinfo.nxt_sid", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->nxt_flags, sctp_nxtinfo->nxt_flags, "sctp_nxtinfo.nxt_flags", error))
+		return STATUS_ERR;
 	if (expr->nxt_ppid->type != EXPR_ELLIPSIS) {
 		u32 nxt_ppid;
 
@@ -3861,18 +3873,9 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 			return STATUS_ERR;
 		}
 	}
-	if (expr->nxt_length->type != EXPR_ELLIPSIS) {
-		u32 nxt_length;
+	if (check_u32_expr(expr->nxt_length, sctp_nxtinfo->nxt_length, "sctp_nxtinfo.nxt_length", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->nxt_length, &nxt_length, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_nxtinfo->nxt_length != nxt_length) {
-			asprintf(error, "sctp_nxtinfo.nxt_length: expected: %u actual: %u",
-				 nxt_length, sctp_nxtinfo->nxt_length);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -3881,96 +3884,65 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 				     struct sctp_shutdown_event *sctp_event,
 				     char **error) {
-	if (expr->sse_type->type != EXPR_ELLIPSIS) {
-		u16 sse_type;
-		 
-		if (get_u16(expr->sse_type, &sse_type, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sse_type != sse_type) {
-			asprintf(error, "sctp_shutdown_event.sse_type: expected: %hu actual: %hu",
-				 sse_type, sctp_event->sse_type);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sse_flags->type != EXPR_ELLIPSIS) {
-		u16 sse_flags;
-		 
-		if (get_u16(expr->sse_flags, &sse_flags, error)) {
-			return STATUS_ERR;		}
-		if (sctp_event->sse_flags != sse_flags) {
-			asprintf(error, "sctp_shutdown_event.sse_flags: expected: %hu actual: %hu",
-				 sse_flags, sctp_event->sse_flags);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sse_length->type != EXPR_ELLIPSIS) {
-		u32 sse_length;
+	if (check_u16_expr(expr->sse_type, sctp_event->sse_type,
+			   "sctp_shutdown_event.sse_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sse_flags, sctp_event->sse_flags,
+			   "sctp_shutdown_event.sse_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sse_length, sctp_event->sse_length,
+			   "sctp_shutdown_event.sse_length", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->sse_length, &sse_length, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sse_length != sse_length) {
-			asprintf(error, "sctp_shutdown_event.sse_length: expected: %u actual: %u",
-				 sse_length, sctp_event->sse_length);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
+
 #ifdef __FreeBSD__
 static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 				       struct sctp_sender_dry_event *sctp_event,
 				       char **error) {
-	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
-		u16 sender_dry_type;
-		 
-		if (get_u16(expr->sender_dry_type, &sender_dry_type, error)) {
+
+	if (check_u16_expr(expr->sender_dry_type, sctp_event->sender_dry_type,
+			   "sctp_sender_dry.sender_dry_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sender_dry_flags, sctp_event->sender_dry_flags,
+			   "sctp_sender_dry.sender_dry_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sender_dry_length, sctp_event->sender_dry_length,
+			   "sctp_sender_dry.sender_dry_length", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sender_dry_assoc_id, sctp_event->sender_dry_assoc_id,
+			   "sctp_sender_dry.sender_dry_assoc_id", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#ifdef __FreeBSD__
+static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr,
+				       struct sctp_send_failed_event *sctp_event,
+				       char **error) {
+	if (check_u16_expr(expr->ssfe_type, sctp_event->ssfe_type,
+			   "sctp_send_failed.ssfe_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->ssfe_flags, sctp_event->ssfe_flags,
+			   "sctp_send_failed.ssfe_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->ssfe_length, sctp_event->ssfe_length,
+			   "sctp_send_failed.ssfe_length", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->ssfe_error, sctp_event->ssfe_error,
+			   "sctp_send_failed.ssfe_error", error))
+		return STATUS_ERR;
+	if (expr->ssfe_info->type != EXPR_ELLIPSIS) {
+		if (check_sctp_sndinfo(expr->ssfe_info->value.sctp_sndinfo, &sctp_event->ssfe_info, error))
 			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_type != sender_dry_type) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_type: expected: %hu actual: %hu",
-				 sender_dry_type, sctp_event->sender_dry_type);
-			return STATUS_ERR;
-		}
 	}
-	if (expr->sender_dry_flags->type != EXPR_ELLIPSIS) {
-		u16 sender_dry_flags;
-		 
-		if (get_u16(expr->sender_dry_flags, &sender_dry_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_flags != sender_dry_flags) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_flags: expected: %hu actual: %hu",
-				 sender_dry_flags, sctp_event->sender_dry_flags);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
-		u32 sender_dry_length;
-		 
-		if (get_u32(expr->sender_dry_length, &sender_dry_length, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_length != sender_dry_length) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_length: expected: %u actual: %u",
-				 sender_dry_length, sctp_event->sender_dry_length);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sender_dry_assoc_id->type != EXPR_ELLIPSIS) {
-		u32 sender_dry_assoc_id;
-		 
-		if (get_u32(expr->sender_dry_assoc_id, &sender_dry_assoc_id, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->sender_dry_assoc_id != sender_dry_assoc_id) {
-			asprintf(error, "sctp_sender_dry_event.sender_dry_assoc_id: expected: %u actual: %u",
-				 sender_dry_assoc_id, sctp_event->sender_dry_assoc_id);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u32_expr(expr->ssfe_assoc_id, sctp_event->ssfe_assoc_id,
+			   "sctp_send_failed.ssfe_assoc_id", error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
@@ -4004,6 +3976,12 @@ static int check_sctp_notification(struct iovec *iov,
 			if (check_sctp_sender_dry_event(script_iov_base->value.sctp_sender_dry_event,
 						       (struct sctp_sender_dry_event *) iov->iov_base,
 						       error))
+				return STATUS_ERR;
+			break;
+		case EXPR_SCTP_SEND_FAILED_EVENT:
+			if (check_sctp_send_failed_event(script_iov_base->value.sctp_send_failed_event,
+						        (struct sctp_send_failed_event *) iov->iov_base,
+						        error))
 				return STATUS_ERR;
 			break;
 		case EXPR_ELLIPSIS:
