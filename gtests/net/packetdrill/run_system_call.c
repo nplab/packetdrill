@@ -414,6 +414,7 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 }
 #endif
 
+#if defined(__FreeBSD__) || defined(__Linux__) 
 int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u16 script_val;
@@ -428,7 +429,9 @@ int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **er
 	}
 	return STATUS_OK;
 }
+#endif
 
+#if defined(__FreeBSD__) || defined(__Linux__)
 int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u32 script_val;
@@ -443,6 +446,7 @@ int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **er
 	}
 	return STATUS_OK;
 }
+#endif
 
 /* Free all the space used by the given iovec. */
 static void iovec_free(struct iovec *iov, size_t iov_len)
@@ -2348,7 +2352,7 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 }
 #endif
 
-#ifdef SCTP_EVENT
+#ifdef SCTP_EVENTS
 static int check_sctp_event_subscribe(struct sctp_event_subscribe_expr *expr,
 				      struct sctp_event_subscribe *sctp_events,
 				      char **error)
@@ -3312,42 +3316,15 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error) {
-	if (expr->sinfo_stream->type != EXPR_ELLIPSIS) {
-		u16 sinfo_stream;
-
-		if (get_u16(expr->sinfo_stream, &sinfo_stream, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndrcvinfo->sinfo_stream != sinfo_stream) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_stream: expected: %hu actual: %hu",
-				 sinfo_stream, sctp_sndrcvinfo->sinfo_stream);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinfo_ssn->type != EXPR_ELLIPSIS) {
-		u16 sinfo_ssn;
-
-		if (get_u16(expr->sinfo_ssn, &sinfo_ssn, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndrcvinfo->sinfo_ssn != sinfo_ssn) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_ssn: expected: %hu actual: %hu",
-				 sinfo_ssn, sctp_sndrcvinfo->sinfo_ssn);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinfo_flags->type != EXPR_ELLIPSIS) {
-		u16 sinfo_flags;
-
-		if (get_u16(expr->sinfo_flags, &sinfo_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndrcvinfo->sinfo_flags != sinfo_flags) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_flags: expected: %hu actual: %hu",
-				 sinfo_flags, sctp_sndrcvinfo->sinfo_flags);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u16_expr(expr->sinfo_stream, sctp_sndrcvinfo->sinfo_stream,
+			   "sctp_sndrcvinfo.sinfo_stream", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sinfo_ssn, sctp_sndrcvinfo->sinfo_ssn,
+			   "sctp_sndrcvinfo.sinfo_ssn", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sinfo_flags, sctp_sndrcvinfo->sinfo_flags,
+			   "sctp_sndrcvinfo.sinfo_flags", error))
+		return STATUS_ERR;
 	if (expr->sinfo_ppid->type != EXPR_ELLIPSIS) {
 		u32 sinfo_ppid;
 
@@ -3360,54 +3337,19 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 			return STATUS_ERR;
 		}
 	}
-	if (expr->sinfo_context->type != EXPR_ELLIPSIS) {
-		u32 sinfo_context;
+	if (check_u32_expr(expr->sinfo_context, sctp_sndrcvinfo->sinfo_context,
+			   "sctp_sndrcvinfo.sinfo_context", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_timetolive, sctp_sndrcvinfo->sinfo_timetolive,
+			   "sctp_sndrcvinfo.sinfo_timetolive", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_tsn, sctp_sndrcvinfo->sinfo_tsn,
+			   "sctp_sndrcvinfo.sinfo_tsn", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_cumtsn, sctp_sndrcvinfo->sinfo_cumtsn,
+			   "sctp_sndrcvinfo.sinfo_cumtsn", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->sinfo_context, &sinfo_context, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndrcvinfo->sinfo_context != sinfo_context) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_context: expected: %u actual: %u",
-				 sinfo_context, sctp_sndrcvinfo->sinfo_context);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinfo_timetolive->type != EXPR_ELLIPSIS) {
-		u32 sinfo_timetolive;
-
-		if (get_u32(expr->sinfo_timetolive, &sinfo_timetolive, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndrcvinfo->sinfo_timetolive != sinfo_timetolive) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_timetolive: expected: %u actual: %u",
-				 sinfo_timetolive, sctp_sndrcvinfo->sinfo_timetolive);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinfo_tsn->type != EXPR_ELLIPSIS) {
-		u32 sinfo_tsn;
-
-		if (get_u32(expr->sinfo_tsn, &sinfo_tsn, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndrcvinfo->sinfo_tsn != sinfo_tsn) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_tsn: expected: %u actual: %u",
-				 sinfo_tsn, sctp_sndrcvinfo->sinfo_tsn);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinfo_cumtsn->type != EXPR_ELLIPSIS) {
-		u32 sinfo_cumtsn;
-
-		if (get_u32(expr->sinfo_cumtsn, &sinfo_cumtsn, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndrcvinfo->sinfo_cumtsn != sinfo_cumtsn) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_cumtsn: expected: %u actual: %u",
-				 sinfo_cumtsn, sctp_sndrcvinfo->sinfo_cumtsn);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 
@@ -3763,42 +3705,12 @@ static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 			      struct sctp_rcvinfo *sctp_rcvinfo,
 			      char **error)
 {
-	if (expr->rcv_sid->type != EXPR_ELLIPSIS) {
-		u16 rcv_sid;
-
-		if (get_u16(expr->rcv_sid, &rcv_sid, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rcvinfo->rcv_sid != rcv_sid) {
-			asprintf(error, "sctp_rcvinfo.rcv_sid: expected: %hu actual: %hu",
-				 rcv_sid, sctp_rcvinfo->rcv_sid);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->rcv_ssn->type != EXPR_ELLIPSIS) {
-		u16 rcv_ssn;
-
-		if (get_u16(expr->rcv_ssn, &rcv_ssn, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rcvinfo->rcv_ssn != rcv_ssn) {
-			asprintf(error, "sctp_rcvinfo.rcv_ssn: expected: %hu actual: %hu",
-				 rcv_ssn, sctp_rcvinfo->rcv_ssn);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->rcv_flags->type != EXPR_ELLIPSIS) {
-		u16 rcv_flags;
-
-		if (get_u16(expr->rcv_flags, &rcv_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rcvinfo->rcv_flags != rcv_flags) {
-			asprintf(error, "sctp_rcvinfo.rcv_flags: expected: %hu actual: %hu",
-				 rcv_flags, sctp_rcvinfo->rcv_flags);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u16_expr(expr->rcv_sid, sctp_rcvinfo->rcv_sid, "sctp_rcvinfo.rcv_sid", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->rcv_ssn, sctp_rcvinfo->rcv_ssn, "sctp_rcvinfo.rcv_ssn", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->rcv_flags, sctp_rcvinfo->rcv_flags, "sctp_rcvinfo.rcv_flags", error))
+		return STATUS_ERR;
 	if (expr->rcv_ppid->type != EXPR_ELLIPSIS) {
 		u32 rcv_ppid;
 
@@ -3811,42 +3723,16 @@ static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 			return STATUS_ERR;
 		}
 	}
-	if (expr->rcv_tsn->type != EXPR_ELLIPSIS) {
-		u32 rcv_tsn;
+	if (check_u32_expr(expr->rcv_tsn, sctp_rcvinfo->rcv_tsn,
+			   "sctp_rcvinfo.rcv_tsn", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->rcv_cumtsn, sctp_rcvinfo->rcv_cumtsn,
+			   "sctp_rcvinfo.rcv_cumtsn", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->rcv_context, sctp_rcvinfo->rcv_context,
+			   "sctp_rcvinfo.rcv_context", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->rcv_tsn, &rcv_tsn, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rcvinfo->rcv_tsn != rcv_tsn) {
-			asprintf(error, "sctp_rcvinfo.rcv_tsn: expected: %u actual: %u",
-				 rcv_tsn, sctp_rcvinfo->rcv_tsn);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->rcv_cumtsn->type != EXPR_ELLIPSIS) {
-		u32 rcv_cumtsn;
-
-		if (get_u32(expr->rcv_cumtsn, &rcv_cumtsn, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rcvinfo->rcv_cumtsn != rcv_cumtsn) {
-			asprintf(error, "sctp_rcvinfo.rcv_cumtsn: expected: %u actual: %u",
-				 rcv_cumtsn, sctp_rcvinfo->rcv_cumtsn);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->rcv_context->type != EXPR_ELLIPSIS) {
-		u32 rcv_context;
-
-		if (get_u32(expr->rcv_context, &rcv_context, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rcvinfo->rcv_context != rcv_context) {
-			asprintf(error, "sctp_rcvinfo.rcv_context: expected: %u actual: %u",
-				 rcv_context, sctp_rcvinfo->rcv_context);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
