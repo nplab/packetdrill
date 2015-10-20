@@ -65,6 +65,7 @@ enum expression_t {
 	EXPR_SCTP_RCVINFO,        /* struct sctp_rcvinfo for syscall sctp_recvv */
 	EXPR_SCTP_NXTINFO,        /* struct sctp_nxtinfo for syscall sctp_recvv */
 	EXPR_SCTP_RECVV_RN,       /* struct sctp_recvv_rn for syscall sctp_recvv */
+	EXPR_SCTP_SHUTDOWN_EVENT, /* expression tree for sctp_shutdown_event */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -103,6 +104,7 @@ struct expression {
 		struct sctp_rcvinfo_expr *sctp_rcvinfo;
 		struct sctp_nxtinfo_expr *sctp_nxtinfo;
 		struct sctp_recvv_rn_expr *sctp_recvv_rn;
+		struct sctp_shutdown_event_expr *sctp_shutdown_event;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -297,6 +299,13 @@ struct sctp_nxtinfo_expr {
 struct sctp_recvv_rn_expr {
 	struct expression *recvv_rcvinfo;
 	struct expression *recvv_nxtinfo;
+};
+
+/* Parse tree for sctp_shutdown_event for notifications. */
+struct sctp_shutdown_event_expr {
+	struct expression *sse_type;
+	struct expression *sse_flags;
+	struct expression *sse_length;
 };
 
 /* The errno-related info from strace to summarize a system call error */
