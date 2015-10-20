@@ -548,6 +548,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH
 %token <reserved> RECVV_RCVINFO RECVV_NXTINFO
 %token <reserved> SSE_TYPE SSE_FLAGS SSE_LENGTH
+%token <reserved> SENDER_DRY_TYPE SENDER_DRY_FLAGS SENDER_DRY_LENGTH SENDER_DRY_ASSOC_ID
 %token <rexerved> _SCTP_DATA_IO_EVENT_ _SCTP_ASSOCIATION_EVENT_ _SCTP_ADDRESS_EVENT_
 %token <reserved> _SCTP_SEND_FAILURE_EVENT_ _SCTP_PEER_ERROR_EVENT_ _SCTP_SHUTDOWN_EVENT_
 %token <reserved> _SCTP_PARTIAL_DELIVERY_EVENT_ _SCTP_ADAPTATION_LAYER_EVENT_
@@ -608,6 +609,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context
 %type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length sctp_recvv_rn
 %type <expression> sctp_shutdown_event sse_type sse_flags sse_length
+%type <expression> sctp_sender_dry_event sender_dry_type sender_dry_flags sender_dry_length sender_dry_assoc_id
 %type <expression> sctp_event_subscribe
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2584,6 +2586,7 @@ sockaddr
 data
 : ELLIPSIS { new_expression(EXPR_ELLIPSIS); }
 | sctp_shutdown_event { $$ = $1; }
+| sctp_sender_dry_event { $$ = $1; }
 ;
 
 msghdr
@@ -3568,6 +3571,61 @@ sctp_shutdown_event
 	$$->value.sctp_shutdown_event->sse_flags = $4;
 	$$->value.sctp_shutdown_event->sse_length = $6;
 };
+
+sender_dry_type
+: SENDER_DRY_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sender_dry_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SENDER_DRY_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SENDER_DRY_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sender_dry_flags
+: SENDER_DRY_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sender_dry_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SENDER_DRY_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sender_dry_length
+: SENDER_DRY_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sender_dry_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SENDER_DRY_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sender_dry_assoc_id
+: SENDER_DRY_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sender_dry_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SENDER_DRY_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_sender_dry_event
+: '{'sender_dry_type ',' sender_dry_flags ',' sender_dry_length ',' sender_dry_assoc_id '}' {
+	$$ = new_expression(EXPR_SCTP_SENDER_DRY_EVENT);
+	$$->value.sctp_sender_dry_event = calloc(1, sizeof(struct sctp_sender_dry_event_expr));
+	$$->value.sctp_sender_dry_event->sender_dry_type = $2;
+	$$->value.sctp_sender_dry_event->sender_dry_flags = $4;
+	$$->value.sctp_sender_dry_event->sender_dry_length = $6;
+	$$->value.sctp_sender_dry_event->sender_dry_assoc_id = $8;
+}
+;
 
 opt_errno
 :                   { $$ = NULL; }

@@ -10,6 +10,26 @@
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 //enable shutdown events
 +0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, [8]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=0}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=0}, [8]) = 0
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENTS, {sctp_data_io_event=1, sctp_association_event=1, sctp_address_event=0, sctp_send_failure_event=1,
+sctp_peer_error_event=0, sctp_shutdown_event=1, sctp_partial_delivery_event=0, sctp_adaptation_layer_event=0, sctp_authentication_event=0,
+sctp_sender_dry_event=0}, 11) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, [8]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENTS, {sctp_data_io_event=1, sctp_association_event=1, sctp_address_event=0, sctp_send_failure_event=1,
+sctp_peer_error_event=0, sctp_shutdown_event=0, sctp_partial_delivery_event=0, sctp_adaptation_layer_event=0, sctp_authentication_event=0,
+sctp_sender_dry_event=0}, 11) = 0
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SENDER_DRY_EVENT, se_on=1}, 8) = 0
++0.0 sctp_recvv(3, [{iov_base={sender_dry_type=SCTP_SENDER_DRY_EVENT, sender_dry_flags=0, sender_dry_length=12, sender_dry_assoc_id=3}, iov_len=1000}], 1,
+..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION|MSG_EOR]) = 12
+
+
+
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=0}, [8]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, 8) = 0
 // Tear down the association
 +0.0 < sctp: SHUTDOWN[flgs=0, cum_tsn=0]
 *    > sctp: SHUTDOWN_ACK[flgs=0]

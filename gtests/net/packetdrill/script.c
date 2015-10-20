@@ -87,6 +87,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_NXTINFO,         "sctp_nxtinfo"    },
 	{ EXPR_SCTP_RECVV_RN,        "sctp_recvv_rn "  },
 	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
+	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -434,6 +435,12 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
 		free_expression(expression->value.sctp_shutdown_event->sse_flags);
 		free_expression(expression->value.sctp_shutdown_event->sse_length);
+		break;
+	case EXPR_SCTP_SENDER_DRY_EVENT:
+		free_expression(expression->value.sctp_sender_dry_event->sender_dry_type);
+		free_expression(expression->value.sctp_sender_dry_event->sender_dry_flags);
+		free_expression(expression->value.sctp_sender_dry_event->sender_dry_length);
+		free_expression(expression->value.sctp_sender_dry_event->sender_dry_assoc_id);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -1378,6 +1385,42 @@ static int evaluate_sctp_shutdown_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_sender_dry_event_expression(struct expression *in,
+						     struct expression *out,
+						     char **error)
+{
+	struct sctp_sender_dry_event_expr *in_event;
+	struct sctp_sender_dry_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_SENDER_DRY_EVENT);
+	assert(in->value.sctp_sender_dry_event);
+	assert(out->type == EXPR_SCTP_SENDER_DRY_EVENT);
+
+	out->value.sctp_sender_dry_event = calloc(1, sizeof(struct sctp_sender_dry_event_expr));
+
+	in_event = in->value.sctp_sender_dry_event;
+	out_event = out->value.sctp_sender_dry_event;
+
+	if (evaluate(in_event->sender_dry_type,
+		     &out_event->sender_dry_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sender_dry_flags,
+		     &out_event->sender_dry_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sender_dry_length,
+		     &out_event->sender_dry_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sender_dry_assoc_id,
+		     &out_event->sender_dry_assoc_id,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -1465,6 +1508,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
 		result = evaluate_sctp_shutdown_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SENDER_DRY_EVENT:
+		result = evaluate_sctp_sender_dry_event_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;
