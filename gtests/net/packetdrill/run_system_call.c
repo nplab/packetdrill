@@ -414,6 +414,36 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 }
 #endif
 
+int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		u16 script_val;
+		 
+		if (get_u16(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %hu actual: %hu", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
+int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		u32 script_val;
+		 
+		if (get_u32(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %u actual: %u", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
 /* Free all the space used by the given iovec. */
 static void iovec_free(struct iovec *iov, size_t iov_len)
 {
@@ -3727,37 +3757,6 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	return STATUS_ERR;
 #endif
 }
-
-int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
-	if (expr->type != EXPR_ELLIPSIS) {
-		u16 script_val;
-		 
-		if (get_u16(expr, &script_val, error)) {
-			return STATUS_ERR;
-		}
-		if (script_val != value) {
-			asprintf(error, "%s: expected: %hu actual: %hu", val_name, script_val, value);
-			return STATUS_ERR;
-		}
-	}
-	return STATUS_OK;
-}
-
-int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
-	if (expr->type != EXPR_ELLIPSIS) {
-		u32 script_val;
-		 
-		if (get_u32(expr, &script_val, error)) {
-			return STATUS_ERR;
-		}
-		if (script_val != value) {
-			asprintf(error, "%s: expected: %u actual: %u", val_name, script_val, value);
-			return STATUS_ERR;
-		}
-	}
-	return STATUS_OK;
-}
-
 
 #if defined(__FreeBSD__)
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
