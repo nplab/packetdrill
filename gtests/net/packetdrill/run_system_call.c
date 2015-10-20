@@ -415,6 +415,23 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 #endif
 
 #if defined(__FreeBSD__) || defined(__Linux__) 
+int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		u8 script_val;
+		 
+		if (get_u8(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %hhu actual: %hhu", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(__Linux__) 
 int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u16 script_val;
@@ -430,6 +447,21 @@ int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **er
 	return STATUS_OK;
 }
 #endif
+
+int check_s32_expr(struct expression *expr, s16 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		s32 script_val;
+		 
+		if (get_s32(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %d actual: %d", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
 
 #if defined(__FreeBSD__) || defined(__Linux__)
 int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
@@ -1778,30 +1810,13 @@ static int syscall_shutdown(struct state *state, struct syscall_spec *syscall,
 static int check_linger(struct linger_expr *expr,
 			struct linger *linger, char **error)
 {
-	if (expr->l_onoff->type != EXPR_ELLIPSIS) {
-		int l_onoff;
+	if (check_s32_expr(expr->l_onoff, linger->l_onoff,
+			   "linger.l_onoff", error))
+		return STATUS_ERR;
+	if (check_s32_expr(expr->l_linger, linger->l_linger,
+			   "linger.l_linger", error))
+		return STATUS_ERR;
 
-		if (get_s32(expr->l_onoff, &l_onoff, error)) {
-			return STATUS_ERR;
-		}
-		if (linger->l_onoff != l_onoff) {
-			asprintf(error, "linger.l_onoff: expected: %d actual: %d",
-				 l_onoff, linger->l_onoff);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->l_linger->type != EXPR_ELLIPSIS) {
-		int l_linger;
-
-		if (get_s32(expr->l_linger, &l_linger, error)) {
-			return STATUS_ERR;
-		}
-		if (linger->l_linger != l_linger) {
-			asprintf(error, "linger.l_linger: expected: %d actual: %d",
-				 l_linger, linger->l_linger);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 
@@ -1809,42 +1824,16 @@ static int check_linger(struct linger_expr *expr,
 static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 			      struct sctp_rtoinfo *sctp_rtoinfo, char **error)
 {
-	if (expr->srto_initial->type != EXPR_ELLIPSIS) {
-		u32 srto_initial;
+	if (check_u32_expr(expr->srto_initial, sctp_rtoinfo->srto_initial,
+			   "sctp_rtoinfo.srto_initial", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->srto_max, sctp_rtoinfo->srto_max,
+			   "sctp_rtoinfo.srto_max", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->srto_min, sctp_rtoinfo->srto_min,
+			   "sctp_rtoinfo.srto_min", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->srto_initial, &srto_initial, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rtoinfo->srto_initial != srto_initial) {
-			asprintf(error, "sctp_rtoinfo.srto_initial: expected: %u actual: %u",
-				 srto_initial, sctp_rtoinfo->srto_initial);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->srto_max->type != EXPR_ELLIPSIS) {
-		u32 srto_max;
-
-		if (get_u32(expr->srto_max, &srto_max, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rtoinfo->srto_max != srto_max) {
-			asprintf(error, "sctp_rtoinfo.srto_max: expected: %u actual: %u",
-				 srto_max, sctp_rtoinfo->srto_max);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->srto_min->type != EXPR_ELLIPSIS) {
-		u32 srto_min;
-
-		if (get_u32(expr->srto_min, &srto_min, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rtoinfo->srto_min != srto_min) {
-			asprintf(error, "sctp_rtoinfo.srto_min: expected: %u actual: %u",
-				srto_min, sctp_rtoinfo->srto_min);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -1853,54 +1842,19 @@ static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 			      struct sctp_initmsg *sctp_initmsg, char **error)
 {
-	if (expr->sinit_num_ostreams->type != EXPR_ELLIPSIS) {
-		u16 sinit_num_ostreams;
+	if (check_u16_expr(expr->sinit_num_ostreams, sctp_initmsg->sinit_num_ostreams,
+			   "sctp_initmsg.sinit_num_ostreams", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sinit_max_instreams, sctp_initmsg->sinit_max_instreams,
+			   "sctp_initmsg.sinit_max_instreams", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sinit_max_attempts, sctp_initmsg->sinit_max_attempts,
+			   "sctp_initmsg.sinit_max_attempts", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sinit_max_init_timeo, sctp_initmsg->sinit_max_init_timeo,
+			   "sctp_initmsg.sinit_max_init_timeo", error))
+		return STATUS_ERR;
 
-		if (get_u16(expr->sinit_num_ostreams, &sinit_num_ostreams, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_initmsg->sinit_num_ostreams != sinit_num_ostreams) {
-			asprintf(error, "sctp_initmsg.sinit_num_ostreams: expected: %hu actual: %hu",
-				 sinit_num_ostreams, sctp_initmsg->sinit_num_ostreams);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinit_max_instreams->type != EXPR_ELLIPSIS) {
-		u16 sinit_max_instreams;
-
-		if (get_u16(expr->sinit_max_instreams, &sinit_max_instreams, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_initmsg->sinit_max_instreams != sinit_max_instreams) {
-			asprintf(error, "sctp_initmsg.sinit_max_instreams: expected: %hu actual: %hu",
-				 sinit_max_instreams, sctp_initmsg->sinit_max_instreams);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinit_max_attempts->type != EXPR_ELLIPSIS) {
-		u16 sinit_max_attempts;
-
-		if (get_u16(expr->sinit_max_attempts, &sinit_max_attempts, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_initmsg->sinit_max_attempts != sinit_max_attempts) {
-			asprintf(error, "sctp_initmsg.sinit_max_attempts: expected: %hu actual: %hu",
-				 sinit_max_attempts, sctp_initmsg->sinit_max_attempts);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sinit_max_init_timeo->type != EXPR_ELLIPSIS) {
-		u16 sinit_max_init_timeo;
-
-		if (get_u16(expr->sinit_max_init_timeo, &sinit_max_init_timeo, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_initmsg->sinit_max_init_timeo != sinit_max_init_timeo) {
-			asprintf(error, "sctp_initmsg.sinit_max_init_timeo: expected: %hu actual: %hu",
-				 sinit_max_init_timeo, sctp_initmsg->sinit_max_init_timeo);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -1910,30 +1864,13 @@ static int check_sctp_sack_info(struct sctp_sack_info_expr *expr,
 				struct sctp_sack_info *sctp_sack_info,
 				char **error)
 {
-	if (expr->sack_delay->type != EXPR_ELLIPSIS) {
-		u32 sack_delay;
+	if (check_u32_expr(expr->sack_delay, sctp_sack_info->sack_delay,
+			   "sctp_sack_info.sack_delay", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sack_freq, sctp_sack_info->sack_freq,
+			   "sctp_sack_info.sack_freq", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->sack_delay, &sack_delay, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sack_info->sack_delay != sack_delay) {
-			asprintf(error, "sctp_sack_info.sack_delay: expected: %u actual: %u",
-				 sack_delay, sctp_sack_info->sack_delay);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sack_freq->type != EXPR_ELLIPSIS) {
-		u32 sack_freq;
-
-		if (get_u32(expr->sack_freq, &sack_freq, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sack_info->sack_freq != sack_freq) {
-			asprintf(error, "sctp_sack_info.sack_freq: expected: %u actual: %u",
-				 sack_freq, sctp_sack_info->sack_freq);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -1943,66 +1880,22 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 				struct sctp_paddrinfo *sctp_paddrinfo,
 				char **error)
 {
-	if (expr->spinfo_state->type != EXPR_ELLIPSIS) {
-		s32 spinfo_state;
+	if (check_s32_expr(expr->spinfo_state, sctp_paddrinfo->spinfo_state,
+			   "sctp_paddrinfo.spinfo_state", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spinfo_cwnd, sctp_paddrinfo->spinfo_cwnd,
+			   "sctp_paddrinfo.spinfo_cwnd", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spinfo_srtt, sctp_paddrinfo->spinfo_srtt,
+			   "sctp_paddrinfo.spinfo_srtt", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spinfo_rto, sctp_paddrinfo->spinfo_rto,
+			   "sctp_paddrinfo.spinfo_rto", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spinfo_mtu, sctp_paddrinfo->spinfo_mtu,
+			   "sctp_paddrinfo.spinfo_mtu", error))
+		return STATUS_ERR;
 
-		if (get_s32(expr->spinfo_state, &spinfo_state, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrinfo->spinfo_state != spinfo_state) {
-			asprintf(error, "sctp_paddrinfo.spinfo_state: expected: %u actual: %u",
-				spinfo_state, sctp_paddrinfo->spinfo_state);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->spinfo_cwnd->type != EXPR_ELLIPSIS) {
-		u32 spinfo_cwnd;
-
-		if (get_u32(expr->spinfo_cwnd, &spinfo_cwnd, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrinfo->spinfo_cwnd != spinfo_cwnd) {
-			asprintf(error, "sctp_paddrinfo.spinfo_cwnd: expected: %u actual: %u",
-				 spinfo_cwnd, sctp_paddrinfo->spinfo_cwnd);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->spinfo_srtt->type != EXPR_ELLIPSIS) {
-		u32 spinfo_srtt;
-
-		if (get_u32(expr->spinfo_srtt, &spinfo_srtt, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrinfo->spinfo_srtt != spinfo_srtt) {
-			asprintf(error, "sctp_paddrinfo.spinfo_srtt: expected: %u actual: %u",
-				 spinfo_srtt, sctp_paddrinfo->spinfo_srtt);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->spinfo_rto->type != EXPR_ELLIPSIS) {
-		u32 spinfo_rto;
-
-		if (get_u32(expr->spinfo_rto, &spinfo_rto, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrinfo->spinfo_rto != spinfo_rto) {
-			asprintf(error, "sctp_paddrinfo.spinfo_rto: expected: %u actual: %u",
-				 spinfo_rto, sctp_paddrinfo->spinfo_rto);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->spinfo_mtu->type != EXPR_ELLIPSIS) {
-		u32 spinfo_mtu;
-
-		if (get_u32(expr->spinfo_mtu, &spinfo_mtu, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrinfo->spinfo_mtu != spinfo_mtu) {
-			asprintf(error, "sctp_paddrinfo.spinfo_mtu: expected: %u actual: %u",
-				 spinfo_mtu, sctp_paddrinfo->spinfo_mtu);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -2012,90 +1905,27 @@ static int check_sctp_status(struct sctp_status_expr *expr,
 			     struct sctp_status *sctp_status,
 			     char **error)
 {
-	if (expr->sstat_state->type != EXPR_ELLIPSIS) {
-		s32 sstat_state;
-
-		if (get_s32(expr->sstat_state, &sstat_state, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_status->sstat_state != sstat_state) {
-			asprintf(error, "sctp_status.sstat_state: expected: %d actual: %d",
-				 sstat_state, sctp_status->sstat_state);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sstat_rwnd->type != EXPR_ELLIPSIS) {
-		u32 sstat_rwnd;
-
-		if (get_u32(expr->sstat_rwnd, &sstat_rwnd, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_status->sstat_rwnd != sstat_rwnd) {
-			asprintf(error, "sctp_status.sstat_rwnd: expected: %u actual: %u",
-				 sstat_rwnd, sctp_status->sstat_rwnd);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sstat_unackdata->type != EXPR_ELLIPSIS) {
-		u16 sstat_unackdata;
-
-		if (get_u16(expr->sstat_unackdata, &sstat_unackdata, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_status->sstat_unackdata != sstat_unackdata) {
-			asprintf(error, "sctp_status.sstat_unackdata: expected: %hu actual: %hu",
-				 sstat_unackdata, sctp_status->sstat_unackdata);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sstat_penddata->type != EXPR_ELLIPSIS) {
-		u16 sstat_penddata;
-
-		if (get_u16(expr->sstat_penddata, &sstat_penddata, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_status->sstat_penddata != sstat_penddata) {
-			asprintf(error, "sctp_status.sstat_penddata: expected: %hu actual: %hu",
-				 sstat_penddata, sctp_status->sstat_penddata);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sstat_instrms->type != EXPR_ELLIPSIS) {
-		u16 sstat_instrms;
-
-		if (get_u16(expr->sstat_instrms, &sstat_instrms, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_status->sstat_instrms != sstat_instrms) {
-			asprintf(error, "sctp_status.sstat_instrms: expected: %hu actual: %hu",
-				 sstat_instrms, sctp_status->sstat_instrms);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sstat_outstrms->type != EXPR_ELLIPSIS) {
-		u16 sstat_outstrms;
-
-		if (get_u16(expr->sstat_outstrms, &sstat_outstrms, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_status->sstat_outstrms != sstat_outstrms) {
-			asprintf(error, "sctp_status.sstat_outstrms: expected: %hu actual: %hu",
-				 sstat_outstrms, sctp_status->sstat_outstrms);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sstat_fragmentation_point->type != EXPR_ELLIPSIS) {
-		u32 sstat_fragmentation_point;
-
-		if (get_u32(expr->sstat_fragmentation_point, &sstat_fragmentation_point, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_status->sstat_fragmentation_point != sstat_fragmentation_point) {
-			asprintf(error, "sctp_status.sstat_fragmentation_point: expected: %u actual: %u",
-				sstat_fragmentation_point, sctp_status->sstat_fragmentation_point);
-			return STATUS_ERR;
-		}
-	}
+	if (check_s32_expr(expr->sstat_state, sctp_status->sstat_state,
+			   "sctp_status.sstat_state", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sstat_rwnd, sctp_status->sstat_rwnd,
+			   "sctp_status.sstat_rwnd", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sstat_unackdata, sctp_status->sstat_unackdata,
+			   "sctp_status.sstat_unackdata", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sstat_penddata, sctp_status->sstat_penddata,
+			   "sctp_status.sstat_penddata", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sstat_instrms, sctp_status->sstat_instrms,
+			   "sctp_status.sstat_instrms", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sstat_outstrms, sctp_status->sstat_outstrms,
+			   "sctp_status.sstat_outstrms", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sstat_fragmentation_point, sctp_status->sstat_fragmentation_point,
+			   "sctp_status.sstat_fragmentation_point", error))
+		return STATUS_ERR;
 	if (expr->sstat_primary->type != EXPR_ELLIPSIS) {
 		if (check_sctp_paddrinfo(expr->sstat_primary->value.sctp_paddrinfo,
 					 &sctp_status->sstat_primary, error)) {
@@ -2111,69 +1941,27 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 				  struct sctp_paddrparams *sctp_paddrparams,
 				  char **error)
 {
-	if (expr->spp_hbinterval->type != EXPR_ELLIPSIS) {
-		u32 spp_hbinterval;
+	if (check_u32_expr(expr->spp_hbinterval, sctp_paddrparams->spp_hbinterval,
+			   "sctp_paddrparams.spp_hbinterval", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->spp_pathmaxrxt, sctp_paddrparams->spp_pathmaxrxt,
+			   "sctp_paddrparams.spp_pathmaxrxt", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spp_pathmtu, sctp_paddrparams->spp_pathmtu,
+			   "sctp_paddrparams.spp_pathmtu", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spp_flags, sctp_paddrparams->spp_flags,
+			   "sctp_paddrparams.spp_flags", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->spp_hbinterval, &spp_hbinterval, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrparams->spp_hbinterval != spp_hbinterval) {
-			asprintf(error, "sctp_paddrparams.spp_hbinterval: expected: %u actual: %u",
-				 spp_hbinterval, sctp_paddrparams->spp_hbinterval);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->spp_pathmaxrxt->type != EXPR_ELLIPSIS) {
-		u16 spp_pathmaxrxt;
-
-		if (get_u16(expr->spp_pathmaxrxt, &spp_pathmaxrxt, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrparams->spp_pathmaxrxt != spp_pathmaxrxt) {
-			asprintf(error, "sctp_paddrparams.spp_pathmaxrxt: expected: %hu actual: %hu",
-				 spp_pathmaxrxt, sctp_paddrparams->spp_pathmaxrxt);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->spp_pathmtu->type != EXPR_ELLIPSIS) {
-		u32 spp_pathmtu;
-
-		if (get_u32(expr->spp_pathmtu, &spp_pathmtu, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrparams->spp_pathmtu != spp_pathmtu) {
-			asprintf(error, "sctp_paddrparams.spp_pathmtu: expected: %u actual: %u",
-				 spp_pathmtu, sctp_paddrparams->spp_pathmtu);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->spp_flags->type != EXPR_ELLIPSIS) {
-		u32 spp_flags;
-
-		if (get_u32(expr->spp_flags, &spp_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_paddrparams->spp_flags != spp_flags) {
-			asprintf(error, "sctp_paddrparams.spp_flags: expected: 0x%08x actual: 0x%08x",
-				 spp_flags, sctp_paddrparams->spp_flags);
-			return STATUS_ERR;
-		}
-	}
 	if (expr->spp_ipv6_flowlabel->type != EXPR_ELLIPSIS) {
 #ifdef linux
 		asprintf(error, "linux doesn't support sctp_paddrparams.spp_ipv6_flowlabel");
 		return STATUS_ERR;
 #else
-		u32 spp_ipv6_flowlabel;
-
-		if (get_u32(expr->spp_ipv6_flowlabel, &spp_ipv6_flowlabel, error)) {
+		if (check_u32_expr(expr->spp_ipv6_flowlabel, sctp_paddrparams->spp_ipv6_flowlabel,
+				   "sctp_paddrparams.spp_ipv6_flowlabel", error))
 			return STATUS_ERR;
-		}
-		if (sctp_paddrparams->spp_ipv6_flowlabel != spp_ipv6_flowlabel) {
-			asprintf(error, "sctp_paddrparams.spp_ipv6_flowlabel: expected: %u actual: %u",
-				 spp_ipv6_flowlabel, sctp_paddrparams->spp_ipv6_flowlabel);
-			return STATUS_ERR;
-		}
 #endif
 	}
 	if (expr->spp_dscp->type != EXPR_ELLIPSIS) {
@@ -2181,16 +1969,9 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 		asprintf(error, "linux doesn't support sctp_paddrparams.spp_dscp");
 		return STATUS_ERR;
 #else
-		u8 spp_dscp;
-
-		if (get_u8(expr->spp_dscp, &spp_dscp, error)) {
+		if (check_u8_expr(expr->spp_dscp, sctp_paddrparams->spp_dscp,
+				   "sctp_paddrparams.spp_dscp", error))
 			return STATUS_ERR;
-		}
-		if (sctp_paddrparams->spp_dscp != spp_dscp) {
-			asprintf(error, "sctp_paddrparams.spp_dscp: expected: %hhu actual: %hhu",
-				 spp_dscp, sctp_paddrparams->spp_dscp);
-			return STATUS_ERR;
-		}
 #endif
 	}
 	return STATUS_OK;
@@ -2202,18 +1983,10 @@ static int check_sctp_assoc_value(struct sctp_assoc_value_expr *expr,
 				  struct sctp_assoc_value *sctp_assoc_value,
 				  char **error)
 {
-	if (expr->assoc_value->type != EXPR_ELLIPSIS) {
-		u32 assoc_value;
+	if (check_u16_expr(expr->assoc_value, sctp_assoc_value->assoc_value,
+			   "sctp_assoc_value.stream_id", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->assoc_value, &assoc_value, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_assoc_value->assoc_value != assoc_value) {
-			asprintf(error, "sctp_assoc_value.assoc_value: expected: %u actual: %u",
-				 assoc_value, sctp_assoc_value->assoc_value);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -2223,30 +1996,13 @@ static int check_sctp_stream_value(struct sctp_stream_value_expr *expr,
 				   struct sctp_stream_value *sctp_stream_value,
 				   char **error)
 {
-	if (expr->stream_id->type != EXPR_ELLIPSIS) {
-		u16 stream_id;
+	if (check_u16_expr(expr->stream_id, sctp_stream_value->stream_id,
+			   "sctp_stream_value.stream_id", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->stream_value, sctp_stream_value->stream_value,
+			   "sctp_stream_value.stream_value", error))
+		return STATUS_ERR;
 
-		if (get_u16(expr->stream_id, &stream_id, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_stream_value->stream_id != stream_id) {
-			asprintf(error, "sctp_stream_value.stream_id: expected: %u actual: %u",
-				 stream_id, sctp_stream_value->stream_id);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->stream_value->type != EXPR_ELLIPSIS) {
-		u16 stream_value;
-
-		if (get_u16(expr->stream_value, &stream_value, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_stream_value->stream_value != stream_value) {
-			asprintf(error, "sctp_stream_value.stream_value: expected: %u actual: %u",
-				 stream_value, sctp_stream_value->stream_value);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -2256,66 +2012,21 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			     struct sctp_assocparams *sctp_assocparams,
 			     char **error)
 {
-	if (expr->sasoc_asocmaxrxt->type != EXPR_ELLIPSIS) {
-		u16 sasoc_asocmaxrxt;
-
-		if (get_u16(expr->sasoc_asocmaxrxt, &sasoc_asocmaxrxt, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_assocparams->sasoc_asocmaxrxt != sasoc_asocmaxrxt) {
-			asprintf(error, "sctp_assocparams.sasoc_asocmaxrxt: expected: %hu actual: %hu",
-				 sasoc_asocmaxrxt, sctp_assocparams->sasoc_asocmaxrxt);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sasoc_number_peer_destinations->type != EXPR_ELLIPSIS) {
-		u16 sasoc_number_peer_destinations;
-
-		if (get_u16(expr->sasoc_number_peer_destinations, &sasoc_number_peer_destinations, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_assocparams->sasoc_number_peer_destinations != sasoc_number_peer_destinations) {
-			asprintf(error, "sctp_assocparams.sasoc_number_peer_destinations: expected: %hu actual: %hu",
-					 sasoc_number_peer_destinations, sctp_assocparams->sasoc_number_peer_destinations);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sasoc_peer_rwnd->type != EXPR_ELLIPSIS) {
-		u32 sasoc_peer_rwnd;
-
-		if (get_u32(expr->sasoc_peer_rwnd, &sasoc_peer_rwnd, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_assocparams->sasoc_peer_rwnd != sasoc_peer_rwnd) {
-			asprintf(error, "sctp_assocparams.sasoc_peer_rwnd: expected: %u actual: %u",
-				 sasoc_peer_rwnd, sctp_assocparams->sasoc_peer_rwnd);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sasoc_local_rwnd->type != EXPR_ELLIPSIS) {
-		u32 sasoc_local_rwnd;
-
-		if (get_u32(expr->sasoc_local_rwnd, &sasoc_local_rwnd, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_assocparams->sasoc_local_rwnd != sasoc_local_rwnd) {
-			asprintf(error, "sctp_assocparams.sasoc_local_rwnd: expected: %u actual: %u",
-				 sasoc_local_rwnd, sctp_assocparams->sasoc_local_rwnd);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sasoc_cookie_life->type != EXPR_ELLIPSIS) {
-		u32 sasoc_cookie_life;
-
-		if (get_u32(expr->sasoc_cookie_life, &sasoc_cookie_life, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_assocparams->sasoc_cookie_life != sasoc_cookie_life) {
-			asprintf(error, "sctp_assocparams.sasoc_cookie_life: expected: %u actual: %u",
-				 sasoc_cookie_life, sctp_assocparams->sasoc_cookie_life);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u16_expr(expr->sasoc_asocmaxrxt, sctp_assocparams->sasoc_asocmaxrxt,
+			   "sctp_assocparams.sasoc_asocmaxrxt", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sasoc_number_peer_destinations, sctp_assocparams->sasoc_number_peer_destinations,
+			   "sctp_assocparams.sasoc_number_peer_destinations", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sasoc_peer_rwnd, sctp_assocparams->sasoc_peer_rwnd,
+			   "sctp_assocparams.sasoc_peer_rwnd", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sasoc_local_rwnd, sctp_assocparams->sasoc_local_rwnd,
+			   "sctp_assocparams.sasoc_local_rwnd", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sasoc_cookie_life, sctp_assocparams->sasoc_cookie_life,
+			   "sctp_assocparams.sasoc_cookie_life", error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
@@ -2326,30 +2037,13 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 			    struct sctp_event *sctp_event,
 			    char **error)
 {
-	if (expr->se_type->type != EXPR_ELLIPSIS) {
-		u16 se_type;
+	if (check_u16_expr(expr->se_type, sctp_event->se_type,
+			   "sctp_event.se_type", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->se_on, sctp_event->se_on,
+			   "sctp_event.se_on", error))
+		return STATUS_ERR;
 
-		if (get_u16(expr->se_type, &se_type, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->se_type != se_type) {
-			asprintf(error, "sctp_event.se_type: expected: %hu actual: %hu",
-				 se_type, sctp_event->se_type);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->se_on->type != EXPR_ELLIPSIS) {
-		u8 se_on;
-
-		if (get_u8(expr->se_on, &se_on, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_event->se_on != se_on) {
-			asprintf(error, "sctp_event.se_on: expected: %hhu actual: %hhu",
-				 se_on, sctp_event->se_on);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -2359,126 +2053,36 @@ static int check_sctp_event_subscribe(struct sctp_event_subscribe_expr *expr,
 				      struct sctp_event_subscribe *sctp_events,
 				      char **error)
 {
-	if (expr->sctp_data_io_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_data_io_event;
-
-		if (get_u8(expr->sctp_data_io_event, &sctp_data_io_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_data_io_event != sctp_data_io_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_data_io_event: expected: %hhu actual: %hhu",
-				 sctp_data_io_event, sctp_events->sctp_data_io_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_association_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_association_event;
-
-		if (get_u8(expr->sctp_association_event, &sctp_association_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_association_event != sctp_association_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_association_event: expected: %hhu actual: %hhu",
-				 sctp_association_event, sctp_events->sctp_association_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_address_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_address_event;
-
-		if (get_u8(expr->sctp_address_event, &sctp_address_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_address_event != sctp_address_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_address_event: expected: %hhu actual: %hhu",
-				 sctp_address_event, sctp_events->sctp_address_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_send_failure_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_send_failure_event;
-
-		if (get_u8(expr->sctp_send_failure_event, &sctp_send_failure_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_send_failure_event != sctp_send_failure_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_send_failure_event: expected: %hhu actual: %hhu",
-				 sctp_send_failure_event, sctp_events->sctp_send_failure_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_peer_error_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_peer_error_event;
-
-		if (get_u8(expr->sctp_peer_error_event, &sctp_peer_error_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_peer_error_event != sctp_peer_error_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_peer_error_event: expected: %hhu actual: %hhu",
-				 sctp_peer_error_event, sctp_events->sctp_peer_error_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_shutdown_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_shutdown_event;
-
-		if (get_u8(expr->sctp_shutdown_event, &sctp_shutdown_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_shutdown_event != sctp_shutdown_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_shutdown_event: expected: %hhu actual: %hhu",
-				 sctp_shutdown_event, sctp_events->sctp_shutdown_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_partial_delivery_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_partial_delivery_event;
-
-		if (get_u8(expr->sctp_partial_delivery_event, &sctp_partial_delivery_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_partial_delivery_event != sctp_partial_delivery_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_partial_delivery_event: expected: %hhu actual: %hhu",
-				 sctp_partial_delivery_event, sctp_events->sctp_partial_delivery_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_adaptation_layer_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_adaptation_layer_event;
-
-		if (get_u8(expr->sctp_adaptation_layer_event, &sctp_adaptation_layer_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_adaptation_layer_event != sctp_adaptation_layer_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_adaptation_layer_event: expected: %hhu actual: %hhu",
-				 sctp_adaptation_layer_event, sctp_events->sctp_adaptation_layer_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_authentication_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_authentication_event;
-
-		if (get_u8(expr->sctp_authentication_event, &sctp_authentication_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_authentication_event != sctp_authentication_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_authentication_event: expected: %hhu actual: %hhu",
-				 sctp_authentication_event, sctp_events->sctp_authentication_event);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->sctp_sender_dry_event->type != EXPR_ELLIPSIS) {
-		u8 sctp_sender_dry_event;
-
-		if (get_u8(expr->sctp_sender_dry_event, &sctp_sender_dry_event, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_events->sctp_sender_dry_event != sctp_sender_dry_event) {
-			asprintf(error, "sctp_event_subscribe.sctp_sender_dry_event: expected: %hhu actual: %hhu",
-				 sctp_sender_dry_event, sctp_events->sctp_sender_dry_event);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u8_expr(expr->sctp_data_io_event, sctp_events->sctp_data_io_event,
+			   "sctp_event_subscribe.sctp_data_io_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_association_event, sctp_events->sctp_association_event,
+			   "sctp_event_subscribe.sctp_association_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_address_event, sctp_events->sctp_address_event,
+			   "sctp_event_subscribe.sctp_address_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_send_failure_event, sctp_events->sctp_send_failure_event,
+			   "sctp_event_subscribe.sctp_send_failure_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_peer_error_event, sctp_events->sctp_peer_error_event,
+			   "sctp_event_subscribe.sctp_peer_error_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_shutdown_event, sctp_events->sctp_shutdown_event,
+			   "sctp_event_subscribe.sctp_shutdown_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_partial_delivery_event, sctp_events->sctp_partial_delivery_event,
+			   "sctp_event_subscribe.sctp_partial_delivery_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_adaptation_layer_event, sctp_events->sctp_adaptation_layer_event,
+			   "sctp_event_subscribe.sctp_adaptation_layer_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_authentication_event, sctp_events->sctp_authentication_event,
+			   "sctp_event_subscribe.sctp_authentication_event", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->sctp_sender_dry_event, sctp_events->sctp_sender_dry_event,
+			   "sctp_event_subscribe.sctp_sender_dry_event", error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
@@ -2488,30 +2092,12 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			      struct sctp_sndinfo *sctp_sndinfo,
 			      char **error)
 {
-	if (expr->snd_sid->type != EXPR_ELLIPSIS) {
-		u16 snd_sid;
-
-		if (get_u16(expr->snd_sid, &snd_sid, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndinfo->snd_sid != snd_sid) {
-			asprintf(error, "sctp_sndinfo.snd_sid: expected: %hu actual: %hu",
-				 snd_sid, sctp_sndinfo->snd_sid);
-			return STATUS_ERR;
-		}
-	}
-	if (expr->snd_flags->type != EXPR_ELLIPSIS) {
-		u16 snd_flags;
-
-		if (get_u16(expr->snd_flags, &snd_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndinfo->snd_flags != snd_flags) {
-			asprintf(error, "sctp_sndinfo.snd_flags: expected: %hu actual: %hu",
-				 snd_flags, sctp_sndinfo->snd_flags);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u16_expr(expr->snd_sid, sctp_sndinfo->snd_sid,
+			   "sctp_sndinfo.snd_sid", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->snd_flags, sctp_sndinfo->snd_flags,
+			   "sctp_sndinfo.snd_flags", error))
+		return STATUS_ERR;
 	if (expr->snd_ppid->type != EXPR_ELLIPSIS) {
 		u32 snd_ppid;
 
@@ -2524,18 +2110,10 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			return STATUS_ERR;
 		}
 	}
-	if (expr->snd_context->type != EXPR_ELLIPSIS) {
-		u32 snd_context;
+	if (check_u32_expr(expr->snd_context, sctp_sndinfo->snd_context,
+			   "sctp_sndinfo.snd_context", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->snd_context, &snd_context, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndinfo->snd_context != snd_context) {
-			asprintf(error, "sctp_sndinfo.snd_context: expected: %u actual: %u",
-				 snd_context, sctp_sndinfo->snd_context);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
@@ -2545,18 +2123,10 @@ static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 				    struct sctp_setadaptation *sctp_setadaptation,
 				    char **error)
 {
-	if (expr->ssb_adaptation_ind->type != EXPR_ELLIPSIS) {
-		u32 ssb_adaptation_ind;
+	if (check_u32_expr(expr->ssb_adaptation_ind, sctp_setadaptation->ssb_adaptation_ind,
+			   "sctp_setadptation.ssb_adaptation_ind", error))
+		return STATUS_ERR;
 
-		if (get_u32(expr->ssb_adaptation_ind, &ssb_adaptation_ind, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_setadaptation->ssb_adaptation_ind != ssb_adaptation_ind) {
-			asprintf(error, "sctp_setadaptation.ssb_adaptation_ind: expected: %u actual: %u",
-				 ssb_adaptation_ind, sctp_setadaptation->ssb_adaptation_ind);
-			return STATUS_ERR;
-		}
-	}
 	return STATUS_OK;
 }
 #endif
