@@ -553,6 +553,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> _SCTP_SEND_FAILURE_EVENT_ _SCTP_PEER_ERROR_EVENT_ _SCTP_SHUTDOWN_EVENT_
 %token <reserved> _SCTP_PARTIAL_DELIVERY_EVENT_ _SCTP_ADAPTATION_LAYER_EVENT_
 %token <reserved> _SCTP_AUTHENTICATION_EVENT_ _SCTP_SENDER_DRY_EVENT_
+%token <reserved> SAC_TYPE SAC_FLAGS SAC_LENGTH SAC_STATE SAC_ERROR SAC_OUTBOUND_STREAMS
+%token <reserved> SAC_INBOUND_STREAMS SAC_ASSOC_ID SAC_INFO
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -611,6 +613,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_shutdown_event sse_type sse_flags sse_length
 %type <expression> sctp_sender_dry_event sender_dry_type sender_dry_flags sender_dry_length sender_dry_assoc_id
 %type <expression> sctp_event_subscribe
+%type <expression> sctp_assoc_change_event sac_type sac_flags sac_length sac_state sac_error sac_outbound_streams
+%type <expression> sac_inbound_streams sac_assoc_id
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2585,6 +2589,7 @@ sockaddr
 
 data
 : ELLIPSIS { new_expression(EXPR_ELLIPSIS); }
+| sctp_assoc_change_event { $$ = $1; }
 | sctp_shutdown_event { $$ = $1; }
 | sctp_sender_dry_event { $$ = $1; }
 ;
@@ -3624,6 +3629,111 @@ sctp_sender_dry_event
 	$$->value.sctp_sender_dry_event->sender_dry_flags = $4;
 	$$->value.sctp_sender_dry_event->sender_dry_length = $6;
 	$$->value.sctp_sender_dry_event->sender_dry_assoc_id = $8;
+}
+;
+
+sac_type
+: SAC_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sac_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAC_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SAC_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sac_flags
+: SAC_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sac_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAC_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sac_length
+: SAC_LENGTH '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sac_length out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAC_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sac_state
+: SAC_STATE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sac_state out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAC_STATE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SAC_STATE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sac_error
+: SAC_ERROR '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sac_error out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAC_ERROR '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sac_outbound_streams
+: SAC_OUTBOUND_STREAMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sac_outbound_streams out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAC_OUTBOUND_STREAMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sac_inbound_streams
+: SAC_INBOUND_STREAMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sac_inbound_streams out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAC_INBOUND_STREAMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sac_assoc_id
+: SAC_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sac_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SAC_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_assoc_change_event
+: '{' sac_type ',' sac_flags ',' sac_length ',' sac_state ',' sac_error ',' sac_outbound_streams ','
+sac_inbound_streams ',' sac_assoc_id ',' SAC_INFO '=' ELLIPSIS '}' {
+	$$ = new_expression(EXPR_SCTP_ASSOC_CHANGE_EVENT);
+	$$->value.sctp_assoc_change_event = calloc(1, sizeof(struct sctp_assoc_change_event_expr));
+	$$->value.sctp_assoc_change_event->sac_type = $2;
+	$$->value.sctp_assoc_change_event->sac_flags = $4;
+	$$->value.sctp_assoc_change_event->sac_length = $6;
+	$$->value.sctp_assoc_change_event->sac_state = $8;
+	$$->value.sctp_assoc_change_event->sac_error = $10;
+	$$->value.sctp_assoc_change_event->sac_outbound_streams = $12;
+	$$->value.sctp_assoc_change_event->sac_inbound_streams = $14;
+	$$->value.sctp_assoc_change_event->sac_assoc_id = $16;
+	$$->value.sctp_assoc_change_event->sac_info = new_expression(EXPR_ELLIPSIS);
 }
 ;
 

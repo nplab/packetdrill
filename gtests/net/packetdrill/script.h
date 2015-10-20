@@ -66,6 +66,7 @@ enum expression_t {
 	EXPR_SCTP_RCVINFO,        /* struct sctp_rcvinfo for syscall sctp_recvv */
 	EXPR_SCTP_NXTINFO,        /* struct sctp_nxtinfo for syscall sctp_recvv */
 	EXPR_SCTP_RECVV_RN,       /* struct sctp_recvv_rn for syscall sctp_recvv */
+	EXPR_SCTP_ASSOC_CHANGE_EVENT, /* expression tree for sctp_assoc_change_event */
 	EXPR_SCTP_SHUTDOWN_EVENT, /* expression tree for sctp_shutdown_event */
 	EXPR_SCTP_SENDER_DRY_EVENT, /* expression tree for sctp_sender_dry_event */
 	NUM_EXPR_TYPES,
@@ -107,6 +108,7 @@ struct expression {
 		struct sctp_rcvinfo_expr *sctp_rcvinfo;
 		struct sctp_nxtinfo_expr *sctp_nxtinfo;
 		struct sctp_recvv_rn_expr *sctp_recvv_rn;
+		struct sctp_assoc_change_event_expr *sctp_assoc_change_event;
 		struct sctp_shutdown_event_expr *sctp_shutdown_event;
 		struct sctp_sender_dry_event_expr *sctp_sender_dry_event;
 	} value;
@@ -317,6 +319,19 @@ struct sctp_nxtinfo_expr {
 struct sctp_recvv_rn_expr {
 	struct expression *recvv_rcvinfo;
 	struct expression *recvv_nxtinfo;
+};
+
+/* Parse tree for sctp_assoc_change_event for notifications. */
+struct sctp_assoc_change_event_expr {
+	struct expression *sac_type;
+	struct expression *sac_flags;
+	struct expression *sac_length;
+	struct expression *sac_state;
+	struct expression *sac_error;
+	struct expression *sac_outbound_streams;
+	struct expression *sac_inbound_streams;
+	struct expression *sac_assoc_id;
+	struct expression *sac_info;
 };
 
 /* Parse tree for sctp_shutdown_event for notifications. */

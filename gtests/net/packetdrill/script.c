@@ -86,6 +86,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_RCVINFO,         "sctp_rcvinfo"    },
 	{ EXPR_SCTP_NXTINFO,         "sctp_nxtinfo"    },
 	{ EXPR_SCTP_RECVV_RN,        "sctp_recvv_rn "  },
+	{ EXPR_SCTP_ASSOC_CHANGE_EVENT,"sctp_assoc_change_event"},
 	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
 	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
 	{ NUM_EXPR_TYPES,            NULL}
@@ -430,6 +431,17 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_RECVV_RN:
 		free_expression(expression->value.sctp_recvv_rn->recvv_rcvinfo);
 		free_expression(expression->value.sctp_recvv_rn->recvv_nxtinfo);
+		break;
+	case EXPR_SCTP_ASSOC_CHANGE_EVENT:
+		free_expression(expression->value.sctp_assoc_change_event->sac_type);
+		free_expression(expression->value.sctp_assoc_change_event->sac_flags);
+		free_expression(expression->value.sctp_assoc_change_event->sac_length);
+		free_expression(expression->value.sctp_assoc_change_event->sac_state);
+		free_expression(expression->value.sctp_assoc_change_event->sac_error);
+		free_expression(expression->value.sctp_assoc_change_event->sac_outbound_streams);
+		free_expression(expression->value.sctp_assoc_change_event->sac_inbound_streams);
+		free_expression(expression->value.sctp_assoc_change_event->sac_assoc_id);
+		free_expression(expression->value.sctp_assoc_change_event->sac_info);
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
@@ -1353,6 +1365,62 @@ static int evaluate_sctp_recvv_rn_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_assoc_change_event_expression(struct expression *in,
+						       struct expression *out,
+						       char **error)
+{
+	struct sctp_assoc_change_event_expr *in_event;
+	struct sctp_assoc_change_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_ASSOC_CHANGE_EVENT);
+	assert(in->value.sctp_assoc_change_event);
+	assert(out->type == EXPR_SCTP_ASSOC_CHANGE_EVENT);
+
+	out->value.sctp_assoc_change_event = calloc(1, sizeof(struct sctp_assoc_change_event_expr));
+
+	in_event = in->value.sctp_assoc_change_event;
+	out_event = out->value.sctp_assoc_change_event;
+
+	if (evaluate(in_event->sac_type,
+		     &out_event->sac_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_flags,
+		     &out_event->sac_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_length,
+		     &out_event->sac_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_state,
+		     &out_event->sac_state,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_error,
+		     &out_event->sac_error,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_outbound_streams,
+		     &out_event->sac_outbound_streams,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_inbound_streams,
+		     &out_event->sac_inbound_streams,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_assoc_id,
+		     &out_event->sac_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sac_info,
+		     &out_event->sac_info,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_shutdown_event_expression(struct expression *in,
 						   struct expression *out,
 						   char **error)
@@ -1505,6 +1573,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_RECVV_RN:
 		result = evaluate_sctp_recvv_rn_expression(in, out, error);
+		break;
+	case EXPR_SCTP_ASSOC_CHANGE_EVENT:
+		result = evaluate_sctp_assoc_change_event_expression(in, out, error);
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
 		result = evaluate_sctp_shutdown_event_expression(in, out, error);
