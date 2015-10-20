@@ -938,8 +938,8 @@ static int evaluate_sctp_event_expression(struct expression *in,
 }
 
 static int evaluate_sctp_event_subscribe_expression(struct expression *in,
-						 struct expression *out,
-						 char **error)
+						    struct expression *out,
+						    char **error)
 {
 	struct sctp_event_subscribe_expr *in_event;
 	struct sctp_event_subscribe_expr *out_event;
@@ -994,7 +994,7 @@ static int evaluate_sctp_event_subscribe_expression(struct expression *in,
 		    error))
 		return STATUS_ERR;
 
-	return STATUS_ERR;
+	return STATUS_OK;
 }
 
 static int evaluate_sctp_accocparams_expression(struct expression *in,

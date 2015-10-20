@@ -2316,6 +2316,135 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 }
 #endif
 
+#ifdef SCTP_EVENT
+static int check_sctp_event_subscribe(struct sctp_event_subscribe_expr *expr,
+				      struct sctp_event_subscribe *sctp_events,
+				      char **error)
+{
+	if (expr->sctp_data_io_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_data_io_event;
+
+		if (get_u8(expr->sctp_data_io_event, &sctp_data_io_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_data_io_event != sctp_data_io_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_data_io_event: expected: %hhu actual: %hhu",
+				 sctp_data_io_event, sctp_events->sctp_data_io_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_association_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_association_event;
+
+		if (get_u8(expr->sctp_association_event, &sctp_association_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_association_event != sctp_association_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_association_event: expected: %hhu actual: %hhu",
+				 sctp_association_event, sctp_events->sctp_association_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_address_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_address_event;
+
+		if (get_u8(expr->sctp_address_event, &sctp_address_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_address_event != sctp_address_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_address_event: expected: %hhu actual: %hhu",
+				 sctp_address_event, sctp_events->sctp_address_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_send_failure_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_send_failure_event;
+
+		if (get_u8(expr->sctp_send_failure_event, &sctp_send_failure_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_send_failure_event != sctp_send_failure_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_send_failure_event: expected: %hhu actual: %hhu",
+				 sctp_send_failure_event, sctp_events->sctp_send_failure_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_peer_error_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_peer_error_event;
+
+		if (get_u8(expr->sctp_peer_error_event, &sctp_peer_error_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_peer_error_event != sctp_peer_error_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_peer_error_event: expected: %hhu actual: %hhu",
+				 sctp_peer_error_event, sctp_events->sctp_peer_error_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_shutdown_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_shutdown_event;
+
+		if (get_u8(expr->sctp_shutdown_event, &sctp_shutdown_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_shutdown_event != sctp_shutdown_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_shutdown_event: expected: %hhu actual: %hhu",
+				 sctp_shutdown_event, sctp_events->sctp_shutdown_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_partial_delivery_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_partial_delivery_event;
+
+		if (get_u8(expr->sctp_partial_delivery_event, &sctp_partial_delivery_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_partial_delivery_event != sctp_partial_delivery_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_partial_delivery_event: expected: %hhu actual: %hhu",
+				 sctp_partial_delivery_event, sctp_events->sctp_partial_delivery_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_adaptation_layer_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_adaptation_layer_event;
+
+		if (get_u8(expr->sctp_adaptation_layer_event, &sctp_adaptation_layer_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_adaptation_layer_event != sctp_adaptation_layer_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_adaptation_layer_event: expected: %hhu actual: %hhu",
+				 sctp_adaptation_layer_event, sctp_events->sctp_adaptation_layer_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_authentication_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_authentication_event;
+
+		if (get_u8(expr->sctp_authentication_event, &sctp_authentication_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_authentication_event != sctp_authentication_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_authentication_event: expected: %hhu actual: %hhu",
+				 sctp_authentication_event, sctp_events->sctp_authentication_event);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sctp_sender_dry_event->type != EXPR_ELLIPSIS) {
+		u8 sctp_sender_dry_event;
+
+		if (get_u8(expr->sctp_sender_dry_event, &sctp_sender_dry_event, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_events->sctp_sender_dry_event != sctp_sender_dry_event) {
+			asprintf(error, "sctp_event_subscribe.sctp_sender_dry_event: expected: %hhu actual: %hhu",
+				 sctp_sender_dry_event, sctp_events->sctp_sender_dry_event);
+			return STATUS_ERR;
+		}
+	}
+
+	return STATUS_OK;
+}
+#endif
 #ifdef SCTP_DEFAULT_SNDINFO
 static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			      struct sctp_sndinfo *sctp_sndinfo,
@@ -2527,6 +2656,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		break;
 #endif
+#ifdef SCTP_EVENTS
+	case EXPR_SCTP_EVENT_SUBSCRIBE:
+		live_optval = malloc(sizeof(struct sctp_event_subscribe));
+		live_optlen = sizeof(struct sctp_event_subscribe);
+		break;
+#endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	case EXPR_SCTP_SNDINFO:
 		live_optval = malloc(sizeof(struct sctp_sndinfo));
@@ -2621,6 +2756,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_event(val_expression->value.sctp_event, live_optval, error);
 		break;
 #endif
+#ifdef SCTP_EVENTS
+	case EXPR_SCTP_EVENT_SUBSCRIBE:
+		result = check_sctp_event_subscribe(val_expression->value.sctp_event_subscribe, live_optval, error);
+		break;
+#endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	case EXPR_SCTP_SNDINFO:
 		result = check_sctp_sndinfo(val_expression->value.sctp_sndinfo, live_optval, error);
@@ -2681,6 +2821,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_EVENT
 	struct sctp_event event;
 #endif
+#ifdef SCTP_EVENTS
+	struct sctp_event_subscribe event_subscribe;
+#endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	struct sctp_sndinfo sndinfo;
 #endif
@@ -2694,7 +2837,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	u8 spp_dscp;
 #endif
 #endif
-
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -2859,6 +3001,51 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &event;
+		break;
+#endif
+#ifdef SCTP_EVENTS
+	case EXPR_SCTP_EVENT_SUBSCRIBE:
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_data_io_event,
+			    &event_subscribe.sctp_data_io_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_association_event,
+			    &event_subscribe.sctp_association_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_address_event,
+			    &event_subscribe.sctp_address_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_send_failure_event,
+			    &event_subscribe.sctp_send_failure_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_peer_error_event,
+			    &event_subscribe.sctp_peer_error_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_shutdown_event,
+			    &event_subscribe.sctp_shutdown_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_partial_delivery_event,
+			    &event_subscribe.sctp_partial_delivery_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_adaptation_layer_event,
+			    &event_subscribe.sctp_adaptation_layer_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_authentication_event,
+			    &event_subscribe.sctp_authentication_event, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_sender_dry_event,
+			    &event_subscribe.sctp_sender_dry_event, error)) {
+			return STATUS_ERR;
+		}
+		optval = &event_subscribe;
 		break;
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO

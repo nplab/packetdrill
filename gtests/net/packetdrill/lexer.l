@@ -245,6 +245,16 @@ spp_ipv6_flowlabel		return SPP_IPV6_FLOWLABEL_; /* avoid name clash */
 spp_dscp			return SPP_DSCP_; /* avoid name clash */
 se_type				return SE_TYPE;
 se_on				return SE_ON;
+sctp_data_io_event              return _SCTP_DATA_IO_EVENT_;
+sctp_association_event          return _SCTP_ASSOCIATION_EVENT_;
+sctp_address_event              return _SCTP_ADDRESS_EVENT_;
+sctp_send_failure_event         return _SCTP_SEND_FAILURE_EVENT_;
+sctp_peer_error_event           return _SCTP_PEER_ERROR_EVENT_;
+sctp_shutdown_event             return _SCTP_SHUTDOWN_EVENT_;
+sctp_partial_delivery_event     return _SCTP_PARTIAL_DELIVERY_EVENT_;
+sctp_adaptation_layer_event     return _SCTP_ADAPTATION_LAYER_EVENT_;
+sctp_authentication_event       return _SCTP_AUTHENTICATION_EVENT_;
+sctp_sender_dry_event           return _SCTP_SENDER_DRY_EVENT_;
 snd_sid				return SND_SID;
 snd_flags			return SND_FLAGS;
 snd_ppid			return SND_PPID;

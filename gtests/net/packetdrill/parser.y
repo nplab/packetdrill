@@ -548,6 +548,10 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH
 %token <reserved> RECVV_RCVINFO RECVV_NXTINFO
 %token <reserved> SSE_TYPE SSE_FLAGS SSE_LENGTH
+%token <rexerved> _SCTP_DATA_IO_EVENT_ _SCTP_ASSOCIATION_EVENT_ _SCTP_ADDRESS_EVENT_
+%token <reserved> _SCTP_SEND_FAILURE_EVENT_ _SCTP_PEER_ERROR_EVENT_ _SCTP_SHUTDOWN_EVENT_
+%token <reserved> _SCTP_PARTIAL_DELIVERY_EVENT_ _SCTP_ADAPTATION_LAYER_EVENT_
+%token <reserved> _SCTP_AUTHENTICATION_EVENT_ _SCTP_SENDER_DRY_EVENT_
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -604,6 +608,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context
 %type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length sctp_recvv_rn
 %type <expression> sctp_shutdown_event sse_type sse_flags sse_length
+%type <expression> sctp_event_subscribe
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2461,6 +2466,9 @@ expression
 | sctp_event        {
 	$$ = $1;
 }
+| sctp_event_subscribe {
+	$$ = $1;
+}
 | sctp_sndinfo      {
 	$$ = $1;
 }
@@ -3113,6 +3121,57 @@ sctp_event
 	$$->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
 	$$->value.sctp_event->se_type = $2;
 	$$->value.sctp_event->se_on = $4;
+}
+;
+
+sctp_event_subscribe
+: '{' _SCTP_DATA_IO_EVENT_          '=' INTEGER ',' _SCTP_ASSOCIATION_EVENT_      '=' INTEGER ','
+      _SCTP_ADDRESS_EVENT_          '=' INTEGER ',' _SCTP_SEND_FAILURE_EVENT_     '=' INTEGER ','
+      _SCTP_PEER_ERROR_EVENT_       '=' INTEGER ',' _SCTP_SHUTDOWN_EVENT_         '=' INTEGER ','
+      _SCTP_PARTIAL_DELIVERY_EVENT_ '=' INTEGER ',' _SCTP_ADAPTATION_LAYER_EVENT_ '=' INTEGER ','
+      _SCTP_AUTHENTICATION_EVENT_   '=' INTEGER ',' _SCTP_SENDER_DRY_EVENT_       '=' INTEGER '}' {
+	$$ = new_expression(EXPR_SCTP_EVENT_SUBSCRIBE);
+	$$->value.sctp_event_subscribe = calloc(1, sizeof(struct sctp_event_subscribe_expr));
+	if (!is_valid_u8($4)) {
+		semantic_error("sctp_data_io_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_data_io_event =  new_integer_expression($4, "%hhu");
+	if (!is_valid_u8($8)) {
+		semantic_error("sctp_association_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_association_event =  new_integer_expression($8, "%hhu");
+	if (!is_valid_u8($12)) {
+		semantic_error("sctp_address_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_address_event =  new_integer_expression($12, "%hhu");
+	if (!is_valid_u8($16)) {
+		semantic_error("sctp_send_failure_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_send_failure_event =  new_integer_expression($16, "%hhu");
+	if (!is_valid_u8($20)) {
+		semantic_error("sctp_peer_error_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_peer_error_event =  new_integer_expression($20, "%hhu");
+	if (!is_valid_u8($24)) {
+		semantic_error("sctp_shutdown_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_shutdown_event =  new_integer_expression($24, "%hhu");
+	if (!is_valid_u8($28)) {
+		semantic_error("sctp_partial_delivery_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_partial_delivery_event =  new_integer_expression($28, "%hhu");
+	if (!is_valid_u8($32)) {
+		semantic_error("sctp_adaptation_layer_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_adaptation_layer_event =  new_integer_expression($32, "%hhu");
+	if (!is_valid_u8($36)) {
+		semantic_error("sctp_authentication_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_authentication_event =  new_integer_expression($36, "%hhu");
+	if (!is_valid_u8($40)) {
+		semantic_error("sctp_sender_dry_event out of range");
+	}
+	$$->value.sctp_event_subscribe->sctp_sender_dry_event =  new_integer_expression($40, "%hhu");
 }
 ;
 
