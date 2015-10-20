@@ -49,7 +49,7 @@
 
 static int to_live_fd(struct state *state, int script_fd, int *live_fd,
 		      char **error);
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
 #endif
@@ -1432,11 +1432,13 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 		asprintf(error, "Expected msg_flags 0x%08X but got 0x%08X",
 			 expected_msg_flags, msg->msg_flags);
 		goto error_out;
-	} else if (msg->msg_flags & MSG_NOTIFICATION) {
+	}
+#if defined(__FreeBSD__) || defined(linux)
+	if (msg->msg_flags & MSG_NOTIFICATION) {
 		if (check_sctp_notification(msg->msg_iov, msg_expression->value.msghdr->msg_iov, error))
 			goto error_out;
 	}
-
+#endif
 	status = STATUS_OK;
 
 error_out:
@@ -3765,10 +3767,11 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 				     struct sctp_shutdown_event *sctp_event,
 				     char **error) {
+
 	if (check_u16_expr(expr->sse_type, sctp_event->sse_type,
 			   "sctp_shutdown_event.sse_type", error))
 		return STATUS_ERR;
@@ -3823,6 +3826,57 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 		return STATUS_ERR;
 	if (expr->ssfe_info->type != EXPR_ELLIPSIS) {
 		if (check_sctp_sndinfo(expr->ssfe_info->value.sctp_sndinfo, &sctp_event->ssfe_info, error))
+=======
+#if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
+				       struct sctp_sender_dry_event *sctp_event,
+				       char **error) {
+	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
+		u16 sender_dry_type;
+
+		if (get_u16(expr->sender_dry_type, &sender_dry_type, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_type != sender_dry_type) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_type: expected: %hu actual: %hu",
+				 sender_dry_type, sctp_event->sender_dry_type);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sender_dry_flags->type != EXPR_ELLIPSIS) {
+		u16 sender_dry_flags;
+
+		if (get_u16(expr->sender_dry_flags, &sender_dry_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_flags != sender_dry_flags) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_flags: expected: %hu actual: %hu",
+				 sender_dry_flags, sctp_event->sender_dry_flags);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
+		u32 sender_dry_length;
+
+		if (get_u32(expr->sender_dry_length, &sender_dry_length, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_length != sender_dry_length) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_length: expected: %u actual: %u",
+				 sender_dry_length, sctp_event->sender_dry_length);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sender_dry_assoc_id->type != EXPR_ELLIPSIS) {
+		u32 sender_dry_assoc_id;
+
+		if (get_u32(expr->sender_dry_assoc_id, &sender_dry_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_assoc_id != sender_dry_assoc_id) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_assoc_id: expected: %u actual: %u",
+				 sender_dry_assoc_id, sctp_event->sender_dry_assoc_id);
+>>>>>>> master
 			return STATUS_ERR;
 	}
 	if (check_u32_expr(expr->ssfe_assoc_id, sctp_event->ssfe_assoc_id,
@@ -3833,7 +3887,7 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov,
 				   struct expression *iovec_expr,
 				   char **error) {
@@ -3872,7 +3926,7 @@ static int check_sctp_notification(struct iovec *iov,
 		case EXPR_ELLIPSIS:
 			break;
 		default:
-			asprintf(error, "Bad type for iov_base. Can't check type %s", 
+			asprintf(error, "Bad type for iov_base. Can't check type %s",
 				expression_type_to_string(script_iov_base->type));
 			return STATUS_ERR;
 			break;
@@ -4041,11 +4095,11 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 				goto error_out;
 		}
 	}
-	iovec_free(iov, script_iovec_list_len);	
+	iovec_free(iov, script_iovec_list_len);
 	return STATUS_OK;
 error_out:
 	free(from);
-	iovec_free(iov, script_iovec_list_len);	
+	iovec_free(iov, script_iovec_list_len);
 	return STATUS_ERR;
 #else
 	asprintf(error, "sctp_recvv is not supported");
