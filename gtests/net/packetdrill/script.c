@@ -76,6 +76,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_STREAM_VALUE,    "sctp_stream_value"},
 	{ EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
+	{ EXPR_SCTP_EVENT_SUBSCRIBE, "sctp_event_subscribe"},
 	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
 	{ EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
@@ -366,6 +367,18 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
 		break;
+	case EXPR_SCTP_EVENT_SUBSCRIBE:
+		free_expression(expression->value.sctp_event_subscribe->sctp_data_io_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_association_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_address_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_send_failure_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_peer_error_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_shutdown_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_partial_delivery_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_adaptation_layer_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_authentication_event);
+		free_expression(expression->value.sctp_event_subscribe->sctp_sender_dry_event);
+		break;		
 	case EXPR_SCTP_SNDINFO:
 		free_expression(expression->value.sctp_sndinfo->snd_sid);
 		free_expression(expression->value.sctp_sndinfo->snd_flags);
@@ -924,6 +937,66 @@ static int evaluate_sctp_event_expression(struct expression *in,
 	return STATUS_OK; 
 }
 
+static int evaluate_sctp_event_subscribe_expression(struct expression *in,
+						 struct expression *out,
+						 char **error)
+{
+	struct sctp_event_subscribe_expr *in_event;
+	struct sctp_event_subscribe_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_EVENT_SUBSCRIBE);
+	assert(in->value.sctp_event_subscribe);
+	assert(out->type == EXPR_SCTP_EVENT_SUBSCRIBE);
+
+	out->value.sctp_event_subscribe = calloc(1, sizeof(struct sctp_event_subscribe_expr));
+
+	in_event = in->value.sctp_event_subscribe;
+	out_event = out->value.sctp_event_subscribe;
+
+	if (evaluate(in_event->sctp_data_io_event,
+		    &out_event->sctp_data_io_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_association_event,
+		    &out_event->sctp_association_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_address_event,
+		    &out_event->sctp_address_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_send_failure_event,
+		    &out_event->sctp_send_failure_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_peer_error_event,
+		    &out_event->sctp_peer_error_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_shutdown_event,
+		    &out_event->sctp_shutdown_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_partial_delivery_event,
+		    &out_event->sctp_partial_delivery_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_adaptation_layer_event,
+		    &out_event->sctp_adaptation_layer_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_authentication_event,
+		    &out_event->sctp_authentication_event,
+		    error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sctp_sender_dry_event,
+		    &out_event->sctp_sender_dry_event,
+		    error))
+		return STATUS_ERR;
+
+	return STATUS_ERR;
+}
+
 static int evaluate_sctp_accocparams_expression(struct expression *in,
 						struct expression *out,
 						char **error)
@@ -1359,6 +1432,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_EVENT:
 		result = evaluate_sctp_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_EVENT_SUBSCRIBE:
+		result = evaluate_sctp_event_subscribe_expression(in, out, error);
 		break;
 	case EXPR_SCTP_SNDINFO:
 		result = evaluate_sctp_sndinfo_expression(in, out, error);
