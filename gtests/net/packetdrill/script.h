@@ -66,9 +66,10 @@ enum expression_t {
 	EXPR_SCTP_RCVINFO,        /* struct sctp_rcvinfo for syscall sctp_recvv */
 	EXPR_SCTP_NXTINFO,        /* struct sctp_nxtinfo for syscall sctp_recvv */
 	EXPR_SCTP_RECVV_RN,       /* struct sctp_recvv_rn for syscall sctp_recvv */
-	EXPR_SCTP_ASSOC_CHANGE_EVENT, /* expression tree for sctp_assoc_change_event */
+	EXPR_SCTP_ASSOC_CHANGE,   /* expression tree for sctp_assoc_change_event */
 	EXPR_SCTP_SHUTDOWN_EVENT, /* expression tree for sctp_shutdown_event */
 	EXPR_SCTP_SENDER_DRY_EVENT, /* expression tree for sctp_sender_dry_event */
+	EXPR_SCTP_SEND_FAILED_EVENT, /* expression tree for sctp_send_failed_event */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -108,9 +109,10 @@ struct expression {
 		struct sctp_rcvinfo_expr *sctp_rcvinfo;
 		struct sctp_nxtinfo_expr *sctp_nxtinfo;
 		struct sctp_recvv_rn_expr *sctp_recvv_rn;
-		struct sctp_assoc_change_event_expr *sctp_assoc_change_event;
+		struct sctp_assoc_change_expr *sctp_assoc_change;
 		struct sctp_shutdown_event_expr *sctp_shutdown_event;
 		struct sctp_sender_dry_event_expr *sctp_sender_dry_event;
+		struct sctp_send_failed_event_expr *sctp_send_failed_event;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -321,8 +323,8 @@ struct sctp_recvv_rn_expr {
 	struct expression *recvv_nxtinfo;
 };
 
-/* Parse tree for sctp_assoc_change_event for notifications. */
-struct sctp_assoc_change_event_expr {
+/* Parse tree for sctp_assoc_change for notifications. */
+struct sctp_assoc_change_expr {
 	struct expression *sac_type;
 	struct expression *sac_flags;
 	struct expression *sac_length;
@@ -341,12 +343,23 @@ struct sctp_shutdown_event_expr {
 	struct expression *sse_length;
 };
 
-/* Parse tree for sctp_shutdown_event for notifications. */
+/* Parse tree for sctp_sender_dry_event for notifications. */
 struct sctp_sender_dry_event_expr {
 	struct expression *sender_dry_type;
 	struct expression *sender_dry_flags;
 	struct expression *sender_dry_length;
 	struct expression *sender_dry_assoc_id;
+};
+
+/* Parse tree for sctp_send_failed_event for notifications. */
+struct sctp_send_failed_event_expr {
+	struct expression *ssfe_type;
+	struct expression *ssfe_flags;
+	struct expression *ssfe_length;
+	struct expression *ssfe_error;
+	struct expression *ssfe_info;
+	struct expression *ssfe_assoc_id;
+	struct expression *ssfe_data;
 };
 
 /* The errno-related info from strace to summarize a system call error */

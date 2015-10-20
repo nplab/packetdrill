@@ -27,9 +27,9 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`SCTP_ADAPTATION_INDICATION`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.6)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported   | supported   |
 |`SCTP_PARTIAL_DELIVERY_EVENT`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.7)  | [RFC3758](https://tools.ietf.org/html/rfc3758) | unsupported | supported   | supported   |
 |`SCTP_AUTHENTICATION_EVENT`        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.8)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported   | supported   |
-|`SCTP_SENDER_DRY_EVENT`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported   |
+|`SCTP_SENDER_DRY_EVENT`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported   |
 |`SCTP_NOTIFICATIONS_STOPPED_EVENT` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | unsupported |
-|`SCTP_SEND_FAILED_EVENT`           | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported   |
+|`SCTP_SEND_FAILED_EVENT`           | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported | supported   |
 
 ## SCTP Socket Options
 |Name                          | API Spec                                                      | Protocol Spec                                  | packetdrill | Linux               | FreeBSD   |
@@ -85,8 +85,8 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`sctp_freepaddrs()` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.4)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
 |`sctp_getladdrs()`  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
 |`sctp_freeladdrs()` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.6)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
-|`sctp_sendmsg()`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.7)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported   | supported |
-|`sctp_recvmsg()`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.8)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
+|`sctp_sendmsg()`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.7)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | supported   | supported   | supported |
+|`sctp_recvmsg()`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.8)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported |
 |`sctp_connectx()`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
 |`sctp_send()`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
 |`sctp_sendx()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.11) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
