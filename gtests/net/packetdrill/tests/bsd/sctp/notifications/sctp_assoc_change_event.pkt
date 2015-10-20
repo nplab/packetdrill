@@ -11,8 +11,7 @@
 +0.1 < sctp: COOKIE_ACK[flgs=0]
 +0.0 sctp_recvv(3, [{iov_base={sac_type=SCTP_ASSOC_CHANGE, sac_flags=0, sac_length=21, sac_state=SCTP_COMM_UP, sac_error=0, sac_outbound_streams=1, 
 sac_inbound_streams=1, sac_assoc_id=3, sac_info=[SCTP_ASSOC_SUPPORTS_MULTIBUF, 0x00]}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], 
-[MSG_NOTIFICATION|MSG_EOR]) 
-= 21
+[MSG_NOTIFICATION|MSG_EOR]) = 21
 
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 +0.0 < sctp: SHUTDOWN[flgs=0, cum_tsn=0]

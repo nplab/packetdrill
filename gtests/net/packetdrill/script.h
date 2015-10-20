@@ -68,6 +68,7 @@ enum expression_t {
 	EXPR_SCTP_RECVV_RN,       /* struct sctp_recvv_rn for syscall sctp_recvv */
 	EXPR_SCTP_ASSOC_CHANGE,   /* expression tree for sctp_assoc_change_event */
 	EXPR_SCTP_SHUTDOWN_EVENT, /* expression tree for sctp_shutdown_event */
+	EXPR_SCTP_AUTHKEY_EVENT,  /* expression tree for sctp_authentication_event */
 	EXPR_SCTP_SENDER_DRY_EVENT, /* expression tree for sctp_sender_dry_event */
 	EXPR_SCTP_SEND_FAILED_EVENT, /* expression tree for sctp_send_failed_event */
 	NUM_EXPR_TYPES,
@@ -111,6 +112,7 @@ struct expression {
 		struct sctp_recvv_rn_expr *sctp_recvv_rn;
 		struct sctp_assoc_change_expr *sctp_assoc_change;
 		struct sctp_shutdown_event_expr *sctp_shutdown_event;
+		struct sctp_authkey_event_expr *sctp_authkey_event;
 		struct sctp_sender_dry_event_expr *sctp_sender_dry_event;
 		struct sctp_send_failed_event_expr *sctp_send_failed_event;
 	} value;
@@ -341,6 +343,16 @@ struct sctp_shutdown_event_expr {
 	struct expression *sse_type;
 	struct expression *sse_flags;
 	struct expression *sse_length;
+};
+
+/* Parse tree for sctp_authentication_event for notifications. */
+struct sctp_authkey_event_expr {
+	struct expression *auth_type;
+	struct expression *auth_flags;
+	struct expression *auth_length;
+	struct expression *auth_keynumber;
+	struct expression *auth_indication;
+	struct expression *auth_assoc_id;
 };
 
 /* Parse tree for sctp_sender_dry_event for notifications. */

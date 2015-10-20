@@ -556,6 +556,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SAC_TYPE SAC_FLAGS SAC_LENGTH SAC_STATE SAC_ERROR SAC_OUTBOUND_STREAMS
 %token <reserved> SAC_INBOUND_STREAMS SAC_ASSOC_ID SAC_INFO
 %token <reserved> SSFE_TYPE SSFE_FLAGS SSFE_LENGTH SSFE_ERROR SSFE_INFO SSFE_ASSOC_ID SSFE_DATA
+%token <reserved> AUTH_TYPE AUTH_FLAGS AUTH_LENGTH AUTH_INDICATION AUTH_ASSOC_ID
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -617,6 +618,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_assoc_change sac_type sac_flags sac_length sac_state sac_error sac_outbound_streams
 %type <expression> sac_inbound_streams sac_assoc_id sac_info
 %type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id
+%type <expression> sctp_authkey_event auth_type auth_flags auth_length auth_keynumber auth_indication auth_assoc_id
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2595,6 +2597,7 @@ data
 | sctp_shutdown_event       { $$ = $1; }
 | sctp_sender_dry_event     { $$ = $1; }
 | sctp_send_failed_event    { $$ = $1; }
+| sctp_authkey_event        { $$ = $1; }
 ;
 
 msghdr
@@ -3579,6 +3582,87 @@ sctp_shutdown_event
 	$$->value.sctp_shutdown_event->sse_flags = $4;
 	$$->value.sctp_shutdown_event->sse_length = $6;
 };
+
+auth_type
+: AUTH_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("auth_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| AUTH_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| AUTH_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+auth_flags
+: AUTH_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("auth_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| AUTH_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+auth_length
+: AUTH_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("auth_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| AUTH_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+auth_keynumber
+: AUTH_KEYNUMBER '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("auth_keynumber out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| AUTH_KEYNUMBER '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+auth_indication
+: AUTH_INDICATION '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("auth_indication out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| AUTH_INDICATION '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| AUTH_INDICATION '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+auth_assoc_id
+: AUTH_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("auth_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| AUTH_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_authkey_event
+: '{' auth_type ',' auth_flags ',' auth_length ',' auth_keynumber ',' auth_indication ',' auth_assoc_id '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEY_EVENT);
+	$$->value.sctp_authkey_event = calloc(1, sizeof(struct sctp_authkey_event_expr));
+	$$->value.sctp_authkey_event->auth_type = $2;
+	$$->value.sctp_authkey_event->auth_flags = $4;
+	$$->value.sctp_authkey_event->auth_length = $6;
+	$$->value.sctp_authkey_event->auth_keynumber = $8;
+	$$->value.sctp_authkey_event->auth_indication = $10;
+	$$->value.sctp_authkey_event->auth_assoc_id = $12;
+}
+;
 
 sender_dry_type
 : SENDER_DRY_TYPE '=' INTEGER {
