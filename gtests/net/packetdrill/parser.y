@@ -2548,7 +2548,7 @@ sockaddr
 #endif
 		ipv4->sin_port = htons($10);
 		if (inet_pton(AF_INET, $17, &ipv4->sin_addr) == 1) {
-		$$ = new_expression(EXPR_SOCKET_ADDRESS_IPV4);
+			$$ = new_expression(EXPR_SOCKET_ADDRESS_IPV4);
 			$$->value.socket_address_ipv4 = ipv4;
 		} else {
 			free(ipv4);
@@ -3546,7 +3546,7 @@ code_spec
 	$$ = calloc(1, sizeof(struct code_spec));
 	$$->text = $1;
 	current_script_line = yylineno;
- }
+}
 ;
 
 null
