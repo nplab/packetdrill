@@ -346,6 +346,31 @@ static int s32_bracketed_arg(struct expression_list *args,
 	return get_s32(list->expression, value, error);
 }
 
+/* Return the value of the argument with the given index, and verify
+ * that it has the expected type: a list with a single integer.
+ */
+#ifdef __FreeBSD__
+static int u32_bracketed_arg(struct expression_list *args,
+			     int index, u32 *value, char **error)
+{
+	struct expression_list *list;
+	struct expression *expression;
+
+	expression = get_arg(args, index, error);
+	if (expression == NULL)
+		return STATUS_ERR;
+	if (check_type(expression, EXPR_LIST, error))
+		return STATUS_ERR;
+	list = expression->value.list;
+	if (expression_list_length(list) != 1) {
+		asprintf(error,
+			 "Expected [<integer>] but got multiple elements");
+		return STATUS_ERR;
+	}
+	return get_u32(list->expression, value, error);
+}
+#endif
+
 /* Return STATUS_OK iff the argument with the given index is an
  * ellipsis (...).
  */
@@ -3158,6 +3183,70 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 }
 #endif
 
+static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *live_addr, char **error) {
+
+	if (sockaddr_expr->type != EXPR_ELLIPSIS) {
+		struct sockaddr *script_addr;
+		if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+			script_addr = (struct sockaddr*)sockaddr_expr->value.socket_address_ipv4;
+		} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+			script_addr = (struct sockaddr*)sockaddr_expr->value.socket_address_ipv6;
+		} else {
+			asprintf(error, "Bad type for sockaddr");
+			return STATUS_ERR;
+		}
+		if (script_addr->sa_family != live_addr->sa_family) {
+			asprintf(error, "sockaddr sa_family expected: %d actual: %d",
+				 script_addr->sa_family, live_addr->sa_family);
+			return STATUS_ERR;
+		}
+		switch(script_addr->sa_family) {
+		case AF_INET:
+			{
+				struct sockaddr_in *script_sockaddr = (struct sockaddr_in*)script_addr;
+				struct sockaddr_in *live_sockaddr = (struct sockaddr_in*)live_addr;
+				if (live_sockaddr->sin_port != script_sockaddr->sin_port) {
+					asprintf(error, "sockaddr_in from.sinport. expected: %d actual %d",
+						ntohs(script_sockaddr->sin_port), ntohs(live_sockaddr->sin_port));
+					return STATUS_ERR;
+				}
+				if (live_sockaddr->sin_addr.s_addr != script_sockaddr->sin_addr.s_addr) {
+					int len = strnlen(inet_ntoa(script_sockaddr->sin_addr), 16);
+					char *expected_addr = malloc(sizeof(char) * len);
+					memcpy(expected_addr, inet_ntoa(script_sockaddr->sin_addr), len);
+					asprintf(error, "sockaddr_in from.sin_addr. expected: %s actual %s",
+						expected_addr, inet_ntoa(live_sockaddr->sin_addr));
+					free(expected_addr);
+					return STATUS_ERR;
+				}
+			}
+			break;
+		case AF_INET6:
+			{
+				struct sockaddr_in6 *script_sockaddr = (struct sockaddr_in6*)script_addr;
+				struct sockaddr_in6 *live_sockaddr = (struct sockaddr_in6*)live_addr;
+				if (live_sockaddr->sin6_port != script_sockaddr->sin6_port) {
+					asprintf(error, "sockaddr_in6 from.sinport. expected: %d actual %d",
+						ntohs(script_sockaddr->sin6_port), ntohs(live_sockaddr->sin6_port));
+					return STATUS_ERR;
+				}
+				if (live_sockaddr->sin6_addr.s6_addr != script_sockaddr->sin6_addr.s6_addr) {
+					char expected_addr[INET6_ADDRSTRLEN];
+					char live_addr[INET6_ADDRSTRLEN];
+					inet_ntop(AF_INET6, &script_sockaddr->sin6_addr, expected_addr, INET6_ADDRSTRLEN);
+					inet_ntop(AF_INET6, &live_sockaddr->sin6_addr, live_addr, INET6_ADDRSTRLEN);
+					asprintf(error, "sockaddr_in6 from.sin6_addr. expected: %s actual %s",
+						 expected_addr, live_addr);
+					return STATUS_ERR;
+				}
+			}
+			break;
+		}
+	}
+	return STATUS_OK;
+}
+
+
 static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscall,
 				struct expression_list *args,
 				char **error)
@@ -3197,65 +3286,8 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	}
 
 	script_from_expr = get_arg(args, 3, error);
-	if (script_from_expr->type != EXPR_ELLIPSIS) {
-		struct sockaddr *script_addr;
-		if (script_from_expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
-			script_addr = (struct sockaddr*)script_from_expr->value.socket_address_ipv4;
-		} else if( script_from_expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-			script_addr = (struct sockaddr*)script_from_expr->value.socket_address_ipv6;
-		} else {
-			asprintf(error, "sctp_recvmsg fromlen: can't check sctp_recvmsg from");
-			return STATUS_ERR;
-		}
-		if (script_addr->sa_family != live_from.sa_family) {
-			asprintf(error, "sctp_recvmsg from.sa_family: expected: %d actual: %d",
-				 script_addr->sa_family, live_from.sa_family);
-			return STATUS_ERR;
-		}
-		switch(script_addr->sa_family) {
-		case AF_INET:
-			{
-				struct sockaddr_in *script_sockaddr = (struct sockaddr_in*)script_addr;
-				struct sockaddr_in *live_sockaddr = (struct sockaddr_in*)&live_from;
-				if (live_sockaddr->sin_port != script_sockaddr->sin_port) {
-					asprintf(error, "sctp_recvmsg from.sinport. expected: %d actual %d",
-						ntohs(script_sockaddr->sin_port), ntohs(live_sockaddr->sin_port));
-					return STATUS_ERR;
-				}
-				if (live_sockaddr->sin_addr.s_addr != script_sockaddr->sin_addr.s_addr) {
-					int len = strnlen(inet_ntoa(script_sockaddr->sin_addr), 16);
-					char *expected_addr = malloc(sizeof(char) * len);
-					memcpy(expected_addr, inet_ntoa(script_sockaddr->sin_addr), len);
-					asprintf(error, "sctp_recvmsg from.sin_addr. expected: %s actual %s",
-						expected_addr, inet_ntoa(live_sockaddr->sin_addr));
-					free(expected_addr);
-					return STATUS_ERR;
-				}
-			}
-			break;
-		case AF_INET6:
-			{
-				struct sockaddr_in6 *script_sockaddr = (struct sockaddr_in6*)script_addr;
-				struct sockaddr_in6 *live_sockaddr = (struct sockaddr_in6*)&live_from;
-				if (live_sockaddr->sin6_port != script_sockaddr->sin6_port) {
-					asprintf(error, "sctp_recvmsg from.sinport. expected: %d actual %d",
-						ntohs(script_sockaddr->sin6_port), ntohs(live_sockaddr->sin6_port));
-					return STATUS_ERR;
-				}
-				if (live_sockaddr->sin6_addr.s6_addr != script_sockaddr->sin6_addr.s6_addr) {
-					char expected_addr[INET6_ADDRSTRLEN];
-					char live_addr[INET6_ADDRSTRLEN];
-					inet_ntop(AF_INET6, &script_sockaddr->sin6_addr, expected_addr, INET6_ADDRSTRLEN);
-					inet_ntop(AF_INET6, &live_sockaddr->sin6_addr, live_addr, INET6_ADDRSTRLEN);
-					asprintf(error, "sctp_recvmsg from.sin6_addr. expected: %s actual %s",
-						 expected_addr, live_addr);
-					return STATUS_ERR;
-				}
-			}
-			break;
-		}
-
-	}
+	if (check_sockaddr(script_from_expr, &live_from, error))
+		return STATUS_ERR;
 
 	script_fromlen_expr = get_arg(args, 4, error);
 	if (script_fromlen_expr->type != EXPR_ELLIPSIS) {
@@ -3498,6 +3530,322 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 #endif
 }
 
+#if defined(__FreeBSD__)
+static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
+			      struct sctp_rcvinfo *sctp_rcvinfo,
+			      char **error)
+{
+	if (expr->rcv_sid->type != EXPR_ELLIPSIS) {
+		u16 rcv_sid;
+
+		if (get_u16(expr->rcv_sid, &rcv_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_rcvinfo->rcv_sid != rcv_sid) {
+			asprintf(error, "sctp_rcvinfo.rcv_sid: expected: %hu actual: %hu",
+				 rcv_sid, sctp_rcvinfo->rcv_sid);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->rcv_ssn->type != EXPR_ELLIPSIS) {
+		u16 rcv_ssn;
+
+		if (get_u16(expr->rcv_ssn, &rcv_ssn, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_rcvinfo->rcv_ssn != rcv_ssn) {
+			asprintf(error, "sctp_rcvinfo.rcv_ssn: expected: %hu actual: %hu",
+				 rcv_ssn, sctp_rcvinfo->rcv_ssn);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->rcv_flags->type != EXPR_ELLIPSIS) {
+		u16 rcv_flags;
+
+		if (get_u16(expr->rcv_flags, &rcv_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_rcvinfo->rcv_flags != rcv_flags) {
+			asprintf(error, "sctp_rcvinfo.rcv_flags: expected: %hu actual: %hu",
+				 rcv_flags, sctp_rcvinfo->rcv_flags);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->rcv_ppid->type != EXPR_ELLIPSIS) {
+		u32 rcv_ppid;
+
+		if (get_u32(expr->rcv_ppid, &rcv_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_rcvinfo->rcv_ppid != rcv_ppid) {
+			asprintf(error, "sctp_rcvinfo.rcv_ppid: expected: %u actual: %u",
+				 htonl(rcv_ppid), htonl(sctp_rcvinfo->rcv_ppid));
+			return STATUS_ERR;
+		}
+	}
+	if (expr->rcv_tsn->type != EXPR_ELLIPSIS) {
+		u32 rcv_tsn;
+
+		if (get_u32(expr->rcv_tsn, &rcv_tsn, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_rcvinfo->rcv_tsn != rcv_tsn) {
+			asprintf(error, "sctp_rcvinfo.rcv_tsn: expected: %u actual: %u",
+				 rcv_tsn, sctp_rcvinfo->rcv_tsn);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->rcv_cumtsn->type != EXPR_ELLIPSIS) {
+		u32 rcv_cumtsn;
+
+		if (get_u32(expr->rcv_cumtsn, &rcv_cumtsn, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_rcvinfo->rcv_cumtsn != rcv_cumtsn) {
+			asprintf(error, "sctp_rcvinfo.rcv_cumtsn: expected: %u actual: %u",
+				 rcv_cumtsn, sctp_rcvinfo->rcv_cumtsn);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->rcv_context->type != EXPR_ELLIPSIS) {
+		u32 rcv_context;
+
+		if (get_u32(expr->rcv_context, &rcv_context, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_rcvinfo->rcv_context != rcv_context) {
+			asprintf(error, "sctp_rcvinfo.rcv_context: expected: %u actual: %u",
+				 rcv_context, sctp_rcvinfo->rcv_context);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__)
+static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
+			      struct sctp_nxtinfo *sctp_nxtinfo,
+			      char **error)
+{
+	if (expr->nxt_sid->type != EXPR_ELLIPSIS) {
+		u16 nxt_sid;
+
+		if (get_u16(expr->nxt_sid, &nxt_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_nxtinfo->nxt_sid != nxt_sid) {
+			asprintf(error, "sctp_nxtinfo.nxt_sid: expected: %hu actual: %hu",
+				 nxt_sid, sctp_nxtinfo->nxt_sid);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->nxt_flags->type != EXPR_ELLIPSIS) {
+		u16 nxt_flags;
+
+		if (get_u16(expr->nxt_flags, &nxt_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_nxtinfo->nxt_flags != nxt_flags) {
+			asprintf(error, "sctp_nxtinfo.nxt_flags: expected: %hu actual: %hu",
+				 nxt_flags, sctp_nxtinfo->nxt_flags);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->nxt_ppid->type != EXPR_ELLIPSIS) {
+		u32 nxt_ppid;
+
+		if (get_u32(expr->nxt_ppid, &nxt_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_nxtinfo->nxt_ppid != nxt_ppid) {
+			asprintf(error, "sctp_nxtinfo.nxt_ppid: expected: %u actual: %u",
+				 htonl(nxt_ppid), htonl(sctp_nxtinfo->nxt_ppid));
+			return STATUS_ERR;
+		}
+	}
+	if (expr->nxt_length->type != EXPR_ELLIPSIS) {
+		u32 nxt_length;
+
+		if (get_u32(expr->nxt_length, &nxt_length, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_nxtinfo->nxt_length != nxt_length) {
+			asprintf(error, "sctp_nxtinfo.nxt_length: expected: %u actual: %u",
+				 nxt_length, sctp_nxtinfo->nxt_length);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__)
+static int check_sctp_recvv_rn(struct sctp_recvv_rn_expr *expr,
+			       struct sctp_recvv_rn *sctp_recvv_rn,
+			       char **error)
+{
+	if (expr->recvv_rcvinfo->type != EXPR_ELLIPSIS) {
+		if (check_type(expr->recvv_rcvinfo, EXPR_SCTP_RCVINFO, error))
+			return STATUS_ERR;
+		if (check_sctp_rcvinfo(expr->recvv_rcvinfo->value.sctp_rcvinfo,
+				       &(sctp_recvv_rn->recvv_rcvinfo), error))
+			return STATUS_ERR;
+	}
+	if (expr->recvv_nxtinfo->type != EXPR_ELLIPSIS) {
+		if (check_type(expr->recvv_nxtinfo, EXPR_SCTP_NXTINFO, error))
+			return STATUS_ERR;
+		if (check_sctp_nxtinfo(expr->recvv_nxtinfo->value.sctp_nxtinfo,
+				       &(sctp_recvv_rn->recvv_nxtinfo), error))
+			return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+#endif
+
+static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
+			      struct expression_list *args,
+			      char **error)
+{
+#if defined(__FreeBSD__)
+	int flags, iovlen, script_fd, live_fd, result;
+	size_t script_iovec_list_len = 0;
+	unsigned int infotype = 0;
+	socklen_t infolen, fromlen;
+	void *info;
+	struct iovec *iov;
+	struct sockaddr *from = NULL;
+	struct expression *iovec_expr_list, *iovcnt_expr, *addr_expr, *fromlen_expr;
+	struct expression *info_expr, *infotype_expr, *flags_expr;
+	struct sctp_recvv_rn recvv_rn;
+	struct sctp_rcvinfo rcvinfo;
+	struct sctp_nxtinfo nxtinfo;
+
+	if (check_arg_count(args, 9, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	iovec_expr_list = get_arg(args, 1, error);
+	iovec_new(iovec_expr_list, &iov,  &script_iovec_list_len, error);
+	iovcnt_expr = get_arg(args, 2, error);
+	if (get_s32(iovcnt_expr, &iovlen, error))
+		return STATUS_ERR;
+	fromlen_expr = get_arg(args, 4, error);
+	if (get_u32(fromlen_expr, &fromlen, error))
+		return STATUS_ERR;
+
+	info_expr = get_arg(args, 5, error);
+	if (info_expr->type == EXPR_NULL) {
+		info = NULL;
+	} else if (info_expr->type == EXPR_SCTP_RCVINFO) {
+		info = &rcvinfo;
+	} else if (info_expr->type == EXPR_SCTP_NXTINFO) {
+		info = &nxtinfo;
+	} else if (info_expr->type == EXPR_SCTP_RECVV_RN) {
+		info = &recvv_rn;
+	} else {
+		return STATUS_ERR;
+	}
+	if (u32_bracketed_arg(args, 6, &infolen, error)) {
+		return STATUS_ERR;
+	}
+	infotype = 0;
+	flags = 0;
+	addr_expr = get_arg(args, 3, error);
+	if (addr_expr->type == EXPR_NULL) {
+		from = NULL;
+	} else {
+		from = malloc(fromlen);
+	}
+
+	begin_syscall(state, syscall);
+
+	result = sctp_recvv(live_fd, iov, iovlen, (struct sockaddr *)from, &fromlen, info, &infolen, &infotype, &flags);
+
+	iovec_free(iov, script_iovec_list_len);
+	
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
+		free(from);
+		return STATUS_ERR;
+	}
+	if (from != NULL) {
+		if (check_sockaddr(addr_expr, from, error)) {
+			free(from);
+			return STATUS_ERR;
+		}
+	}
+	free(from);
+
+	infotype_expr = get_arg(args, 7, error);
+	if (infotype_expr->type != EXPR_ELLIPSIS) {
+		s32 script_infotype;
+		if (s32_bracketed_arg(args, 7, &script_infotype, error))
+			return STATUS_ERR;	
+
+		if (infotype != script_infotype) {
+			asprintf(error, "sctp_recvv infotype: expected: %u actual: %u",
+				 script_infotype, infotype);
+			return STATUS_ERR;
+		}
+	}
+	switch(infotype) {
+	case SCTP_RECVV_NOINFO:
+		if (infolen != 0) {
+			asprintf(error, "infolen returned bad size for null. expected 0, actual %u", infolen);
+			return STATUS_ERR;
+		}
+		break;
+	case SCTP_RECVV_RCVINFO:
+		if (infolen != sizeof(struct sctp_rcvinfo)) {
+			asprintf(error, "infolen returned bad size for sctp_rcvinfo. expected %u, actual %u",
+				 sizeof(struct sctp_rcvinfo), infolen);
+			return STATUS_ERR;
+		}
+		if (check_sctp_rcvinfo(info_expr->value.sctp_rcvinfo, info, error))
+			return STATUS_ERR;
+		break;
+	case SCTP_RECVV_NXTINFO:
+		if (infolen != sizeof(struct sctp_nxtinfo)) {
+			asprintf(error, "infolen returned bad size for sctp_nxtinfo. expected %u, actual %u",
+				 sizeof(struct sctp_nxtinfo), infolen);
+			return STATUS_ERR;
+		}
+		if (check_sctp_nxtinfo(info_expr->value.sctp_nxtinfo, info, error))
+			return STATUS_ERR;
+		break;
+	case SCTP_RECVV_RN:
+		if (infolen != sizeof(struct sctp_recvv_rn)) {
+			asprintf(error, "infolen returned bad size for sctp_recvv_rn. expected %u, actual %u",
+				 sizeof(struct sctp_recvv_rn), infolen);
+			return STATUS_ERR;
+		}
+		if (check_sctp_recvv_rn(info_expr->value.sctp_recvv_rn, info, error))
+			return STATUS_ERR;
+		break;
+	default:
+		return STATUS_ERR;
+		break;
+	}
+	flags_expr = get_arg(args, 8, error);
+	if (flags_expr->type != EXPR_ELLIPSIS) {
+		s32 script_flags;
+		if (s32_bracketed_arg(args, 8, &script_flags, error))
+			return STATUS_ERR;	
+		if (flags != script_flags) {
+			asprintf(error, "sctp_recvv flags bad return value. expected %d, actual %d",
+				 script_flags, flags);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_recvv is not supported");
+	return STATUS_ERR;
+#endif
+}
+
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
 	const char *name;
@@ -3532,6 +3880,7 @@ struct system_call_entry system_call_table[] = {
 	{"sctp_sendmsg", syscall_sctp_sendmsg},
 	{"sctp_recvmsg", syscall_sctp_recvmsg},
 	{"sctp_sendv", syscall_sctp_sendv},
+	{"sctp_recvv", syscall_sctp_recvv}
 };
 
 /* Evaluate the system call arguments and invoke the system call. */

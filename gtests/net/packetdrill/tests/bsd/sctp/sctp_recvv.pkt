@@ -1,0 +1,77 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
++0.0 bind(3, ..., ...) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+
+//ssize_t sctp_recvv(int sd, const struct iovec *iov, int iovlen, struct sockaddr *from, socklen_t *fromlen, void *info,
+//                   socklen_t *infolen, unsigned int *infotype, int *flags);
+
+//base test
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_EOR]) = 1000
+
+//base test with sockaddr
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=2, sid=0, ssn=1, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
+16, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_EOR]) = 1000
+
+//base test with NULL sockaddr
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=3, sid=0, ssn=2, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, NULL, 0, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_EOR]) = 1000
+
+//base SCTP_RECVV_RCVINFO
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RECVRCVINFO, [1], 4) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RECVNXTINFO, [0], 4) = 0
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=4, sid=0, ssn=3, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=4, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 16, {rcv_sid=0, rcv_ssn=3, rcv_flags=0, rcv_ppid=htonl(0), rcv_tsn=4, rcv_cumtsn=4, rcv_context=0},
+[28], [SCTP_RECVV_RCVINFO], [MSG_EOR]) = 1000
+
+//base SCTP_RECVV_NXTINFO
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RECVRCVINFO, [0], 4) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RECVNXTINFO, [1], 4) = 0
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=5, sid=0, ssn=4, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=5, a_rwnd=..., gaps=[], dups=[]]
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=6, sid=0, ssn=5, ppid=10]
+*    > sctp: SACK[flgs=0, cum_tsn=6, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 16, {nxt_sid=0, nxt_flags=32, nxt_ppid=htonl(10), nxt_length=1000},
+[16], [SCTP_RECVV_NXTINFO], [MSG_EOR]) = 1000
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 16, NULL, [0], [0], [MSG_EOR]) = 1000
+
+//base SCTP_RECVV_RN
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RECVRCVINFO, [1], 4) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RECVNXTINFO, [1], 4) = 0
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=7, sid=0, ssn=6, ppid=0]
+*    > sctp: SACK[flgs=0, cum_tsn=7, a_rwnd=..., gaps=[], dups=[]]
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=8, sid=0, ssn=7, ppid=10]
+*    > sctp: SACK[flgs=0, cum_tsn=8, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 16, {
+recvv_rcvinfo={rcv_sid=0, rcv_ssn=6, rcv_flags=0, rcv_ppid=htonl(0), rcv_tsn=7, rcv_cumtsn=8, rcv_context=0},
+recvv_nxtinfo={nxt_sid=0, nxt_flags=32, nxt_ppid=htonl(10), nxt_length=1000}}, [44], [SCTP_RECVV_RN], [MSG_EOR]) = 1000
+
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=9, sid=0, ssn=8, ppid=11]
+*    > sctp: SACK[flgs=0, cum_tsn=9, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 16, {
+recvv_rcvinfo={rcv_sid=0, rcv_ssn=7, rcv_flags=0, rcv_ppid=htonl(10), rcv_tsn=8, rcv_cumtsn=9, rcv_context=0}, recvv_nxtinfo=...},
+[44], [SCTP_RECVV_RN], [MSG_EOR]) = 1000
+
++0.0 < sctp: DATA[flgs=BE, len=1016, tsn=10, sid=0, ssn=9, ppid=10]
+*    > sctp: SACK[flgs=0, cum_tsn=10, a_rwnd=..., gaps=[], dups=[]]
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 16, {
+recvv_rcvinfo=..., recvv_nxtinfo={nxt_sid=0, nxt_flags=32, nxt_ppid=htonl(10), nxt_length=1000}}, [44], [SCTP_RECVV_RN], [8]) = 1000
++0.0 sctp_recvv(3, [{iov_base=..., iov_len=1000}], 1, ..., 16, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_EOR]) = 1000
+
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=10]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
