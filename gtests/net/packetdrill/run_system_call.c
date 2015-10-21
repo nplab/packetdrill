@@ -3181,7 +3181,6 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 	}
 	return STATUS_OK;
 }
-#endif
 
 static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *live_addr, char **error) {
 
@@ -3245,7 +3244,7 @@ static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *liv
 	}
 	return STATUS_OK;
 }
-
+#endif
 
 static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscall,
 				struct expression_list *args,
@@ -3765,7 +3764,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	result = sctp_recvv(live_fd, iov, iovlen, (struct sockaddr *)from, &fromlen, info, &infolen, &infotype, &flags);
 
 	iovec_free(iov, script_iovec_list_len);
-	
+
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
 		free(from);
 		return STATUS_ERR;
@@ -3782,7 +3781,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	if (infotype_expr->type != EXPR_ELLIPSIS) {
 		s32 script_infotype;
 		if (s32_bracketed_arg(args, 7, &script_infotype, error))
-			return STATUS_ERR;	
+			return STATUS_ERR;
 
 		if (infotype != script_infotype) {
 			asprintf(error, "sctp_recvv infotype: expected: %u actual: %u",
@@ -3832,7 +3831,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	if (flags_expr->type != EXPR_ELLIPSIS) {
 		s32 script_flags;
 		if (s32_bracketed_arg(args, 8, &script_flags, error))
-			return STATUS_ERR;	
+			return STATUS_ERR;
 		if (flags != script_flags) {
 			asprintf(error, "sctp_recvv flags bad return value. expected %d, actual %d",
 				 script_flags, flags);
