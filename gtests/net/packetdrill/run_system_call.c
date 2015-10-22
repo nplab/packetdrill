@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2013 Google Inc.
  *
@@ -48,6 +49,11 @@
 
 static int to_live_fd(struct state *state, int script_fd, int *live_fd,
 		      char **error);
+#if defined(__FreeBSD__)
+static int check_sctp_notification(struct iovec *iov, struct expression *iovec_expr,
+				   char **error);
+#endif
+
 
 /* Provide a wrapper for the Linux gettid() system call (glibc does not). */
 static pid_t gettid(void)
@@ -453,7 +459,8 @@ static int iovec_new(struct expression *expression,
 
 		iov_expr = list->expression->value.iovec;
 
-		assert(iov_expr->iov_base->type == EXPR_ELLIPSIS);
+		assert(iov_expr->iov_base->type == EXPR_ELLIPSIS ||
+		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT);
 		assert(iov_expr->iov_len->type == EXPR_INTEGER);
 
 		len = iov_expr->iov_len->value.num;
@@ -1389,6 +1396,9 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 		asprintf(error, "Expected msg_flags 0x%08X but got 0x%08X",
 			 expected_msg_flags, msg->msg_flags);
 		goto error_out;
+	} else if (msg->msg_flags & MSG_NOTIFICATION) {
+		if (check_sctp_notification(msg->msg_iov, msg_expression->value.msghdr->msg_iov, error))
+			goto error_out;
 	}
 
 	status = STATUS_OK;
@@ -2552,7 +2562,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 
 	if (live_optlen != script_optlen) {
 		asprintf(error, "optlen: expected: %d actual: %d",
-		         (int)script_optlen, (int)live_optlen);
+			 (int)script_optlen, (int)live_optlen);
 		free(live_optval);
 		return STATUS_ERR;
 	}
@@ -2721,15 +2731,15 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_RTOINFO:
 		rtoinfo.srto_assoc_id = 0;
 		if (get_u32(val_expression->value.sctp_rtoinfo->srto_initial,
-		            &rtoinfo.srto_initial, error)) {
+			    &rtoinfo.srto_initial, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_rtoinfo->srto_max,
-		            &rtoinfo.srto_max, error)) {
+			    &rtoinfo.srto_max, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_rtoinfo->srto_min,
-		            &rtoinfo.srto_min, error)) {
+			    &rtoinfo.srto_min, error)) {
 			return STATUS_ERR;
 		}
 		optval = &rtoinfo;
@@ -2739,23 +2749,23 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_ASSOCPARAMS:
 		assocparams.sasoc_assoc_id = 0;
 		if (get_u16(val_expression->value.sctp_assocparams->sasoc_asocmaxrxt,
-		            &assocparams.sasoc_asocmaxrxt, error)) {
+			    &assocparams.sasoc_asocmaxrxt, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_assocparams->sasoc_number_peer_destinations,
-		            &assocparams.sasoc_number_peer_destinations, error)) {
+			    &assocparams.sasoc_number_peer_destinations, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_assocparams->sasoc_peer_rwnd,
-		            &assocparams.sasoc_peer_rwnd, error)) {
+			    &assocparams.sasoc_peer_rwnd, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_assocparams->sasoc_local_rwnd,
-		            &assocparams.sasoc_local_rwnd, error)) {
+			    &assocparams.sasoc_local_rwnd, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_assocparams->sasoc_cookie_life,
-		            &assocparams.sasoc_cookie_life, error)) {
+			    &assocparams.sasoc_cookie_life, error)) {
 			return STATUS_ERR;
 		}
 		optval = &assocparams;
@@ -2786,7 +2796,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_ASSOC_VALUE:
 		assoc_value.assoc_id = 0;
 		if (get_u32(val_expression->value.sctp_assoc_value->assoc_value,
-		            &assoc_value.assoc_value, error)) {
+			    &assoc_value.assoc_value, error)) {
 			return STATUS_ERR;
 		}
 		optval = &assoc_value;
@@ -2796,11 +2806,11 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_STREAM_VALUE:
 		stream_value.assoc_id = 0;
 		if (get_u16(val_expression->value.sctp_stream_value->stream_id,
-		            &stream_value.stream_id, error)) {
+			    &stream_value.stream_id, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_stream_value->stream_value,
-		            &stream_value.stream_value, error)) {
+			    &stream_value.stream_value, error)) {
 			return STATUS_ERR;
 		}
 		optval = &stream_value;
@@ -2810,11 +2820,11 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_SACKINFO:
 		sack_info.sack_assoc_id = 0;
 		if (get_u32(val_expression->value.sctp_sack_info->sack_delay,
-		            &sack_info.sack_delay, error)) {
+			    &sack_info.sack_delay, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_sack_info->sack_freq,
-		            &sack_info.sack_freq, error)) {
+			    &sack_info.sack_freq, error)) {
 			return STATUS_ERR;
 		}
 		optval = &sack_info;
@@ -2886,46 +2896,46 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		paddrparams.spp_assoc_id = 0;
 		if (get_sockstorage_arg(val_expression->value.sctp_paddrparams->spp_address,
-				        &paddrparams.spp_address, live_fd)) {
+					&paddrparams.spp_address, live_fd)) {
 			asprintf(error, "can't determine spp_address");
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_hbinterval,
-		            &paddrparams.spp_hbinterval, error)) {
+			    &paddrparams.spp_hbinterval, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_paddrparams->spp_pathmaxrxt,
-		            &paddrparams.spp_pathmaxrxt, error)) {
+			    &paddrparams.spp_pathmaxrxt, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_pathmtu,
-		            &paddrparams.spp_pathmtu, error)) {
+			    &paddrparams.spp_pathmtu, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_flags,
-		            &paddrparams.spp_flags, error)) {
+			    &paddrparams.spp_flags, error)) {
 			return STATUS_ERR;
 		}
 #ifdef __FreeBSD__
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel,
-		            &paddrparams.spp_ipv6_flowlabel, error)) {
+			    &paddrparams.spp_ipv6_flowlabel, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
-		           &paddrparams.spp_dscp, error)) {
+			   &paddrparams.spp_dscp, error)) {
 			return STATUS_ERR;
 		}
 #endif
 #ifdef linux
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel,
-		            &spp_ipv6_flowlabel, error)) {
+			    &spp_ipv6_flowlabel, error)) {
 			return STATUS_ERR;
 		} else if (spp_ipv6_flowlabel != 0) {
 			asprintf(error, "Linux doesn't support paddrparams.spp_ipv6_flowlabel");
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
-		           &spp_dscp, error)) {
+			   &spp_dscp, error)) {
 			return STATUS_ERR;
 		} else if (spp_dscp != 0) {
 			asprintf(error, "Linux doesn't support paddrparams.spp_dscp");
@@ -3680,6 +3690,85 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 #endif
 
 #if defined(__FreeBSD__)
+static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
+				     struct sctp_shutdown_event *sctp_event,
+				     char **error) {
+	if (expr->sse_type->type != EXPR_ELLIPSIS) {
+		u16 sse_type;
+		 
+		if (get_u16(expr->sse_type, &sse_type, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sse_type != sse_type) {
+			asprintf(error, "sctp_shutdown_event.sse_type: expected: %hu actual: %hu",
+				 sse_type, sctp_event->sse_type);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sse_flags->type != EXPR_ELLIPSIS) {
+		u16 sse_flags;
+		 
+		if (get_u16(expr->sse_flags, &sse_flags, error)) {
+			return STATUS_ERR;		}
+		if (sctp_event->sse_flags != sse_flags) {
+			asprintf(error, "sctp_shutdown_event.sse_flags: expected: %hu actual: %hu",
+				 sse_flags, sctp_event->sse_flags);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sse_length->type != EXPR_ELLIPSIS) {
+		u32 sse_length;
+
+		if (get_u32(expr->sse_length, &sse_length, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sse_length != sse_length) {
+			asprintf(error, "sctp_shutdown_event.sse_length: expected: %u actual: %u",
+				 sse_length, sctp_event->sse_length);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__)
+static int check_sctp_notification(struct iovec *iov,
+				   struct expression *iovec_expr,
+				   char **error) {
+	struct expression_list *iovec_expr_list;
+	struct expression *script_iov, *script_iov_base;
+	if (iovec_expr == NULL)
+		return STATUS_ERR;
+	if (check_type(iovec_expr, EXPR_LIST, error))
+		return STATUS_ERR;
+	iovec_expr_list = iovec_expr->value.list;
+	int i=0;
+	while (iovec_expr_list != NULL) {
+		script_iov = iovec_expr_list->expression;
+		if (check_type(script_iov, EXPR_IOVEC, error))
+			return STATUS_ERR;
+		script_iov_base = script_iov->value.iovec->iov_base;
+		switch (script_iov_base->type) {
+		case EXPR_SCTP_SHUTDOWN_EVENT:
+			if (check_sctp_shutdown_event(script_iov_base->value.sctp_shutdown_event,
+						      (struct sctp_shutdown_event *) iov->iov_base,
+						      error))
+				return STATUS_ERR;
+			break;
+		case EXPR_ELLIPSIS:
+			break;
+		default:
+			break;
+		}
+		i++;
+		iovec_expr_list = iovec_expr_list->next;
+	}
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__)
 static int check_sctp_recvv_rn(struct sctp_recvv_rn_expr *expr,
 			       struct sctp_recvv_rn *sctp_recvv_rn,
 			       char **error)
@@ -3745,10 +3834,10 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	} else if (info_expr->type == EXPR_SCTP_RECVV_RN) {
 		info = &recvv_rn;
 	} else {
-		return STATUS_ERR;
+		goto error_out;
 	}
 	if (u32_bracketed_arg(args, 6, &infolen, error)) {
-		return STATUS_ERR;
+		goto error_out;
 	}
 	infotype = 0;
 	flags = 0;
@@ -3763,17 +3852,12 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 
 	result = sctp_recvv(live_fd, iov, iovlen, (struct sockaddr *)from, &fromlen, info, &infolen, &infotype, &flags);
 
-	iovec_free(iov, script_iovec_list_len);
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
+		goto error_out;
 
-	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
-		free(from);
-		return STATUS_ERR;
-	}
 	if (from != NULL) {
-		if (check_sockaddr(addr_expr, from, error)) {
-			free(from);
-			return STATUS_ERR;
-		}
+		if (check_sockaddr(addr_expr, from, error))
+			goto error_out;
 	}
 	free(from);
 
@@ -3781,64 +3865,72 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	if (infotype_expr->type != EXPR_ELLIPSIS) {
 		s32 script_infotype;
 		if (s32_bracketed_arg(args, 7, &script_infotype, error))
-			return STATUS_ERR;
+			goto error_out;
 
 		if (infotype != script_infotype) {
 			asprintf(error, "sctp_recvv infotype: expected: %u actual: %u",
 				 script_infotype, infotype);
-			return STATUS_ERR;
+			goto error_out;
 		}
 	}
 	switch(infotype) {
 	case SCTP_RECVV_NOINFO:
 		if (infolen != 0) {
 			asprintf(error, "infolen returned bad size for null. expected 0, actual %u", infolen);
-			return STATUS_ERR;
+			goto error_out;
 		}
 		break;
 	case SCTP_RECVV_RCVINFO:
 		if (infolen != sizeof(struct sctp_rcvinfo)) {
 			asprintf(error, "infolen returned bad size for sctp_rcvinfo. expected %u, actual %u",
 				 sizeof(struct sctp_rcvinfo), infolen);
-			return STATUS_ERR;
+			goto error_out;
 		}
 		if (check_sctp_rcvinfo(info_expr->value.sctp_rcvinfo, info, error))
-			return STATUS_ERR;
+			goto error_out;
 		break;
 	case SCTP_RECVV_NXTINFO:
 		if (infolen != sizeof(struct sctp_nxtinfo)) {
 			asprintf(error, "infolen returned bad size for sctp_nxtinfo. expected %u, actual %u",
 				 sizeof(struct sctp_nxtinfo), infolen);
-			return STATUS_ERR;
+			goto error_out;
 		}
 		if (check_sctp_nxtinfo(info_expr->value.sctp_nxtinfo, info, error))
-			return STATUS_ERR;
+			goto error_out;
 		break;
 	case SCTP_RECVV_RN:
 		if (infolen != sizeof(struct sctp_recvv_rn)) {
 			asprintf(error, "infolen returned bad size for sctp_recvv_rn. expected %u, actual %u",
 				 sizeof(struct sctp_recvv_rn), infolen);
-			return STATUS_ERR;
+			goto error_out;
 		}
 		if (check_sctp_recvv_rn(info_expr->value.sctp_recvv_rn, info, error))
-			return STATUS_ERR;
+			goto error_out;
 		break;
 	default:
-		return STATUS_ERR;
+		goto error_out;
 		break;
 	}
 	flags_expr = get_arg(args, 8, error);
 	if (flags_expr->type != EXPR_ELLIPSIS) {
 		s32 script_flags;
 		if (s32_bracketed_arg(args, 8, &script_flags, error))
-			return STATUS_ERR;
+			goto error_out;
 		if (flags != script_flags) {
 			asprintf(error, "sctp_recvv flags bad return value. expected %d, actual %d",
 				 script_flags, flags);
-			return STATUS_ERR;
+			goto error_out;
+		} else if (flags & MSG_NOTIFICATION) {
+			if (check_sctp_notification(iov, iovec_expr_list, error))
+				goto error_out;
 		}
 	}
+	iovec_free(iov, script_iovec_list_len);	
 	return STATUS_OK;
+error_out:
+	free(from);
+	iovec_free(iov, script_iovec_list_len);	
+	return STATUS_ERR;
 #else
 	asprintf(error, "sctp_recvv is not supported");
 	return STATUS_ERR;

@@ -85,6 +85,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_RCVINFO,         "sctp_rcvinfo"    },
 	{ EXPR_SCTP_NXTINFO,         "sctp_nxtinfo"    },
 	{ EXPR_SCTP_RECVV_RN,        "sctp_recvv_rn "  },
+	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -415,6 +416,11 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_RECVV_RN:
 		free_expression(expression->value.sctp_recvv_rn->recvv_rcvinfo);
 		free_expression(expression->value.sctp_recvv_rn->recvv_nxtinfo);
+		break;
+	case EXPR_SCTP_SHUTDOWN_EVENT:
+		free_expression(expression->value.sctp_shutdown_event->sse_type);
+		free_expression(expression->value.sctp_shutdown_event->sse_flags);
+		free_expression(expression->value.sctp_shutdown_event->sse_length);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -1244,19 +1250,18 @@ static int evaluate_sctp_recvv_rn_expression(struct expression *in,
 					    struct expression *out,
 					    char **error)
 {
-        struct sctp_recvv_rn_expr *in_rn;
-        struct sctp_recvv_rn_expr *out_rn;
+	struct sctp_recvv_rn_expr *in_rn;
+	struct sctp_recvv_rn_expr *out_rn;
 
-        assert(in->type == EXPR_SCTP_RECVV_RN);
-        assert(in->value.sctp_recvv_rn);
-        assert(out->type == EXPR_SCTP_RECVV_RN);
+	assert(in->type == EXPR_SCTP_RECVV_RN);
+	assert(in->value.sctp_recvv_rn);
+	assert(out->type == EXPR_SCTP_RECVV_RN);
 
-        out->value.sctp_recvv_rn = calloc(1, sizeof(struct sctp_recvv_rn_expr));
-                     
-        in_rn = in->value.sctp_recvv_rn;
-        out_rn = out->value.sctp_recvv_rn;
-                     
-        if (evaluate(in_rn->recvv_rcvinfo,
+	out->value.sctp_recvv_rn = calloc(1, sizeof(struct sctp_recvv_rn_expr));
+	in_rn = in->value.sctp_recvv_rn;
+	out_rn = out->value.sctp_recvv_rn;
+
+	if (evaluate(in_rn->recvv_rcvinfo,
 		     &out_rn->recvv_rcvinfo,
 		     error))
 		return STATUS_ERR;
@@ -1267,6 +1272,39 @@ static int evaluate_sctp_recvv_rn_expression(struct expression *in,
 
 	return STATUS_OK;
 }
+
+static int evaluate_sctp_shutdown_event_expression(struct expression *in,
+						   struct expression *out,
+						   char **error)
+{
+	struct sctp_shutdown_event_expr *in_event;
+	struct sctp_shutdown_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_SHUTDOWN_EVENT);
+	assert(in->value.sctp_shutdown_event);
+	assert(out->type == EXPR_SCTP_SHUTDOWN_EVENT);
+
+	out->value.sctp_shutdown_event = calloc(1, sizeof(struct sctp_shutdown_event_expr));
+
+	in_event = in->value.sctp_shutdown_event;
+	out_event = out->value.sctp_shutdown_event;
+
+	if (evaluate(in_event->sse_type,
+		     &out_event->sse_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sse_flags,
+		     &out_event->sse_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sse_length,
+		     &out_event->sse_length,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -1348,6 +1386,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_RECVV_RN:
 		result = evaluate_sctp_recvv_rn_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SHUTDOWN_EVENT:
+		result = evaluate_sctp_shutdown_event_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

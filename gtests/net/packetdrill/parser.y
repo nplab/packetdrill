@@ -547,6 +547,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> RCV_SID RCV_SSN RCV_FLAGS RCV_PPID RCV_TSN RCV_CUMTSN RCV_CONTEXT
 %token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH
 %token <reserved> RECVV_RCVINFO RECVV_NXTINFO
+%token <reserved> SSE_TYPE SSE_FLAGS SSE_LENGTH
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -581,7 +582,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <string> function_name
 %type <expression_list> expression_list function_arguments
 %type <expression> expression binary_expression array
-%type <expression> decimal_integer hex_integer
+%type <expression> decimal_integer hex_integer data
 %type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
@@ -602,6 +603,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa
 %type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context
 %type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length sctp_recvv_rn
+%type <expression> sctp_shutdown_event sse_type sse_flags sse_length
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2571,6 +2573,11 @@ sockaddr
 }
 ;
 
+data
+: ELLIPSIS { new_expression(EXPR_ELLIPSIS); }
+| sctp_shutdown_event { $$ = $1; }
+;
+
 msghdr
 : '{' MSG_NAME '(' ELLIPSIS ')' '=' ELLIPSIS ','
       MSG_IOV '(' decimal_integer ')' '=' array ','
@@ -2588,18 +2595,18 @@ msghdr
 ;
 
 iovec
-: '{' ELLIPSIS ',' decimal_integer '}' {
+: '{' data ',' decimal_integer '}' {
 	struct iovec_expr *iov_expr = calloc(1, sizeof(struct iovec_expr));
 	$$ = new_expression(EXPR_IOVEC);
 	$$->value.iovec = iov_expr;
-	iov_expr->iov_base = new_expression(EXPR_ELLIPSIS);
+	iov_expr->iov_base = $2;
 	iov_expr->iov_len = $4;
 }
-| '{' IOV_BASE '=' ELLIPSIS ',' IOV_LEN '=' decimal_integer '}' {
+| '{' IOV_BASE '=' data ',' IOV_LEN '=' decimal_integer '}' {
 	struct iovec_expr *iov_expr = calloc(1, sizeof(struct iovec_expr));
 	$$ = new_expression(EXPR_IOVEC);
 	$$->value.iovec = iov_expr;
-	iov_expr->iov_base = new_expression(EXPR_ELLIPSIS);
+	iov_expr->iov_base = $4;
 	iov_expr->iov_len = $8;
 }
 ;
@@ -3460,6 +3467,49 @@ sctp_recvv_rn
 }
 ;
 
+sse_type 
+: SSE_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sse_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSE_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SSE_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sse_flags 
+: SSE_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sse_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SSE_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sse_length 
+: SSE_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sse_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SSE_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_shutdown_event
+: '{' sse_type ',' sse_flags ',' sse_length '}' {
+	$$ = new_expression(EXPR_SCTP_SHUTDOWN_EVENT);
+	$$->value.sctp_shutdown_event = calloc(1, sizeof(struct sctp_shutdown_event_expr));
+	$$->value.sctp_shutdown_event->sse_type = $2;
+	$$->value.sctp_shutdown_event->sse_flags = $4;
+	$$->value.sctp_shutdown_event->sse_length = $6;
+};
+
 opt_errno
 :                   { $$ = NULL; }
 | WORD note         {
@@ -3496,7 +3546,7 @@ code_spec
 	$$ = calloc(1, sizeof(struct code_spec));
 	$$->text = $1;
 	current_script_line = yylineno;
- }
+}
 ;
 
 null
