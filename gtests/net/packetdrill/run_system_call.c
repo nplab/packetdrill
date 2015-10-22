@@ -49,7 +49,7 @@
 
 static int to_live_fd(struct state *state, int script_fd, int *live_fd,
 		      char **error);
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
 #endif
@@ -1396,11 +1396,13 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 		asprintf(error, "Expected msg_flags 0x%08X but got 0x%08X",
 			 expected_msg_flags, msg->msg_flags);
 		goto error_out;
-	} else if (msg->msg_flags & MSG_NOTIFICATION) {
+	}
+#if defined(__FreeBSD__) || defined(linux)
+	if (msg->msg_flags & MSG_NOTIFICATION) {
 		if (check_sctp_notification(msg->msg_iov, msg_expression->value.msghdr->msg_iov, error))
 			goto error_out;
 	}
-
+#endif
 	status = STATUS_OK;
 
 error_out:
@@ -3689,13 +3691,13 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 				     struct sctp_shutdown_event *sctp_event,
 				     char **error) {
 	if (expr->sse_type->type != EXPR_ELLIPSIS) {
 		u16 sse_type;
-		 
+
 		if (get_u16(expr->sse_type, &sse_type, error)) {
 			return STATUS_ERR;
 		}
@@ -3707,7 +3709,7 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 	}
 	if (expr->sse_flags->type != EXPR_ELLIPSIS) {
 		u16 sse_flags;
-		 
+
 		if (get_u16(expr->sse_flags, &sse_flags, error)) {
 			return STATUS_ERR;		}
 		if (sctp_event->sse_flags != sse_flags) {
@@ -3732,7 +3734,7 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov,
 				   struct expression *iovec_expr,
 				   char **error) {
@@ -3925,11 +3927,11 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 				goto error_out;
 		}
 	}
-	iovec_free(iov, script_iovec_list_len);	
+	iovec_free(iov, script_iovec_list_len);
 	return STATUS_OK;
 error_out:
 	free(from);
-	iovec_free(iov, script_iovec_list_len);	
+	iovec_free(iov, script_iovec_list_len);
 	return STATUS_ERR;
 #else
 	asprintf(error, "sctp_recvv is not supported");
