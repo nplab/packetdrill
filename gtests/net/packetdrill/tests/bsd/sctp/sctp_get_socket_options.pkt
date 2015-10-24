@@ -115,16 +115,24 @@ sasoc_cookie_life=...}, [20]) = 0
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, 8) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SHUTDOWN_EVENT, se_on=1}, [8]) = 0
 
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=0, snd_ppid=1, snd_context=1}, 16) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=0, snd_ppid=1, snd_context=1}, [16]) = 0
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=2}, 16) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=2}, [16]) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=...}, [16]) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=0, snd_ppid=htonl(1), snd_context=1}, 16) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=0, snd_ppid=htonl(1), snd_context=1}, [16]) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=htonl(2), snd_context=2}, 16) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=htonl(2), snd_context=2}, [16]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=htonl(2), snd_context=...}, [16]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=SCTP_UNORDERED, snd_ppid=..., snd_context=2}, [16]) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=..., snd_ppid=2, snd_context=2}, [16]) = 0
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=..., snd_flags=SCTP_UNORDERED, snd_ppid=2, snd_context=2}, [16]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=0, snd_flags=..., snd_ppid=htonl(2), snd_context=2}, [16]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SNDINFO, {snd_sid=..., snd_flags=SCTP_UNORDERED, snd_ppid=htonl(2), snd_context=2}, [16]) = 0
 
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_ADAPTATION_LAYER, {ssb_adaptation_ind=2}, 4) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_ADAPTATION_LAYER, {ssb_adaptation_ind=2}, [4]) = 0
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENTS, {sctp_data_io_event=1, sctp_association_event=1, sctp_address_event=0, sctp_send_failure_event=1,
+sctp_peer_error_event=0, sctp_shutdown_event=1, sctp_partial_delivery_event=0, sctp_adaptation_layer_event=0, sctp_authentication_event=0,
+sctp_sender_dry_event=0}, 11) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENTS, {sctp_data_io_event=1, sctp_association_event=1, sctp_address_event=0, sctp_send_failure_event=1,
+sctp_peer_error_event=0, sctp_shutdown_event=1, sctp_partial_delivery_event=0, sctp_adaptation_layer_event=0, sctp_authentication_event=0,
+sctp_sender_dry_event=0}, [11]) = 0
 
 +0 close(3) = 0

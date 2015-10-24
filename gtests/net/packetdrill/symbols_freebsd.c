@@ -89,6 +89,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_EVENT,			    "SCTP_EVENT"		      },
+	{ SCTP_EVENTS,			    "SCTP_EVENTS"		      },
 	{ SCTP_DEFAULT_SNDINFO,             "SCTP_DEFAULT_SNDINFO"            },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_GET_PEER_ADDR_INFO,          "SCTP_GET_PEER_ADDR_INFO"         },

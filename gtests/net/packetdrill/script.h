@@ -56,6 +56,7 @@ enum expression_t {
 	EXPR_SCTP_PEER_ADDR_PARAMS,	 /* struct for sctp_paddrparams for SCTP_PEER_ADDR_PARAMS */
 	EXPR_SCTP_ASSOCPARAMS,    /* struct sctp_assocparams for SCTP_ASSOCINFO */
 	EXPR_SCTP_EVENT,	  /* struct sctp_event for SCTP_EVENT */
+	EXPR_SCTP_EVENT_SUBSCRIBE,/* struct sctp_event_subscribe for SCTP_EVENTS */
 	EXPR_SCTP_SNDINFO,	  /* struct sctp_sndinfo for SCTP_DEFAULT_SNDINFO */
 	EXPR_SCTP_SETADAPTATION,  /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
 	EXPR_SCTP_SNDRCVINFO,     /* struct sctp_sndrcvinfo for syscall sctp_recvmsg */
@@ -95,6 +96,7 @@ struct expression {
 		struct sctp_stream_value_expr *sctp_stream_value;
 		struct sctp_assocparams_expr *sctp_assocparams;
 		struct sctp_event_expr *sctp_event;
+		struct sctp_event_subscribe_expr *sctp_event_subscribe;
 		struct sctp_sndinfo_expr *sctp_sndinfo;
 		struct sctp_setadaptation_expr *sctp_setadaptation;
 		struct sctp_sndrcvinfo_expr *sctp_sndrcvinfo;
@@ -230,6 +232,20 @@ struct sctp_assocparams_expr {
 struct sctp_event_expr {
 	struct expression *se_type;
 	struct expression *se_on;
+};
+
+/* Parse tree for sctp_event_subscribe struct in [gs]etsockopt syscall. */
+struct sctp_event_subscribe_expr {
+	struct expression *sctp_data_io_event;
+	struct expression *sctp_association_event;
+	struct expression *sctp_address_event;
+	struct expression *sctp_send_failure_event;
+	struct expression *sctp_peer_error_event;
+	struct expression *sctp_shutdown_event;
+	struct expression *sctp_partial_delivery_event;
+	struct expression *sctp_adaptation_layer_event;
+	struct expression *sctp_authentication_event;
+	struct expression *sctp_sender_dry_event;
 };
 
 /* Parse tree for sctp_sndinfo struct in [gs]etsockopt syscall. */

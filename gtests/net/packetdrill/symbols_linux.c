@@ -113,6 +113,9 @@ struct int_symbol platform_symbols_table[] = {
 #if 0
 	{ SCTP_EVENT,                       "SCTP_EVENT"                      },
 #endif
+#ifdef SCTP_EVENTS
+	{ SCTP_EVENTS,                      "SCTP_EVENTS"                     },
+#endif
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_GET_PEER_ADDR_INFO,          "SCTP_GET_PEER_ADDR_INFO"         },
