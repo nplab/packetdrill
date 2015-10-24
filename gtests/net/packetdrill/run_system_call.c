@@ -460,7 +460,8 @@ static int iovec_new(struct expression *expression,
 		iov_expr = list->expression->value.iovec;
 
 		assert(iov_expr->iov_base->type == EXPR_ELLIPSIS ||
-		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT);
+		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
+		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT);
 		assert(iov_expr->iov_len->type == EXPR_INTEGER);
 
 		len = iov_expr->iov_len->value.num;
@@ -3920,6 +3921,62 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 	return STATUS_OK;
 }
 #endif
+#ifdef __FreeBSD__
+static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
+				       struct sctp_sender_dry_event *sctp_event,
+				       char **error) {
+	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
+		u16 sender_dry_type;
+		 
+		if (get_u16(expr->sender_dry_type, &sender_dry_type, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_type != sender_dry_type) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_type: expected: %hu actual: %hu",
+				 sender_dry_type, sctp_event->sender_dry_type);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sender_dry_flags->type != EXPR_ELLIPSIS) {
+		u16 sender_dry_flags;
+		 
+		if (get_u16(expr->sender_dry_flags, &sender_dry_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_flags != sender_dry_flags) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_flags: expected: %hu actual: %hu",
+				 sender_dry_flags, sctp_event->sender_dry_flags);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
+		u32 sender_dry_length;
+		 
+		if (get_u32(expr->sender_dry_length, &sender_dry_length, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_length != sender_dry_length) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_length: expected: %u actual: %u",
+				 sender_dry_length, sctp_event->sender_dry_length);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->sender_dry_assoc_id->type != EXPR_ELLIPSIS) {
+		u32 sender_dry_assoc_id;
+		 
+		if (get_u32(expr->sender_dry_assoc_id, &sender_dry_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (sctp_event->sender_dry_assoc_id != sender_dry_assoc_id) {
+			asprintf(error, "sctp_sender_dry_event.sender_dry_assoc_id: expected: %u actual: %u",
+				 sender_dry_assoc_id, sctp_event->sender_dry_assoc_id);
+			return STATUS_ERR;
+		}
+	}
+
+	return STATUS_OK;
+}
+#endif
 
 #if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov,
@@ -3943,6 +4000,12 @@ static int check_sctp_notification(struct iovec *iov,
 			if (check_sctp_shutdown_event(script_iov_base->value.sctp_shutdown_event,
 						      (struct sctp_shutdown_event *) iov->iov_base,
 						      error))
+				return STATUS_ERR;
+			break;
+		case EXPR_SCTP_SENDER_DRY_EVENT:
+			if (check_sctp_sender_dry_event(script_iov_base->value.sctp_sender_dry_event,
+						       (struct sctp_sender_dry_event *) iov->iov_base,
+						       error))
 				return STATUS_ERR;
 			break;
 		case EXPR_ELLIPSIS:
