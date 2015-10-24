@@ -44,7 +44,7 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`SCTP_DISABLE_FRAGMENTS`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.11) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
 |`SCTP_PEER_ADDR_PARAMS`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.12) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | old structure       | supported |
 |`SCTP_DEFAULT_SEND_PARAM`     | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.13) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
-|`SCTP_EVENTS`                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.14) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
+|`SCTP_EVENTS`                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.14) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported           | supported |
 |`SCTP_I_WANT_MAPPED_V4_ADDR`  | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.15) | [RFC4960](https://tools.ietf.org/html/rfc4960) | TBD         | supported           | supported |
 |`SCTP_MAXSEG`                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.16) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | Check structure     | supported |
 |`SCTP_HMAC_IDENT`             | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.1.17) | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported           | supported |
@@ -90,5 +90,5 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`sctp_connectx()`   | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
 |`sctp_send()`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
 |`sctp_sendx()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.11) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
-|`sctp_sendv()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.12) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
-|`sctp_recvv()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.13) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
+|`sctp_sendv()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.12) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported | supported |
+|`sctp_recvv()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.13) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported | supported |
