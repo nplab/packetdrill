@@ -2319,7 +2319,7 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 }
 #endif
 
-#ifdef SCTP_EVENT
+#ifdef SCTP_EVENTS
 static int check_sctp_event_subscribe(struct sctp_event_subscribe_expr *expr,
 				      struct sctp_event_subscribe *sctp_events,
 				      char **error)
@@ -3921,13 +3921,13 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 	return STATUS_OK;
 }
 #endif
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 				       struct sctp_sender_dry_event *sctp_event,
 				       char **error) {
 	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
 		u16 sender_dry_type;
-		 
+
 		if (get_u16(expr->sender_dry_type, &sender_dry_type, error)) {
 			return STATUS_ERR;
 		}
@@ -3939,7 +3939,7 @@ static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 	}
 	if (expr->sender_dry_flags->type != EXPR_ELLIPSIS) {
 		u16 sender_dry_flags;
-		 
+
 		if (get_u16(expr->sender_dry_flags, &sender_dry_flags, error)) {
 			return STATUS_ERR;
 		}
@@ -3951,7 +3951,7 @@ static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 	}
 	if (expr->sender_dry_type->type != EXPR_ELLIPSIS) {
 		u32 sender_dry_length;
-		 
+
 		if (get_u32(expr->sender_dry_length, &sender_dry_length, error)) {
 			return STATUS_ERR;
 		}
@@ -3963,7 +3963,7 @@ static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 	}
 	if (expr->sender_dry_assoc_id->type != EXPR_ELLIPSIS) {
 		u32 sender_dry_assoc_id;
-		 
+
 		if (get_u32(expr->sender_dry_assoc_id, &sender_dry_assoc_id, error)) {
 			return STATUS_ERR;
 		}
@@ -4011,7 +4011,7 @@ static int check_sctp_notification(struct iovec *iov,
 		case EXPR_ELLIPSIS:
 			break;
 		default:
-			asprintf(error, "Bad type for iov_base. Can't check type %s", 
+			asprintf(error, "Bad type for iov_base. Can't check type %s",
 				expression_type_to_string(script_iov_base->type));
 			return STATUS_ERR;
 			break;
