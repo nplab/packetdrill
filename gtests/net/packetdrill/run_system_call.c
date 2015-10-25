@@ -414,7 +414,7 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(__Linux__) 
+#if defined(__FreeBSD__) || defined(linux)
 int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u8 script_val;
@@ -431,7 +431,7 @@ int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **erro
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(__Linux__) 
+#if defined(__FreeBSD__) || defined(linux)
 int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u16 script_val;
@@ -463,7 +463,7 @@ int check_s32_expr(struct expression *expr, s16 value, char *val_name, char **er
 	return STATUS_OK;
 }
 
-#if defined(__FreeBSD__) || defined(__Linux__)
+#if defined(__FreeBSD__) || defined(linux)
 int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u32 script_val;
@@ -2804,7 +2804,7 @@ error_out:
 static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
-#if defined(__FreeBSD__) || defined(__Linux__)
+#if defined(__FreeBSD__) || defined(linux)
 	int result, script_fd, live_fd, len;
 	void *msg = NULL;
 	struct sockaddr_storage to;
@@ -2884,7 +2884,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-#if defined(__FreeBSD__) || defined(__Linux__)
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error) {
@@ -2993,7 +2993,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 				struct expression_list *args,
 				char **error)
 {
-#if defined(__FreeBSD__) || defined(__Linux__)
+#if defined(__FreeBSD__) || defined(linux)
 	int script_fd, live_fd, live_msg_flags, result;
 	void *msg;
 	u32 len;
@@ -3356,7 +3356,7 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 }
 #endif
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 				       struct sctp_sender_dry_event *sctp_event,
 				       char **error) {
@@ -3378,7 +3378,7 @@ static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 }
 #endif
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__)
 static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr,
 				       struct sctp_send_failed_event *sctp_event,
 				       char **error) {
@@ -3436,12 +3436,14 @@ static int check_sctp_notification(struct iovec *iov,
 						       error))
 				return STATUS_ERR;
 			break;
+#if defined(__FreeBSD__)
 		case EXPR_SCTP_SEND_FAILED_EVENT:
 			if (check_sctp_send_failed_event(script_iov_base->value.sctp_send_failed_event,
 						        (struct sctp_send_failed_event *) iov->iov_base,
 						        error))
 				return STATUS_ERR;
 			break;
+#endif
 		case EXPR_ELLIPSIS:
 			break;
 		default:
