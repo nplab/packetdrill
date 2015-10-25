@@ -88,6 +88,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_RECVV_RN,        "sctp_recvv_rn "  },
 	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
 	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
+	{ EXPR_SCTP_SEND_FAILED_EVENT,"sctp_send_failed_event"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -442,6 +443,15 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sender_dry_event->sender_dry_length);
 		free_expression(expression->value.sctp_sender_dry_event->sender_dry_assoc_id);
 		break;
+	case EXPR_SCTP_SEND_FAILED_EVENT:
+		free_expression(expression->value.sctp_send_failed_event->ssfe_type);
+		free_expression(expression->value.sctp_send_failed_event->ssfe_flags);
+		free_expression(expression->value.sctp_send_failed_event->ssfe_length);
+		free_expression(expression->value.sctp_send_failed_event->ssfe_error);
+		free_expression(expression->value.sctp_send_failed_event->ssfe_info);
+		free_expression(expression->value.sctp_send_failed_event->ssfe_assoc_id);
+		free_expression(expression->value.sctp_send_failed_event->ssfe_data);
+		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
 		free(expression->value.string);
@@ -564,7 +574,6 @@ static int evaluate_iovec_expression(struct expression *in,
 
 	in_iov = in->value.iovec;
 	out_iov = out->value.iovec;
-
 	if (evaluate(in_iov->iov_base,		&out_iov->iov_base,	error))
 		return STATUS_ERR;
 	if (evaluate(in_iov->iov_len,		&out_iov->iov_len,	error))
@@ -1421,6 +1430,54 @@ static int evaluate_sctp_sender_dry_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_send_failed_event_expression(struct expression *in,
+						      struct expression *out,
+						      char **error)
+{
+	struct sctp_send_failed_event_expr *in_event;
+	struct sctp_send_failed_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_SEND_FAILED_EVENT);
+	assert(in->value.sctp_send_failed_event);
+	assert(out->type == EXPR_SCTP_SEND_FAILED_EVENT);
+
+	out->value.sctp_send_failed_event = calloc(1, sizeof(struct sctp_send_failed_event_expr));
+
+	in_event = in->value.sctp_send_failed_event;
+	out_event = out->value.sctp_send_failed_event;
+
+	if (evaluate(in_event->ssfe_type,
+		     &out_event->ssfe_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssfe_flags,
+		     &out_event->ssfe_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssfe_length,
+		     &out_event->ssfe_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssfe_error,
+		     &out_event->ssfe_error,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssfe_info,
+		     &out_event->ssfe_info,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssfe_assoc_id,
+		     &out_event->ssfe_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssfe_data,
+		     &out_event->ssfe_data,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -1511,6 +1568,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SENDER_DRY_EVENT:
 		result = evaluate_sctp_sender_dry_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SEND_FAILED_EVENT:
+		result = evaluate_sctp_send_failed_event_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;
