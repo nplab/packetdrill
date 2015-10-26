@@ -528,6 +528,7 @@ static int iovec_new(struct expression *expression,
 		assert(iov_expr->iov_base->type == EXPR_ELLIPSIS ||
 		       iov_expr->iov_base->type == EXPR_SCTP_ASSOC_CHANGE ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
+		       iov_expr->iov_base->type == EXPR_SCTP_AUTHKEY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED_EVENT);
 		assert(iov_expr->iov_len->type == EXPR_INTEGER);
@@ -3439,6 +3440,34 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_authkey_event(struct sctp_authkey_event_expr *expr,
+				     struct sctp_authkey_event *sctp_event,
+				     char **error) {
+
+	if (check_u16_expr(expr->auth_type, sctp_event->auth_type,
+			   "sctp_authkey_event.auth_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->auth_flags, sctp_event->auth_flags,
+			   "sctp_authkey_event.auth_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->auth_length, sctp_event->auth_length,
+			   "sctp_authkey_event.auth_length", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->auth_keynumber, sctp_event->auth_keynumber,
+			   "sctp_authkey_event.auth_keynumber", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->auth_indication, sctp_event->auth_indication,
+			   "sctp_authkey_event.auth_indication", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->auth_assoc_id, sctp_event->auth_assoc_id,
+			   "sctp_authkey_event.auth_assoc_id", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 				       struct sctp_sender_dry_event *sctp_event,
 				       char **error) {
@@ -3516,6 +3545,12 @@ static int check_sctp_notification(struct iovec *iov,
 			if (check_sctp_shutdown_event(script_iov_base->value.sctp_shutdown_event,
 						      (struct sctp_shutdown_event *) iov->iov_base,
 						      error))
+				return STATUS_ERR;
+			break;
+		case EXPR_SCTP_AUTHKEY_EVENT:
+			if (check_sctp_authkey_event(script_iov_base->value.sctp_authkey_event,
+						     (struct sctp_authkey_event *) iov->iov_base,
+						     error))
 				return STATUS_ERR;
 			break;
 		case EXPR_SCTP_SENDER_DRY_EVENT:
