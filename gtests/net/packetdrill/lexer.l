@@ -270,7 +270,6 @@ sinfo_tsn			return SINFO_TSN;
 sinfo_cumtsn			return SINFO_CUMTSN;
 pr_policy			return PR_POLICY;
 pr_value			return PR_VALUE;
-auth_keynumber			return AUTH_KEYNUMBER;
 sendv_flags			return SENDV_FLAGS;
 sendv_sndinfo			return SENDV_SNDINFO;
 sendv_prinfo			return SENDV_PRINFO;
