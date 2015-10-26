@@ -3376,7 +3376,7 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 		switch(expr->sac_info->type) {
 		case EXPR_LIST:
 			if (infolen != expression_list_length(expr->sac_info->value.list)) {
-				asprintf(error, "sctp_assoc_change.sac_info length: expected: %u actual %u",
+				asprintf(error, "sctp_assoc_change.sac_info length: expected: %u actual %zu",
 					 expression_list_length(expr->sac_info->value.list), infolen);
 				return STATUS_ERR;
 			}
@@ -3681,7 +3681,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 		break;
 	case SCTP_RECVV_RCVINFO:
 		if (infolen != sizeof(struct sctp_rcvinfo)) {
-			asprintf(error, "infolen returned bad size for sctp_rcvinfo. expected %u, actual %u",
+			asprintf(error, "infolen returned bad size for sctp_rcvinfo. expected %zu, actual %u",
 				 sizeof(struct sctp_rcvinfo), infolen);
 			goto error_out;
 		}
@@ -3690,7 +3690,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 		break;
 	case SCTP_RECVV_NXTINFO:
 		if (infolen != sizeof(struct sctp_nxtinfo)) {
-			asprintf(error, "infolen returned bad size for sctp_nxtinfo. expected %u, actual %u",
+			asprintf(error, "infolen returned bad size for sctp_nxtinfo. expected %zu, actual %u",
 				 sizeof(struct sctp_nxtinfo), infolen);
 			goto error_out;
 		}
@@ -3699,7 +3699,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 		break;
 	case SCTP_RECVV_RN:
 		if (infolen != sizeof(struct sctp_recvv_rn)) {
-			asprintf(error, "infolen returned bad size for sctp_recvv_rn. expected %u, actual %u",
+			asprintf(error, "infolen returned bad size for sctp_recvv_rn. expected %zu, actual %u",
 				 sizeof(struct sctp_recvv_rn), infolen);
 			goto error_out;
 		}
