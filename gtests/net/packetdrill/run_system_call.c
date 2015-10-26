@@ -418,7 +418,7 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u8 script_val;
-		 
+
 		if (get_u8(expr, &script_val, error)) {
 			return STATUS_ERR;
 		}
@@ -435,7 +435,7 @@ int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **erro
 int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u16 script_val;
-		 
+
 		if (get_u16(expr, &script_val, error)) {
 			return STATUS_ERR;
 		}
@@ -451,7 +451,7 @@ int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **er
 int check_s32_expr(struct expression *expr, s16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		s32 script_val;
-		 
+
 		if (get_s32(expr, &script_val, error)) {
 			return STATUS_ERR;
 		}
@@ -467,7 +467,7 @@ int check_s32_expr(struct expression *expr, s16 value, char *val_name, char **er
 int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u32 script_val;
-		 
+
 		if (get_u32(expr, &script_val, error)) {
 			return STATUS_ERR;
 		}
@@ -3343,7 +3343,6 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 				   struct sctp_assoc_change *sctp_event,
 				   char **error) {
-
 	if (check_u16_expr(expr->sac_type, sctp_event->sac_type,
 			   "sctp_assoc_change.sac_type", error))
 		return STATUS_ERR;
@@ -3369,22 +3368,15 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 			   "sctp_assoc_change.sac_assoc_id", error))
 		return STATUS_ERR;
 	if ( expr->sac_info->type != EXPR_ELLIPSIS) {
-		size_t infolen = 0;
+		size_t infolen;
 		struct expression *info_expr = NULL;
-		int i;
-		infolen = sizeof(sctp_event->sac_type);
-		infolen += sizeof(sctp_event->sac_flags);
-		infolen += sizeof(sctp_event->sac_length);
-		infolen += sizeof(sctp_event->sac_state);
-		infolen += sizeof(sctp_event->sac_error);
-		infolen += sizeof(sctp_event->sac_outbound_streams); 
-		infolen += sizeof(sctp_event->sac_inbound_streams); 
-		infolen += sizeof(sctp_event->sac_assoc_id); 
-		infolen = sctp_event->sac_length - infolen + 1;
+		unsigned int i;
+
+		infolen = sctp_event->sac_length - sizeof(struct sctp_assoc_change);
 		switch(expr->sac_info->type) {
 		case EXPR_LIST:
 			if (infolen != expression_list_length(expr->sac_info->value.list)) {
-				asprintf(error, "sctp_assoc_change. sac_list length unequal to sac_lenth expected: %u actual %u",
+				asprintf(error, "sctp_assoc_change.sac_info length: expected: %u actual %u",
 					 expression_list_length(expr->sac_info->value.list), infolen);
 				return STATUS_ERR;
 			}
@@ -3397,19 +3389,12 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 						return STATUS_ERR;
 					}
 					if (script_val != sctp_event->sac_info[i]) {
-						asprintf(error, "sctp_assoc_change.sac_info. byte %d: expected: %hhu actual: %hhu",
+						asprintf(error, "sctp_assoc_change.sac_info[%d]: expected: %hhu actual: %hhu",
 							i, script_val, sctp_event->sac_info[i]);
 						return STATUS_ERR;
 					}
 				}
-
-				/*if (info_expr->type != EXPR_ELLIPSIS) {
-					
-					if (check_u8_expr(info_expr, sctp_event->sac_info[i],
-						   "sctp_assoc_change.sac_info", error))
-					return STATUS_ERR;
-				}
-		*/	}
+			}
 			break;
 		default: asprintf(error, "Bad expressiontype for sac_info");
 			return STATUS_ERR;
