@@ -168,6 +168,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_PEER_ADDR_CHANGE,            "SCTP_PEER_ADDR_CHANGE"           },
 	{ SCTP_REMOTE_ERROR,                "SCTP_REMOTE_ERROR"               },
 	{ SCTP_SEND_FAILED,                 "SCTP_SEND_FAILED"                },
+	{ SCTP_ASSOC_CHANGE,                "SCTP_ASSOC_CHANGE"               },
 	{ SCTP_SHUTDOWN_EVENT,              "SCTP_SHUTDOWN_EVENT"             },
 	{ SCTP_SENDER_DRY_EVENT,            "SCTP_SENDER_DRY_EVENT"           },
 	{ SCTP_SEND_FAILED_EVENT,           "SCTP_SEND_FAILED_EVENT"          },
@@ -206,6 +207,15 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_RECVNXTINFO,                 "SCTP_RECVNXTINFO"                },
 	{ SCTP_DATA_SENT,                   "SCTP_DATA_SENT"                  },
 	{ SCTP_DATA_UNSENT,                 "SCTP_DATA_UNSENT"                },
+	{ SCTP_COMM_UP,                     "SCTP_COMM_UP"                    },
+	{ SCTP_COMM_LOST,                   "SCTP_COMM_LOST"                  },
+	{ SCTP_RESTART,                     "SCTP_RESTART"                    },
+	{ SCTP_SHUTDOWN_COMP,               "SCTP_SHUTDOWN_COMP"              },
+	{ SCTP_ASSOC_SUPPORTS_PR,           "SCTP_ASSOC_SUPPORTS_PR"          },
+	{ SCTP_ASSOC_SUPPORTS_AUTH,         "SCTP_ASSOC_SUPPORTS_AUTH"        },
+	{ SCTP_ASSOC_SUPPORTS_ASCONF,       "SCTP_ASSOC_SUPPORTS_ASCONF"      },
+	{ SCTP_ASSOC_SUPPORTS_MULTIBUF,     "SCTP_ASSOC_SUPPORTS_MULTIBUF"    },
+
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },
