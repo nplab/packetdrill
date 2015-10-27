@@ -4158,8 +4158,8 @@ sctp_paddr_change
 	$$ = new_expression(EXPR_SCTP_PADDR_CHANGE);
 	$$->value.sctp_paddr_change = calloc(1, sizeof(struct sctp_paddr_change_expr));
 	$$->value.sctp_paddr_change->spc_type = $2;
-	$$->value.sctp_paddr_change->spc_length = $4;
-	$$->value.sctp_paddr_change->spc_flags = $6;
+	$$->value.sctp_paddr_change->spc_flags = $4;
+	$$->value.sctp_paddr_change->spc_length = $6;
 	$$->value.sctp_paddr_change->spc_aaddr = $8;
 	$$->value.sctp_paddr_change->spc_state = $10;
 	$$->value.sctp_paddr_change->spc_error = $12;
