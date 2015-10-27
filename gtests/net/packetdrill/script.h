@@ -69,6 +69,7 @@ enum expression_t {
 	EXPR_SCTP_ASSOC_CHANGE,   /* expression tree for sctp_assoc_change_event */
 	EXPR_SCTP_REMOTE_ERROR,   /* expression tree for sctp_remote_error_event */
 	EXPR_SCTP_SHUTDOWN_EVENT, /* expression tree for sctp_shutdown_event */
+	EXPR_SCTP_PDAPI_EVENT,    /* expression tree for sctp_partial_delivery_event */
 	EXPR_SCTP_AUTHKEY_EVENT,  /* expression tree for sctp_authentication_event */
 	EXPR_SCTP_SENDER_DRY_EVENT, /* expression tree for sctp_sender_dry_event */
 	EXPR_SCTP_SEND_FAILED_EVENT, /* expression tree for sctp_send_failed_event */
@@ -114,6 +115,7 @@ struct expression {
 		struct sctp_assoc_change_expr *sctp_assoc_change;
 		struct sctp_remote_error_expr *sctp_remote_error;
 		struct sctp_shutdown_event_expr *sctp_shutdown_event;
+		struct sctp_pdapi_event_expr *sctp_pdapi_event;
 		struct sctp_authkey_event_expr *sctp_authkey_event;
 		struct sctp_sender_dry_event_expr *sctp_sender_dry_event;
 		struct sctp_send_failed_event_expr *sctp_send_failed_event;
@@ -354,6 +356,17 @@ struct sctp_shutdown_event_expr {
 	struct expression *sse_type;
 	struct expression *sse_flags;
 	struct expression *sse_length;
+};
+
+/* Parse tree for sctp_partial_delivery_event for notifications. */
+struct sctp_pdapi_event_expr {
+	struct expression *pdapi_type;
+	struct expression *pdapi_flags;
+	struct expression *pdapi_length;
+	struct expression *pdapi_indication;
+	struct expression *pdapi_stream;
+	struct expression *pdapi_seq;
+	struct expression *pdapi_assoc_id;
 };
 
 /* Parse tree for sctp_authentication_event for notifications. */

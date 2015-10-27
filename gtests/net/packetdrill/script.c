@@ -89,6 +89,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_ASSOC_CHANGE,    "sctp_assoc_change"},
 	{ EXPR_SCTP_REMOTE_ERROR,    "sctp_remote_error"},
 	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
+	{ EXPR_SCTP_PDAPI_EVENT,     "sctp_pdapi_event"},
 	{ EXPR_SCTP_AUTHKEY_EVENT,   "sctp_authkey_event"},
 	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
 	{ EXPR_SCTP_SEND_FAILED_EVENT,"sctp_send_failed_event"},
@@ -458,6 +459,15 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
 		free_expression(expression->value.sctp_shutdown_event->sse_flags);
 		free_expression(expression->value.sctp_shutdown_event->sse_length);
+		break;
+	case EXPR_SCTP_PDAPI_EVENT:
+		free_expression(expression->value.sctp_pdapi_event->pdapi_type);
+		free_expression(expression->value.sctp_pdapi_event->pdapi_flags);
+		free_expression(expression->value.sctp_pdapi_event->pdapi_length);
+		free_expression(expression->value.sctp_pdapi_event->pdapi_indication);
+		free_expression(expression->value.sctp_pdapi_event->pdapi_stream);
+		free_expression(expression->value.sctp_pdapi_event->pdapi_seq);
+		free_expression(expression->value.sctp_pdapi_event->pdapi_assoc_id);
 		break;
 	case EXPR_SCTP_AUTHKEY_EVENT:
 		free_expression(expression->value.sctp_authkey_event->auth_type);
@@ -1524,6 +1534,54 @@ static int evaluate_sctp_shutdown_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_pdapi_event_expression(struct expression *in,
+						struct expression *out,
+						char **error)
+{
+	struct sctp_pdapi_event_expr *in_event;
+	struct sctp_pdapi_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_PDAPI_EVENT);
+	assert(in->value.sctp_pdapi_event);
+	assert(out->type == EXPR_SCTP_PDAPI_EVENT);
+
+	out->value.sctp_pdapi_event = calloc(1, sizeof(struct sctp_pdapi_event_expr));
+
+	in_event = in->value.sctp_pdapi_event;
+	out_event = out->value.sctp_pdapi_event;
+
+	if (evaluate(in_event->pdapi_type,
+		     &out_event->pdapi_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->pdapi_flags,
+		     &out_event->pdapi_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->pdapi_length,
+		     &out_event->pdapi_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->pdapi_indication,
+		     &out_event->pdapi_indication,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->pdapi_stream,
+		     &out_event->pdapi_stream,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->pdapi_seq,
+		     &out_event->pdapi_seq,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->pdapi_assoc_id,
+		     &out_event->pdapi_assoc_id,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_authkey_event_expression(struct expression *in,
 						   struct expression *out,
 						   char **error)
@@ -1745,6 +1803,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
 		result = evaluate_sctp_shutdown_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_PDAPI_EVENT:
+		result = evaluate_sctp_pdapi_event_expression(in, out, error);
 		break;
 	case EXPR_SCTP_AUTHKEY_EVENT:
 		result = evaluate_sctp_authkey_event_expression(in, out, error);
