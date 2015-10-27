@@ -21,3 +21,9 @@ spp_ipv6_flowlabel=0, spp_dscp=0}, 152) = 0
 +0.5 sctp_recvv(3, [{iov_base={spc_type=SCTP_PEER_ADDR_CHANGE, spc_flags=0, spc_length=152, spc_aaddr=..., spc_state=SCTP_ADDR_UNREACHABLE, spc_error=0,
  spc_assoc_id=...}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO],
 [MSG_NOTIFICATION|MSG_EOR]) = 152
+
++0.0 < sctp: HEARTBEAT_ACK[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+
++0.5 sctp_recvv(3, [{iov_base={spc_type=SCTP_PEER_ADDR_CHANGE, spc_flags=0, spc_length=152, spc_aaddr=..., spc_state=SCTP_ADDR_AVAILABLE, spc_error=0,
+ spc_assoc_id=...}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO],
+[MSG_NOTIFICATION|MSG_EOR]) = 152
