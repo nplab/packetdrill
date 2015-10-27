@@ -557,6 +557,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SAC_INBOUND_STREAMS SAC_ASSOC_ID SAC_INFO
 %token <reserved> SSFE_TYPE SSFE_FLAGS SSFE_LENGTH SSFE_ERROR SSFE_INFO SSFE_ASSOC_ID SSFE_DATA
 %token <reserved> AUTH_TYPE AUTH_FLAGS AUTH_LENGTH AUTH_INDICATION AUTH_ASSOC_ID
+%token <reserved> SRE_TYPE SRE_FLAGS SRE_LENGTH SRE_ERROR SRE_ASSOC_ID SRE_DATA
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -617,8 +618,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_event_subscribe
 %type <expression> sctp_assoc_change sac_type sac_flags sac_length sac_state sac_error sac_outbound_streams
 %type <expression> sac_inbound_streams sac_assoc_id sac_info
-%type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id
+%type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id ssfe_data
 %type <expression> sctp_authkey_event auth_type auth_flags auth_length auth_keynumber auth_indication auth_assoc_id
+%type <expression> sctp_remote_error sre_type sre_flags sre_length sre_error sre_assoc_id sre_data
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2594,6 +2596,7 @@ sockaddr
 data
 : ELLIPSIS { new_expression(EXPR_ELLIPSIS); }
 | sctp_assoc_change         { $$ = $1; }
+| sctp_remote_error         { $$ = $1; }
 | sctp_shutdown_event       { $$ = $1; }
 | sctp_sender_dry_event     { $$ = $1; }
 | sctp_send_failed_event    { $$ = $1; }
@@ -3776,8 +3779,13 @@ ssfe_assoc_id
 | SSFE_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+ssfe_data
+: SSFE_DATA '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SSFE_DATA '=' array    { $$ = $3; }
+;
+
 sctp_send_failed_event
-: '{' ssfe_type ',' ssfe_flags ',' ssfe_length ',' ssfe_error ',' SSFE_INFO '=' sctp_sndinfo ',' ssfe_assoc_id ',' SSFE_DATA '=' ELLIPSIS '}' {
+: '{' ssfe_type ',' ssfe_flags ',' ssfe_length ',' ssfe_error ',' SSFE_INFO '=' sctp_sndinfo ',' ssfe_assoc_id ',' ssfe_data '}' {
 	$$ = new_expression(EXPR_SCTP_SEND_FAILED_EVENT);
 	$$->value.sctp_send_failed_event = calloc(1, sizeof(struct sctp_send_failed_event_expr));
 	$$->value.sctp_send_failed_event->ssfe_type = $2;
@@ -3786,7 +3794,7 @@ sctp_send_failed_event
 	$$->value.sctp_send_failed_event->ssfe_error = $8;
 	$$->value.sctp_send_failed_event->ssfe_info = $12;
 	$$->value.sctp_send_failed_event->ssfe_assoc_id = $14;
-	$$->value.sctp_send_failed_event->ssfe_data = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_send_failed_event->ssfe_data = $16;
 };
 
 sac_type
@@ -3896,6 +3904,78 @@ sac_inbound_streams ',' sac_assoc_id ',' sac_info '}' {
 	$$->value.sctp_assoc_change->sac_inbound_streams = $14;
 	$$->value.sctp_assoc_change->sac_assoc_id = $16;
 	$$->value.sctp_assoc_change->sac_info = $18;
+}
+;
+
+sre_type
+: SRE_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sre_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SRE_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SRE_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sre_flags
+: SRE_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sre_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SRE_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sre_length
+: SRE_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sre_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SRE_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sre_error
+: SRE_ERROR '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sre_error out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SRE_ERROR '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sre_assoc_id
+: SRE_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sre_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SRE_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sre_data
+: SRE_DATA '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SRE_DATA '=' array { $$ = $3; }
+;
+
+sctp_remote_error
+: '{' sre_type ',' sre_flags ',' sre_length ',' sre_error ',' sre_assoc_id ',' sre_data '}' {
+	$$ = new_expression(EXPR_SCTP_REMOTE_ERROR);
+	$$->value.sctp_remote_error = calloc(1, sizeof(struct sctp_remote_error_expr));
+	$$->value.sctp_remote_error->sre_type = $2;
+	$$->value.sctp_remote_error->sre_flags = $4;
+	$$->value.sctp_remote_error->sre_length = $6;
+	$$->value.sctp_remote_error->sre_error = $8;
+	$$->value.sctp_remote_error->sre_assoc_id = $10;
+	$$->value.sctp_remote_error->sre_data = $12;
 }
 ;
 

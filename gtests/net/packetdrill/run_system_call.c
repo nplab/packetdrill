@@ -480,6 +480,48 @@ int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **er
 }
 #endif
 
+#if defined(__FreeBSD__) || defined(linux)
+static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
+	if ( expr_list->type != EXPR_ELLIPSIS) {
+		struct expression *expr = NULL;
+		unsigned int i;
+
+		switch(expr_list->type) {
+		case EXPR_LIST:
+			if (data_len != expression_list_length(expr_list->value.list)) {
+				asprintf(error, "%s length: expected: %u actual %zu",
+					 val_name, expression_list_length(expr_list->value.list), data_len);
+				return STATUS_ERR;
+			}
+			for (i = 0; i < data_len; i++) {
+				expr = get_arg(expr_list->value.list, i, error);
+				if (expr->type != EXPR_ELLIPSIS) {
+					u8 script_val;
+
+					if (get_u8(expr, &script_val, error)) {
+						return STATUS_ERR;
+					}
+					if (script_val != data[i]) {
+						asprintf(error, "%s[%d]: expected: %hhu actual: %hhu",
+							val_name, i, script_val, data[i]);
+						return STATUS_ERR;
+					}
+				}
+			}
+			break;
+		case EXPR_NULL:
+			if (data != NULL)
+				return STATUS_ERR;
+			break;
+		default: asprintf(error, "Bad expressiontype for %s", val_name);
+			return STATUS_ERR;
+			break;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 /* Free all the space used by the given iovec. */
 static void iovec_free(struct iovec *iov, size_t iov_len)
 {
@@ -527,6 +569,7 @@ static int iovec_new(struct expression *expression,
 
 		assert(iov_expr->iov_base->type == EXPR_ELLIPSIS ||
 		       iov_expr->iov_base->type == EXPR_SCTP_ASSOC_CHANGE ||
+		       iov_expr->iov_base->type == EXPR_SCTP_REMOTE_ERROR ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_AUTHKEY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT ||
@@ -3367,40 +3410,37 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 	if (check_u32_expr(expr->sac_assoc_id, sctp_event->sac_assoc_id,
 			   "sctp_assoc_change.sac_assoc_id", error))
 		return STATUS_ERR;
-	if ( expr->sac_info->type != EXPR_ELLIPSIS) {
-		size_t infolen;
-		struct expression *info_expr = NULL;
-		unsigned int i;
-
-		infolen = sctp_event->sac_length - sizeof(struct sctp_assoc_change);
-		switch(expr->sac_info->type) {
-		case EXPR_LIST:
-			if (infolen != expression_list_length(expr->sac_info->value.list)) {
-				asprintf(error, "sctp_assoc_change.sac_info length: expected: %u actual %zu",
-					 expression_list_length(expr->sac_info->value.list), infolen);
-				return STATUS_ERR;
-			}
-			for (i = 0; i < infolen; i++) {
-				info_expr = get_arg(expr->sac_info->value.list, i, error);
-				if (info_expr->type != EXPR_ELLIPSIS) {
-					u8 script_val;
-
-					if (get_u8(info_expr, &script_val, error)) {
-						return STATUS_ERR;
-					}
-					if (script_val != sctp_event->sac_info[i]) {
-						asprintf(error, "sctp_assoc_change.sac_info[%d]: expected: %hhu actual: %hhu",
-							i, script_val, sctp_event->sac_info[i]);
-						return STATUS_ERR;
-					}
-				}
-			}
-			break;
-		default: asprintf(error, "Bad expressiontype for sac_info");
+	if (check_u8array_expr(expr->sac_info, sctp_event->sac_info, sctp_event->sac_length - sizeof(struct sctp_assoc_change),
+			       "sctp_assoc_change.sac_info", error))
 			return STATUS_ERR;
-			break;
-		}
-	}
+
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_remote_error(struct sctp_remote_error_expr *expr,
+				   struct sctp_remote_error *sctp_event,
+				   char **error) {
+	if (check_u16_expr(expr->sre_type, sctp_event->sre_type,
+			   "sctp_remote_error.sre_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sre_flags, sctp_event->sre_flags,
+			   "sctp_remote_error.sre_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sre_length, sctp_event->sre_length,
+			   "sctp_remote_error.sre_length", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sre_error, sctp_event->sre_error,
+			   "sctp_remote_error.sre_error", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sre_assoc_id, sctp_event->sre_assoc_id,
+			   "sctp_remote_error.sre_assoc_id", error))
+		return STATUS_ERR;
+	if (check_u8array_expr(expr->sre_data, sctp_event->sre_data, sctp_event->sre_length - sizeof(struct sctp_remote_error),
+			       "sctp_remote_error.sre_data", error))
+			return STATUS_ERR;
+
 	return STATUS_OK;
 }
 #endif
@@ -3497,6 +3537,10 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 	if (check_u32_expr(expr->ssfe_assoc_id, sctp_event->ssfe_assoc_id,
 			   "sctp_send_failed.ssfe_assoc_id", error))
 		return STATUS_ERR;
+	if (check_u8array_expr(expr->ssfe_data, sctp_event->ssfe_data,
+			       sctp_event->ssfe_length - sizeof(struct sctp_send_failed_event),
+			       "sctp_send_failed_event.ssfe_data", error))
+			return STATUS_ERR;
 
 	return STATUS_OK;
 }
@@ -3523,6 +3567,12 @@ static int check_sctp_notification(struct iovec *iov,
 		case EXPR_SCTP_ASSOC_CHANGE:
 			if (check_sctp_assoc_change(script_iov_base->value.sctp_assoc_change,
 						    (struct sctp_assoc_change *) iov->iov_base,
+						    error))
+				return STATUS_ERR;
+			break;
+		case EXPR_SCTP_REMOTE_ERROR:
+			if (check_sctp_remote_error(script_iov_base->value.sctp_remote_error,
+						    (struct sctp_remote_error *) iov->iov_base,
 						    error))
 				return STATUS_ERR;
 			break;

@@ -67,6 +67,7 @@ enum expression_t {
 	EXPR_SCTP_NXTINFO,        /* struct sctp_nxtinfo for syscall sctp_recvv */
 	EXPR_SCTP_RECVV_RN,       /* struct sctp_recvv_rn for syscall sctp_recvv */
 	EXPR_SCTP_ASSOC_CHANGE,   /* expression tree for sctp_assoc_change_event */
+	EXPR_SCTP_REMOTE_ERROR,   /* expression tree for sctp_remote_error_event */
 	EXPR_SCTP_SHUTDOWN_EVENT, /* expression tree for sctp_shutdown_event */
 	EXPR_SCTP_AUTHKEY_EVENT,  /* expression tree for sctp_authentication_event */
 	EXPR_SCTP_SENDER_DRY_EVENT, /* expression tree for sctp_sender_dry_event */
@@ -111,6 +112,7 @@ struct expression {
 		struct sctp_nxtinfo_expr *sctp_nxtinfo;
 		struct sctp_recvv_rn_expr *sctp_recvv_rn;
 		struct sctp_assoc_change_expr *sctp_assoc_change;
+		struct sctp_remote_error_expr *sctp_remote_error;
 		struct sctp_shutdown_event_expr *sctp_shutdown_event;
 		struct sctp_authkey_event_expr *sctp_authkey_event;
 		struct sctp_sender_dry_event_expr *sctp_sender_dry_event;
@@ -338,6 +340,15 @@ struct sctp_assoc_change_expr {
 	struct expression *sac_info;
 };
 
+/* Parse tree for sctp_assoc_change for notifications. */
+struct sctp_remote_error_expr {
+	struct expression *sre_type;
+	struct expression *sre_flags;
+	struct expression *sre_length;
+	struct expression *sre_error;
+	struct expression *sre_assoc_id;
+	struct expression *sre_data;
+};
 /* Parse tree for sctp_shutdown_event for notifications. */
 struct sctp_shutdown_event_expr {
 	struct expression *sse_type;
