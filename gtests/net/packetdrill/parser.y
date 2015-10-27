@@ -561,6 +561,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> PDAPI_TYPE PDAPI_FLAGS PDAPI_LENGTH PDAPI_INDICATION PDAPI_STREAM PDAPI_SEQ
 %token <reserved> SPC_TYPE SPC_FLAGS SPC_LENGTH SPC_AADDR SPC_STATE SPC_ERROR SPC_ASSOC_ID
 %token <reserved> SSF_TYPE SSF_LENGTH SSF_FLAGS SSF_ERROR SSF_INFO SSF_ASSOC_ID SSF_DATA
+%token <reserved> SAI_TYPE SAI_FLAGS SAI_LENGTH SAI_ADAPTATION_IND SAI_ASSOC_ID
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -627,6 +628,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_pdapi_event pdapi_type pdapi_flags pdapi_length pdapi_indication pdapi_stream pdapi_seq pdapi_assoc_id
 %type <expression> sctp_paddr_change spc_type spc_flags spc_length spc_aaddr spc_error spc_state spc_assoc_id
 %type <expression> sctp_send_failed ssf_type ssf_length ssf_flags ssf_error ssf_info ssf_assoc_id ssf_data
+%type <expression> sctp_adaptation_event sai_type sai_flags sai_length sai_adaptation_ind sai_assoc_id
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2606,6 +2608,7 @@ data
 | sctp_remote_error         { $$ = $1; }
 | sctp_send_failed          { $$ = $1; }
 | sctp_shutdown_event       { $$ = $1; }
+| sctp_adaptation_event     { $$ = $1; }
 | sctp_pdapi_event          { $$ = $1; }
 | sctp_sender_dry_event     { $$ = $1; }
 | sctp_send_failed_event    { $$ = $1; }
@@ -4252,6 +4255,72 @@ sctp_send_failed
 	$$->value.sctp_send_failed->ssf_info = $10;
 	$$->value.sctp_send_failed->ssf_assoc_id = $12;
 	$$->value.sctp_send_failed->ssf_data = $14;
+}
+;
+
+sai_type
+: SAI_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sai_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAI_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SAI_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sai_flags
+: SAI_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sai_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SAI_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sai_length
+: SAI_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sai_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SAI_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sai_adaptation_ind
+: SAI_ADAPTATION_IND '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sai_adaptation_ind out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SAI_ADAPTATION_IND '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sai_assoc_id
+: SAI_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sai_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SAI_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_adaptation_event
+: '{' sai_type ',' sai_flags ',' sai_length ',' sai_adaptation_ind ',' sai_assoc_id '}' {
+	$$ = new_expression(EXPR_SCTP_ADAPTATION_EVENT);
+	$$->value.sctp_adaptation_event = calloc(1, sizeof(struct sctp_adaptation_event_expr));
+	$$->value.sctp_adaptation_event->sai_type = $2;
+	$$->value.sctp_adaptation_event->sai_flags = $4;
+	$$->value.sctp_adaptation_event->sai_length = $6;
+	$$->value.sctp_adaptation_event->sai_adaptation_ind = $8;
+	$$->value.sctp_adaptation_event->sai_assoc_id = $10;
 }
 ;
 
