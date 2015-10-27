@@ -571,6 +571,7 @@ static int iovec_new(struct expression *expression,
 		       iov_expr->iov_base->type == EXPR_SCTP_ASSOC_CHANGE ||
 		       iov_expr->iov_base->type == EXPR_SCTP_REMOTE_ERROR ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
+		       iov_expr->iov_base->type == EXPR_SCTP_PDAPI_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_AUTHKEY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED_EVENT);
@@ -3465,6 +3466,37 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_pdapi_event(struct sctp_pdapi_event_expr *expr,
+				  struct sctp_pdapi_event *sctp_event,
+				  char **error) {
+
+	if (check_u16_expr(expr->pdapi_type, sctp_event->pdapi_type,
+			   "sctp_pdapi_event.pdapi_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->pdapi_flags, sctp_event->pdapi_flags,
+			   "sctp_pdapi_event.pdapi_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->pdapi_length, sctp_event->pdapi_length,
+			   "sctp_pdapi_event.pdapi_length", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->pdapi_indication, sctp_event->pdapi_indication,
+			   "sctp_pdapi_event.pdapi_indication", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->pdapi_stream, sctp_event->pdapi_stream,
+			   "sctp_pdapi_event.pdapi_stream", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->pdapi_seq, sctp_event->pdapi_seq,
+			   "sctp_pdapi_event.pdapi_seq", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->pdapi_assoc_id, sctp_event->pdapi_assoc_id,
+			   "sctp_pdapi_event.pdapi_assoc_id", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_authkey_event(struct sctp_authkey_event_expr *expr,
 				     struct sctp_authkey_event *sctp_event,
 				     char **error) {
@@ -3566,43 +3598,51 @@ static int check_sctp_notification(struct iovec *iov,
 		switch (script_iov_base->type) {
 		case EXPR_SCTP_ASSOC_CHANGE:
 			if (check_sctp_assoc_change(script_iov_base->value.sctp_assoc_change,
-						    (struct sctp_assoc_change *) iov->iov_base,
+						    (struct sctp_assoc_change *) iov[i].iov_base,
 						    error))
 				return STATUS_ERR;
 			break;
 		case EXPR_SCTP_REMOTE_ERROR:
 			if (check_sctp_remote_error(script_iov_base->value.sctp_remote_error,
-						    (struct sctp_remote_error *) iov->iov_base,
+						    (struct sctp_remote_error *) iov[i].iov_base,
 						    error))
 				return STATUS_ERR;
 			break;
 		case EXPR_SCTP_SHUTDOWN_EVENT:
 			if (check_sctp_shutdown_event(script_iov_base->value.sctp_shutdown_event,
-						      (struct sctp_shutdown_event *) iov->iov_base,
+						      (struct sctp_shutdown_event *) iov[i].iov_base,
+						      error))
+				return STATUS_ERR;
+			break;
+		case EXPR_SCTP_PDAPI_EVENT:
+			printf("check PDAPI\n");
+			if (check_sctp_pdapi_event(script_iov_base->value.sctp_pdapi_event,
+						      (struct sctp_pdapi_event *) iov[i].iov_base,
 						      error))
 				return STATUS_ERR;
 			break;
 		case EXPR_SCTP_AUTHKEY_EVENT:
 			if (check_sctp_authkey_event(script_iov_base->value.sctp_authkey_event,
-						     (struct sctp_authkey_event *) iov->iov_base,
+						     (struct sctp_authkey_event *) iov[i].iov_base,
 						     error))
 				return STATUS_ERR;
 			break;
 		case EXPR_SCTP_SENDER_DRY_EVENT:
 			if (check_sctp_sender_dry_event(script_iov_base->value.sctp_sender_dry_event,
-						       (struct sctp_sender_dry_event *) iov->iov_base,
+						       (struct sctp_sender_dry_event *) iov[i].iov_base,
 						       error))
 				return STATUS_ERR;
 			break;
 #if defined(__FreeBSD__)
 		case EXPR_SCTP_SEND_FAILED_EVENT:
 			if (check_sctp_send_failed_event(script_iov_base->value.sctp_send_failed_event,
-						        (struct sctp_send_failed_event *) iov->iov_base,
+						        (struct sctp_send_failed_event *) iov[i].iov_base,
 						        error))
 				return STATUS_ERR;
 			break;
 #endif
 		case EXPR_ELLIPSIS:
+			printf("check Ellipsis\n");
 			break;
 		default:
 			asprintf(error, "Bad type for iov_base. Can't check type %s",

@@ -216,6 +216,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ASSOC_SUPPORTS_AUTH,         "SCTP_ASSOC_SUPPORTS_AUTH"        },
 	{ SCTP_ASSOC_SUPPORTS_ASCONF,       "SCTP_ASSOC_SUPPORTS_ASCONF"      },
 	{ SCTP_ASSOC_SUPPORTS_MULTIBUF,     "SCTP_ASSOC_SUPPORTS_MULTIBUF"    },
+	{ SCTP_PARTIAL_DELIVERY_ABORTED,    "SCTP_PARTIAL_DELIVERY_ABORTED"   },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },

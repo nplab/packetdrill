@@ -557,7 +557,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SAC_INBOUND_STREAMS SAC_ASSOC_ID SAC_INFO
 %token <reserved> SSFE_TYPE SSFE_FLAGS SSFE_LENGTH SSFE_ERROR SSFE_INFO SSFE_ASSOC_ID SSFE_DATA
 %token <reserved> AUTH_TYPE AUTH_FLAGS AUTH_LENGTH AUTH_INDICATION AUTH_ASSOC_ID
-%token <reserved> SRE_TYPE SRE_FLAGS SRE_LENGTH SRE_ERROR SRE_ASSOC_ID SRE_DATA
+%token <reserved> SRE_TYPE SRE_FLAGS SRE_LENGTH SRE_ERROR SRE_ASSOC_ID SRE_DATA PDAPI_ASSOC_ID
+%token <reserved> PDAPI_TYPE PDAPI_FLAGS PDAPI_LENGTH PDAPI_INDICATION PDAPI_STREAM PDAPI_SEQ
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -621,6 +622,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id ssfe_data
 %type <expression> sctp_authkey_event auth_type auth_flags auth_length auth_keynumber auth_indication auth_assoc_id
 %type <expression> sctp_remote_error sre_type sre_flags sre_length sre_error sre_assoc_id sre_data
+%type <expression> sctp_pdapi_event pdapi_type pdapi_flags pdapi_length pdapi_indication pdapi_stream pdapi_seq pdapi_assoc_id
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2594,10 +2596,11 @@ sockaddr
 ;
 
 data
-: ELLIPSIS { new_expression(EXPR_ELLIPSIS); }
+: ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 | sctp_assoc_change         { $$ = $1; }
 | sctp_remote_error         { $$ = $1; }
 | sctp_shutdown_event       { $$ = $1; }
+| sctp_pdapi_event          { $$ = $1; }
 | sctp_sender_dry_event     { $$ = $1; }
 | sctp_send_failed_event    { $$ = $1; }
 | sctp_authkey_event        { $$ = $1; }
@@ -3585,6 +3588,97 @@ sctp_shutdown_event
 	$$->value.sctp_shutdown_event->sse_flags = $4;
 	$$->value.sctp_shutdown_event->sse_length = $6;
 };
+
+pdapi_type
+: PDAPI_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("pdapi_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| PDAPI_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| PDAPI_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+pdapi_flags
+: PDAPI_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("pdapi_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| PDAPI_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+pdapi_length
+: PDAPI_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("pdapi_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| PDAPI_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+pdapi_indication
+: PDAPI_INDICATION '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("pdapi_indication out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| PDAPI_INDICATION '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| PDAPI_INDICATION '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+pdapi_stream
+: PDAPI_STREAM '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("pdapi_stream out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| PDAPI_STREAM '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+pdapi_seq
+: PDAPI_SEQ '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("pdapi_seq out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| PDAPI_SEQ '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+pdapi_assoc_id
+: PDAPI_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("pdapi_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| PDAPI_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_pdapi_event
+: '{' pdapi_type',' pdapi_flags ',' pdapi_length ',' pdapi_indication ',' pdapi_stream ',' pdapi_seq ',' pdapi_assoc_id '}' {
+	$$ = new_expression(EXPR_SCTP_PDAPI_EVENT);
+	$$->value.sctp_pdapi_event = calloc(1, sizeof(struct sctp_pdapi_event_expr));
+	$$->value.sctp_pdapi_event->pdapi_type = $2;
+	$$->value.sctp_pdapi_event->pdapi_flags = $4;
+	$$->value.sctp_pdapi_event->pdapi_length = $6;
+	$$->value.sctp_pdapi_event->pdapi_indication = $8;
+	$$->value.sctp_pdapi_event->pdapi_stream = $10;
+	$$->value.sctp_pdapi_event->pdapi_seq = $12;
+	$$->value.sctp_pdapi_event->pdapi_assoc_id = $14;
+}
+;
 
 auth_type
 : AUTH_TYPE '=' INTEGER {
