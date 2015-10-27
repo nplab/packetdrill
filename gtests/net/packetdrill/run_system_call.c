@@ -3546,12 +3546,26 @@ static int check_sctp_pdapi_event(struct sctp_pdapi_event_expr *expr,
 	if (check_u32_expr(expr->pdapi_indication, sctp_event->pdapi_indication,
 			   "sctp_pdapi_event.pdapi_indication", error))
 		return STATUS_ERR;
+#if defined(linux)
+	if (expr->pdapi_stream->type != EXPR_ELLIPSIS) {
+		asprintf(error, "Linux doesn't support sctp_pdapi_event.pdapi_stream");
+		return STATUS_ERR;
+	}
+#else
 	if (check_u32_expr(expr->pdapi_stream, sctp_event->pdapi_stream,
 			   "sctp_pdapi_event.pdapi_stream", error))
 		return STATUS_ERR;
+#endif
+#if defined(linux)
+	if (expr->pdapi_seq->type != EXPR_ELLIPSIS) {
+		asprintf(error, "Linux doesn't support sctp_pdapi_event.pdapi_seq");
+		return STATUS_ERR;
+	}
+#else
 	if (check_u32_expr(expr->pdapi_seq, sctp_event->pdapi_seq,
 			   "sctp_pdapi_event.pdapi_seq", error))
 		return STATUS_ERR;
+#endif
 	if (check_u32_expr(expr->pdapi_assoc_id, sctp_event->pdapi_assoc_id,
 			   "sctp_pdapi_event.pdapi_assoc_id", error))
 		return STATUS_ERR;
