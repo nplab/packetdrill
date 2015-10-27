@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2013 Google Inc.
  *
@@ -3495,9 +3494,11 @@ static int check_sctp_send_failed(struct sctp_send_failed_expr *expr,
 	if (check_u32_expr(expr->ssf_error, sctp_event->ssf_error,
 			   "sctp_send_failed.ssf_error", error))
 		return STATUS_ERR;
-	if (check_sctp_sndrcvinfo(expr->ssf_info->value.sctp_sndrcvinfo,
-				  &sctp_event->ssf_info, error))
-		return STATUS_ERR;
+	if (expr->ssf_info->type != EXPR_ELLIPSIS) {
+		if (check_sctp_sndrcvinfo(expr->ssf_info->value.sctp_sndrcvinfo,
+					  &sctp_event->ssf_info, error))
+			return STATUS_ERR;
+	}
 	if (check_u32_expr(expr->ssf_assoc_id, sctp_event->ssf_assoc_id,
 			   "sctp_send_failed.ssf_assoc_id", error))
 		return STATUS_ERR;
