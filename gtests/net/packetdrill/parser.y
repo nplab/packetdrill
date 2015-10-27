@@ -559,6 +559,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> AUTH_TYPE AUTH_FLAGS AUTH_LENGTH AUTH_INDICATION AUTH_ASSOC_ID
 %token <reserved> SRE_TYPE SRE_FLAGS SRE_LENGTH SRE_ERROR SRE_ASSOC_ID SRE_DATA PDAPI_ASSOC_ID
 %token <reserved> PDAPI_TYPE PDAPI_FLAGS PDAPI_LENGTH PDAPI_INDICATION PDAPI_STREAM PDAPI_SEQ
+%token <reserved> SPC_TYPE SPC_FLAGS SPC_LENGTH SPC_AADDR SPC_STATE SPC_ERROR SPC_ASSOC_ID
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -623,6 +624,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_authkey_event auth_type auth_flags auth_length auth_keynumber auth_indication auth_assoc_id
 %type <expression> sctp_remote_error sre_type sre_flags sre_length sre_error sre_assoc_id sre_data
 %type <expression> sctp_pdapi_event pdapi_type pdapi_flags pdapi_length pdapi_indication pdapi_stream pdapi_seq pdapi_assoc_id
+%type <expression> sctp_paddr_change spc_type spc_flags spc_length spc_aaddr spc_error spc_state spc_assoc_id
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2598,6 +2600,7 @@ sockaddr
 data
 : ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 | sctp_assoc_change         { $$ = $1; }
+| sctp_paddr_change         { $$ = $1; }
 | sctp_remote_error         { $$ = $1; }
 | sctp_shutdown_event       { $$ = $1; }
 | sctp_pdapi_event          { $$ = $1; }
@@ -4070,6 +4073,97 @@ sctp_remote_error
 	$$->value.sctp_remote_error->sre_error = $8;
 	$$->value.sctp_remote_error->sre_assoc_id = $10;
 	$$->value.sctp_remote_error->sre_data = $12;
+}
+;
+
+spc_type
+: SPC_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("spc_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SPC_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SPC_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+spc_flags
+: SPC_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("spc_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SPC_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+spc_length
+: SPC_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("spc_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SPC_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+spc_aaddr
+: SPC_AADDR '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SPC_AADDR '=' sockaddr { $$ = $3; }
+;
+
+spc_state
+: SPC_STATE '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("spc_state out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SPC_STATE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SPC_STATE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+spc_error
+: SPC_ERROR '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("spc_error out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SPC_ERROR '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SPC_ERROR '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+spc_assoc_id
+: SPC_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("spc_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SPC_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_paddr_change
+: '{' spc_type ',' spc_flags ',' spc_length ',' spc_aaddr ',' spc_state ',' spc_error ',' spc_assoc_id '}' {
+	$$ = new_expression(EXPR_SCTP_PADDR_CHANGE);
+	$$->value.sctp_paddr_change = calloc(1, sizeof(struct sctp_paddr_change_expr));
+	$$->value.sctp_paddr_change->spc_type = $2;
+	$$->value.sctp_paddr_change->spc_length = $4;
+	$$->value.sctp_paddr_change->spc_flags = $6;
+	$$->value.sctp_paddr_change->spc_aaddr = $8;
+	$$->value.sctp_paddr_change->spc_state = $10;
+	$$->value.sctp_paddr_change->spc_error = $12;
+	$$->value.sctp_paddr_change->spc_assoc_id = $14;
 }
 ;
 

@@ -569,6 +569,7 @@ static int iovec_new(struct expression *expression,
 
 		assert(iov_expr->iov_base->type == EXPR_ELLIPSIS ||
 		       iov_expr->iov_base->type == EXPR_SCTP_ASSOC_CHANGE ||
+		       iov_expr->iov_base->type == EXPR_SCTP_PADDR_CHANGE ||
 		       iov_expr->iov_base->type == EXPR_SCTP_REMOTE_ERROR ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_PDAPI_EVENT ||
@@ -3420,6 +3421,36 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_paddr_change(struct sctp_paddr_change_expr *expr,
+				   struct sctp_paddr_change *sctp_event,
+				   char **error) {
+	if (check_u16_expr(expr->spc_type, sctp_event->spc_type,
+			   "sctp_paddr_change.spc_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->spc_flags, sctp_event->spc_flags,
+			   "sctp_paddr_change.spc_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spc_length, sctp_event->spc_length,
+			   "sctp_paddr_change.spc_length", error))
+		return STATUS_ERR;
+	if (check_sockaddr(expr->spc_aaddr,
+			   (struct sockaddr *)&sctp_event->spc_aaddr, error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spc_state, sctp_event->spc_state,
+			   "sctp_paddr_change.spc_state", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spc_error, sctp_event->spc_error,
+			   "sctp_paddr_change.spc_error", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->spc_assoc_id, sctp_event->spc_assoc_id,
+			   "sctp_paddr_change.spc_assoc_id", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_remote_error(struct sctp_remote_error_expr *expr,
 				   struct sctp_remote_error *sctp_event,
 				   char **error) {
@@ -3599,6 +3630,12 @@ static int check_sctp_notification(struct iovec *iov,
 		case EXPR_SCTP_ASSOC_CHANGE:
 			if (check_sctp_assoc_change(script_iov_base->value.sctp_assoc_change,
 						    (struct sctp_assoc_change *) iov[i].iov_base,
+						    error))
+				return STATUS_ERR;
+			break;
+		case EXPR_SCTP_PADDR_CHANGE:
+			if (check_sctp_paddr_change(script_iov_base->value.sctp_paddr_change,
+						    (struct sctp_paddr_change *) iov[i].iov_base,
 						    error))
 				return STATUS_ERR;
 			break;

@@ -217,7 +217,10 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ASSOC_SUPPORTS_ASCONF,       "SCTP_ASSOC_SUPPORTS_ASCONF"      },
 	{ SCTP_ASSOC_SUPPORTS_MULTIBUF,     "SCTP_ASSOC_SUPPORTS_MULTIBUF"    },
 	{ SCTP_PARTIAL_DELIVERY_ABORTED,    "SCTP_PARTIAL_DELIVERY_ABORTED"   },
-
+	{ SCTP_ADDR_AVAILABLE,              "SCTP_ADDR_AVAILABLE"             },
+	{ SCTP_ADDR_UNREACHABLE,            "SCTP_ADDR_UNREACHABLE"           },
+	{ SCTP_ADDR_REMOVED,                "SCTP_ADDR_REMOVED"               },
+	{ SCTP_ADDR_MADE_PRIM,              "SCTP_ADDR_MADE_PRIM"             },
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

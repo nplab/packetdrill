@@ -67,6 +67,7 @@ enum expression_t {
 	EXPR_SCTP_NXTINFO,        /* struct sctp_nxtinfo for syscall sctp_recvv */
 	EXPR_SCTP_RECVV_RN,       /* struct sctp_recvv_rn for syscall sctp_recvv */
 	EXPR_SCTP_ASSOC_CHANGE,   /* expression tree for sctp_assoc_change_event */
+	EXPR_SCTP_PADDR_CHANGE,   /* expression tree for sctp_peer_addr_change */
 	EXPR_SCTP_REMOTE_ERROR,   /* expression tree for sctp_remote_error_event */
 	EXPR_SCTP_SHUTDOWN_EVENT, /* expression tree for sctp_shutdown_event */
 	EXPR_SCTP_PDAPI_EVENT,    /* expression tree for sctp_partial_delivery_event */
@@ -113,6 +114,7 @@ struct expression {
 		struct sctp_nxtinfo_expr *sctp_nxtinfo;
 		struct sctp_recvv_rn_expr *sctp_recvv_rn;
 		struct sctp_assoc_change_expr *sctp_assoc_change;
+		struct sctp_paddr_change_expr *sctp_paddr_change;
 		struct sctp_remote_error_expr *sctp_remote_error;
 		struct sctp_shutdown_event_expr *sctp_shutdown_event;
 		struct sctp_pdapi_event_expr *sctp_pdapi_event;
@@ -342,7 +344,18 @@ struct sctp_assoc_change_expr {
 	struct expression *sac_info;
 };
 
-/* Parse tree for sctp_assoc_change for notifications. */
+/* Parse tree for sctp_paddr_change for notifications. */
+struct sctp_paddr_change_expr {
+	struct expression *spc_type;
+	struct expression *spc_flags;
+	struct expression *spc_length;
+	struct expression *spc_aaddr;
+	struct expression *spc_state;
+	struct expression *spc_error;
+	struct expression *spc_assoc_id;
+};
+
+/* Parse tree for sctp_remote_error_event for notifications. */
 struct sctp_remote_error_expr {
 	struct expression *sre_type;
 	struct expression *sre_flags;
