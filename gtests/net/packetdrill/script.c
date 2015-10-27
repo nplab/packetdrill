@@ -89,6 +89,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_ASSOC_CHANGE,    "sctp_assoc_change"},
 	{ EXPR_SCTP_PADDR_CHANGE,    "sctp_paddr_change"},
 	{ EXPR_SCTP_REMOTE_ERROR,    "sctp_remote_error"},
+	{ EXPR_SCTP_SEND_FAILED,     "sctp_send_failed"},
 	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
 	{ EXPR_SCTP_PDAPI_EVENT,     "sctp_pdapi_event"},
 	{ EXPR_SCTP_AUTHKEY_EVENT,   "sctp_authkey_event"},
@@ -464,6 +465,15 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_remote_error->sre_error);
 		free_expression(expression->value.sctp_remote_error->sre_assoc_id);
 		free_expression(expression->value.sctp_remote_error->sre_data);
+		break;
+	case EXPR_SCTP_SEND_FAILED:
+		free_expression(expression->value.sctp_send_failed->ssf_type);
+		free_expression(expression->value.sctp_send_failed->ssf_flags);
+		free_expression(expression->value.sctp_send_failed->ssf_length);
+		free_expression(expression->value.sctp_send_failed->ssf_error);
+		free_expression(expression->value.sctp_send_failed->ssf_info);
+		free_expression(expression->value.sctp_send_failed->ssf_assoc_id);
+		free_expression(expression->value.sctp_send_failed->ssf_data);
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
@@ -1560,6 +1570,54 @@ static int evaluate_sctp_remote_error_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_send_failed_expression(struct expression *in,
+						struct expression *out,
+						char **error)
+{
+	struct sctp_send_failed_expr *in_event;
+	struct sctp_send_failed_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_SEND_FAILED);
+	assert(in->value.sctp_send_failed);
+	assert(out->type == EXPR_SCTP_SEND_FAILED);
+
+	out->value.sctp_send_failed = calloc(1, sizeof(struct sctp_send_failed_expr));
+
+	in_event = in->value.sctp_send_failed;
+	out_event = out->value.sctp_send_failed;
+
+	if (evaluate(in_event->ssf_type,
+		     &out_event->ssf_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssf_flags,
+		     &out_event->ssf_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssf_length,
+		     &out_event->ssf_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssf_error,
+		     &out_event->ssf_error,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssf_info,
+		     &out_event->ssf_info,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssf_assoc_id,
+		     &out_event->ssf_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->ssf_data,
+		     &out_event->ssf_data,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_shutdown_event_expression(struct expression *in,
 						   struct expression *out,
 						   char **error)
@@ -1861,6 +1919,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_REMOTE_ERROR:
 		result = evaluate_sctp_remote_error_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SEND_FAILED:
+		result = evaluate_sctp_send_failed_expression(in, out, error);
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
 		result = evaluate_sctp_shutdown_event_expression(in, out, error);
