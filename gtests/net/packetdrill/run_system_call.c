@@ -576,7 +576,8 @@ static int iovec_new(struct expression *expression,
 		       iov_expr->iov_base->type == EXPR_SCTP_PDAPI_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_AUTHKEY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT ||
-		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED_EVENT);
+		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED_EVENT ||
+		       iov_expr->iov_base->type == EXPR_SCTP_TLV);
 		assert(iov_expr->iov_len->type == EXPR_INTEGER);
 
 		len = iov_expr->iov_len->value.num;
@@ -3683,6 +3684,21 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_tlv(struct sctp_tlv_expr *expr, struct sctp_tlv *sctp_tlv, char **error) {
+	if (check_u16_expr(expr->sn_type, sctp_tlv->sn_type,
+			   "sctp_tlv.sn_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sn_flags, sctp_tlv->sn_flags,
+			   "sctp_tlv.sn_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sn_length, sctp_tlv->sn_length,
+			   "sctp_tlv.sn_length", error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov,
 				   struct expression *iovec_expr,
 				   char **error) {
@@ -3762,6 +3778,12 @@ static int check_sctp_notification(struct iovec *iov,
 				return STATUS_ERR;
 			break;
 #endif
+		case EXPR_SCTP_TLV:
+			if (check_sctp_tlv(script_iov_base->value.sctp_tlv,
+					   (struct sctp_tlv *) iov[i].iov_base,
+					    error))
+				return STATUS_ERR;
+			break;
 		case EXPR_ELLIPSIS:
 			printf("check Ellipsis\n");
 			break;
