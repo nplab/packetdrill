@@ -480,6 +480,48 @@ int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **er
 }
 #endif
 
+#if defined(__FreeBSD__) || defined(linux)
+static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
+	if ( expr_list->type != EXPR_ELLIPSIS) {
+		struct expression *expr = NULL;
+		unsigned int i;
+
+		switch(expr_list->type) {
+		case EXPR_LIST:
+			if (data_len != expression_list_length(expr_list->value.list)) {
+				asprintf(error, "%s length: expected: %u actual %zu",
+					 val_name, expression_list_length(expr_list->value.list), data_len);
+				return STATUS_ERR;
+			}
+			for (i = 0; i < data_len; i++) {
+				expr = get_arg(expr_list->value.list, i, error);
+				if (expr->type != EXPR_ELLIPSIS) {
+					u8 script_val;
+
+					if (get_u8(expr, &script_val, error)) {
+						return STATUS_ERR;
+					}
+					if (script_val != data[i]) {
+						asprintf(error, "%s[%d]: expected: %hhu actual: %hhu",
+							val_name, i, script_val, data[i]);
+						return STATUS_ERR;
+					}
+				}
+			}
+			break;
+		case EXPR_NULL:
+			if (data != NULL)
+				return STATUS_ERR;
+			break;
+		default: asprintf(error, "Bad expressiontype for %s", val_name);
+			return STATUS_ERR;
+			break;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 /* Free all the space used by the given iovec. */
 static void iovec_free(struct iovec *iov, size_t iov_len)
 {
@@ -3340,46 +3382,6 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 }
 #endif
 
-static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
-	if ( expr_list->type != EXPR_ELLIPSIS) {
-		struct expression *expr = NULL;
-		unsigned int i;
-
-		switch(expr_list->type) {
-		case EXPR_LIST:
-			if (data_len != expression_list_length(expr_list->value.list)) {
-				asprintf(error, "%s length: expected: %u actual %zu",
-					 val_name, expression_list_length(expr_list->value.list), data_len);
-				return STATUS_ERR;
-			}
-			for (i = 0; i < data_len; i++) {
-				expr = get_arg(expr_list->value.list, i, error);
-				if (expr->type != EXPR_ELLIPSIS) {
-					u8 script_val;
-
-					if (get_u8(expr, &script_val, error)) {
-						return STATUS_ERR;
-					}
-					if (script_val != data[i]) {
-						asprintf(error, "%s[%d]: expected: %hhu actual: %hhu",
-							val_name, i, script_val, data[i]);
-						return STATUS_ERR;
-					}
-				}
-			}
-			break;
-		case EXPR_NULL:
-			if (data != NULL)
-				return STATUS_ERR;
-			break;
-		default: asprintf(error, "Bad expressiontype for sac_info");
-			return STATUS_ERR;
-			break;
-		}
-	}
-	return STATUS_OK;
-}
-
 #if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 				   struct sctp_assoc_change *sctp_event,
@@ -3411,6 +3413,7 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 	if (check_u8array_expr(expr->sac_info, sctp_event->sac_info, sctp_event->sac_length - sizeof(struct sctp_assoc_change),
 			       "sctp_assoc_change.sac_info", error))
 			return STATUS_ERR;
+
 	return STATUS_OK;
 }
 #endif
@@ -3534,6 +3537,10 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 	if (check_u32_expr(expr->ssfe_assoc_id, sctp_event->ssfe_assoc_id,
 			   "sctp_send_failed.ssfe_assoc_id", error))
 		return STATUS_ERR;
+	if (check_u8array_expr(expr->ssfe_data, sctp_event->ssfe_data,
+			       sctp_event->ssfe_length - sizeof(struct sctp_send_failed_event),
+			       "sctp_send_failed_event.ssfe_data", error))
+			return STATUS_ERR;
 
 	return STATUS_OK;
 }

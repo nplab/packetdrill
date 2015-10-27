@@ -618,7 +618,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_event_subscribe
 %type <expression> sctp_assoc_change sac_type sac_flags sac_length sac_state sac_error sac_outbound_streams
 %type <expression> sac_inbound_streams sac_assoc_id sac_info
-%type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id
+%type <expression> sctp_send_failed_event ssfe_type ssfe_flags ssfe_length ssfe_error ssfe_assoc_id ssfe_data
 %type <expression> sctp_authkey_event auth_type auth_flags auth_length auth_keynumber auth_indication auth_assoc_id
 %type <expression> sctp_remote_error sre_type sre_flags sre_length sre_error sre_assoc_id sre_data
 %type <errno_info> opt_errno
@@ -3779,8 +3779,13 @@ ssfe_assoc_id
 | SSFE_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+ssfe_data
+: SSFE_DATA '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| SSFE_DATA '=' array    { $$ = $3; }
+;
+
 sctp_send_failed_event
-: '{' ssfe_type ',' ssfe_flags ',' ssfe_length ',' ssfe_error ',' SSFE_INFO '=' sctp_sndinfo ',' ssfe_assoc_id ',' SSFE_DATA '=' ELLIPSIS '}' {
+: '{' ssfe_type ',' ssfe_flags ',' ssfe_length ',' ssfe_error ',' SSFE_INFO '=' sctp_sndinfo ',' ssfe_assoc_id ',' ssfe_data '}' {
 	$$ = new_expression(EXPR_SCTP_SEND_FAILED_EVENT);
 	$$->value.sctp_send_failed_event = calloc(1, sizeof(struct sctp_send_failed_event_expr));
 	$$->value.sctp_send_failed_event->ssfe_type = $2;
@@ -3789,7 +3794,7 @@ sctp_send_failed_event
 	$$->value.sctp_send_failed_event->ssfe_error = $8;
 	$$->value.sctp_send_failed_event->ssfe_info = $12;
 	$$->value.sctp_send_failed_event->ssfe_assoc_id = $14;
-	$$->value.sctp_send_failed_event->ssfe_data = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_send_failed_event->ssfe_data = $16;
 };
 
 sac_type
