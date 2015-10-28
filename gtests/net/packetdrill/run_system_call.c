@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2013 Google Inc.
  *
@@ -571,6 +570,7 @@ static int iovec_new(struct expression *expression,
 		       iov_expr->iov_base->type == EXPR_SCTP_ASSOC_CHANGE ||
 		       iov_expr->iov_base->type == EXPR_SCTP_PADDR_CHANGE ||
 		       iov_expr->iov_base->type == EXPR_SCTP_REMOTE_ERROR ||
+		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_PDAPI_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_AUTHKEY_EVENT ||
@@ -3478,6 +3478,39 @@ static int check_sctp_remote_error(struct sctp_remote_error_expr *expr,
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_send_failed(struct sctp_send_failed_expr *expr,
+				  struct sctp_send_failed *sctp_event,
+				  char **error) {
+
+	if (check_u16_expr(expr->ssf_type, sctp_event->ssf_type,
+			   "sctp_send_failed.ssf_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->ssf_flags, sctp_event->ssf_flags,
+			   "sctp_send_failed.ssf_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->ssf_length, sctp_event->ssf_length,
+			   "sctp_send_failed.ssf_length", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->ssf_error, sctp_event->ssf_error,
+			   "sctp_send_failed.ssf_error", error))
+		return STATUS_ERR;
+	if (expr->ssf_info->type != EXPR_ELLIPSIS) {
+		if (check_sctp_sndrcvinfo(expr->ssf_info->value.sctp_sndrcvinfo,
+					  &sctp_event->ssf_info, error))
+			return STATUS_ERR;
+	}
+	if (check_u32_expr(expr->ssf_assoc_id, sctp_event->ssf_assoc_id,
+			   "sctp_send_failed.ssf_assoc_id", error))
+		return STATUS_ERR;
+	if (check_u8array_expr(expr->ssf_data, sctp_event->ssf_data, sctp_event->ssf_length - sizeof(struct sctp_send_failed),
+			       "sctp_send_failed.ssf_data", error))
+			return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 				     struct sctp_shutdown_event *sctp_event,
 				     char **error) {
@@ -3657,6 +3690,12 @@ static int check_sctp_notification(struct iovec *iov,
 			if (check_sctp_remote_error(script_iov_base->value.sctp_remote_error,
 						    (struct sctp_remote_error *) iov[i].iov_base,
 						    error))
+				return STATUS_ERR;
+			break;
+		case EXPR_SCTP_SEND_FAILED:
+			if (check_sctp_send_failed(script_iov_base->value.sctp_send_failed,
+						   (struct sctp_send_failed *) iov[i].iov_base,
+						   error))
 				return STATUS_ERR;
 			break;
 		case EXPR_SCTP_SHUTDOWN_EVENT:
