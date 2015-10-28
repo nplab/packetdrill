@@ -17,19 +17,19 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`SCTP_DSTADDRV6` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-5.3.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | supported |
 
 ## SCTP Notifications
-| Type                              | API Spec                                                      | Protocol Spec                                  | packetdrill | Linux       | FreeBSD     |
-|:----------------------------------|:-------------------------------------------------------------:|:----------------------------------------------:|:-----------:|:-----------:|:-----------:|
-|`SCTP_ASSOC_CHANGE`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.1)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported   |
-|`SCTP_PEER_ADDR_CHANGE`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.2)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported   |
-|`SCTP_REMOTE_ERROR`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.3)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported   |
-|`SCTP_SEND_FAILED`                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.4)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported   |
-|`SCTP_SHUTDOWN_EVENT`              | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported   |
-|`SCTP_ADAPTATION_INDICATION`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.6)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported   | supported   |
-|`SCTP_PARTIAL_DELIVERY_EVENT`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.7)  | [RFC3758](https://tools.ietf.org/html/rfc3758) | supported   | supported   | supported   |
-|`SCTP_AUTHENTICATION_EVENT`        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.8)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | supported   | supported   | supported   |
-|`SCTP_SENDER_DRY_EVENT`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported   | supported   |
-|`SCTP_NOTIFICATIONS_STOPPED_EVENT` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported | unsupported |
-|`SCTP_SEND_FAILED_EVENT`           | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported | supported   |
+| Type                              | API Spec                                                      | Protocol Spec                                  | packetdrill | Linux             | FreeBSD     |
+|:----------------------------------|:-------------------------------------------------------------:|:----------------------------------------------:|:-----------:|:-----------------:|:-----------:|
+|`SCTP_ASSOC_CHANGE`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.1)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported         | supported   |
+|`SCTP_PEER_ADDR_CHANGE`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.2)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported         | supported   |
+|`SCTP_REMOTE_ERROR`                | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.3)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported         | supported   |
+|`SCTP_SEND_FAILED`                 | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.4)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported         | supported   |
+|`SCTP_SHUTDOWN_EVENT`              | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.5)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported         | supported   |
+|`SCTP_ADAPTATION_INDICATION`       | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.6)  | [RFC5061](https://tools.ietf.org/html/rfc5061) | unsupported | supported         | supported   |
+|`SCTP_PARTIAL_DELIVERY_EVENT`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.7)  | [RFC3758](https://tools.ietf.org/html/rfc3758) | supported   | supported (Note 1)| supported   |
+|`SCTP_AUTHENTICATION_EVENT`        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.8)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | supported   | supported         | supported   |
+|`SCTP_SENDER_DRY_EVENT`            | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.9)  | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | supported         | supported   |
+|`SCTP_NOTIFICATIONS_STOPPED_EVENT` | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | unsupported       | unsupported |
+|`SCTP_SEND_FAILED_EVENT`           | [RFC6458](https://tools.ietf.org/html/rfc6458#section-6.1.10) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported       | supported   |
 
 ## SCTP Socket Options
 |Name                          | API Spec                                                      | Protocol Spec                                  | packetdrill | Linux               | FreeBSD   |
@@ -92,3 +92,6 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`sctp_sendx()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.11) | [RFC4960](https://tools.ietf.org/html/rfc4960) | unsupported | supported   | supported |
 |`sctp_sendv()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.12) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported | supported |
 |`sctp_recvv()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.13) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported | supported |
+
+## Notes
+1. Linux does not support the pdapi_stream and pdapi_seq fields.
