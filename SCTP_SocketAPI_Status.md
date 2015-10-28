@@ -94,4 +94,4 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`sctp_recvv()`      | [RFC6458](https://tools.ietf.org/html/rfc6458#section-9.13) | [RFC4960](https://tools.ietf.org/html/rfc4960) | supported   | unsupported | supported |
 
 ## Notes
-1. Linux does not support the pdapi_stream and pdapi_seq fields.
+1.  Linux does not support the `pdapi_stream` and `pdapi_seq` fields.
