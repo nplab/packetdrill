@@ -87,6 +87,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_NXTINFO,         "sctp_nxtinfo"    },
 	{ EXPR_SCTP_RECVV_RN,        "sctp_recvv_rn "  },
 	{ EXPR_SCTP_ASSOC_CHANGE,    "sctp_assoc_change"},
+	{ EXPR_SCTP_PADDR_CHANGE,    "sctp_paddr_change"},
 	{ EXPR_SCTP_REMOTE_ERROR,    "sctp_remote_error"},
 	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
 	{ EXPR_SCTP_PDAPI_EVENT,     "sctp_pdapi_event"},
@@ -446,6 +447,15 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_assoc_change->sac_inbound_streams);
 		free_expression(expression->value.sctp_assoc_change->sac_assoc_id);
 		free_expression(expression->value.sctp_assoc_change->sac_info);
+		break;
+	case EXPR_SCTP_PADDR_CHANGE:
+		free_expression(expression->value.sctp_paddr_change->spc_type);
+		free_expression(expression->value.sctp_paddr_change->spc_flags);
+		free_expression(expression->value.sctp_paddr_change->spc_length);
+		free_expression(expression->value.sctp_paddr_change->spc_aaddr);
+		free_expression(expression->value.sctp_paddr_change->spc_state);
+		free_expression(expression->value.sctp_paddr_change->spc_error);
+		free_expression(expression->value.sctp_paddr_change->spc_assoc_id);
 		break;
 	case EXPR_SCTP_REMOTE_ERROR:
 		free_expression(expression->value.sctp_remote_error->sre_type);
@@ -1458,6 +1468,54 @@ static int evaluate_sctp_assoc_change_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_paddr_change_expression(struct expression *in,
+					         struct expression *out,
+						 char **error)
+{
+	struct sctp_paddr_change_expr *in_event;
+	struct sctp_paddr_change_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_PADDR_CHANGE);
+	assert(in->value.sctp_paddr_change);
+	assert(out->type == EXPR_SCTP_PADDR_CHANGE);
+
+	out->value.sctp_paddr_change = calloc(1, sizeof(struct sctp_paddr_change_expr));
+
+	in_event = in->value.sctp_paddr_change;
+	out_event = out->value.sctp_paddr_change;
+
+	if (evaluate(in_event->spc_type,
+		     &out_event->spc_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->spc_flags,
+		     &out_event->spc_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->spc_length,
+		     &out_event->spc_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->spc_aaddr,
+		     &out_event->spc_aaddr,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->spc_state,
+		     &out_event->spc_state,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->spc_error,
+		     &out_event->spc_error,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->spc_assoc_id,
+		     &out_event->spc_assoc_id,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_remote_error_expression(struct expression *in,
 					         struct expression *out,
 						 char **error)
@@ -1797,6 +1855,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_ASSOC_CHANGE:
 		result = evaluate_sctp_assoc_change_expression(in, out, error);
+		break;
+	case EXPR_SCTP_PADDR_CHANGE:
+		result = evaluate_sctp_paddr_change_expression(in, out, error);
 		break;
 	case EXPR_SCTP_REMOTE_ERROR:
 		result = evaluate_sctp_remote_error_expression(in, out, error);
