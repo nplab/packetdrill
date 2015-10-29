@@ -96,6 +96,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_AUTHKEY_EVENT,   "sctp_authkey_event"},
 	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
 	{ EXPR_SCTP_SEND_FAILED_EVENT,"sctp_send_failed_event"},
+	{ EXPR_SCTP_TLV,             "sctp_tlv"        },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -519,6 +520,11 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_send_failed_event->ssfe_info);
 		free_expression(expression->value.sctp_send_failed_event->ssfe_assoc_id);
 		free_expression(expression->value.sctp_send_failed_event->ssfe_data);
+		break;
+	case EXPR_SCTP_TLV:
+		free_expression(expression->value.sctp_tlv->sn_type);
+		free_expression(expression->value.sctp_tlv->sn_flags);
+		free_expression(expression->value.sctp_tlv->sn_length);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -1874,6 +1880,37 @@ static int evaluate_sctp_send_failed_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_tlv_expression(struct expression *in,
+					struct expression *out,
+					char **error)
+{
+	struct sctp_tlv_expr *in_tlv;
+	struct sctp_tlv_expr *out_tlv;
+
+	assert(in->type == EXPR_SCTP_TLV);
+	assert(in->value.sctp_tlv);
+	assert(out->type == EXPR_SCTP_TLV);
+
+	out->value.sctp_tlv = calloc(1, sizeof(struct sctp_tlv_expr));
+
+	in_tlv = in->value.sctp_tlv;
+	out_tlv = out->value.sctp_tlv;
+
+	if (evaluate(in_tlv->sn_type,
+		     &out_tlv->sn_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_tlv->sn_flags,
+		     &out_tlv->sn_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_tlv->sn_length,
+		     &out_tlv->sn_length,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -1988,6 +2025,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SEND_FAILED_EVENT:
 		result = evaluate_sctp_send_failed_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_TLV:
+		result = evaluate_sctp_tlv_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

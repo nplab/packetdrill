@@ -562,6 +562,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPC_TYPE SPC_FLAGS SPC_LENGTH SPC_AADDR SPC_STATE SPC_ERROR SPC_ASSOC_ID
 %token <reserved> SSF_TYPE SSF_LENGTH SSF_FLAGS SSF_ERROR SSF_INFO SSF_ASSOC_ID SSF_DATA
 %token <reserved> SAI_TYPE SAI_FLAGS SAI_LENGTH SAI_ADAPTATION_IND SAI_ASSOC_ID
+%token <reserved> SN_TYPE SN_FLAGS SN_LENGTH
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -629,6 +630,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_paddr_change spc_type spc_flags spc_length spc_aaddr spc_error spc_state spc_assoc_id
 %type <expression> sctp_send_failed ssf_type ssf_length ssf_flags ssf_error ssf_info ssf_assoc_id ssf_data
 %type <expression> sctp_adaptation_event sai_type sai_flags sai_length sai_adaptation_ind sai_assoc_id
+%type <expression> sctp_tlv sn_type sn_flags sn_length
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2613,6 +2615,7 @@ data
 | sctp_sender_dry_event     { $$ = $1; }
 | sctp_send_failed_event    { $$ = $1; }
 | sctp_authkey_event        { $$ = $1; }
+| sctp_tlv                  { $$ = $1; }
 ;
 
 msghdr
@@ -4321,6 +4324,50 @@ sctp_adaptation_event
 	$$->value.sctp_adaptation_event->sai_length = $6;
 	$$->value.sctp_adaptation_event->sai_adaptation_ind = $8;
 	$$->value.sctp_adaptation_event->sai_assoc_id = $10;
+}
+;
+
+sn_type
+: SN_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sn_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SN_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SN_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sn_flags
+: SN_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("sn_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SN_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sn_length
+: SN_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sn_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SN_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_tlv
+: '{' sn_type ',' sn_flags ',' sn_length '}' {
+	$$ = new_expression(EXPR_SCTP_TLV);
+	$$->value.sctp_tlv = calloc(1, sizeof(struct sctp_tlv_expr));
+	$$->value.sctp_tlv->sn_type = $2;
+	$$->value.sctp_tlv->sn_flags = $4;
+	$$->value.sctp_tlv->sn_length = $6;
 }
 ;
 
