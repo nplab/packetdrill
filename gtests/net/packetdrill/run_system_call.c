@@ -48,6 +48,13 @@
 
 static int to_live_fd(struct state *state, int script_fd, int *live_fd,
 		      char **error);
+#if defined(linux)
+struct sctp_tlv {
+        u16 sn_type;
+        u16 sn_flags;
+        u32 sn_length;
+};
+#endif
 #if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
