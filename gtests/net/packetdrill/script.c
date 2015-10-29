@@ -91,6 +91,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_REMOTE_ERROR,    "sctp_remote_error"},
 	{ EXPR_SCTP_SEND_FAILED,     "sctp_send_failed"},
 	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
+	{ EXPR_SCTP_ADAPTATION_EVENT,"sctp_adaptation_event"},
 	{ EXPR_SCTP_PDAPI_EVENT,     "sctp_pdapi_event"},
 	{ EXPR_SCTP_AUTHKEY_EVENT,   "sctp_authkey_event"},
 	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
@@ -479,6 +480,13 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
 		free_expression(expression->value.sctp_shutdown_event->sse_flags);
 		free_expression(expression->value.sctp_shutdown_event->sse_length);
+		break;
+	case EXPR_SCTP_ADAPTATION_EVENT:
+		free_expression(expression->value.sctp_adaptation_event->sai_type);
+		free_expression(expression->value.sctp_adaptation_event->sai_flags);
+		free_expression(expression->value.sctp_adaptation_event->sai_length);
+		free_expression(expression->value.sctp_adaptation_event->sai_adaptation_ind);
+		free_expression(expression->value.sctp_adaptation_event->sai_assoc_id);
 		break;
 	case EXPR_SCTP_PDAPI_EVENT:
 		free_expression(expression->value.sctp_pdapi_event->pdapi_type);
@@ -1650,6 +1658,46 @@ static int evaluate_sctp_shutdown_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_adaptation_event_expression(struct expression *in,
+						     struct expression *out,
+						     char **error)
+{
+	struct sctp_adaptation_event_expr *in_event;
+	struct sctp_adaptation_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_ADAPTATION_EVENT);
+	assert(in->value.sctp_adaptation_event);
+	assert(out->type == EXPR_SCTP_ADAPTATION_EVENT);
+
+	out->value.sctp_adaptation_event = calloc(1, sizeof(struct sctp_adaptation_event_expr));
+
+	in_event = in->value.sctp_adaptation_event;
+	out_event = out->value.sctp_adaptation_event;
+
+	if (evaluate(in_event->sai_type,
+		     &out_event->sai_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sai_flags,
+		     &out_event->sai_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sai_length,
+		     &out_event->sai_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sai_adaptation_ind,
+		     &out_event->sai_adaptation_ind,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sai_assoc_id,
+		     &out_event->sai_assoc_id,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_pdapi_event_expression(struct expression *in,
 						struct expression *out,
 						char **error)
@@ -1925,6 +1973,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
 		result = evaluate_sctp_shutdown_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_ADAPTATION_EVENT:
+		result = evaluate_sctp_adaptation_event_expression(in, out, error);
 		break;
 	case EXPR_SCTP_PDAPI_EVENT:
 		result = evaluate_sctp_pdapi_event_expression(in, out, error);

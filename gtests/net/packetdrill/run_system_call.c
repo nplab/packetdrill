@@ -572,6 +572,7 @@ static int iovec_new(struct expression *expression,
 		       iov_expr->iov_base->type == EXPR_SCTP_REMOTE_ERROR ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SHUTDOWN_EVENT ||
+		       iov_expr->iov_base->type == EXPR_SCTP_ADAPTATION_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_PDAPI_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_AUTHKEY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT ||
@@ -3530,6 +3531,31 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
+static int check_sctp_adaptation_event(struct sctp_adaptation_event_expr *expr,
+				       struct sctp_adaptation_event *sctp_event,
+				       char **error) {
+
+	if (check_u16_expr(expr->sai_type, sctp_event->sai_type,
+			   "sctp_adaptation_event.sai_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sai_flags, sctp_event->sai_flags,
+			   "sctp_adaptation_event.sai_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sai_length, sctp_event->sai_length,
+			   "sctp_adaptation_event.sai_length", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sai_adaptation_ind, sctp_event->sai_adaptation_ind,
+			   "sctp_adaptation_event.sai_adaptation_ind", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sai_assoc_id, sctp_event->sai_assoc_id,
+			   "sctp_adaptation_event.sai_assoc_id", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_pdapi_event(struct sctp_pdapi_event_expr *expr,
 				  struct sctp_pdapi_event *sctp_event,
 				  char **error) {
@@ -3704,8 +3730,13 @@ static int check_sctp_notification(struct iovec *iov,
 						      error))
 				return STATUS_ERR;
 			break;
+		case EXPR_SCTP_ADAPTATION_EVENT:
+			if (check_sctp_adaptation_event(script_iov_base->value.sctp_adaptation_event,
+						        (struct sctp_adaptation_event *) iov[i].iov_base,
+						        error))
+				return STATUS_ERR;
+			break;
 		case EXPR_SCTP_PDAPI_EVENT:
-			printf("check PDAPI\n");
 			if (check_sctp_pdapi_event(script_iov_base->value.sctp_pdapi_event,
 						      (struct sctp_pdapi_event *) iov[i].iov_base,
 						      error))
