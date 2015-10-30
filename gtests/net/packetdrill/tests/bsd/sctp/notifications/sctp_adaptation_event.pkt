@@ -16,9 +16,9 @@
                   COOKIE_PRESERVATIVE[incr=12345],
                   SUPPORTED_ADDRESS_TYPES[types=[IPv4]]]
 
-+0.0 > sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=..., os=..., is=..., tsn=10, ...]
-+0.1 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]
-+0.0 > sctp: COOKIE_ACK[flgs=0]
+*    > sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=..., os=..., is=..., tsn=10, ...]
++0.0 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]
+*    > sctp: COOKIE_ACK[flgs=0]
 
 +0.0 accept(3, ..., ...) = 4
 

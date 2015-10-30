@@ -344,6 +344,7 @@ static int sctp_adaptation_indication_parameter_to_string(
 	char **error)
 {
 	u16 length;
+
 	length = ntohs(parameter->length);
 	if (length < sizeof(struct sctp_parameter)) {
 		asprintf(error, "PARAMETER too short (type=0x%04x, length=%u)",
@@ -353,7 +354,7 @@ static int sctp_adaptation_indication_parameter_to_string(
 	fputs("ADAPTATION_INDICATION[", s);
 	fprintf(s, "type=0x%04x, ", ntohs(parameter->type));
 	fprintf(s, "len=%hu, ", ntohs(parameter->length));
-	fprintf(s, "val=%u", parameter->adaptation_code_point);
+	fprintf(s, "val=%u", ntohl(parameter->adaptation_code_point));
 	fputs("]", s);
 	return STATUS_OK;
 }
@@ -363,6 +364,7 @@ static int sctp_parameter_to_string(FILE *s,
 				    char **error)
 {
 	int result;
+
 	switch (ntohs(parameter->type)) {
 	case SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE:
 		result = sctp_heartbeat_information_parameter_to_string(s,
