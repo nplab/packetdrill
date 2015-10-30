@@ -522,7 +522,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
-%token <reserved> SUPPORTED_EXTENSIONS
+%token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -661,6 +661,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
 %type <parameter_list_item> sctp_supported_extensions_parameter_spec
+%type <parameter_list_item> sctp_adaptation_indication_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
@@ -1599,6 +1600,7 @@ sctp_parameter_spec
 | sctp_supported_address_types_parameter_spec { $$ = $1; }
 | sctp_ecn_capable_parameter_spec             { $$ = $1; }
 | sctp_supported_extensions_parameter_spec    { $$ = $1; }
+| sctp_adaptation_indication_parameter_spec   { $$ = $1; }
 | sctp_pad_parameter_spec                     { $$ = $1; }
 ;
 
@@ -1766,6 +1768,13 @@ chunk_types_list
 	sctp_byte_list_append($1, sctp_byte_list_item_new($3));
 }
 ;
+
+sctp_adaptation_indication_parameter_spec
+: ADAPTATION_INDICATION '[' ADAPTATION_CODE_POINT '=' INTEGER ']' {
+	if (!is_valid_u32($5))
+		semantic_error("adaptation_indication_code ot of range");
+	$$ = sctp_adaptation_indication_parameter_new($5);
+};
 
 sctp_supported_extensions_parameter_spec
 : SUPPORTED_EXTENSIONS '[' TYPES '=' ELLIPSIS ']' {

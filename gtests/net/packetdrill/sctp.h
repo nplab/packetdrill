@@ -244,8 +244,10 @@ struct sctp_pad_chunk {
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
 #define SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE	0x8008
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
+#define SCTP_Set_Primary_Address			0xc004
+#define SCTP_ADAPTATION_INDICATION_PARAMETER_TYPE	0xc006
 
-#define MAX_SCTP_PARAMETER_BYTES	0xffff
+#define MAX_SCTP_PARAMETER_BYTES			0xffff
 
 struct sctp_parameter {
 	__be16 type;
@@ -316,6 +318,12 @@ struct sctp_pad_parameter {
 	__be16 type;
 	__be16 length;
 	__be16 padding_data[];
+} __packed;
+
+struct sctp_adaptation_indication_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 adaptation_code_point;
 } __packed;
 
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001
