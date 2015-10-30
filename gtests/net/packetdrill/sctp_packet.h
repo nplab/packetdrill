@@ -341,7 +341,7 @@ struct sctp_parameter_list_item *
 sctp_pad_parameter_new(s64 len, u8 *padding);
 
 struct sctp_parameter_list_item *
-sctp_adaptation_indication_parameter_new(u32 val);
+sctp_adaptation_indication_parameter_new(s64 val);
 
 struct sctp_parameter_list_item *
 sctp_supported_extensions_parameter_new(struct sctp_byte_list *list);

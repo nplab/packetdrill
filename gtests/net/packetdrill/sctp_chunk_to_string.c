@@ -346,7 +346,7 @@ static int sctp_adaptation_indication_parameter_to_string(
 	u16 length;
 
 	length = ntohs(parameter->length);
-	if (length < sizeof(struct sctp_parameter)) {
+	if (length < sizeof(struct sctp_adaptation_indication_parameter)) {
 		asprintf(error, "PARAMETER too short (type=0x%04x, length=%u)",
 			 ntohs(parameter->type), length);
 		return STATUS_ERR;

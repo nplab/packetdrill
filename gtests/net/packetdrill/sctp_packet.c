@@ -1570,8 +1570,6 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list)
 	                                    parameter_length, flags);
 }
 
-
-
 struct sctp_parameter_list_item *
 sctp_supported_extensions_parameter_new(struct sctp_byte_list *list)
 {
@@ -1614,7 +1612,7 @@ sctp_supported_extensions_parameter_new(struct sctp_byte_list *list)
 }
 
 struct sctp_parameter_list_item *
-sctp_adaptation_indication_parameter_new(u32 val)
+sctp_adaptation_indication_parameter_new(s64 val)
 {
 	u32 flags;
 	struct sctp_adaptation_indication_parameter *parameter;
@@ -1629,8 +1627,13 @@ sctp_adaptation_indication_parameter_new(u32 val)
 
 	parameter->type = htons(SCTP_ADAPTATION_INDICATION_PARAMETER_TYPE);
 	parameter->length = htons(parameter_length);
-	parameter->adaptation_code_point = htonl(val);
-	
+	if (val == -1) {
+		parameter->adaptation_code_point = htonl(0);
+		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
+	} else {
+		assert(is_valid_u32(val));
+		parameter->adaptation_code_point = htonl((u32)val);
+	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 	                                    parameter_length, flags);
 }
