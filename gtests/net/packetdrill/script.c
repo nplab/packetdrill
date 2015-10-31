@@ -432,12 +432,14 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_rcvinfo->rcv_tsn);
 		free_expression(expression->value.sctp_rcvinfo->rcv_cumtsn);
 		free_expression(expression->value.sctp_rcvinfo->rcv_context);
+		free_expression(expression->value.sctp_rcvinfo->rcv_assoc_id);
 		break;
 	case EXPR_SCTP_NXTINFO:
 		free_expression(expression->value.sctp_nxtinfo->nxt_sid);
 		free_expression(expression->value.sctp_nxtinfo->nxt_flags);
 		free_expression(expression->value.sctp_nxtinfo->nxt_ppid);
 		free_expression(expression->value.sctp_nxtinfo->nxt_length);
+		free_expression(expression->value.sctp_nxtinfo->nxt_assoc_id);
 		break;
 	case EXPR_SCTP_RECVV_RN:
 		free_expression(expression->value.sctp_recvv_rn->recvv_rcvinfo);
@@ -1420,6 +1422,10 @@ static int evaluate_sctp_rcvinfo_expression(struct expression *in,
 		     &out_info->rcv_context,
 		     error))
 		return STATUS_ERR;
+        if (evaluate(in_info->rcv_assoc_id,
+		     &out_info->rcv_assoc_id,
+		     error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
@@ -1454,6 +1460,10 @@ static int evaluate_sctp_nxtinfo_expression(struct expression *in,
 		return STATUS_ERR;
         if (evaluate(in_info->nxt_length,
 		     &out_info->nxt_length,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->nxt_assoc_id,
+		     &out_info->nxt_assoc_id,
 		     error))
 		return STATUS_ERR;
 	return STATUS_OK;

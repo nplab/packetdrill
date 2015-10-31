@@ -544,8 +544,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN
 %token <reserved> PR_POLICY PR_VALUE AUTH_KEYNUMBER SENDV_FLAGS SENDV_SNDINFO
 %token <reserved> SENDV_PRINFO SENDV_AUTHINFO
-%token <reserved> RCV_SID RCV_SSN RCV_FLAGS RCV_PPID RCV_TSN RCV_CUMTSN RCV_CONTEXT
-%token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH
+%token <reserved> RCV_SID RCV_SSN RCV_FLAGS RCV_PPID RCV_TSN RCV_CUMTSN RCV_CONTEXT RCV_ASSOC_ID
+%token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH NXT_ASSOC_ID
 %token <reserved> RECVV_RCVINFO RECVV_NXTINFO
 %token <reserved> SSE_TYPE SSE_FLAGS SSE_LENGTH
 %token <reserved> SENDER_DRY_TYPE SENDER_DRY_FLAGS SENDER_DRY_LENGTH SENDER_DRY_ASSOC_ID
@@ -617,8 +617,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn sinfo_assoc_id
 %type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa
-%type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context
-%type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length sctp_recvv_rn
+%type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context rcv_assoc_id
+%type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length nxt_assoc_id sctp_recvv_rn
 %type <expression> sctp_shutdown_event sse_type sse_flags sse_length
 %type <expression> sctp_sender_dry_event sender_dry_type sender_dry_flags sender_dry_length sender_dry_assoc_id
 %type <expression> sctp_event_subscribe
@@ -2681,6 +2681,8 @@ cmsg_data
 : CMSG_DATA '=' sctp_initmsg     { $$ = $3; }
 | CMSG_DATA '=' sctp_sndrcvinfo  { $$ = $3; }
 | CMSG_DATA '=' sctp_sndinfo     { $$ = $3; }
+| CMSG_DATA '=' sctp_rcvinfo     { $$ = $3; }
+| CMSG_DATA '=' sctp_nxtinfo     { $$ = $3; }
 | CMSG_DATA '=' sctp_prinfo      { $$ = $3; }
 | CMSG_DATA '=' sctp_authinfo    { $$ = $3; }
 | CMSG_DATA '=' sockaddr         { $$ = $3; }
@@ -3529,9 +3531,19 @@ rcv_context
 | RCV_CONTEXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+rcv_assoc_id
+: RCV_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("rcv_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| RCV_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 
 sctp_rcvinfo
-: '{' rcv_sid ',' rcv_ssn ',' rcv_flags ',' rcv_ppid ',' rcv_tsn ',' rcv_cumtsn ',' rcv_context '}' {
+: '{' rcv_sid ',' rcv_ssn ',' rcv_flags ',' rcv_ppid ',' rcv_tsn ',' rcv_cumtsn ',' rcv_context ',' rcv_assoc_id'}' {
 	$$ = new_expression(EXPR_SCTP_RCVINFO);
 	$$->value.sctp_rcvinfo = calloc(1, sizeof(struct sctp_rcvinfo_expr));
 	$$->value.sctp_rcvinfo->rcv_sid = $2;
@@ -3541,6 +3553,7 @@ sctp_rcvinfo
 	$$->value.sctp_rcvinfo->rcv_tsn = $10;
 	$$->value.sctp_rcvinfo->rcv_cumtsn = $12;
 	$$->value.sctp_rcvinfo->rcv_context = $14;
+	$$->value.sctp_rcvinfo->rcv_assoc_id = $16;
 }
 ;
 
@@ -3607,6 +3620,10 @@ nxt_flags
 	}
 	$$ = new_integer_expression($3, "%u");
 }
+| NXT_FLAGS '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
 | NXT_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
@@ -3630,14 +3647,25 @@ nxt_length
 | NXT_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+nxt_assoc_id
+: NXT_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("nxt_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| NXT_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 sctp_nxtinfo
-: '{' nxt_sid ',' nxt_flags ',' nxt_ppid ',' nxt_length '}' {
+: '{' nxt_sid ',' nxt_flags ',' nxt_ppid ',' nxt_length ',' nxt_assoc_id '}' {
 	$$ = new_expression(EXPR_SCTP_NXTINFO);
 	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_nxtinfo_expr));
 	$$->value.sctp_nxtinfo->nxt_sid = $2;
 	$$->value.sctp_nxtinfo->nxt_flags = $4;
 	$$->value.sctp_nxtinfo->nxt_ppid = $6;
 	$$->value.sctp_nxtinfo->nxt_length = $8;
+	$$->value.sctp_nxtinfo->nxt_assoc_id = $10;
 }
 ;
 

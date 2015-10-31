@@ -335,6 +335,7 @@ struct sctp_rcvinfo_expr {
 	struct expression *rcv_tsn;
 	struct expression *rcv_cumtsn;
 	struct expression *rcv_context;
+	struct expression *rcv_assoc_id;
 };
 
 /* Parse tree for sctp_nxtinfo in sctp_recvv syscall. */
@@ -343,6 +344,7 @@ struct sctp_nxtinfo_expr {
 	struct expression *nxt_flags;
 	struct expression *nxt_ppid;
 	struct expression *nxt_length;
+	struct expression *nxt_assoc_id;
 };
 
 /* Parse tree for sctp_recvv_rn in sctp_recvv syscall. */
