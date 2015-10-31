@@ -222,6 +222,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ADDR_UNREACHABLE,            "SCTP_ADDR_UNREACHABLE"           },
 	{ SCTP_ADDR_REMOVED,                "SCTP_ADDR_REMOVED"               },
 	{ SCTP_ADDR_MADE_PRIM,              "SCTP_ADDR_MADE_PRIM"             },
+	{ SCTP_SNDRCV,                      "SCTP_SNDRCV"                     },
 	{ SCTP_SNDINFO,                     "SCTP_SNDINFO"                    },
 	{ SCTP_PRINFO,                      "SCTP_PRINFO"                     },
 	{ SCTP_AUTHINFO,                    "SCTP_AUTHINFO"                   },

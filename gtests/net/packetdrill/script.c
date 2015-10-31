@@ -409,6 +409,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_timetolive);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_tsn);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_cumtsn);
+		free_expression(expression->value.sctp_sndrcvinfo->sinfo_assoc_id);
 		break;
 	case EXPR_SCTP_PRINFO:
 		free_expression(expression->value.sctp_prinfo->pr_policy);
@@ -1277,6 +1278,10 @@ static int evaluate_sctp_sndrcvinfo_expression(struct expression *in,
 		return STATUS_ERR;
         if (evaluate(in_info->sinfo_cumtsn,
 		     &out_info->sinfo_cumtsn,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->sinfo_assoc_id,
+		     &out_info->sinfo_assoc_id,
 		     error))
 		return STATUS_ERR;
 

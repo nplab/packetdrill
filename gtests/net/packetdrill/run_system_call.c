@@ -53,16 +53,29 @@ static int check_sctp_notification(struct iovec *iov, struct expression *iovec_e
 				   char **error);
 #endif
 #if defined(__FreeBSD__)
+static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init,
+				            char **error);
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_authinfo(struct expression *expr, struct sctp_authinfo *info,
 				             char **error);
+static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct sctp_sndrcvinfo *info,
+					       char **error);
 #endif
 #if defined(SCTP_DEFAULT_SNDINFO) || defined(SCTP_SNDINFO)
 static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr, struct sctp_sndinfo *sctp_sndinfo,
 			      char **error);
+#endif
+#if defined(SCTP_INITMSG) || defined(SCTP_INIT)
+static int check_sctp_initmsg(struct sctp_initmsg_expr *expr, struct sctp_initmsg *sctp_initmsg,
+			      char **error);
+#endif
+#if defined(Linux) || defined(__FreeBSD__)
+static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
+				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
+				 char** error);
 #endif
 
 /* Provide a wrapper for the Linux gettid() system call (glibc does not). */
@@ -695,15 +708,31 @@ static int cmsg_new(struct expression *expression,
 		struct expression *cmsg_expr;
 		cmsg_expr = get_arg(list, i, error);
 		switch (cmsg_expr->value.cmsghdr->cmsg_data->type) {
+#ifdef SCTP_INIT
+		case EXPR_SCTP_INITMSG:
+			cmsg_size += CMSG_SPACE(sizeof(struct sctp_initmsg));
+			break;
+#endif
+#ifdef SCTP_SNDRCV
+		case EXPR_SCTP_SNDRCVINFO:
+			cmsg_size += CMSG_SPACE(sizeof(struct sctp_sndrcvinfo));
+			break;
+#endif
+#ifdef SCTP_SNDINFO
 		case EXPR_SCTP_SNDINFO:
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_sndinfo));
 			break;
+#endif
+#ifdef SCTP_PRINFO
 		case EXPR_SCTP_PRINFO:
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_prinfo));
 			break;
+#endif
+#ifdef SCTP_AUTHINFO
 		case EXPR_SCTP_AUTHINFO:
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_authinfo));
 			break;
+#endif
 		case EXPR_SOCKET_ADDRESS_IPV4:
 			cmsg_size += CMSG_SPACE(sizeof(struct in_addr));
 			break;
@@ -715,11 +744,10 @@ static int cmsg_new(struct expression *expression,
 			return STATUS_ERR;
 		}
 	}
-
 	*cmsg_len_ptr = cmsg_size;
 	cmsg = calloc(1, cmsg_size);
 	*cmsg_ptr = (void *)cmsg;
-		
+
 	for (i = 0; i < list_len; i++) {
 		struct expression *expr;
 		struct cmsghdr_expr *cmsg_expr;
@@ -736,6 +764,29 @@ static int cmsg_new(struct expression *expression,
 			goto error_out;
 
 		switch(cmsg_expr->cmsg_data->type) {
+#ifdef SCTP_INIT
+		case EXPR_SCTP_INITMSG: {
+			struct sctp_initmsg init;			
+			if (parse_expression_to_sctp_initmsg(cmsg_expr->cmsg_data, &init, error)) {
+				goto error_out;
+			}
+			memcpy(CMSG_DATA(cmsg), &init, sizeof(struct sctp_initmsg)); 
+			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_initmsg)));
+			break;
+		}
+#endif
+#ifdef SCTP_SNDRCV
+		case EXPR_SCTP_SNDRCVINFO: {
+			struct sctp_sndrcvinfo info;			
+			if (parse_expression_to_sctp_sndrcvinfo(cmsg_expr->cmsg_data, &info, error)) {
+				goto error_out;
+			}
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_sndrcvinfo)); 
+			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_sndrcvinfo)));
+			break;		
+		}
+#endif
+#ifdef SCTP_SNDINFO
 		case EXPR_SCTP_SNDINFO: {
 			struct sctp_sndinfo info;			
 			if (parse_expression_to_sctp_sndinfo(cmsg_expr->cmsg_data, &info, error)) {
@@ -745,6 +796,8 @@ static int cmsg_new(struct expression *expression,
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_sndinfo)));
 			break;
 		}
+#endif
+#ifdef SCTP_PRINFO
 		case EXPR_SCTP_PRINFO: {
 			struct sctp_prinfo info;			
 			if (parse_expression_to_sctp_prinfo(cmsg_expr->cmsg_data, &info, error)) {
@@ -753,7 +806,9 @@ static int cmsg_new(struct expression *expression,
 			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_prinfo)); 
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_prinfo)));
 			break;
-		}		
+		}
+#endif
+#ifdef SCTP_AUTHINFO
 		case EXPR_SCTP_AUTHINFO: {
 			struct sctp_authinfo info;			
 			if (parse_expression_to_sctp_authinfo(cmsg_expr->cmsg_data, &info, error)) {
@@ -762,7 +817,8 @@ static int cmsg_new(struct expression *expression,
 			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_authinfo)); 
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_authinfo)));
 			break;
-		}		
+		}
+#endif
 		case EXPR_SOCKET_ADDRESS_IPV4:
 			memcpy(CMSG_DATA(cmsg), &cmsg_expr->cmsg_data->value.socket_address_ipv4->sin_addr, sizeof(struct in_addr));
 			cmsg = (struct cmsghdr *)((caddr_t)cmsg + CMSG_SPACE(sizeof(struct in_addr)));
@@ -1883,7 +1939,7 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 	struct expression_list *list;
 	struct expression *cmsg_expr;
 	struct cmsghdr *cmsg_ptr;
-	int cnt=0;
+	int cnt = 0;
 
 	assert(expr_list->type == EXPR_LIST);
 
@@ -1907,6 +1963,24 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 				continue;
 			}
 			switch(cmsg_ptr->cmsg_type) {
+#ifdef SCTP_INITMSG
+			case SCTP_INITMSG:
+				if (check_sctp_initmsg(expr->cmsg_data->value.sctp_initmsg,
+						       (struct sctp_initmsg *) CMSG_DATA(cmsg_ptr),
+						       error)) {
+					return STATUS_ERR;
+				}
+				break;
+#endif
+#ifdef SCTP_SNDRCV
+			case SCTP_SNDRCV:
+				if (check_sctp_sndrcvinfo(expr->cmsg_data->value.sctp_sndrcvinfo,
+							  (struct sctp_sndrcvinfo *) CMSG_DATA(cmsg_ptr),
+							  error)) {
+					return STATUS_ERR;
+				}
+				break;
+#endif
 #ifdef SCTP_SNDINFO
 			case SCTP_SNDINFO:
 				if (check_sctp_sndinfo(expr->cmsg_data->value.sctp_sndinfo,
@@ -1920,20 +1994,23 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 			case SCTP_PRINFO:
 				if (check_u16_expr(expr->cmsg_data->value.sctp_prinfo->pr_policy,
 					   ((struct sctp_prinfo *)CMSG_DATA(cmsg_ptr))->pr_policy,
-					   "prinfo.pr_policy", error))
+					   "prinfo.pr_policy", error)) {
 					return STATUS_ERR;
+				}
 				if (check_u32_expr(expr->cmsg_data->value.sctp_prinfo->pr_value,
 					   ((struct sctp_prinfo *)CMSG_DATA(cmsg_ptr))->pr_value,
-					   "prinfo.pr_value", error))
+					   "prinfo.pr_value", error)) {
 					return STATUS_ERR;
+				}
 				break;
 #endif
 #ifdef SCTP_AUTHINFO
 			case SCTP_AUTHINFO:
 				if (check_u16_expr(expr->cmsg_data->value.sctp_authinfo->auth_keynumber,
 					   ((struct sctp_authinfo *)CMSG_DATA(cmsg_ptr))->auth_keynumber,
-					   "authinfo.auth_keynumber", error))
+					   "authinfo.auth_keynumber", error)) {
 					return STATUS_ERR;
+				}
 				break;
 #endif
 #ifdef SCTP_DSTADDRV4
@@ -1963,8 +2040,7 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 						asprintf(error, "sockaddr_in6 from.sin6_addr. expected: %s actual %s",
 							 expected_addr, live_addr);
 						return STATUS_ERR;
-					}
-					
+					}	
 				}
 				break;
 #endif
@@ -2019,7 +2095,7 @@ static int syscall_sendmsg(struct state *state, struct syscall_spec *syscall,
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
 		goto error_out;
 
-	 status = check_cmsghdr(msg_expression->value.msghdr->msg_control, msg, error);
+	status = check_cmsghdr(msg_expression->value.msghdr->msg_control, msg, error);
 
 error_out:
 	msghdr_free(msg, iov_len);
@@ -2196,7 +2272,7 @@ static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 }
 #endif
 
-#ifdef SCTP_INITMSG
+#if defined(SCTP_INITMSG) || defined(SCTP_INIT)
 static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 			      struct sctp_initmsg *sctp_initmsg, char **error)
 {
@@ -2890,20 +2966,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_INITMSG
 	case EXPR_SCTP_INITMSG:
-		if (get_u16(val_expression->value.sctp_initmsg->sinit_num_ostreams,
-			    &initmsg.sinit_num_ostreams, error)) {
-		return STATUS_ERR;
-		}
-		if (get_u16(val_expression->value.sctp_initmsg->sinit_max_instreams,
-			    &initmsg.sinit_max_instreams, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u16(val_expression->value.sctp_initmsg->sinit_max_attempts,
-			    &initmsg.sinit_max_attempts, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u16(val_expression->value.sctp_initmsg->sinit_max_init_timeo,
-			    &initmsg.sinit_max_init_timeo, error)) {
+		if(parse_expression_to_sctp_initmsg(val_expression, &initmsg, error)) {
 			return STATUS_ERR;
 		}
 		optval = &initmsg;
@@ -3291,10 +3354,12 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 	if (check_u32_expr(expr->sinfo_cumtsn, sctp_sndrcvinfo->sinfo_cumtsn,
 			   "sctp_sndrcvinfo.sinfo_cumtsn", error))
 		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_assoc_id, sctp_sndrcvinfo->sinfo_assoc_id,
+			   "sctp_sndrcvinfo.sinfo_assoc_id", error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
-
 #endif
 
 static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscall,
@@ -3392,6 +3457,63 @@ static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp
 			return STATUS_ERR;
 		}
 		if (get_u32(sndinfo_expr->snd_assoc_id, &info->snd_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init, char **error) {
+	if (expr->type == EXPR_SCTP_INITMSG) {
+		struct sctp_initmsg_expr *init_expr = expr->value.sctp_initmsg;
+		if (get_u16(init_expr->sinit_num_ostreams, &init->sinit_num_ostreams, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(init_expr->sinit_max_instreams, &init->sinit_max_instreams, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(init_expr->sinit_max_attempts, &init->sinit_max_attempts, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(init_expr->sinit_max_init_timeo, &init->sinit_max_init_timeo, error)) {
+			return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct sctp_sndrcvinfo *info, char **error) {
+	if (expr->type == EXPR_SCTP_SNDRCVINFO) {
+		struct sctp_sndrcvinfo_expr *sndrcvinfo_expr = expr->value.sctp_sndrcvinfo;
+		if (get_u16(sndrcvinfo_expr->sinfo_stream, &info->sinfo_stream, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(sndrcvinfo_expr->sinfo_ssn, &info->sinfo_ssn, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(sndrcvinfo_expr->sinfo_flags, &info->sinfo_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndrcvinfo_expr->sinfo_ppid, &info->sinfo_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndrcvinfo_expr->sinfo_context, &info->sinfo_context, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndrcvinfo_expr->sinfo_timetolive, &info->sinfo_timetolive, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndrcvinfo_expr->sinfo_tsn, &info->sinfo_tsn, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndrcvinfo_expr->sinfo_cumtsn, &info->sinfo_cumtsn, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndrcvinfo_expr->sinfo_assoc_id, &info->sinfo_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 	} else {

@@ -540,7 +540,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SND_ASSOC_ID SSB_ADAPTATION_IND
 %token <reserved> BAD_CRC32C NULL_
-%token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT
+%token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT SINFO_ASSOC_ID
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN
 %token <reserved> PR_POLICY PR_VALUE AUTH_KEYNUMBER SENDV_FLAGS SENDV_SNDINFO
 %token <reserved> SENDV_PRINFO SENDV_AUTHINFO
@@ -615,7 +615,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_assoc_id snd_context
 %type <expression> sctp_event se_type se_on sctp_setadaptation null
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
-%type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn
+%type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn sinfo_assoc_id
 %type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa
 %type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context
 %type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length sctp_recvv_rn
@@ -2678,7 +2678,9 @@ cmsg_type
 ;
 
 cmsg_data
-: CMSG_DATA '=' sctp_sndinfo     { $$ = $3; }
+: CMSG_DATA '=' sctp_initmsg     { $$ = $3; }
+| CMSG_DATA '=' sctp_sndrcvinfo  { $$ = $3; }
+| CMSG_DATA '=' sctp_sndinfo     { $$ = $3; }
 | CMSG_DATA '=' sctp_prinfo      { $$ = $3; }
 | CMSG_DATA '=' sctp_authinfo    { $$ = $3; }
 | CMSG_DATA '=' sockaddr         { $$ = $3; }
@@ -3432,8 +3434,18 @@ sinfo_cumtsn
 | SINFO_CUMTSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+sinfo_assoc_id
+: SINFO_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sinfo_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SINFO_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 sctp_sndrcvinfo
-: '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_timetolive ',' sinfo_tsn ',' sinfo_cumtsn '}' {
+: '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_timetolive ',' sinfo_tsn ',' sinfo_cumtsn ',' sinfo_assoc_id '}' {
 	$$ = new_expression(EXPR_SCTP_SNDRCVINFO);
 	$$->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo_expr));
 	$$->value.sctp_sndrcvinfo->sinfo_stream = $2;
@@ -3444,6 +3456,7 @@ sctp_sndrcvinfo
 	$$->value.sctp_sndrcvinfo->sinfo_timetolive = $12;
 	$$->value.sctp_sndrcvinfo->sinfo_tsn = $14;
 	$$->value.sctp_sndrcvinfo->sinfo_cumtsn = $16;
+	$$->value.sctp_sndrcvinfo->sinfo_assoc_id = $18;
 };
 
 rcv_sid

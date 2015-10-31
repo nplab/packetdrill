@@ -304,6 +304,7 @@ struct sctp_sndrcvinfo_expr {
 	struct expression *sinfo_timetolive;
 	struct expression *sinfo_tsn;
 	struct expression *sinfo_cumtsn;
+	struct expression *sinfo_assoc_id;
 };
 
 /* Parse tree for sctp_prinfo in sctp_sendv syscall. */
