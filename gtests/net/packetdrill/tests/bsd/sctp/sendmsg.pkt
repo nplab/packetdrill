@@ -1,0 +1,70 @@
+
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
++0.0 bind(3, ..., ...) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=16, is=16, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+//sendmsg(sd, msghdr, flags)
+
++1.0 sendmsg(3, {msg_name(...)=..., msg_iov(1)=[{iov_base=..., iov_len=1000}], msg_control(0)=[], msg_flags=0}, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
+
+//base test
++1.0 sendmsg(3, {msg_name(...)=..., msg_iov(1)=[{iov_base=..., iov_len=1000}], msg_control(28)=
+	[{cmsg_len=28, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_SNDINFO, cmsg_data=
+	 {snd_sid=2, snd_flags=0, snd_ppid=htonl(3), snd_context=2, snd_assoc_id=0}
+	}],
+	msg_flags=0}, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=2, ssn=0, ppid=3]
++0.0 < sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=1500, gaps=[], dups=[]]
+
+// test with 2 cmsg
++1.0 sendmsg(3, {msg_name(...)=..., msg_iov(1)=[{iov_base=..., iov_len=1000}], msg_control(44)=
+	[{cmsg_len=28, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_SNDINFO, cmsg_data=
+	 {snd_sid=2, snd_flags=0, snd_ppid=htonl(4), snd_context=2, snd_assoc_id=0}
+	},{cmsg_len=16, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_DSTADDRV4, cmsg_data=
+	 {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}
+	}],
+	msg_flags=0}, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=3, sid=2, ssn=1, ppid=4]
++0.0 < sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=1500, gaps=[], dups=[]]
+
+// test with 2 cmsg
++1.0 sendmsg(3, {msg_name(...)=..., msg_iov(1)=[{iov_base=..., iov_len=1000}], msg_control(64)=
+	[{cmsg_len=28, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_SNDINFO, cmsg_data=
+	 {snd_sid=2, snd_flags=0, snd_ppid=htonl(5), snd_context=2, snd_assoc_id=0}
+	},{cmsg_len=16, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_DSTADDRV4, cmsg_data=
+	 {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}
+	},{cmsg_len=18, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_PRINFO, cmsg_data=
+	 {pr_policy=SCTP_PR_SCTP_TTL, pr_value=30}
+	}],
+	msg_flags=0}, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=4, sid=2, ssn=2, ppid=5]
++0.0 < sctp: SACK[flgs=0, cum_tsn=4, a_rwnd=1500, gaps=[], dups=[]]
+
+// test with 2 cmsg
++1.0 sendmsg(3, {msg_name(...)=..., msg_iov(1)=[{iov_base=..., iov_len=1000}], msg_control(80)=
+	[{cmsg_len=28, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_SNDINFO, cmsg_data=
+	 {snd_sid=2, snd_flags=0, snd_ppid=htonl(6), snd_context=2, snd_assoc_id=0}
+	},{cmsg_len=16, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_DSTADDRV4, cmsg_data=
+	 {sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}
+	},{cmsg_len=18, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_PRINFO, cmsg_data=
+	 {pr_policy=SCTP_PR_SCTP_TTL, pr_value=30}
+	},{cmsg_len=14, cmsg_level=IPPROTO_SCTP, cmsg_type=SCTP_AUTHINFO, cmsg_data=
+	 {auth_keynumber=123}
+	}],
+	msg_flags=0}, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=5, sid=2, ssn=3, ppid=6]
++0.0 < sctp: SACK[flgs=0, cum_tsn=5, a_rwnd=1500, gaps=[], dups=[]]
+
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
