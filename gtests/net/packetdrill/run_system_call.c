@@ -1964,7 +1964,7 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 			}
 			switch(cmsg_ptr->cmsg_type) {
 #ifdef SCTP_INITMSG
-			case SCTP_INITMSG:
+			case SCTP_INIT:
 				if (check_sctp_initmsg(expr->cmsg_data->value.sctp_initmsg,
 						       (struct sctp_initmsg *) CMSG_DATA(cmsg_ptr),
 						       error)) {
