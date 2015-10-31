@@ -64,8 +64,6 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct s
 					       char **error);
 #endif
 #if defined(__FreeBSD__)
-static int parse_expression_to_sctp_extrcvinfo(struct expression *expr, struct sctp_extrcvinfo *info,
-					       char **error);
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info,
@@ -755,7 +753,6 @@ static int cmsg_new(struct expression *expression,
 #endif
 #if defined(SCTP_EXTRCV)
 		case EXPR_SCTP_EXTRCVINFO:
-			printf("EXT SIZE %zu\n", CMSG_SPACE(sizeof(struct sctp_extrcvinfo)));
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_extrcvinfo));
 			break;
 #endif
@@ -802,7 +799,7 @@ static int cmsg_new(struct expression *expression,
 	*cmsg_len_ptr = cmsg_size;
 	cmsg = calloc(1, cmsg_size);
 	*cmsg_ptr = (void *)cmsg;
-	printf("total size %u\n", cmsg_size);
+
 	for (i = 0; i < list_len; i++) {
 		struct expression *expr;
 		struct cmsghdr_expr *cmsg_expr;
@@ -843,11 +840,6 @@ static int cmsg_new(struct expression *expression,
 #endif
 #if defined(SCTP_EXTRCV)
 		case EXPR_SCTP_EXTRCVINFO: {
-			struct sctp_extrcvinfo info;
-			if (parse_expression_to_sctp_extrcvinfo(cmsg_expr->cmsg_data, &info, error)) {
-				goto error_out;
-			}
-			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_extrcvinfo));
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_extrcvinfo)));
 			break;		
 		}
@@ -971,7 +963,6 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 #endif
 #ifdef SCTP_EXTRCV
 			case SCTP_EXTRCV:
-				printf("check extrcv\n");
 				if (check_sctp_extrcvinfo(expr->cmsg_data->value.sctp_extrcvinfo,
 							  (struct sctp_extrcvinfo *) CMSG_DATA(cmsg_ptr),
 							  error)) {
@@ -3648,44 +3639,6 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct s
 			return STATUS_ERR;
 		}
 		if (get_u32(sndrcvinfo_expr->sinfo_assoc_id, (u32 *)&info->sinfo_assoc_id, error)) {
-			return STATUS_ERR;
-		}
-	} else {
-		return STATUS_ERR;
-	}
-	return STATUS_OK;
-}
-#endif
-
-#if defined(__FreeBSD__)
-static int parse_expression_to_sctp_extrcvinfo(struct expression *expr, struct sctp_extrcvinfo *info, char **error) {
-	if (expr->type == EXPR_SCTP_EXTRCVINFO) {
-		struct sctp_extrcvinfo_expr *extrcvinfo_expr = expr->value.sctp_extrcvinfo;
-		if (get_u16(extrcvinfo_expr->sinfo_stream, &info->sinfo_stream, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u16(extrcvinfo_expr->sinfo_ssn, &info->sinfo_ssn, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u16(extrcvinfo_expr->sinfo_flags, &info->sinfo_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(extrcvinfo_expr->sinfo_ppid, &info->sinfo_ppid, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(extrcvinfo_expr->sinfo_context, &info->sinfo_context, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(extrcvinfo_expr->sinfo_pr_value, &info->sinfo_timetolive, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(extrcvinfo_expr->sinfo_tsn, &info->sinfo_tsn, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(extrcvinfo_expr->sinfo_cumtsn, &info->sinfo_cumtsn, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(extrcvinfo_expr->sinfo_assoc_id, (u32 *)&info->sinfo_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 	} else {
