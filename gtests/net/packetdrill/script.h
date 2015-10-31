@@ -45,6 +45,7 @@ enum expression_t {
 	EXPR_LIST,		  /* list of expressions */
 	EXPR_IOVEC,		  /* expression tree for an iovec struct */
 	EXPR_MSGHDR,		  /* expression tree for a msghdr struct */
+	EXPR_CMSGHDR,             /* expression tree for a cmsghdr struct */
 	EXPR_POLLFD,		  /* expression tree for a pollfd struct */
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
@@ -95,6 +96,7 @@ struct expression {
 		struct expression_list *list;
 		struct iovec_expr *iovec;
 		struct msghdr_expr *msghdr;
+		struct cmsghdr_expr *cmsghdr;
 		struct pollfd_expr *pollfd;
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 		struct sctp_initmsg_expr *sctp_initmsg;
@@ -158,7 +160,17 @@ struct msghdr_expr {
 	struct expression *msg_namelen;
 	struct expression *msg_iov;
 	struct expression *msg_iovlen;
+	struct expression *msg_control;
+	struct expression *msg_controllen;
 	struct expression *msg_flags;
+};
+
+/* Parse tree for a cmsghdr struct in a struct msghdr. */
+struct cmsghdr_expr {
+	struct expression *cmsg_len;
+	struct expression *cmsg_level;
+	struct expression *cmsg_type;
+	struct expression *cmsg_data;
 };
 
 /* Parse tree for a pollfd struct in a poll syscall. */
@@ -274,6 +286,7 @@ struct sctp_sndinfo_expr {
 	struct expression *snd_flags;
 	struct expression *snd_ppid;
 	struct expression *snd_context;
+	struct expression *snd_assoc_id;
 };
 
 /* Parse tree for sctp_setadaptation struct in [gs]etsockopt syscall. */

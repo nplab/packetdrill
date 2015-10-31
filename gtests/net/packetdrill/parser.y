@@ -494,7 +494,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
  */
 %token ELLIPSIS
 %token <reserved> SA_FAMILY SIN_PORT SIN_ADDR _HTONS_ _HTONL_ INET_ADDR
-%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS
+%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL CMSG_LEN CMSG_LEVEL CMSG_TYPE CMSG_DATA
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> FAST_OPEN
@@ -538,7 +538,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
-%token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SSB_ADAPTATION_IND
+%token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SND_ASSOC_ID SSB_ADAPTATION_IND
 %token <reserved> BAD_CRC32C NULL_
 %token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN
@@ -598,7 +598,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression_list> expression_list function_arguments
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer data
-%type <expression> inaddr sockaddr msghdr iovec pollfd opt_revents
+%type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data 
+%type <expression> iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
@@ -611,7 +612,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
-%type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
+%type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_assoc_id snd_context
 %type <expression> sctp_event se_type se_on sctp_setadaptation null
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn
@@ -2458,6 +2459,9 @@ expression
 | msghdr            {
 	$$ = $1;
 }
+| cmsghdr           {
+	$$ = $1;
+}
 | iovec             {
 	$$ = $1;
 }
@@ -2630,6 +2634,7 @@ data
 msghdr
 : '{' MSG_NAME '(' ELLIPSIS ')' '=' ELLIPSIS ','
       MSG_IOV '(' decimal_integer ')' '=' array ','
+      MSG_CONTROL '('decimal_integer ')' '=' array ','
       MSG_FLAGS '=' expression '}' {
 	struct msghdr_expr *msg_expr = calloc(1, sizeof(struct msghdr_expr));
 	$$ = new_expression(EXPR_MSGHDR);
@@ -2638,10 +2643,59 @@ msghdr
 	msg_expr->msg_namelen	= new_expression(EXPR_ELLIPSIS);
 	msg_expr->msg_iov	= $14;
 	msg_expr->msg_iovlen	= $11;
-	msg_expr->msg_flags	= $18;
-	/* TODO(ncardwell): msg_control, msg_controllen */
+	msg_expr->msg_controllen= $18;
+	msg_expr->msg_control   = $21;
+	msg_expr->msg_flags	= $25;
 }
 ;
+
+cmsg_level
+: CMSG_LEVEL '=' INTEGER {
+	if (!is_valid_s32($3)) {
+		semantic_error("cmsg_level out of range");
+	}
+	$$ = new_integer_expression($3, "%d");
+}
+| CMSG_LEVEL '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| CMSG_LEVEL '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+cmsg_type
+: CMSG_TYPE '=' INTEGER {
+	if (!is_valid_s32($3)) {
+		semantic_error("cmsg_level out of range");
+	}
+	$$ = new_integer_expression($3, "%d");
+}
+| CMSG_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| CMSG_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+cmsg_data
+: CMSG_DATA '=' sctp_sndinfo     { $$ = $3; }
+| CMSG_DATA '=' sctp_prinfo      { $$ = $3; }
+| CMSG_DATA '=' sctp_authinfo    { $$ = $3; }
+| CMSG_DATA '=' sockaddr         { $$ = $3; }
+;
+
+cmsghdr
+: '{' CMSG_LEN '=' INTEGER ',' cmsg_level ',' cmsg_type ',' cmsg_data '}' {
+	$$ = new_expression(EXPR_CMSGHDR);
+	$$->value.cmsghdr = calloc(1, sizeof(struct cmsghdr_expr));
+	if (!is_valid_s32($4)) {
+		semantic_error("cmsg_len out of range");
+	}
+	$$->value.cmsghdr->cmsg_len = new_integer_expression($4, "%u");
+	$$->value.cmsghdr->cmsg_level = $6;
+	$$->value.cmsghdr->cmsg_type = $8;
+	$$->value.cmsghdr->cmsg_data = $10;
+};
 
 iovec
 : '{' data ',' decimal_integer '}' {
@@ -3260,14 +3314,30 @@ snd_context
 | SND_CONTEXT '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
+snd_assoc_id
+: SND_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("snd_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SND_ASSOC_ID '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SND_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+
 sctp_sndinfo
-: '{' snd_sid ',' snd_flags ',' snd_ppid ',' snd_context '}' {
+: '{' snd_sid ',' snd_flags ',' snd_ppid ',' snd_context ',' snd_assoc_id'}' {
 	$$ = new_expression(EXPR_SCTP_SNDINFO);
 	$$->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo_expr));
 	$$->value.sctp_sndinfo->snd_sid = $2;
 	$$->value.sctp_sndinfo->snd_flags = $4;
 	$$->value.sctp_sndinfo->snd_ppid = $6;
 	$$->value.sctp_sndinfo->snd_context = $8;
+	$$->value.sctp_sndinfo->snd_assoc_id = $10;
 }
 ;
 

@@ -65,6 +65,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_LIST,                 "list" },
 	{ EXPR_IOVEC,                "iovec" },
 	{ EXPR_MSGHDR,               "msghdr" },
+	{ EXPR_CMSGHDR,              "cmsghdr"},
 	{ EXPR_POLLFD,               "pollfd" },
 	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
@@ -394,6 +395,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sndinfo->snd_flags);
 		free_expression(expression->value.sctp_sndinfo->snd_ppid);
 		free_expression(expression->value.sctp_sndinfo->snd_context);
+		free_expression(expression->value.sctp_sndinfo->snd_assoc_id);
 		break;		
 	case EXPR_SCTP_SETADAPTATION:
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
@@ -563,7 +565,15 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.msghdr->msg_namelen);
 		free_expression(expression->value.msghdr->msg_iov);
 		free_expression(expression->value.msghdr->msg_iovlen);
+		free_expression(expression->value.msghdr->msg_control);
+		free_expression(expression->value.msghdr->msg_controllen);
 		free_expression(expression->value.msghdr->msg_flags);
+		break;
+	case EXPR_CMSGHDR:
+		free_expression(expression->value.cmsghdr->cmsg_len);
+		free_expression(expression->value.cmsghdr->cmsg_level);
+		free_expression(expression->value.cmsghdr->cmsg_type);
+		free_expression(expression->value.cmsghdr->cmsg_data);
 		break;
 	case EXPR_POLLFD:
 		assert(expression->value.pollfd);
@@ -656,6 +666,33 @@ static int evaluate_iovec_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_cmsghdr_expression(struct expression *in,
+				       struct expression *out, char **error)
+{
+	struct cmsghdr_expr *in_cmsg;
+	struct cmsghdr_expr *out_cmsg;
+
+	assert(in->type == EXPR_CMSGHDR);
+	assert(in->value.msghdr);
+	assert(out->type == EXPR_CMSGHDR);
+
+	out->value.cmsghdr = calloc(1, sizeof(struct cmsghdr_expr));
+
+	in_cmsg = in->value.cmsghdr;
+	out_cmsg = out->value.cmsghdr;
+
+	if (evaluate(in_cmsg->cmsg_len,		&out_cmsg->cmsg_len,	error))
+		return STATUS_ERR;
+	if (evaluate(in_cmsg->cmsg_level,	&out_cmsg->cmsg_level,	error))
+		return STATUS_ERR;
+	if (evaluate(in_cmsg->cmsg_type,	&out_cmsg->cmsg_type,	error))
+		return STATUS_ERR;
+	if (evaluate(in_cmsg->cmsg_data,	&out_cmsg->cmsg_data,	error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_msghdr_expression(struct expression *in,
 				      struct expression *out, char **error)
 {
@@ -678,6 +715,10 @@ static int evaluate_msghdr_expression(struct expression *in,
 	if (evaluate(in_msg->msg_iov,		&out_msg->msg_iov,	error))
 		return STATUS_ERR;
 	if (evaluate(in_msg->msg_iovlen,	&out_msg->msg_iovlen,	error))
+		return STATUS_ERR;
+	if (evaluate(in_msg->msg_control,	&out_msg->msg_control,	error))
+		return STATUS_ERR;
+	if (evaluate(in_msg->msg_controllen,	&out_msg->msg_controllen,error))
 		return STATUS_ERR;
 	if (evaluate(in_msg->msg_flags,		&out_msg->msg_flags,	error))
 		return STATUS_ERR;
@@ -1157,6 +1198,10 @@ static int evaluate_sctp_sndinfo_expression(struct expression *in,
 		return STATUS_ERR;
 	if (evaluate(in_sndinfo->snd_context,
 		     &out_sndinfo->snd_context,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sndinfo->snd_assoc_id,
+		     &out_sndinfo->snd_assoc_id,
 		     error))
 		return STATUS_ERR;
 	return STATUS_OK;
@@ -2064,6 +2109,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_MSGHDR:
 		result = evaluate_msghdr_expression(in, out, error);
+		break;
+	case EXPR_CMSGHDR:
+		result = evaluate_cmsghdr_expression(in, out, error);
 		break;
 	case EXPR_POLLFD:
 		result = evaluate_pollfd_expression(in, out, error);
