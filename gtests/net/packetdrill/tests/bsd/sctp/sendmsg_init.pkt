@@ -15,7 +15,12 @@
 	}],
 	msg_flags=0}, 0) = 1000
 
-+0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
+*    > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
 +0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=16, is=16, tsn=1, STATE_COOKIE[len=4, val=...]]
-+0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]; DATA[flgs=BE, len=1016, tsn=1, sid=2, ssn=0, ppid=1234]
-+0.1 < sctp: COOKIE_ACK[flgs=0]; SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
+*    > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]; DATA[flgs=BE, len=1016, tsn=1, sid=2, ssn=0, ppid=1234]
++1   < sctp: COOKIE_ACK[flgs=0]; SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
+
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
