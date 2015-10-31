@@ -3489,7 +3489,7 @@ serinfo_next_stream
 ;
 
 serinfo_next_flags
-: SERINFO_NEXT_FLAGS'=' WORD {
+: SERINFO_NEXT_FLAGS '=' WORD {
 	$$ = new_expression(EXPR_WORD);
 	$$->value.string = $3;
 }
@@ -3533,7 +3533,7 @@ serinfo_next_ppid
 
 sctp_extrcvinfo
 : '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_pr_value ',' sinfo_tsn ',' sinfo_cumtsn ',' 
-serinfo_next_stream ',' serinfo_next_flags ',' serinfo_next_aid ',' serinfo_next_length ',' serinfo_next_ppid ',' sinfo_assoc_id '}' {
+serinfo_next_flags ',' serinfo_next_stream ',' serinfo_next_aid ',' serinfo_next_length ',' serinfo_next_ppid ',' sinfo_assoc_id '}' {
 	$$ = new_expression(EXPR_SCTP_EXTRCVINFO);
 	$$->value.sctp_extrcvinfo = calloc(1, sizeof(struct sctp_extrcvinfo_expr));
 	$$->value.sctp_extrcvinfo->sinfo_stream = $2;

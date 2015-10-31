@@ -64,6 +64,8 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct s
 					       char **error);
 #endif
 #if defined(__FreeBSD__)
+static int parse_expression_to_sctp_extrcvinfo(struct expression *expr, struct sctp_extrcvinfo *info,
+					       char **error);
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info,
@@ -78,6 +80,10 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr, struct sctp_sndinf
 #if defined(SCTP_INITMSG) || defined(SCTP_INIT)
 static int check_sctp_initmsg(struct sctp_initmsg_expr *expr, struct sctp_initmsg *sctp_initmsg,
 			      char **error);
+#endif
+#if defined(__FreeBSD__)
+static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr, struct sctp_extrcvinfo *sctp_info,
+				 char **error);
 #endif
 #if defined(linux) || defined(__FreeBSD__)
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr, struct sctp_rcvinfo *sctp_rcvinfo,
@@ -564,6 +570,22 @@ int check_s32_expr(struct expression *expr, s16 value, char *val_name, char **er
 	return STATUS_OK;
 }
 
+int check_u32_hton_expr(struct expression *expr, u32 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		u32 script_val;
+
+		if (get_u32(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (htonl(value) != htonl(script_val)) {
+			asprintf(error, "%s: expected: %u actual: %u", val_name,
+				 htonl(script_val), htonl(value));
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
 int check_u32_expr(struct expression *expr, u32 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u32 script_val;
@@ -731,6 +753,12 @@ static int cmsg_new(struct expression *expression,
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_sndrcvinfo));
 			break;
 #endif
+#if defined(SCTP_EXTRCV)
+		case EXPR_SCTP_EXTRCVINFO:
+			printf("EXT SIZE %zu\n", CMSG_SPACE(sizeof(struct sctp_extrcvinfo)));
+			cmsg_size += CMSG_SPACE(sizeof(struct sctp_extrcvinfo));
+			break;
+#endif
 #if defined(SCTP_SNDINFO)
 		case EXPR_SCTP_SNDINFO:
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_sndinfo));
@@ -774,7 +802,7 @@ static int cmsg_new(struct expression *expression,
 	*cmsg_len_ptr = cmsg_size;
 	cmsg = calloc(1, cmsg_size);
 	*cmsg_ptr = (void *)cmsg;
-
+	printf("total size %u\n", cmsg_size);
 	for (i = 0; i < list_len; i++) {
 		struct expression *expr;
 		struct cmsghdr_expr *cmsg_expr;
@@ -810,6 +838,17 @@ static int cmsg_new(struct expression *expression,
 			}
 			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_sndrcvinfo)); 
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_sndrcvinfo)));
+			break;		
+		}
+#endif
+#if defined(SCTP_EXTRCV)
+		case EXPR_SCTP_EXTRCVINFO: {
+			struct sctp_extrcvinfo info;
+			if (parse_expression_to_sctp_extrcvinfo(cmsg_expr->cmsg_data, &info, error)) {
+				goto error_out;
+			}
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_extrcvinfo));
+			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_extrcvinfo)));
 			break;		
 		}
 #endif
@@ -881,28 +920,31 @@ error_out:
 	*cmsg_len_ptr = 0;
 	return STATUS_ERR;
 }
+
 static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char  **error) {
 	struct expression_list *list;
 	struct expression *cmsg_expr;
 	struct cmsghdr *cmsg_ptr;
 	int cnt = 0;
+	int list_len = 0;
 
 	assert(expr_list->type == EXPR_LIST);
 
 	list = expr_list->value.list;
+	list_len = expression_list_length(list);
 	for (cmsg_ptr = CMSG_FIRSTHDR(msg); cmsg_ptr != NULL; cmsg_ptr = CMSG_NXTHDR(msg, cmsg_ptr)) {
 		cmsg_expr = get_arg(list, cnt, error);
 		if (cmsg_expr->type != EXPR_ELLIPSIS) {
 			struct cmsghdr_expr *expr;
 			expr = cmsg_expr->value.cmsghdr;
+			if (check_s32_expr(expr->cmsg_type, cmsg_ptr->cmsg_type,
+					   "cmsghdr.cmsg_type", error))
+				return STATUS_ERR;
 			if (check_u32_expr(expr->cmsg_len, cmsg_ptr->cmsg_len,
 					   "cmsghdr.cmsg_len", error))
 				return STATUS_ERR;
 			if (check_s32_expr(expr->cmsg_level, cmsg_ptr->cmsg_level,
 					   "cmsghdr.cmsg_level", error))
-				return STATUS_ERR;
-			if (check_s32_expr(expr->cmsg_type, cmsg_ptr->cmsg_type,
-					   "cmsghdr.cmsg_type", error))
 				return STATUS_ERR;
 
 			if (expr->cmsg_data->type == EXPR_ELLIPSIS) {
@@ -922,6 +964,16 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 			case SCTP_SNDRCV:
 				if (check_sctp_sndrcvinfo(expr->cmsg_data->value.sctp_sndrcvinfo,
 							  (struct sctp_sndrcvinfo *) CMSG_DATA(cmsg_ptr),
+							  error)) {
+					return STATUS_ERR;
+				}
+				break;
+#endif
+#ifdef SCTP_EXTRCV
+			case SCTP_EXTRCV:
+				printf("check extrcv\n");
+				if (check_sctp_extrcvinfo(expr->cmsg_data->value.sctp_extrcvinfo,
+							  (struct sctp_extrcvinfo *) CMSG_DATA(cmsg_ptr),
 							  error)) {
 					return STATUS_ERR;
 				}
@@ -1014,6 +1066,10 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 			}
 		}
 		cnt++;
+	}
+	if (cnt != list_len) {
+		asprintf(error, "Return cmsg count is unqual to expected list len. actual %u, expected %u", cnt, list_len);
+		return STATUS_ERR;
 	}
 	return STATUS_OK;
 }
@@ -3389,18 +3445,9 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 	if (check_u16_expr(expr->sinfo_flags, sctp_sndrcvinfo->sinfo_flags,
 			   "sctp_sndrcvinfo.sinfo_flags", error))
 		return STATUS_ERR;
-	if (expr->sinfo_ppid->type != EXPR_ELLIPSIS) {
-		u32 sinfo_ppid;
-
-		if (get_u32(expr->sinfo_ppid, &sinfo_ppid, error)) {
-			return STATUS_ERR;
-		}
-		if (ntohl(sctp_sndrcvinfo->sinfo_ppid) != ntohl(sinfo_ppid)) {
-			asprintf(error, "sctp_sndrcvinfo.sinfo_ppid: expected: %u actual: %u",
-				 ntohl(sinfo_ppid), ntohl(sctp_sndrcvinfo->sinfo_ppid));
-			return STATUS_ERR;
-		}
-	}
+	if (check_u32_hton_expr(expr->sinfo_ppid, sctp_sndrcvinfo->sinfo_ppid,
+			   "sctp_sndrcvinfo.sinfo_ppid", error))
+		return STATUS_ERR;
 	if (check_u32_expr(expr->sinfo_context, sctp_sndrcvinfo->sinfo_context,
 			   "sctp_sndrcvinfo.sinfo_context", error))
 		return STATUS_ERR;
@@ -3415,6 +3462,58 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 		return STATUS_ERR;
 	if (check_u32_expr(expr->sinfo_assoc_id, sctp_sndrcvinfo->sinfo_assoc_id,
 			   "sctp_sndrcvinfo.sinfo_assoc_id", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__)
+static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr,
+				 struct sctp_extrcvinfo *sctp_extrcvinfo,
+				 char** error) {
+	if (check_u16_expr(expr->sinfo_stream, sctp_extrcvinfo->sinfo_stream,
+			   "sctp_extrcvinfo.sinfo_stream", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sinfo_ssn, sctp_extrcvinfo->sinfo_ssn,
+			   "sctp_extrcvinfo.sinfo_ssn", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->sinfo_flags, sctp_extrcvinfo->sinfo_flags,
+			   "sctp_extrcvinfo.sinfo_flags", error))
+		return STATUS_ERR;
+	if (check_u32_hton_expr(expr->sinfo_ppid, sctp_extrcvinfo->sinfo_ppid,
+			   "sctp_extrcvinfo.sinfo_ppid", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_context, sctp_extrcvinfo->sinfo_context,
+			   "sctp_extrcvinfo.sinfo_context", error))
+		return STATUS_ERR;
+	//Name not like RFC
+	if (check_u32_expr(expr->sinfo_pr_value, sctp_extrcvinfo->sinfo_timetolive,
+			   "sctp_extrcvinfo.sinfo_pr_value", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_tsn, sctp_extrcvinfo->sinfo_tsn,
+			   "sctp_extrcvinfo.sinfo_tsn", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_cumtsn, sctp_extrcvinfo->sinfo_cumtsn,
+			   "sctp_extrcvinfo.sinfo_cumtsn", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->serinfo_next_flags, sctp_extrcvinfo->sreinfo_next_flags,
+			   "sctp_extrcvinfo.serinfo_next_flags", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->serinfo_next_stream, sctp_extrcvinfo->sreinfo_next_stream,
+			   "sctp_extrcvinfo.serinfo_next_stream", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->serinfo_next_aid, sctp_extrcvinfo->sreinfo_next_aid,
+			   "sctp_extrcvinfo.serinfo_next_aid", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->serinfo_next_length, sctp_extrcvinfo->sreinfo_next_length,
+			   "sctp_extrcvinfo.serinfo_next_length", error))
+		return STATUS_ERR;
+	if (check_u32_hton_expr(expr->serinfo_next_ppid, sctp_extrcvinfo->sreinfo_next_ppid,
+			   "sctp_extrcvinfo.serinfo_next_ppid", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->sinfo_assoc_id, sctp_extrcvinfo->sinfo_assoc_id,
+			   "sctp_extrcvinfo.sinfo_assoc_id", error))
 		return STATUS_ERR;
 
 	return STATUS_OK;
@@ -3549,6 +3648,44 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct s
 			return STATUS_ERR;
 		}
 		if (get_u32(sndrcvinfo_expr->sinfo_assoc_id, (u32 *)&info->sinfo_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__)
+static int parse_expression_to_sctp_extrcvinfo(struct expression *expr, struct sctp_extrcvinfo *info, char **error) {
+	if (expr->type == EXPR_SCTP_EXTRCVINFO) {
+		struct sctp_extrcvinfo_expr *extrcvinfo_expr = expr->value.sctp_extrcvinfo;
+		if (get_u16(extrcvinfo_expr->sinfo_stream, &info->sinfo_stream, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(extrcvinfo_expr->sinfo_ssn, &info->sinfo_ssn, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(extrcvinfo_expr->sinfo_flags, &info->sinfo_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(extrcvinfo_expr->sinfo_ppid, &info->sinfo_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(extrcvinfo_expr->sinfo_context, &info->sinfo_context, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(extrcvinfo_expr->sinfo_pr_value, &info->sinfo_timetolive, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(extrcvinfo_expr->sinfo_tsn, &info->sinfo_tsn, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(extrcvinfo_expr->sinfo_cumtsn, &info->sinfo_cumtsn, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(extrcvinfo_expr->sinfo_assoc_id, (u32 *)&info->sinfo_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 	} else {
@@ -3776,18 +3913,8 @@ static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 		return STATUS_ERR;
 	if (check_u16_expr(expr->rcv_flags, sctp_rcvinfo->rcv_flags, "sctp_rcvinfo.rcv_flags", error))
 		return STATUS_ERR;
-	if (expr->rcv_ppid->type != EXPR_ELLIPSIS) {
-		u32 rcv_ppid;
-
-		if (get_u32(expr->rcv_ppid, &rcv_ppid, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_rcvinfo->rcv_ppid != rcv_ppid) {
-			asprintf(error, "sctp_rcvinfo.rcv_ppid: expected: %u actual: %u",
-				 htonl(rcv_ppid), htonl(sctp_rcvinfo->rcv_ppid));
-			return STATUS_ERR;
-		}
-	}
+	if (check_u32_hton_expr(expr->rcv_ppid, sctp_rcvinfo->rcv_ppid, "sctp_rcvinfo.rcv_ppid", error))
+		return STATUS_ERR;
 	if (check_u32_expr(expr->rcv_tsn, sctp_rcvinfo->rcv_tsn,
 			   "sctp_rcvinfo.rcv_tsn", error))
 		return STATUS_ERR;
@@ -3814,18 +3941,8 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 		return STATUS_ERR;
 	if (check_u16_expr(expr->nxt_flags, sctp_nxtinfo->nxt_flags, "sctp_nxtinfo.nxt_flags", error))
 		return STATUS_ERR;
-	if (expr->nxt_ppid->type != EXPR_ELLIPSIS) {
-		u32 nxt_ppid;
-
-		if (get_u32(expr->nxt_ppid, &nxt_ppid, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_nxtinfo->nxt_ppid != nxt_ppid) {
-			asprintf(error, "sctp_nxtinfo.nxt_ppid: expected: %u actual: %u",
-				 htonl(nxt_ppid), htonl(sctp_nxtinfo->nxt_ppid));
-			return STATUS_ERR;
-		}
-	}
+	if (check_u32_hton_expr(expr->nxt_ppid, sctp_nxtinfo->nxt_ppid, "sctp_nxtinfo.nxt_ppid", error))
+		return STATUS_ERR;
 	if (check_u32_expr(expr->nxt_length, sctp_nxtinfo->nxt_length, "sctp_nxtinfo.nxt_length", error))
 		return STATUS_ERR;
 	if (check_u32_expr(expr->nxt_assoc_id, sctp_nxtinfo->nxt_assoc_id, "sctp_nxtinfo.nxt_assoc_id", error))

@@ -231,6 +231,8 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_AUTHINFO,                    "SCTP_AUTHINFO"                   },
 	{ SCTP_DSTADDRV4,                   "SCTP_DSTADDRV4"                  },
 	{ SCTP_DSTADDRV6,                   "SCTP_DSTADDRV6"                  },
+	{ SCTP_EXTRCV,                      "SCTP_EXTRCV"                     },
+	{ SCTP_USE_EXT_RCVINFO,             "SCTP_USE_EXT_RCVINFO"            },
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },
