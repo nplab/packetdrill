@@ -78,6 +78,7 @@ enum expression_t {
 	EXPR_SCTP_SENDER_DRY_EVENT, /* expression tree for sctp_sender_dry_event */
 	EXPR_SCTP_SEND_FAILED_EVENT, /* expression tree for sctp_send_failed_event */
 	EXPR_SCTP_TLV,            /* expression tree for sctp_notifications_stopped_event */
+	EXPR_SCTP_EXTRCVINFO,     /* expression tree for sctp_extrcvinfo struct in cmsghdr */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -129,6 +130,7 @@ struct expression {
 		struct sctp_sender_dry_event_expr *sctp_sender_dry_event;
 		struct sctp_send_failed_event_expr *sctp_send_failed_event;
 		struct sctp_tlv_expr *sctp_tlv;
+		struct sctp_extrcvinfo_expr *sctp_extrcvinfo;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -459,6 +461,24 @@ struct sctp_tlv_expr {
 	struct expression *sn_type;
 	struct expression *sn_flags;
 	struct expression *sn_length;
+};
+
+/* Parse tree for sctp_extrcvinfo struct for cmsg. */
+struct sctp_extrcvinfo_expr {
+	struct expression *sinfo_stream;
+	struct expression *sinfo_ssn;
+	struct expression *sinfo_flags;
+	struct expression *sinfo_ppid;
+	struct expression *sinfo_context;
+	struct expression *sinfo_pr_value;
+	struct expression *sinfo_tsn;
+	struct expression *sinfo_cumtsn;
+	struct expression *serinfo_next_flags;
+	struct expression *serinfo_next_stream;
+	struct expression *serinfo_next_aid;
+	struct expression *serinfo_next_length;
+	struct expression *serinfo_next_ppid;
+	struct expression *sinfo_assoc_id;
 };
 
 /* The errno-related info from strace to summarize a system call error */
