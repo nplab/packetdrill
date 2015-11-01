@@ -59,7 +59,18 @@ struct sctp_tlv {
 static int check_sctp_notification(struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
 #endif
-
+#if defined(__FreeBSD__)
+static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info,
+				            char **error);
+static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info,
+				            char **error);
+static int parse_expression_to_sctp_authinfo(struct expression *expr, struct sctp_authinfo *info,
+				             char **error);
+#endif
+#if defined(SCTP_DEFAULT_SNDINFO) || defined(SCTP_SNDINFO)
+static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr, struct sctp_sndinfo *sctp_sndinfo,
+			      char **error);
+#endif
 
 /* Provide a wrapper for the Linux gettid() system call (glibc does not). */
 static pid_t gettid(void)
@@ -420,6 +431,69 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 }
 #endif
 
+static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *live_addr, char **error) {
+
+	if (sockaddr_expr->type != EXPR_ELLIPSIS) {
+		struct sockaddr *script_addr;
+		if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+			script_addr = (struct sockaddr*)sockaddr_expr->value.socket_address_ipv4;
+		} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+			script_addr = (struct sockaddr*)sockaddr_expr->value.socket_address_ipv6;
+		} else {
+			asprintf(error, "Bad type for sockaddr");
+			return STATUS_ERR;
+		}
+		if (script_addr->sa_family != live_addr->sa_family) {
+			asprintf(error, "sockaddr sa_family expected: %d actual: %d",
+				 script_addr->sa_family, live_addr->sa_family);
+			return STATUS_ERR;
+		}
+		switch(script_addr->sa_family) {
+		case AF_INET:
+			{
+				struct sockaddr_in *script_sockaddr = (struct sockaddr_in*)script_addr;
+				struct sockaddr_in *live_sockaddr = (struct sockaddr_in*)live_addr;
+				if (live_sockaddr->sin_port != script_sockaddr->sin_port) {
+					asprintf(error, "sockaddr_in from.sinport. expected: %d actual %d",
+						ntohs(script_sockaddr->sin_port), ntohs(live_sockaddr->sin_port));
+					return STATUS_ERR;
+				}
+				if (live_sockaddr->sin_addr.s_addr != script_sockaddr->sin_addr.s_addr) {
+					int len = strnlen(inet_ntoa(script_sockaddr->sin_addr), 16);
+					char *expected_addr = malloc(sizeof(char) * len);
+					memcpy(expected_addr, inet_ntoa(script_sockaddr->sin_addr), len);
+					asprintf(error, "sockaddr_in from.sin_addr. expected: %s actual %s",
+						expected_addr, inet_ntoa(live_sockaddr->sin_addr));
+					free(expected_addr);
+					return STATUS_ERR;
+				}
+			}
+			break;
+		case AF_INET6:
+			{
+				struct sockaddr_in6 *script_sockaddr = (struct sockaddr_in6*)script_addr;
+				struct sockaddr_in6 *live_sockaddr = (struct sockaddr_in6*)live_addr;
+				if (live_sockaddr->sin6_port != script_sockaddr->sin6_port) {
+					asprintf(error, "sockaddr_in6 from.sinport. expected: %d actual %d",
+						ntohs(script_sockaddr->sin6_port), ntohs(live_sockaddr->sin6_port));
+					return STATUS_ERR;
+				}
+				if (live_sockaddr->sin6_addr.s6_addr != script_sockaddr->sin6_addr.s6_addr) {
+					char expected_addr[INET6_ADDRSTRLEN];
+					char live_addr[INET6_ADDRSTRLEN];
+					inet_ntop(AF_INET6, &script_sockaddr->sin6_addr, expected_addr, INET6_ADDRSTRLEN);
+					inet_ntop(AF_INET6, &live_sockaddr->sin6_addr, live_addr, INET6_ADDRSTRLEN);
+					asprintf(error, "sockaddr_in6 from.sin6_addr. expected: %s actual %s",
+						 expected_addr, live_addr);
+					return STATUS_ERR;
+				}
+			}
+			break;
+		}
+	}
+	return STATUS_OK;
+}
+
 #if defined(__FreeBSD__) || defined(linux)
 int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
@@ -470,7 +544,7 @@ int check_s32_expr(struct expression *expr, s16 value, char *val_name, char **er
 }
 
 #if defined(__FreeBSD__) || defined(linux)
-int check_u32_expr(struct expression *expr, u16 value, char *val_name, char **error) {
+int check_u32_expr(struct expression *expr, u32 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u32 script_val;
 
@@ -601,6 +675,123 @@ error_out:
 	return status;
 }
 
+/* Allocate and fill in an 
+cmsghdr described by the given expression.
+ * Return STATUS_OK if the expression is a valid cmsghdr. Otherwise
+ * fill in the error with a human-readable error message and return
+ * STATUS_ERR.
+ */
+static int cmsg_new(struct expression *expression,
+		    void **cmsg_ptr, size_t *cmsg_len_ptr, char **error)
+{
+	struct expression_list *list;
+	int list_len = 0, i = 0;
+	size_t cmsg_size = 0;
+	struct cmsghdr *cmsg;
+
+	if (check_type(expression, EXPR_LIST, error))
+		return STATUS_ERR;
+	list = expression->value.list;
+	list_len = expression_list_length(list);
+	//calc size of cmsg in list
+	if (list_len == 0){
+		cmsg_ptr = NULL;
+		return STATUS_OK;
+	}
+	for (i = 0; i < list_len; i++) {
+		struct expression *cmsg_expr;
+		cmsg_expr = get_arg(list, i, error);
+		switch (cmsg_expr->value.cmsghdr->cmsg_data->type) {
+		case EXPR_SCTP_SNDINFO:
+			cmsg_size += CMSG_SPACE(sizeof(struct sctp_sndinfo));
+			break;
+		case EXPR_SCTP_PRINFO:
+			cmsg_size += CMSG_SPACE(sizeof(struct sctp_prinfo));
+			break;
+		case EXPR_SCTP_AUTHINFO:
+			cmsg_size += CMSG_SPACE(sizeof(struct sctp_authinfo));
+			break;
+		case EXPR_SOCKET_ADDRESS_IPV4:
+			cmsg_size += CMSG_SPACE(sizeof(struct in_addr));
+			break;
+		case EXPR_SOCKET_ADDRESS_IPV6:
+			cmsg_size += CMSG_SPACE(sizeof(struct in6_addr));
+			break;
+		default:
+			asprintf(error,"cmsg %d type not valid", i);
+			return STATUS_ERR;
+		}
+	}
+
+	*cmsg_len_ptr = cmsg_size;
+	cmsg = calloc(1, cmsg_size);
+	*cmsg_ptr = (void *)cmsg;
+		
+	for (i = 0; i < list_len; i++) {
+		struct expression *expr;
+		struct cmsghdr_expr *cmsg_expr;
+
+		expr = get_arg(list, i, error);
+		if(check_type(expr, EXPR_CMSGHDR, error))
+			goto error_out;
+		cmsg_expr = expr->value.cmsghdr;
+		if (get_u32(cmsg_expr->cmsg_len, &cmsg->cmsg_len, error))
+			goto error_out;
+		if (get_s32(cmsg_expr->cmsg_level, &cmsg->cmsg_level, error))
+			goto error_out;
+		if (get_s32(cmsg_expr->cmsg_type, &cmsg->cmsg_type, error))
+			goto error_out;
+
+		switch(cmsg_expr->cmsg_data->type) {
+		case EXPR_SCTP_SNDINFO: {
+			struct sctp_sndinfo info;			
+			if (parse_expression_to_sctp_sndinfo(cmsg_expr->cmsg_data, &info, error)) {
+				goto error_out;
+			}
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_sndinfo)); 
+			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_sndinfo)));
+			break;
+		}
+		case EXPR_SCTP_PRINFO: {
+			struct sctp_prinfo info;			
+			if (parse_expression_to_sctp_prinfo(cmsg_expr->cmsg_data, &info, error)) {
+				goto error_out;
+			}
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_prinfo)); 
+			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_prinfo)));
+			break;
+		}		
+		case EXPR_SCTP_AUTHINFO: {
+			struct sctp_authinfo info;			
+			if (parse_expression_to_sctp_authinfo(cmsg_expr->cmsg_data, &info, error)) {
+				goto error_out;
+			}
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_authinfo)); 
+			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_authinfo)));
+			break;
+		}		
+		case EXPR_SOCKET_ADDRESS_IPV4:
+			memcpy(CMSG_DATA(cmsg), &cmsg_expr->cmsg_data->value.socket_address_ipv4->sin_addr, sizeof(struct in_addr));
+			cmsg = (struct cmsghdr *)((caddr_t)cmsg + CMSG_SPACE(sizeof(struct in_addr)));
+			break;
+		case EXPR_SOCKET_ADDRESS_IPV6:
+			memcpy(CMSG_DATA(cmsg), &cmsg_expr->cmsg_data->value.socket_address_ipv6->sin6_addr, sizeof(struct in6_addr));
+			cmsg = (struct cmsghdr *)((caddr_t)cmsg + CMSG_SPACE(sizeof(struct in6_addr)));
+			break;
+		default:
+			asprintf(error,"cmsg.cmsg_data %d type not valid", i);
+			goto error_out;
+		}
+	}
+
+	return STATUS_OK;
+error_out:
+	free(*cmsg_ptr);
+	*cmsg_ptr = NULL;
+	*cmsg_len_ptr = 0;
+	return STATUS_ERR;
+}
+
 /* Free all the space used by the given msghdr. */
 static void msghdr_free(struct msghdr *msg, size_t iov_len)
 {
@@ -622,6 +813,7 @@ static int msghdr_new(struct expression *expression,
 	struct msghdr_expr *msg_expr;	/* input expression from script */
 	socklen_t name_len = sizeof(struct sockaddr_storage);
 	struct msghdr *msg = NULL;	/* live output */
+	size_t cmsg_len = 0;
 
 	if (check_type(expression, EXPR_MSGHDR, error))
 		goto error_out;
@@ -659,13 +851,28 @@ static int msghdr_new(struct expression *expression,
 		goto error_out;
 	}
 
+	if (msg_expr->msg_control != NULL) {
+		if (cmsg_new(msg_expr->msg_control, &msg->msg_control, &cmsg_len, error))
+			goto error_out;
+	}
+
+	if (msg_expr->msg_controllen != NULL) {
+		if (get_u32(msg_expr->msg_controllen, &msg->msg_controllen, error))
+			goto error_out;
+	}
+
+	if (msg->msg_controllen != cmsg_len) {
+		asprintf(error,
+			 "msg_controllen %u does not match %u size of cmsghdr array",
+			 msg->msg_controllen, cmsg_len);
+		goto error_out;
+	}
+
 	if (msg_expr->msg_flags != NULL) {
 		if (get_s32(msg_expr->msg_flags, &s32_val, error))
 			goto error_out;
 		msg->msg_flags = s32_val;
 	}
-
-	/* TODO(ncardwell): msg_control, msg_controllen */
 
 	status = STATUS_OK;
 
@@ -1679,6 +1886,105 @@ static int syscall_sendto(struct state *state, struct syscall_spec *syscall,
 	return status;
 }
 
+static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char  **error) {
+	struct expression_list *list;
+	struct expression *cmsg_expr;
+	struct cmsghdr *cmsg_ptr;
+	int cnt=0;
+
+	assert(expr_list->type == EXPR_LIST);
+
+	list = expr_list->value.list;
+	for (cmsg_ptr = CMSG_FIRSTHDR(msg); cmsg_ptr != NULL; cmsg_ptr = CMSG_NXTHDR(msg, cmsg_ptr)) {
+		cmsg_expr = get_arg(list, cnt, error);
+		if (cmsg_expr->type != EXPR_ELLIPSIS) {
+			struct cmsghdr_expr *expr;
+			expr = cmsg_expr->value.cmsghdr;
+			if (check_u32_expr(expr->cmsg_len, cmsg_ptr->cmsg_len,
+					   "cmsghdr.cmsg_len", error))
+				return STATUS_ERR;
+			if (check_s32_expr(expr->cmsg_level, cmsg_ptr->cmsg_level,
+					   "cmsghdr.cmsg_level", error))
+				return STATUS_ERR;
+			if (check_s32_expr(expr->cmsg_type, cmsg_ptr->cmsg_type,
+					   "cmsghdr.cmsg_type", error))
+				return STATUS_ERR;
+
+			if (expr->cmsg_data->type == EXPR_ELLIPSIS) {
+				continue;
+			}
+			switch(cmsg_ptr->cmsg_type) {
+#ifdef SCTP_SNDINFO
+			case SCTP_SNDINFO:
+				if (check_sctp_sndinfo(expr->cmsg_data->value.sctp_sndinfo,
+						       (struct sctp_sndinfo *) CMSG_DATA(cmsg_ptr),
+						       error)) {
+					return STATUS_ERR;
+				}
+				break;
+#endif
+#ifdef SCTP_PRINFO
+			case SCTP_PRINFO:
+				if (check_u16_expr(expr->cmsg_data->value.sctp_prinfo->pr_policy,
+					   ((struct sctp_prinfo *)CMSG_DATA(cmsg_ptr))->pr_policy,
+					   "prinfo.pr_policy", error))
+					return STATUS_ERR;
+				if (check_u32_expr(expr->cmsg_data->value.sctp_prinfo->pr_value,
+					   ((struct sctp_prinfo *)CMSG_DATA(cmsg_ptr))->pr_value,
+					   "prinfo.pr_value", error))
+					return STATUS_ERR;
+				break;
+#endif
+#ifdef SCTP_AUTHINFO
+			case SCTP_AUTHINFO:
+				if (check_u16_expr(expr->cmsg_data->value.sctp_authinfo->auth_keynumber,
+					   ((struct sctp_authinfo *)CMSG_DATA(cmsg_ptr))->auth_keynumber,
+					   "authinfo.auth_keynumber", error))
+					return STATUS_ERR;
+				break;
+#endif
+#ifdef SCTP_DSTADDRV4
+			case SCTP_DSTADDRV4:
+				if (expr->cmsg_data->type != EXPR_ELLIPSIS) {
+					struct sockaddr_in *addr = expr->cmsg_data->value.socket_address_ipv4;
+					struct in_addr *cmsg_addr = (struct in_addr *) CMSG_DATA(cmsg_ptr);
+					if (addr->sin_addr.s_addr != cmsg_addr->s_addr) {
+						asprintf(error, "cmsg_data for SCTP_DSTADDRV4: expected: %s actual: %s",
+							 inet_ntoa(addr->sin_addr),
+							 inet_ntoa(*cmsg_addr));
+						return STATUS_ERR;
+					}
+				}
+				break;
+#endif
+#ifdef SCTP_DSTADDRV6
+			case SCTP_DSTADDRV6:
+				if (expr->cmsg_data->type != EXPR_ELLIPSIS) {
+					struct sockaddr_in6 *addr = expr->cmsg_data->value.socket_address_ipv6;
+					struct in6_addr *cmsg_addr = (struct in6_addr *) CMSG_DATA(cmsg_ptr);
+					if (memcmp(&addr->sin6_addr, cmsg_addr, sizeof(struct in6_addr))) {
+						char expected_addr[INET6_ADDRSTRLEN];
+						char live_addr[INET6_ADDRSTRLEN];
+						inet_ntop(AF_INET6, &addr->sin6_addr, expected_addr, INET6_ADDRSTRLEN);
+						inet_ntop(AF_INET6, cmsg_addr, live_addr, INET6_ADDRSTRLEN);
+						asprintf(error, "sockaddr_in6 from.sin6_addr. expected: %s actual %s",
+							 expected_addr, live_addr);
+						return STATUS_ERR;
+					}
+					
+				}
+				break;
+#endif
+			default:
+				asprintf(error, "can't check cmsg type");
+				return STATUS_ERR;
+			}
+		}
+		cnt++;
+	}
+	return STATUS_OK;	
+}
+
 static int syscall_sendmsg(struct state *state, struct syscall_spec *syscall,
 			   struct expression_list *args, char **error)
 {
@@ -1714,10 +2020,13 @@ static int syscall_sendmsg(struct state *state, struct syscall_spec *syscall,
 	}
 
 	begin_syscall(state, syscall);
-
+	
 	result = sendmsg(live_fd, msg, flags);
 
-	status = end_syscall(state, syscall, CHECK_EXACT, result, error);
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
+		goto error_out;
+
+	 status = check_cmsghdr(msg_expression->value.msghdr->msg_control, msg, error);
 
 error_out:
 	msghdr_free(msg, iov_len);
@@ -2143,7 +2452,8 @@ static int check_sctp_event_subscribe(struct sctp_event_subscribe_expr *expr,
 	return STATUS_OK;
 }
 #endif
-#ifdef SCTP_DEFAULT_SNDINFO
+
+#if defined(SCTP_DEFAULT_SNDINFO) || defined(SCTP_SNDINFO)
 static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 			      struct sctp_sndinfo *sctp_sndinfo,
 			      char **error)
@@ -2168,6 +2478,9 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 	}
 	if (check_u32_expr(expr->snd_context, sctp_sndinfo->snd_context,
 			   "sctp_sndinfo.snd_context", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->snd_assoc_id, sctp_sndinfo->snd_assoc_id,
+			   "sctp_sndinfo.snd_assoc_id", error))
 		return STATUS_ERR;
 
 	return STATUS_OK;
@@ -2330,7 +2643,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_SNDINFO:
 		live_optval = malloc(sizeof(struct sctp_sndinfo));
 		live_optlen = sizeof(struct sctp_sndinfo);
-		((struct sctp_sndinfo *)live_optval)->snd_assoc_id = 0;
+		if (get_u32(val_expression->value.sctp_sndinfo->snd_assoc_id,
+			    &((struct sctp_sndinfo *)live_optval)->snd_assoc_id,
+			    error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
@@ -2714,7 +3032,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	case EXPR_SCTP_SNDINFO:
-		sndinfo.snd_assoc_id = 0;
 		if (get_u16(val_expression->value.sctp_sndinfo->snd_sid,
 			    &sndinfo.snd_sid, error)) {
 			return STATUS_ERR;
@@ -2729,6 +3046,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		if (get_u32(val_expression->value.sctp_sndinfo->snd_context,
 			    &sndinfo.snd_context, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_sndinfo->snd_assoc_id,
+			    &sndinfo.snd_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 		optval = &sndinfo;
@@ -2981,68 +3302,6 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 	return STATUS_OK;
 }
 
-static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *live_addr, char **error) {
-
-	if (sockaddr_expr->type != EXPR_ELLIPSIS) {
-		struct sockaddr *script_addr;
-		if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
-			script_addr = (struct sockaddr*)sockaddr_expr->value.socket_address_ipv4;
-		} else if (sockaddr_expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-			script_addr = (struct sockaddr*)sockaddr_expr->value.socket_address_ipv6;
-		} else {
-			asprintf(error, "Bad type for sockaddr");
-			return STATUS_ERR;
-		}
-		if (script_addr->sa_family != live_addr->sa_family) {
-			asprintf(error, "sockaddr sa_family expected: %d actual: %d",
-				 script_addr->sa_family, live_addr->sa_family);
-			return STATUS_ERR;
-		}
-		switch(script_addr->sa_family) {
-		case AF_INET:
-			{
-				struct sockaddr_in *script_sockaddr = (struct sockaddr_in*)script_addr;
-				struct sockaddr_in *live_sockaddr = (struct sockaddr_in*)live_addr;
-				if (live_sockaddr->sin_port != script_sockaddr->sin_port) {
-					asprintf(error, "sockaddr_in from.sinport. expected: %d actual %d",
-						ntohs(script_sockaddr->sin_port), ntohs(live_sockaddr->sin_port));
-					return STATUS_ERR;
-				}
-				if (live_sockaddr->sin_addr.s_addr != script_sockaddr->sin_addr.s_addr) {
-					int len = strnlen(inet_ntoa(script_sockaddr->sin_addr), 16);
-					char *expected_addr = malloc(sizeof(char) * len);
-					memcpy(expected_addr, inet_ntoa(script_sockaddr->sin_addr), len);
-					asprintf(error, "sockaddr_in from.sin_addr. expected: %s actual %s",
-						expected_addr, inet_ntoa(live_sockaddr->sin_addr));
-					free(expected_addr);
-					return STATUS_ERR;
-				}
-			}
-			break;
-		case AF_INET6:
-			{
-				struct sockaddr_in6 *script_sockaddr = (struct sockaddr_in6*)script_addr;
-				struct sockaddr_in6 *live_sockaddr = (struct sockaddr_in6*)live_addr;
-				if (live_sockaddr->sin6_port != script_sockaddr->sin6_port) {
-					asprintf(error, "sockaddr_in6 from.sinport. expected: %d actual %d",
-						ntohs(script_sockaddr->sin6_port), ntohs(live_sockaddr->sin6_port));
-					return STATUS_ERR;
-				}
-				if (live_sockaddr->sin6_addr.s6_addr != script_sockaddr->sin6_addr.s6_addr) {
-					char expected_addr[INET6_ADDRSTRLEN];
-					char live_addr[INET6_ADDRSTRLEN];
-					inet_ntop(AF_INET6, &script_sockaddr->sin6_addr, expected_addr, INET6_ADDRSTRLEN);
-					inet_ntop(AF_INET6, &live_sockaddr->sin6_addr, live_addr, INET6_ADDRSTRLEN);
-					asprintf(error, "sockaddr_in6 from.sin6_addr. expected: %s actual %s",
-						 expected_addr, live_addr);
-					return STATUS_ERR;
-				}
-			}
-			break;
-		}
-	}
-	return STATUS_OK;
-}
 #endif
 
 static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscall,
@@ -3127,7 +3386,6 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
 	if (expr->type == EXPR_SCTP_SNDINFO) {
 		struct sctp_sndinfo_expr *sndinfo_expr = expr->value.sctp_sndinfo;
-		info->snd_assoc_id = 0;
 		if (get_u16(sndinfo_expr->snd_sid, &info->snd_sid, error)) {
 			return STATUS_ERR;
 		}
@@ -3138,6 +3396,9 @@ static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp
 			return STATUS_ERR;
 		}
 		if (get_u32(sndinfo_expr->snd_context, &info->snd_context, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndinfo_expr->snd_assoc_id, &info->snd_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 	} else {
@@ -3792,7 +4053,6 @@ static int check_sctp_notification(struct iovec *iov,
 				return STATUS_ERR;
 			break;
 		case EXPR_ELLIPSIS:
-			printf("check Ellipsis\n");
 			break;
 		default:
 			asprintf(error, "Bad type for iov_base. Can't check type %s",

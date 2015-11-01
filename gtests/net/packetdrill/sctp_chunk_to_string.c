@@ -338,6 +338,27 @@ static int sctp_unknown_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_adaptation_indication_parameter_to_string(
+	FILE *s,
+	struct sctp_adaptation_indication_parameter *parameter,
+	char **error)
+{
+	u16 length;
+
+	length = ntohs(parameter->length);
+	if (length < sizeof(struct sctp_adaptation_indication_parameter)) {
+		asprintf(error, "PARAMETER too short (type=0x%04x, length=%u)",
+			 ntohs(parameter->type), length);
+		return STATUS_ERR;
+	}
+	fputs("ADAPTATION_INDICATION[", s);
+	fprintf(s, "type=0x%04x, ", ntohs(parameter->type));
+	fprintf(s, "len=%hu, ", ntohs(parameter->length));
+	fprintf(s, "val=%u", ntohl(parameter->adaptation_code_point));
+	fputs("]", s);
+	return STATUS_OK;
+}
+
 static int sctp_parameter_to_string(FILE *s,
 				    struct sctp_parameter *parameter,
 				    char **error)
@@ -393,6 +414,10 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_PAD_PARAMETER_TYPE:
 		result = sctp_pad_parameter_to_string(s,
 			(struct sctp_pad_parameter *)parameter, error);
+		break;
+	case SCTP_ADAPTATION_INDICATION_PARAMETER_TYPE:
+		result = sctp_adaptation_indication_parameter_to_string(s,
+			(struct sctp_adaptation_indication_parameter *)parameter, error);
 		break;
 	default:
 		result = sctp_unknown_parameter_to_string(s, parameter, error);
