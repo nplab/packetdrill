@@ -204,7 +204,6 @@ static int check_type(struct expression *expression,
 	}
 }
 
-#if defined(SCTP_RTOINFO) || defined(SCTP_STATUS) || defined(SCTP_PEER_ADDR_PARAMS) || defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 /* Sets the value from the expression argument, checking that it is a
  * valid u32, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -224,7 +223,6 @@ static int get_u32(struct expression *expression,
 	*value = expression->value.num;
 	return STATUS_OK;
 }
-#endif
 
 /* Sets the value from the expression argument, checking that it is a
  * valid s32 or u32, and matches the expected type. Returns STATUS_OK on
@@ -431,6 +429,7 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 }
 #endif
 
+#if defined(__FreeBSD__) || defined(linux)
 static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *live_addr, char **error) {
 
 	if (sockaddr_expr->type != EXPR_ELLIPSIS) {
@@ -493,6 +492,7 @@ static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *liv
 	}
 	return STATUS_OK;
 }
+#endif
 
 #if defined(__FreeBSD__) || defined(linux)
 int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **error) {
@@ -543,7 +543,6 @@ int check_s32_expr(struct expression *expr, s16 value, char *val_name, char **er
 	return STATUS_OK;
 }
 
-#if defined(__FreeBSD__) || defined(linux)
 int check_u32_expr(struct expression *expr, u32 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u32 script_val;
@@ -558,7 +557,6 @@ int check_u32_expr(struct expression *expr, u32 value, char *val_name, char **er
 	}
 	return STATUS_OK;
 }
-#endif
 
 #if defined(__FreeBSD__) || defined(linux)
 static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
@@ -675,7 +673,7 @@ error_out:
 	return status;
 }
 
-/* Allocate and fill in an 
+/* Allocate and fill in an
 cmsghdr described by the given expression.
  * Return STATUS_OK if the expression is a valid cmsghdr. Otherwise
  * fill in the error with a human-readable error message and return
@@ -702,21 +700,31 @@ static int cmsg_new(struct expression *expression,
 		struct expression *cmsg_expr;
 		cmsg_expr = get_arg(list, i, error);
 		switch (cmsg_expr->value.cmsghdr->cmsg_data->type) {
+#if defined(SCTP_SNDINFO)
 		case EXPR_SCTP_SNDINFO:
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_sndinfo));
 			break;
+#endif
+#if defined(SCTP_PRINFO)
 		case EXPR_SCTP_PRINFO:
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_prinfo));
 			break;
+#endif
+#if defined(SCTP_AUTHINFO)
 		case EXPR_SCTP_AUTHINFO:
 			cmsg_size += CMSG_SPACE(sizeof(struct sctp_authinfo));
 			break;
+#endif
+#if defined(SCTP_DSTADDRV4)
 		case EXPR_SOCKET_ADDRESS_IPV4:
 			cmsg_size += CMSG_SPACE(sizeof(struct in_addr));
 			break;
+#endif
+#if defined(SCTP_DSTADDRV6)
 		case EXPR_SOCKET_ADDRESS_IPV6:
 			cmsg_size += CMSG_SPACE(sizeof(struct in6_addr));
 			break;
+#endif
 		default:
 			asprintf(error,"cmsg %d type not valid", i);
 			return STATUS_ERR;
@@ -726,7 +734,7 @@ static int cmsg_new(struct expression *expression,
 	*cmsg_len_ptr = cmsg_size;
 	cmsg = calloc(1, cmsg_size);
 	*cmsg_ptr = (void *)cmsg;
-		
+
 	for (i = 0; i < list_len; i++) {
 		struct expression *expr;
 		struct cmsghdr_expr *cmsg_expr;
@@ -743,41 +751,51 @@ static int cmsg_new(struct expression *expression,
 			goto error_out;
 
 		switch(cmsg_expr->cmsg_data->type) {
+#if defined(SCTP_SNDINFO)
 		case EXPR_SCTP_SNDINFO: {
-			struct sctp_sndinfo info;			
+			struct sctp_sndinfo info;
 			if (parse_expression_to_sctp_sndinfo(cmsg_expr->cmsg_data, &info, error)) {
 				goto error_out;
 			}
-			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_sndinfo)); 
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_sndinfo));
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_sndinfo)));
 			break;
 		}
+#endif
+#if defined(SCTP_PRINFO)
 		case EXPR_SCTP_PRINFO: {
-			struct sctp_prinfo info;			
+			struct sctp_prinfo info;
 			if (parse_expression_to_sctp_prinfo(cmsg_expr->cmsg_data, &info, error)) {
 				goto error_out;
 			}
-			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_prinfo)); 
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_prinfo));
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_prinfo)));
 			break;
-		}		
+		}
+#endif
+#if defined(SCTP_AUTHINFO)
 		case EXPR_SCTP_AUTHINFO: {
-			struct sctp_authinfo info;			
+			struct sctp_authinfo info;
 			if (parse_expression_to_sctp_authinfo(cmsg_expr->cmsg_data, &info, error)) {
 				goto error_out;
 			}
-			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_authinfo)); 
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_authinfo));
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_authinfo)));
 			break;
-		}		
+		}
+#endif
+#if defined(SCTP_DSTADDRV4)
 		case EXPR_SOCKET_ADDRESS_IPV4:
 			memcpy(CMSG_DATA(cmsg), &cmsg_expr->cmsg_data->value.socket_address_ipv4->sin_addr, sizeof(struct in_addr));
 			cmsg = (struct cmsghdr *)((caddr_t)cmsg + CMSG_SPACE(sizeof(struct in_addr)));
 			break;
+#endif
+#if defined(SCTP_DSTADDRV6)
 		case EXPR_SOCKET_ADDRESS_IPV6:
 			memcpy(CMSG_DATA(cmsg), &cmsg_expr->cmsg_data->value.socket_address_ipv6->sin6_addr, sizeof(struct in6_addr));
 			cmsg = (struct cmsghdr *)((caddr_t)cmsg + CMSG_SPACE(sizeof(struct in6_addr)));
 			break;
+#endif
 		default:
 			asprintf(error,"cmsg.cmsg_data %d type not valid", i);
 			goto error_out;
@@ -863,7 +881,7 @@ static int msghdr_new(struct expression *expression,
 
 	if (msg->msg_controllen != cmsg_len) {
 		asprintf(error,
-			 "msg_controllen %u does not match %u size of cmsghdr array",
+			 "msg_controllen %u does not match %zu size of cmsghdr array",
 			 msg->msg_controllen, cmsg_len);
 		goto error_out;
 	}
@@ -1971,7 +1989,7 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 							 expected_addr, live_addr);
 						return STATUS_ERR;
 					}
-					
+
 				}
 				break;
 #endif
@@ -1982,7 +2000,7 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 		}
 		cnt++;
 	}
-	return STATUS_OK;	
+	return STATUS_OK;
 }
 
 static int syscall_sendmsg(struct state *state, struct syscall_spec *syscall,
@@ -2020,7 +2038,7 @@ static int syscall_sendmsg(struct state *state, struct syscall_spec *syscall,
 	}
 
 	begin_syscall(state, syscall);
-	
+
 	result = sendmsg(live_fd, msg, flags);
 
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
