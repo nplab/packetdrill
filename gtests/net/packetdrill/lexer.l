@@ -274,6 +274,7 @@ sinfo_context			return SINFO_CONTEXT;
 sinfo_timetolive		return SINFO_TIMETOLIVE;
 sinfo_tsn			return SINFO_TSN;
 sinfo_cumtsn			return SINFO_CUMTSN;
+sinfo_assoc_id			return SINFO_ASSOC_ID;
 pr_policy			return PR_POLICY;
 pr_value			return PR_VALUE;
 sendv_flags			return SENDV_FLAGS;
