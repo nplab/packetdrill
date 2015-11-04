@@ -58,18 +58,18 @@ struct sctp_tlv {
 #if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
-#endif
-#if defined(__FreeBSD__)
 static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init,
 				            char **error);
+static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct sctp_sndrcvinfo *info,
+					       char **error);
+#endif
+#if defined(__FreeBSD__)
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_authinfo(struct expression *expr, struct sctp_authinfo *info,
 				             char **error);
-static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct sctp_sndrcvinfo *info,
-					       char **error);
 #endif
 #if defined(SCTP_DEFAULT_SNDINFO) || defined(SCTP_SNDINFO)
 static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr, struct sctp_sndinfo *sctp_sndinfo,
@@ -79,7 +79,7 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr, struct sctp_sndinf
 static int check_sctp_initmsg(struct sctp_initmsg_expr *expr, struct sctp_initmsg *sctp_initmsg,
 			      char **error);
 #endif
-#if defined(Linux) || defined(__FreeBSD__)
+#if defined(linux) || defined(__FreeBSD__)
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error);
@@ -3453,31 +3453,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-#if defined(__FreeBSD__)
-static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
-	if (expr->type == EXPR_SCTP_SNDINFO) {
-		struct sctp_sndinfo_expr *sndinfo_expr = expr->value.sctp_sndinfo;
-		if (get_u16(sndinfo_expr->snd_sid, &info->snd_sid, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u16(sndinfo_expr->snd_flags, &info->snd_flags, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(sndinfo_expr->snd_ppid, &info->snd_ppid, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(sndinfo_expr->snd_context, &info->snd_context, error)) {
-			return STATUS_ERR;
-		}
-		if (get_u32(sndinfo_expr->snd_assoc_id, &info->snd_assoc_id, error)) {
-			return STATUS_ERR;
-		}
-	} else {
-		return STATUS_ERR;
-	}
-	return STATUS_OK;
-}
-
+#if defined(__FreeBSD__) || defined(linux)
 static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init, char **error) {
 	if (expr->type == EXPR_SCTP_INITMSG) {
 		struct sctp_initmsg_expr *init_expr = expr->value.sctp_initmsg;
@@ -3526,7 +3502,33 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct s
 		if (get_u32(sndrcvinfo_expr->sinfo_cumtsn, &info->sinfo_cumtsn, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u32(sndrcvinfo_expr->sinfo_assoc_id, &info->sinfo_assoc_id, error)) {
+		if (get_u32(sndrcvinfo_expr->sinfo_assoc_id, (u32 *)&info->sinfo_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+	} else {
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+#endif
+
+#if defined(__FreeBSD__)
+static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
+	if (expr->type == EXPR_SCTP_SNDINFO) {
+		struct sctp_sndinfo_expr *sndinfo_expr = expr->value.sctp_sndinfo;
+		if (get_u16(sndinfo_expr->snd_sid, &info->snd_sid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(sndinfo_expr->snd_flags, &info->snd_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndinfo_expr->snd_ppid, &info->snd_ppid, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndinfo_expr->snd_context, &info->snd_context, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(sndinfo_expr->snd_assoc_id, &info->snd_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 	} else {
