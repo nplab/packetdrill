@@ -98,6 +98,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
 	{ EXPR_SCTP_SEND_FAILED_EVENT,"sctp_send_failed_event"},
 	{ EXPR_SCTP_TLV,             "sctp_tlv"        },
+	{ EXPR_SCTP_EXTRCVINFO,      "sctp_extrcvinfo" },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -432,12 +433,14 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_rcvinfo->rcv_tsn);
 		free_expression(expression->value.sctp_rcvinfo->rcv_cumtsn);
 		free_expression(expression->value.sctp_rcvinfo->rcv_context);
+		free_expression(expression->value.sctp_rcvinfo->rcv_assoc_id);
 		break;
 	case EXPR_SCTP_NXTINFO:
 		free_expression(expression->value.sctp_nxtinfo->nxt_sid);
 		free_expression(expression->value.sctp_nxtinfo->nxt_flags);
 		free_expression(expression->value.sctp_nxtinfo->nxt_ppid);
 		free_expression(expression->value.sctp_nxtinfo->nxt_length);
+		free_expression(expression->value.sctp_nxtinfo->nxt_assoc_id);
 		break;
 	case EXPR_SCTP_RECVV_RN:
 		free_expression(expression->value.sctp_recvv_rn->recvv_rcvinfo);
@@ -528,6 +531,22 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_tlv->sn_type);
 		free_expression(expression->value.sctp_tlv->sn_flags);
 		free_expression(expression->value.sctp_tlv->sn_length);
+		break;
+	case EXPR_SCTP_EXTRCVINFO:
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_stream);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_ssn);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_flags);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_ppid);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_context);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_pr_value);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_tsn);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_cumtsn);
+		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_flags);
+		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_stream);
+		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_aid);
+		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_length);
+		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_ppid);
+		free_expression(expression->value.sctp_extrcvinfo->sinfo_assoc_id);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -1420,6 +1439,10 @@ static int evaluate_sctp_rcvinfo_expression(struct expression *in,
 		     &out_info->rcv_context,
 		     error))
 		return STATUS_ERR;
+        if (evaluate(in_info->rcv_assoc_id,
+		     &out_info->rcv_assoc_id,
+		     error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
@@ -1454,6 +1477,10 @@ static int evaluate_sctp_nxtinfo_expression(struct expression *in,
 		return STATUS_ERR;
         if (evaluate(in_info->nxt_length,
 		     &out_info->nxt_length,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->nxt_assoc_id,
+		     &out_info->nxt_assoc_id,
 		     error))
 		return STATUS_ERR;
 	return STATUS_OK;
@@ -1961,6 +1988,82 @@ static int evaluate_sctp_tlv_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_extrcvinfo_expression(struct expression *in,
+					       struct expression *out,
+					       char **error)
+{
+	struct sctp_extrcvinfo_expr *in_info;
+	struct sctp_extrcvinfo_expr *out_info;
+
+	assert(in->type == EXPR_SCTP_EXTRCVINFO);
+	assert(in->value.sctp_extrcvinfo);
+	assert(out->type == EXPR_SCTP_EXTRCVINFO);
+
+	out->value.sctp_extrcvinfo = calloc(1, sizeof(struct sctp_extrcvinfo_expr));
+
+	in_info = in->value.sctp_extrcvinfo;
+	out_info = out->value.sctp_extrcvinfo;
+
+	if (evaluate(in_info->sinfo_stream,
+		     &out_info->sinfo_stream,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_ssn,
+		     &out_info->sinfo_ssn,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_flags,
+		     &out_info->sinfo_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_ppid,
+		     &out_info->sinfo_ppid,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_context,
+		     &out_info->sinfo_context,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_pr_value,
+		     &out_info->sinfo_pr_value,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_tsn,
+		     &out_info->sinfo_tsn,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_cumtsn,
+		     &out_info->sinfo_cumtsn,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->serinfo_next_flags,
+		     &out_info->serinfo_next_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->serinfo_next_stream,
+		     &out_info->serinfo_next_stream,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->serinfo_next_aid,
+		     &out_info->serinfo_next_aid,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->serinfo_next_length,
+		     &out_info->serinfo_next_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->serinfo_next_ppid,
+		     &out_info->serinfo_next_ppid,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_info->sinfo_assoc_id,
+		     &out_info->sinfo_assoc_id,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2078,6 +2181,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_TLV:
 		result = evaluate_sctp_tlv_expression(in, out, error);
+		break;
+	case EXPR_SCTP_EXTRCVINFO:
+		result = evaluate_sctp_extrcvinfo_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;
