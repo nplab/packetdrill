@@ -83,11 +83,11 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr, struct sctp_initms
 static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr, struct sctp_extrcvinfo *sctp_info,
 				 char **error);
 #endif
-#if defined(linux) || defined(__FreeBSD__)
+#if defined(__FreeBSD__)
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr, struct sctp_rcvinfo *sctp_rcvinfo,
 				 char** error);
 #endif
-#if defined(Linux) || defined(__FreeBSD__)
+#if defined(__FreeBSD__)
 static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr, struct sctp_nxtinfo *sctp_nxtinfo,
 			      char **error);
 #endif
@@ -818,30 +818,30 @@ static int cmsg_new(struct expression *expression,
 		switch(cmsg_expr->cmsg_data->type) {
 #if defined(SCTP_INIT)
 		case EXPR_SCTP_INITMSG: {
-			struct sctp_initmsg init;			
+			struct sctp_initmsg init;
 			if (parse_expression_to_sctp_initmsg(cmsg_expr->cmsg_data, &init, error)) {
 				goto error_out;
 			}
-			memcpy(CMSG_DATA(cmsg), &init, sizeof(struct sctp_initmsg)); 
+			memcpy(CMSG_DATA(cmsg), &init, sizeof(struct sctp_initmsg));
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_initmsg)));
 			break;
 		}
 #endif
 #if defined(SCTP_SNDRCV)
 		case EXPR_SCTP_SNDRCVINFO: {
-			struct sctp_sndrcvinfo info;			
+			struct sctp_sndrcvinfo info;
 			if (parse_expression_to_sctp_sndrcvinfo(cmsg_expr->cmsg_data, &info, error)) {
 				goto error_out;
 			}
-			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_sndrcvinfo)); 
+			memcpy(CMSG_DATA(cmsg), &info, sizeof(struct sctp_sndrcvinfo));
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_sndrcvinfo)));
-			break;		
+			break;
 		}
 #endif
 #if defined(SCTP_EXTRCV)
 		case EXPR_SCTP_EXTRCVINFO: {
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_extrcvinfo)));
-			break;		
+			break;
 		}
 #endif
 #if defined(SCTP_SNDINFO)
