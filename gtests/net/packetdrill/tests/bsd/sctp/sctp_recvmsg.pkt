@@ -17,7 +17,7 @@
 
 +0.0 < sctp: DATA[flgs=BE, len=1016, tsn=2, sid=0, ssn=1, ppid=1234]
 *    > sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=..., gaps=[], dups=[]]
-+0.0 sctp_recvmsg(3, ..., 1000, ..., ..., {sinfo_stream=0, sinfo_ssn=1, sinfo_flags=0, sinfo_ppid=htonl(1234), sinfo_context=0, sinfo_timetolive=0, sinfo_tsn=2, 
++0.0 sctp_recvmsg(3, ..., 1000, ..., ..., {sinfo_stream=0, sinfo_ssn=1, sinfo_flags=0, sinfo_ppid=htonl(1234), sinfo_context=0, sinfo_timetolive=0, sinfo_tsn=2,
 sinfo_cumtsn=2, sinfo_assoc_id=3}, 8) = 1000
 
 +0.0 < sctp: DATA[flgs=BE, len=1016, tsn=3, sid=0, ssn=2, ppid=0]
