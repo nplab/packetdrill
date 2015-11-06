@@ -599,7 +599,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression_list> expression_list function_arguments
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer data
-%type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data 
+%type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data
 %type <expression> iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
@@ -3288,17 +3288,7 @@ snd_sid
 ;
 
 snd_flags
-: SND_FLAGS '=' INTEGER {
-	if (!is_valid_u16($3)) {
-		semantic_error("snd_flags out of range");
-	}
-	$$ = new_integer_expression($3, "%hu");
-}
-| SND_FLAGS '=' WORD {
-	$$ = new_expression(EXPR_WORD);
-	$$->value.string = $3;
-}
-| SND_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+: SND_FLAGS '=' expression { $$ = $3; }
 ;
 
 snd_ppid
@@ -3380,17 +3370,7 @@ sinfo_ssn
 ;
 
 sinfo_flags
-: SINFO_FLAGS '=' INTEGER {
-	if (!is_valid_u16($3)) {
-		semantic_error("sinfo_flags out of range");
-	}
-	$$ = new_integer_expression($3, "%u");
-}
-| SINFO_FLAGS'=' WORD {
-	$$ = new_expression(EXPR_WORD);
-	$$->value.string = $3;
-}
-| SINFO_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+: SINFO_FLAGS '=' expression { $$ = $3; }
 ;
 
 sinfo_ppid
@@ -3489,18 +3469,7 @@ serinfo_next_stream
 ;
 
 serinfo_next_flags
-: SERINFO_NEXT_FLAGS '=' WORD {
-	$$ = new_expression(EXPR_WORD);
-	$$->value.string = $3;
-}
-| SERINFO_NEXT_FLAGS '=' INTEGER {
-	if (!is_valid_u16($3)) {
-		semantic_error("serinfo_next_flags out of range");
-	}
-	$$ = new_integer_expression($3, "%hu");
-}
-| SERINFO_NEXT_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
-;
+: SERINFO_NEXT_FLAGS '=' expression { $$ = $3; }
 
 serinfo_next_aid
 : SERINFO_NEXT_AID '=' INTEGER {
@@ -3532,7 +3501,7 @@ serinfo_next_ppid
 ;
 
 sctp_extrcvinfo
-: '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_pr_value ',' sinfo_tsn ',' sinfo_cumtsn ',' 
+: '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_pr_value ',' sinfo_tsn ',' sinfo_cumtsn ','
 serinfo_next_flags ',' serinfo_next_stream ',' serinfo_next_aid ',' serinfo_next_length ',' serinfo_next_ppid ',' sinfo_assoc_id '}' {
 	$$ = new_expression(EXPR_SCTP_EXTRCVINFO);
 	$$->value.sctp_extrcvinfo = calloc(1, sizeof(struct sctp_extrcvinfo_expr));
@@ -3574,13 +3543,7 @@ rcv_ssn
 ;
 
 rcv_flags
-: RCV_FLAGS '=' INTEGER {
-	if (!is_valid_u16($3)) {
-		semantic_error("rcv_flags out of range");
-	}
-	$$ = new_integer_expression($3, "%u");
-}
-| RCV_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+: RCV_FLAGS '=' expression { $$ = $3; }
 ;
 
 rcv_ppid
@@ -3706,17 +3669,7 @@ nxt_sid
 ;
 
 nxt_flags
-: NXT_FLAGS '=' INTEGER {
-	if (!is_valid_u16($3)) {
-		semantic_error("nxt_flags out of range");
-	}
-	$$ = new_integer_expression($3, "%u");
-}
-| NXT_FLAGS '=' WORD {
-	$$ = new_expression(EXPR_WORD);
-	$$->value.string = $3;
-}
-| NXT_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+: NXT_FLAGS '=' expression { $$ = $3; }
 ;
 
 nxt_ppid
@@ -3729,7 +3682,7 @@ nxt_ppid
 | NXT_PPID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
-nxt_length 
+nxt_length
 : NXT_LENGTH '=' INTEGER {
 	if (!is_valid_u32($3)) {
 		semantic_error("nxt_length out of range");
@@ -3770,7 +3723,7 @@ sctp_recvv_rn
 }
 ;
 
-sse_type 
+sse_type
 : SSE_TYPE '=' INTEGER {
 	if (!is_valid_u16($3)) {
 		semantic_error("sse_type out of range");
@@ -3784,7 +3737,7 @@ sse_type
 | SSE_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
-sse_flags 
+sse_flags
 : SSE_FLAGS '=' INTEGER {
 	if (!is_valid_u16($3)) {
 		semantic_error("sse_flags out of range");
@@ -3794,7 +3747,7 @@ sse_flags
 | SSE_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
-sse_length 
+sse_length
 : SSE_LENGTH '=' INTEGER {
 	if (!is_valid_u32($3)) {
 		semantic_error("sse_length out of range");
