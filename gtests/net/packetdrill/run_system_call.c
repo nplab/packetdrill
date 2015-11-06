@@ -3478,16 +3478,38 @@ static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr,
 	if (check_u32_expr(expr->sinfo_context, sctp_extrcvinfo->sinfo_context,
 			   "sctp_extrcvinfo.sinfo_context", error))
 		return STATUS_ERR;
-	//Name not like RFC
+#if __FreeBSD_version >= 1003000
+	if (check_u32_expr(expr->sinfo_pr_value, sctp_extrcvinfo->sinfo_pr_value,
+			   "sctp_extrcvinfo.sinfo_pr_value", error))
+		return STATUS_ERR;
+#else
 	if (check_u32_expr(expr->sinfo_pr_value, sctp_extrcvinfo->sinfo_timetolive,
 			   "sctp_extrcvinfo.sinfo_pr_value", error))
 		return STATUS_ERR;
+#endif
 	if (check_u32_expr(expr->sinfo_tsn, sctp_extrcvinfo->sinfo_tsn,
 			   "sctp_extrcvinfo.sinfo_tsn", error))
 		return STATUS_ERR;
 	if (check_u32_expr(expr->sinfo_cumtsn, sctp_extrcvinfo->sinfo_cumtsn,
 			   "sctp_extrcvinfo.sinfo_cumtsn", error))
 		return STATUS_ERR;
+#if __FreeBSD_version >= 1003000
+	if (check_u16_expr(expr->serinfo_next_flags, sctp_extrcvinfo->serinfo_next_flags,
+			   "sctp_extrcvinfo.serinfo_next_flags", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->serinfo_next_stream, sctp_extrcvinfo->serinfo_next_stream,
+			   "sctp_extrcvinfo.serinfo_next_stream", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->serinfo_next_aid, sctp_extrcvinfo->serinfo_next_aid,
+			   "sctp_extrcvinfo.serinfo_next_aid", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->serinfo_next_length, sctp_extrcvinfo->serinfo_next_length,
+			   "sctp_extrcvinfo.serinfo_next_length", error))
+		return STATUS_ERR;
+	if (check_u32_hton_expr(expr->serinfo_next_ppid, sctp_extrcvinfo->serinfo_next_ppid,
+			   "sctp_extrcvinfo.serinfo_next_ppid", error))
+		return STATUS_ERR;
+#else
 	if (check_u16_expr(expr->serinfo_next_flags, sctp_extrcvinfo->sreinfo_next_flags,
 			   "sctp_extrcvinfo.serinfo_next_flags", error))
 		return STATUS_ERR;
@@ -3503,6 +3525,7 @@ static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr,
 	if (check_u32_hton_expr(expr->serinfo_next_ppid, sctp_extrcvinfo->sreinfo_next_ppid,
 			   "sctp_extrcvinfo.serinfo_next_ppid", error))
 		return STATUS_ERR;
+#endif
 	if (check_u32_expr(expr->sinfo_assoc_id, sctp_extrcvinfo->sinfo_assoc_id,
 			   "sctp_extrcvinfo.sinfo_assoc_id", error))
 		return STATUS_ERR;
