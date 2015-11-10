@@ -230,6 +230,25 @@ static int check_type(struct expression *expression,
 }
 
 /* Sets the value from the expression argument, checking that it is a
+ * valid size_t, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static int get_size_t(struct expression *expression,
+		      size_t *value, char **error)
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if (expression->value.num < 0) {
+		asprintf(error,
+			 "Value out of range for size_t: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+
+/* Sets the value from the expression argument, checking that it is a
  * valid u32, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
@@ -808,7 +827,7 @@ static int cmsg_new(struct expression *expression,
 		if(check_type(expr, EXPR_CMSGHDR, error))
 			goto error_out;
 		cmsg_expr = expr->value.cmsghdr;
-		if (get_u32(cmsg_expr->cmsg_len, &cmsg->cmsg_len, error))
+		if (get_size_t(cmsg_expr->cmsg_len, &cmsg->cmsg_len, error))
 			goto error_out;
 		if (get_s32(cmsg_expr->cmsg_level, &cmsg->cmsg_level, error))
 			goto error_out;
@@ -1131,13 +1150,13 @@ static int msghdr_new(struct expression *expression,
 	}
 
 	if (msg_expr->msg_controllen != NULL) {
-		if (get_u32(msg_expr->msg_controllen, &msg->msg_controllen, error))
+		if (get_size_t(msg_expr->msg_controllen, &msg->msg_controllen, error))
 			goto error_out;
 	}
 
 	if (msg->msg_controllen != cmsg_len) {
 		asprintf(error,
-			 "msg_controllen %u does not match %zu size of cmsghdr array",
+			 "msg_controllen %zu does not match %zu size of cmsghdr array",
 			 msg->msg_controllen, cmsg_len);
 		goto error_out;
 	}
