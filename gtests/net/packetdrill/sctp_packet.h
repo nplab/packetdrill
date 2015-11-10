@@ -187,6 +187,7 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
 #define FLAG_CHUNK_FLAGS_NOCHECK                0x00000002
 #define FLAG_CHUNK_LENGTH_NOCHECK               0x00000004
 #define FLAG_CHUNK_VALUE_NOCHECK                0x00000008
+#define FLAG_CHUNK_IS_GENERIC_CHUNK		0x00000010
 
 struct sctp_chunk_list_item *
 sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,

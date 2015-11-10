@@ -2479,6 +2479,10 @@ static int send_live_ip_packet(struct netdev *netdev,
 	return netdev_send(netdev, packet);
 }
 
+static inline bool is_generic_chunk(struct sctp_chunk_list_item *item) {
+	return item->flags & FLAG_CHUNK_IS_GENERIC_CHUNK;
+}
+
 /* Perform the action implied by an inbound packet in a script */
 static int do_inbound_script_packet(
 	struct state *state, struct packet *packet,
@@ -2559,6 +2563,10 @@ static int do_inbound_script_packet(
 				}
 				break;
 			case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
+				if (is_generic_chunk(item)) {
+					break;
+				}
+
 				temp_offset = socket->prepared_heartbeat_ack_length - item->length;
 				assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
 				memmove((u8 *)item->chunk + item->length + temp_offset,
