@@ -2479,10 +2479,6 @@ static int send_live_ip_packet(struct netdev *netdev,
 	return netdev_send(netdev, packet);
 }
 
-static inline bool is_generic_chunk(struct sctp_chunk_list_item *item) {
-	return item->flags & FLAG_CHUNK_IS_GENERIC_CHUNK;
-}
-
 /* Perform the action implied by an inbound packet in a script */
 static int do_inbound_script_packet(
 	struct state *state, struct packet *packet,
@@ -2563,37 +2559,35 @@ static int do_inbound_script_packet(
 				}
 				break;
 			case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
-				if (is_generic_chunk(item)) {
-					break;
-				}
-
-				temp_offset = socket->prepared_heartbeat_ack_length - item->length;
-				assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
-				memmove((u8 *)item->chunk + item->length + temp_offset,
-					(u8 *)item->chunk + item->length,
-					packet_end(packet) - ((u8 *)item->chunk + item->length));
-				memcpy(item->chunk,
-				       socket->prepared_heartbeat_ack,
-				       socket->prepared_heartbeat_ack_length);
-				item->length = socket->prepared_heartbeat_ack_length;
-				packet->buffer_bytes += temp_offset;
-				packet->ip_bytes += temp_offset;
-				if (packet->ipv4) {
-					packet->ipv4->tot_len = htons(ntohs(packet->ipv4->tot_len) + temp_offset);
-				}
-				if (packet->ipv6) {
-					packet->ipv6->payload_len = htons(ntohs(packet->ipv6->payload_len) + temp_offset);
-				}
-				for (i = 0; i < PACKET_MAX_HEADERS; i++) {
-					if ((packet->ipv4 != NULL && packet->headers[i].h.ipv4 == packet->ipv4) ||
-					    (packet->ipv6 != NULL && packet->headers[i].h.ipv6 == packet->ipv6)) {
-						break;
+				if (item->flags & FLAG_CHUNK_VALUE_NOCHECK) {
+					temp_offset = socket->prepared_heartbeat_ack_length - item->length;
+					assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
+					memmove((u8 *)item->chunk + item->length + temp_offset,
+						(u8 *)item->chunk + item->length,
+						packet_end(packet) - ((u8 *)item->chunk + item->length));
+					memcpy(item->chunk,
+					       socket->prepared_heartbeat_ack,
+					       socket->prepared_heartbeat_ack_length);
+					item->length = socket->prepared_heartbeat_ack_length;
+					packet->buffer_bytes += temp_offset;
+					packet->ip_bytes += temp_offset;
+					if (packet->ipv4) {
+						packet->ipv4->tot_len = htons(ntohs(packet->ipv4->tot_len) + temp_offset);
 					}
+					if (packet->ipv6) {
+						packet->ipv6->payload_len = htons(ntohs(packet->ipv6->payload_len) + temp_offset);
+					}
+					for (i = 0; i < PACKET_MAX_HEADERS; i++) {
+						if ((packet->ipv4 != NULL && packet->headers[i].h.ipv4 == packet->ipv4) ||
+						    (packet->ipv6 != NULL && packet->headers[i].h.ipv6 == packet->ipv6)) {
+							break;
+						}
+					}
+					assert(packet->headers[i + 1].type == HEADER_SCTP);
+					packet->headers[i].total_bytes += temp_offset;
+					packet->headers[i + 1].total_bytes += temp_offset;
+					offset += temp_offset;
 				}
-				assert(packet->headers[i + 1].type == HEADER_SCTP);
-				packet->headers[i].total_bytes += temp_offset;
-				packet->headers[i + 1].total_bytes += temp_offset;
-				offset += temp_offset;
 				break;
 			default:
 				item->chunk = (struct sctp_chunk *)((char *)item->chunk + offset);
