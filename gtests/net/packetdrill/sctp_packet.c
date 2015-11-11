@@ -325,7 +325,6 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 	u16 length, padding_length, i;
 
 	flags = 0;
-
 	if (bytes == NULL) {
 		flags |= FLAG_CHUNK_VALUE_NOCHECK;
 	}
