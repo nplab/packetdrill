@@ -233,6 +233,26 @@ static int check_type(struct expression *expression,
  * valid size_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
+static int get_socklen_t(struct expression *expression,
+		         socklen_t *value, char **error)
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if (expression->value.num < 0) {
+		asprintf(error,
+			 "Value out of range for socklen_t: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+
+#ifdef linux
+/* Sets the value from the expression argument, checking that it is a
+ * valid size_t, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
 static int get_size_t(struct expression *expression,
 		      size_t *value, char **error)
 {
@@ -247,6 +267,7 @@ static int get_size_t(struct expression *expression,
 	*value = expression->value.num;
 	return STATUS_OK;
 }
+#endif
 
 /* Sets the value from the expression argument, checking that it is a
  * valid u32, and matches the expected type. Returns STATUS_OK on
@@ -618,6 +639,21 @@ int check_u32_expr(struct expression *expr, u32 value, char *val_name, char **er
 	return STATUS_OK;
 }
 
+int check_socklen_t_expr(struct expression *expr, socklen_t value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		socklen_t script_val;
+
+		if (get_socklen_t(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %u actual: %u", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
 #if defined(__FreeBSD__) || defined(linux)
 static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
 	if ( expr_list->type != EXPR_ELLIPSIS) {
@@ -739,7 +775,7 @@ error_out:
  * STATUS_ERR.
  */
 static int cmsg_new(struct expression *expression,
-		    void **cmsg_ptr, size_t *cmsg_len_ptr,
+		    void **cmsg_ptr, socklen_t *cmsg_len_ptr,
 		    bool send, char **error)
 {
 	struct expression_list *list;
@@ -815,7 +851,7 @@ static int cmsg_new(struct expression *expression,
 			return STATUS_ERR;
 		}
 	}
-	*cmsg_len_ptr = cmsg_size;
+	*cmsg_len_ptr = (socklen_t)cmsg_size;
 	cmsg = calloc(1, cmsg_size);
 	*cmsg_ptr = (void *)cmsg;
 
@@ -827,7 +863,7 @@ static int cmsg_new(struct expression *expression,
 		if(check_type(expr, EXPR_CMSGHDR, error))
 			goto error_out;
 		cmsg_expr = expr->value.cmsghdr;
-		if (get_size_t(cmsg_expr->cmsg_len, &cmsg->cmsg_len, error))
+		if (get_socklen_t(cmsg_expr->cmsg_len, &cmsg->cmsg_len, error))
 			goto error_out;
 		if (get_s32(cmsg_expr->cmsg_level, &cmsg->cmsg_level, error))
 			goto error_out;
@@ -951,8 +987,8 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 			if (check_s32_expr(expr->cmsg_type, cmsg_ptr->cmsg_type,
 					   "cmsghdr.cmsg_type", error))
 				return STATUS_ERR;
-			if (check_u32_expr(expr->cmsg_len, cmsg_ptr->cmsg_len,
-					   "cmsghdr.cmsg_len", error))
+			if (check_socklen_t_expr(expr->cmsg_len, cmsg_ptr->cmsg_len,
+					         "cmsghdr.cmsg_len", error))
 				return STATUS_ERR;
 			if (check_s32_expr(expr->cmsg_level, cmsg_ptr->cmsg_level,
 					   "cmsghdr.cmsg_level", error))
@@ -1106,7 +1142,7 @@ static int msghdr_new(struct expression *expression,
 	struct msghdr_expr *msg_expr;	/* input expression from script */
 	socklen_t name_len = sizeof(struct sockaddr_storage);
 	struct msghdr *msg = NULL;	/* live output */
-	size_t cmsg_len = 0;
+	socklen_t cmsg_len = 0;
 
 	if (check_type(expression, EXPR_MSGHDR, error))
 		goto error_out;
@@ -1150,14 +1186,18 @@ static int msghdr_new(struct expression *expression,
 	}
 
 	if (msg_expr->msg_controllen != NULL) {
+#ifdef linux
 		if (get_size_t(msg_expr->msg_controllen, &msg->msg_controllen, error))
+#else
+		if (get_socklen_t(msg_expr->msg_controllen, &msg->msg_controllen, error))
+#endif
 			goto error_out;
 	}
 
 	if (msg->msg_controllen != cmsg_len) {
 		asprintf(error,
 			 "msg_controllen %zu does not match %zu size of cmsghdr array",
-			 msg->msg_controllen, cmsg_len);
+			 (size_t)msg->msg_controllen, (size_t)cmsg_len);
 		goto error_out;
 	}
 
