@@ -654,6 +654,23 @@ int check_socklen_t_expr(struct expression *expr, socklen_t value, char *val_nam
 	return STATUS_OK;
 }
 
+#ifdef linux
+int check_size_t_expr(struct expression *expr, size_t value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		size_t script_val;
+
+		if (get_size_t(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (script_val != value) {
+			asprintf(error, "%s: expected: %u actual: %u", val_name, script_val, value);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 #if defined(__FreeBSD__) || defined(linux)
 static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
 	if ( expr_list->type != EXPR_ELLIPSIS) {
@@ -774,9 +791,15 @@ error_out:
  * fill in the error with a human-readable error message and return
  * STATUS_ERR.
  */
+#ifdef linux
+static int cmsg_new(struct expression *expression,
+		    void **cmsg_ptr, size_t *cmsg_len_ptr,
+		    bool send, char **error)
+#else
 static int cmsg_new(struct expression *expression,
 		    void **cmsg_ptr, socklen_t *cmsg_len_ptr,
 		    bool send, char **error)
+#endif
 {
 	struct expression_list *list;
 	int list_len = 0, i = 0;
@@ -851,7 +874,9 @@ static int cmsg_new(struct expression *expression,
 			return STATUS_ERR;
 		}
 	}
+#ifndef linux
 	*cmsg_len_ptr = (socklen_t)cmsg_size;
+#endif
 	cmsg = calloc(1, cmsg_size);
 	*cmsg_ptr = (void *)cmsg;
 
@@ -863,7 +888,11 @@ static int cmsg_new(struct expression *expression,
 		if(check_type(expr, EXPR_CMSGHDR, error))
 			goto error_out;
 		cmsg_expr = expr->value.cmsghdr;
+#ifdef linux
+		if (get_size_t(cmsg_expr->cmsg_len, &cmsg->cmsg_len, error))
+#else
 		if (get_socklen_t(cmsg_expr->cmsg_len, &cmsg->cmsg_len, error))
+#endif
 			goto error_out;
 		if (get_s32(cmsg_expr->cmsg_level, &cmsg->cmsg_level, error))
 			goto error_out;
@@ -987,8 +1016,13 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 			if (check_s32_expr(expr->cmsg_type, cmsg_ptr->cmsg_type,
 					   "cmsghdr.cmsg_type", error))
 				return STATUS_ERR;
-			if (check_socklen_t_expr(expr->cmsg_len, cmsg_ptr->cmsg_len,
+#ifdef linux
+			if (check_size_t_expr(expr->cmsg_len, cmsg_ptr->cmsg_len,
 					         "cmsghdr.cmsg_len", error))
+#else
+			if (check_socklen_t_expr(expr->cmsg_len, cmsg_ptr->cmsg_len,
+				              "cmsghdr.cmsg_len", error))
+#endif
 				return STATUS_ERR;
 			if (check_s32_expr(expr->cmsg_level, cmsg_ptr->cmsg_level,
 					   "cmsghdr.cmsg_level", error))
@@ -1142,7 +1176,11 @@ static int msghdr_new(struct expression *expression,
 	struct msghdr_expr *msg_expr;	/* input expression from script */
 	socklen_t name_len = sizeof(struct sockaddr_storage);
 	struct msghdr *msg = NULL;	/* live output */
+#ifdef linux
+	size_t cmsg_len = 0;
+#else
 	socklen_t cmsg_len = 0;
+#endif
 
 	if (check_type(expression, EXPR_MSGHDR, error))
 		goto error_out;
