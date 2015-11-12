@@ -663,7 +663,7 @@ int check_size_t_expr(struct expression *expr, size_t value, char *val_name, cha
 			return STATUS_ERR;
 		}
 		if (script_val != value) {
-			asprintf(error, "%s: expected: %u actual: %u", val_name, script_val, value);
+			asprintf(error, "%s: expected: %zu actual: %zu", val_name, script_val, value);
 			return STATUS_ERR;
 		}
 	}
