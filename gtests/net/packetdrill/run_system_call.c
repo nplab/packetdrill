@@ -4717,7 +4717,7 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 	int live_fd, script_fd, addrcnt, flags, result;
 	struct sockaddr_storage addrs;
 	struct expression *addr_list;
-	socklen_t addrlen;
+	socklen_t addrlen = sizeof(addrs);
 
 	if (check_arg_count(args, 4, error))
 		return STATUS_ERR;
@@ -4730,6 +4730,8 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 	if (s32_arg(args, 3, &flags, error))
 		return STATUS_ERR;
 	addr_list = get_arg(args, 1, error);
+	if (check_type(addr_list, EXPR_LIST, error))
+		return STATUS_ERR;
 	if (ellipsis_arg(addr_list->value.list, 0, error))
 		return STATUS_ERR;
 	//TODO: Modify run_syscall_bind for multihoming
@@ -4748,11 +4750,59 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 
 	return STATUS_OK;
 #else
-	asprintf(error, "sctp_recvv is not supported");
+	asprintf(error, "sctp_bindx is not supported");
 	return STATUS_ERR;
 #endif
-
 }
+
+static int syscall_sctp_connectx(struct state *state, struct syscall_spec *syscall,
+				 struct expression_list *args, char **error)
+{
+#if defined(__FreeBSD__)
+	int live_fd, script_fd, addrcnt, result;
+	struct sockaddr_storage live_addr;
+	struct expression *addrs_expr, *assoc_expr;
+	socklen_t live_addrlen = sizeof(live_addr);
+	sctp_assoc_t live_associd;
+
+	if (check_arg_count(args, 4, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	addrs_expr = get_arg(args, 1, error);
+	if (check_type(addrs_expr, EXPR_LIST, error))
+		return STATUS_ERR;
+	if (ellipsis_arg(addrs_expr->value.list, 0, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 2, &addrcnt, error))
+		return STATUS_ERR;
+	//TODO: modify for Multihoming
+	if (run_syscall_connect(
+		    state, script_fd, true,
+		    (struct sockaddr *)&live_addr, &live_addrlen, error))
+		return STATUS_ERR;
+
+	begin_syscall(state, syscall);
+
+	result = sctp_connectx(live_fd, (struct sockaddr *)&live_addr, addrcnt, &live_associd);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
+		return STATUS_ERR;
+
+	assoc_expr = get_arg(args, 3, error);
+	if (check_u32_expr(assoc_expr, (u32)live_associd,
+			   "sctp_connectx assoc_id", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_connectx is not supported");
+	return STATUS_ERR;
+#endif
+}
+
 
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
@@ -4785,11 +4835,12 @@ struct system_call_entry system_call_table[] = {
 	{"getsockopt", syscall_getsockopt},
 	{"setsockopt", syscall_setsockopt},
 	{"poll",       syscall_poll},
-	{"sctp_sendmsg", syscall_sctp_sendmsg},
-	{"sctp_recvmsg", syscall_sctp_recvmsg},
-	{"sctp_sendv", syscall_sctp_sendv},
-	{"sctp_recvv", syscall_sctp_recvv},
-	{"sctp_bindx", syscall_sctp_bindx}
+	{"sctp_sendmsg",  syscall_sctp_sendmsg},
+	{"sctp_recvmsg",  syscall_sctp_recvmsg},
+	{"sctp_sendv",    syscall_sctp_sendv},
+	{"sctp_recvv",    syscall_sctp_recvv},
+	{"sctp_bindx",    syscall_sctp_bindx},
+	{"sctp_connectx", syscall_sctp_connectx}
 };
 
 /* Evaluate the system call arguments and invoke the system call. */
