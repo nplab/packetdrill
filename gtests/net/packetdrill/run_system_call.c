@@ -4053,6 +4053,85 @@ static int syscall_sctp_send(struct state *state, struct syscall_spec *syscall,
 #endif
 }
 
+static int syscall_sctp_sendx(struct state *state, struct syscall_spec *syscall,
+			      struct expression_list *args,
+			      char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	int script_fd, live_fd, flags, addrcnt, result;
+	size_t len;
+	void *msg = NULL;
+	struct sockaddr *addrs = NULL;
+	struct sctp_sndrcvinfo info;
+	struct expression *info_expr, *len_expr, *addrs_expr;
+
+	if (check_arg_count(args, 7, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	if (ellipsis_arg(args, 1, error))
+		return STATUS_ERR;
+	len_expr = get_arg(args, 2, error);
+	if (get_u32(len_expr, &len, error)) {
+		 return STATUS_ERR;
+	}
+	addrs_expr = get_arg(args, 3, error);
+	if (addrs_expr->type == EXPR_NULL) {
+		addrs = NULL;
+	} else if (addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV4 ||
+		   addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV6 ||
+		   addrs_expr->type == EXPR_ELLIPSIS) {
+		addrs = malloc(sizeof(struct sockaddr_storage));
+		get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd);
+	} else if (addrs_expr->type == EXPR_LIST) {
+		size_t size;
+		if (get_sockaddr_from_list(addrs_expr,  &size, &addrs, error)) {
+			goto error_out;
+		}
+	} else {
+		goto error_out;
+	}
+	if (s32_arg(args, 4, &addrcnt, error))
+		goto error_out;
+	info_expr = get_arg(args, 5, error);
+	if (check_type(info_expr, EXPR_SCTP_SNDRCVINFO, error)) {
+		goto error_out;
+	}
+	if (parse_expression_to_sctp_sndrcvinfo(info_expr, &info, true, error)) {
+		goto error_out;
+	}
+	if (s32_arg(args, 6, &flags, error)) {
+		goto error_out;
+	}
+	msg = calloc(len, 1);
+	assert(msg != NULL);
+
+	begin_syscall(state, syscall);
+
+	result = sctp_sendx(live_fd, msg, len, addrs, addrcnt, &info, flags);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
+		goto error_out;
+	}
+	if (check_sctp_sndrcvinfo(info_expr->value.sctp_sndrcvinfo, &info, error)) {
+		goto error_out;
+	}
+
+	free(msg);
+	free(addrs);
+	return STATUS_OK;
+error_out:
+	free(msg);
+	free(addrs);
+	return STATUS_ERR;
+#else
+	asprintf(error, "sctp_send is not supported");
+	return STATUS_ERR;
+#endif
+}
+
 
 static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
@@ -4966,6 +5045,7 @@ struct system_call_entry system_call_table[] = {
 	{"setsockopt", syscall_setsockopt},
 	{"poll",       syscall_poll},
 	{"sctp_send",     syscall_sctp_send},
+	{"sctp_sendx",    syscall_sctp_sendx},
 	{"sctp_sendmsg",  syscall_sctp_sendmsg},
 	{"sctp_recvmsg",  syscall_sctp_recvmsg},
 	{"sctp_sendv",    syscall_sctp_sendv},
