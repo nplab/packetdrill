@@ -3998,6 +3998,62 @@ static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, st
 }
 #endif
 
+static int syscall_sctp_send(struct state *state, struct syscall_spec *syscall,
+			      struct expression_list *args,
+			      char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	int script_fd, live_fd, flags, result;
+	size_t len;
+	void *msg;
+	struct expression *len_expr, *info_expr;
+	struct sctp_sndrcvinfo info;
+
+	if (check_arg_count(args, 5, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	if (ellipsis_arg(args, 1, error))
+		return STATUS_ERR;
+	len_expr = get_arg(args, 2, error);
+	if (get_u32(len_expr, &len, error)) {
+		 return STATUS_ERR;
+	}
+	info_expr = get_arg(args, 3, error);
+	if (check_type(info_expr, EXPR_SCTP_SNDRCVINFO, error)) {
+		return STATUS_ERR;
+	}
+	if (parse_expression_to_sctp_sndrcvinfo(info_expr, &info, true, error)) {
+		return STATUS_ERR;
+	}
+	if (s32_arg(args, 4, &flags, error)) {
+		return STATUS_ERR;
+	}
+	msg = calloc(len, 1);
+	assert(msg != NULL);
+
+	begin_syscall(state, syscall);
+
+	result = sctp_send(live_fd, msg, len, &info, flags);
+	free(msg);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
+		return STATUS_ERR;
+	}
+	if (check_sctp_sndrcvinfo(info_expr->value.sctp_sndrcvinfo, &info, error)) {
+		return STATUS_ERR;
+	}
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_send is not supported");
+	return STATUS_ERR;
+#endif
+}
+
+
 static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
@@ -4909,6 +4965,7 @@ struct system_call_entry system_call_table[] = {
 	{"getsockopt", syscall_getsockopt},
 	{"setsockopt", syscall_setsockopt},
 	{"poll",       syscall_poll},
+	{"sctp_send",     syscall_sctp_send},
 	{"sctp_sendmsg",  syscall_sctp_sendmsg},
 	{"sctp_recvmsg",  syscall_sctp_recvmsg},
 	{"sctp_sendv",    syscall_sctp_sendv},
