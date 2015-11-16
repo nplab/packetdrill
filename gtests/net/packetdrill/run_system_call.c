@@ -3923,6 +3923,53 @@ static int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sc
 }
 #endif
 
+static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, struct sockaddr **addrs, char **error) {
+	if (expr->type == EXPR_LIST) {
+		struct expression_list *addrs_expr_list = (struct expression_list *)expr->value.list;
+		struct expression *temp;
+		int addrlen = expression_list_length(addrs_expr_list);
+		int i = 0;
+		size_t size = 0;
+		char *addr_ptr;
+		for (i = 0; i < addrlen; i++) {
+			temp = get_arg(addrs_expr_list, i, error);
+			if (temp->type == EXPR_SOCKET_ADDRESS_IPV4) {
+				size += sizeof(struct sockaddr_in);
+			} else if (temp->type == EXPR_SOCKET_ADDRESS_IPV6) {
+				size += sizeof(struct sockaddr_in6);
+			} else {
+				*addrs = NULL;
+				*addr_size = 0;
+				return STATUS_ERR;
+			}
+		}
+		*addr_size = size;
+		*addrs = malloc(size);
+		addr_ptr = (char *)*addrs;
+		for (i = 0; i < addrlen; i++) {
+			expr = get_arg(addrs_expr_list, i, error);
+			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
+				size = sizeof(struct sockaddr_in);
+				memcpy(addr_ptr, expr->value.socket_address_ipv4, size);
+				addr_ptr += size;
+			} else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
+				size = sizeof(struct sockaddr_in6);
+				memcpy(addr_ptr, expr->value.socket_address_ipv6, size);
+				addr_ptr += size;
+			} else {
+				*addr_size = 0;
+				free(*addrs);
+				return STATUS_ERR;
+			}
+		}
+		return STATUS_OK;
+	} else {
+		addr_size = 0;
+		*addrs = NULL;
+		return STATUS_ERR;
+	}	
+}
+
 static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
@@ -3932,9 +3979,9 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	u32 infotype;
 	size_t script_iovec_list_len = 0;
 	socklen_t infolen;
-	struct sockaddr *addrs;
+	struct sockaddr *addrs = NULL;
 	void *info;
-	struct iovec *iov;
+	struct iovec *iov = NULL;
 	struct expression *iovec_expr_list, *iovcnt_expr, *addrs_expr, *addrcnt_expr;
 	struct expression *info_expr, *infolen_expr, *infotype_expr, *flags_expr;
 	struct sctp_sndinfo sndinfo;
@@ -3962,77 +4009,49 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 		addrs = malloc(sizeof(struct sockaddr_storage));
 		get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd);
 	} else if (addrs_expr->type == EXPR_LIST) {
-		struct expression_list *addrs_expr_list = (struct expression_list *)addrs_expr->value.list;
-		struct expression *expr;
-		int addrlen = expression_list_length(addrs_expr_list);
-		int i = 0;
-		size_t size = 0;
-		char *addr_ptr;
-		for (i = 0; i < addrlen; i++) {
-			expr = get_arg(addrs_expr_list, i, error);
-			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
-				size += sizeof(struct sockaddr_in);
-			} else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-				size += sizeof(struct sockaddr_in6);
-			} else {
-				return STATUS_ERR;
-			}
-		}
-		addrs = malloc(size);
-		addr_ptr = (char *)addrs;
-		for (i = 0; i < addrlen; i++) {
-			expr = get_arg(addrs_expr_list, i, error);
-			if (expr->type == EXPR_SOCKET_ADDRESS_IPV4) {
-				size = sizeof(struct sockaddr_in);
-				memcpy(addr_ptr, expr->value.socket_address_ipv4, size);
-				addr_ptr += size;
-			} else if (expr->type == EXPR_SOCKET_ADDRESS_IPV6) {
-				size = sizeof(struct sockaddr_in6);
-				memcpy(addr_ptr, expr->value.socket_address_ipv6, size);
-				addr_ptr += size;
-			} else {
-				return STATUS_ERR;
-			}
+		size_t size;
+		if (get_sockaddr_from_list(addrs_expr,  &size, &addrs, error)) {
+			goto error_out;
 		}
 	} else {
-		return STATUS_ERR;
+		goto error_out;
 	}
 	addrcnt_expr = get_arg(args, 4, error);
 	if (get_s32(addrcnt_expr, &addrcnt, error))
-		return STATUS_ERR;
+		goto error_out;
 	info_expr = get_arg(args, 5, error);
 	if (info_expr->type == EXPR_SCTP_SNDINFO) {
 		if (parse_expression_to_sctp_sndinfo(info_expr, &sndinfo, error))
-			return STATUS_ERR;
+			goto error_out;
 		info = &sndinfo;
 	} else if (info_expr->type == EXPR_SCTP_PRINFO) {
 		info = malloc(sizeof(struct sctp_prinfo));
 		if (parse_expression_to_sctp_prinfo(info_expr, &prinfo, error))
-			return STATUS_ERR;
+			goto error_out;
 		info = &prinfo;
 	} else if (info_expr->type == EXPR_SCTP_AUTHINFO) {
 		if (parse_expression_to_sctp_authinfo(info_expr, &authinfo, error))
-			return STATUS_ERR;
+			goto error_out;
 		info = &authinfo;
 	} else if (info_expr->type == EXPR_SCTP_SENDV_SPA) {
 		if (parse_expression_to_sctp_sendv_spa(info_expr, &spa, error))
-			return STATUS_ERR;
+			goto error_out;
 		info = &spa;
 	} else if (info_expr->type == EXPR_NULL) {
 		info = NULL;
 	} else {
 		asprintf(error, "Bad input for info");
-		return STATUS_ERR;
+		goto error_out;
 	}
 	infolen_expr = get_arg(args, 6, error);
 	if (get_u32(infolen_expr, &infolen, error))
-		return STATUS_ERR;
+		goto error_out;
 	infotype_expr = get_arg(args, 7, error);
 	if (get_u32(infotype_expr, &infotype, error))
-		return STATUS_ERR;
+		goto error_out;
 	flags_expr = get_arg(args, 8, error);
 	if (get_s32(flags_expr, &flags, error))
-		return STATUS_ERR;
+		goto error_out;
 
 	begin_syscall(state, syscall);
 
@@ -4047,6 +4066,11 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	iovec_free(iov, script_iovec_list_len);
 
 	return STATUS_OK;
+error_out:
+	if (iov != NULL)
+		iovec_free(iov, script_iovec_list_len);	
+	free(addrs);
+	return STATUS_ERR;
 #else
 	asprintf(error, "sctp_sendv is not supported");
 	return STATUS_ERR;
@@ -4685,6 +4709,51 @@ error_out:
 #endif
 }
 
+static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
+			      struct expression_list *args,
+			      char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	int live_fd, script_fd, addrcnt, flags, result;
+	struct sockaddr_storage addrs;
+	struct expression *addr_list;
+	socklen_t addrlen;
+
+	if (check_arg_count(args, 4, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 2, &addrcnt, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 3, &flags, error))
+		return STATUS_ERR;
+	addr_list = get_arg(args, 1, error);
+	if (ellipsis_arg(addr_list->value.list, 0, error))
+		return STATUS_ERR;
+	//TODO: Modify run_syscall_bind for multihoming
+	if (run_syscall_bind(
+		    state,
+		    (struct sockaddr *)&addrs, &addrlen, error))
+		return STATUS_ERR;
+
+	begin_syscall(state, syscall);
+
+	result = sctp_bindx(live_fd, (struct sockaddr *)&addrs, addrcnt, flags);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
+		return STATUS_ERR;
+	}
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_recvv is not supported");
+	return STATUS_ERR;
+#endif
+
+}
+
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
 	const char *name;
@@ -4719,7 +4788,8 @@ struct system_call_entry system_call_table[] = {
 	{"sctp_sendmsg", syscall_sctp_sendmsg},
 	{"sctp_recvmsg", syscall_sctp_recvmsg},
 	{"sctp_sendv", syscall_sctp_sendv},
-	{"sctp_recvv", syscall_sctp_recvv}
+	{"sctp_recvv", syscall_sctp_recvv},
+	{"sctp_bindx", syscall_sctp_bindx}
 };
 
 /* Evaluate the system call arguments and invoke the system call. */
