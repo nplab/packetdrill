@@ -3923,6 +3923,7 @@ static int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sc
 }
 #endif
 
+#if defined(__FreeBSD__)
 static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, struct sockaddr **addrs, char **error) {
 	if (expr->type == EXPR_LIST) {
 		struct expression_list *addrs_expr_list = (struct expression_list *)expr->value.list;
@@ -3969,6 +3970,7 @@ static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, st
 		return STATUS_ERR;
 	}	
 }
+#endif
 
 static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
@@ -4792,6 +4794,11 @@ static int syscall_sctp_connectx(struct state *state, struct syscall_spec *sysca
 		return STATUS_ERR;
 
 	assoc_expr = get_arg(args, 3, error);
+	if (check_type(assoc_expr, EXPR_LIST, error))
+		return STATUS_ERR;
+	if (check_arg_count(assoc_expr->value.list, 1, error))
+		return STATUS_ERR;
+	assoc_expr = get_arg(assoc_expr->value.list, 0, error);
 	if (check_u32_expr(assoc_expr, (u32)live_associd,
 			   "sctp_connectx assoc_id", error))
 		return STATUS_ERR;
