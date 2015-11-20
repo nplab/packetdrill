@@ -1758,6 +1758,7 @@ static int run_syscall_connect(struct state *state,
 	return STATUS_OK;
 }
 
+#if defined(__FreeBSD__) || defined(linux)
 static int run_syscall_sctp_peeloff(struct state *state,
 				    int script_copy_fd,
 				    int script_new_fd,
@@ -1782,7 +1783,7 @@ static int run_syscall_sctp_peeloff(struct state *state,
 	DEBUGP("success: setting socket to state %d\n", new_socket->state);
 	return STATUS_OK;
 }
-
+#endif
 
 /****************************************************************************
  * Here we have the parsing and invocation of the system calls that
