@@ -204,6 +204,8 @@ struct int_symbol platform_symbols_table[] = {
         { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
         { SCTP_EOR,                         "SCTP_EOR"                        },
 #endif
+	{ SCTP_BINDX_ADD_ADDR,              "SCTP_BINDX_ADD_ADDR"             },
+	{ SCTP_BINDX_REM_ADDR,              "SCTP_BINDX_REM_ADDR"             },
         { SCTP_SACK_IMMEDIATELY,            "SCTP_SACK_IMMEDIATELY"           },
 
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },

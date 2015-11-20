@@ -4057,7 +4057,7 @@ static int syscall_sctp_sendx(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__)
 	int script_fd, live_fd, flags, addrcnt, result;
 	size_t len;
 	void *msg = NULL;
@@ -4921,7 +4921,7 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 static int syscall_sctp_connectx(struct state *state, struct syscall_spec *syscall,
 				 struct expression_list *args, char **error)
 {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(linux)
 	int live_fd, script_fd, addrcnt, result;
 	struct sockaddr_storage live_addr;
 	struct expression *addrs_expr, *assoc_expr;
@@ -4979,6 +4979,7 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 	int live_fd, script_fd, result, script_new_fd;
 	sctp_assoc_t assoc_id;
 	struct expression *expr_assoc;
+
 	if (check_arg_count(args, 2, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -4986,7 +4987,7 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 	if (to_live_fd(state, script_fd, &live_fd, error))
 		return STATUS_ERR;
 	expr_assoc = get_arg(args, 1, error);
-	if (get_u32(expr_assoc, &assoc_id, error))
+	if (get_u32(expr_assoc, (u32 *)&assoc_id, error))
 		return STATUS_ERR;
 
 	//check connection Type and set assoc_id if one-to-many style socket
