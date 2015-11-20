@@ -1753,10 +1753,36 @@ static int run_syscall_connect(struct state *state,
 	socket->script.remote.port		= 0;
 	socket->script.local.port		= 0;
 	socket->live.remote.ip   = state->config->live_remote_ip;
-	socket->live.remote.port = htons(state->config->live_connect_port);
+	socket->live.remote.port = htons(state->config->live_connect_port);	
 	DEBUGP("success: setting socket to state %d\n", socket->state);
 	return STATUS_OK;
 }
+
+static int run_syscall_sctp_peeloff(struct state *state,
+				    int script_copy_fd,
+				    int script_new_fd,
+				    int live_new_fd,
+				    char **error) {
+	struct socket *copy_socket = NULL, *new_socket, *temp_socket;
+	copy_socket = find_socket_by_script_fd(state, script_copy_fd);
+	assert(copy_socket != NULL);
+	if (copy_socket->state == SOCKET_NEW) {
+		asprintf(error, "socket is not new");
+		return STATUS_ERR;
+	}
+	new_socket = find_socket_by_script_fd(state, script_new_fd);
+	assert(new_socket == NULL);
+	new_socket = socket_new(state);
+	temp_socket = new_socket->next;
+
+	memcpy(new_socket, copy_socket, sizeof(struct socket));
+	new_socket->next = temp_socket;
+	new_socket->live.fd		= live_new_fd;
+	new_socket->script.fd		= script_new_fd;
+	DEBUGP("success: setting socket to state %d\n", new_socket->state);
+	return STATUS_OK;
+}
+
 
 /****************************************************************************
  * Here we have the parsing and invocation of the system calls that
@@ -3972,6 +3998,62 @@ static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, st
 }
 #endif
 
+static int syscall_sctp_send(struct state *state, struct syscall_spec *syscall,
+			      struct expression_list *args,
+			      char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	int script_fd, live_fd, flags, result;
+	size_t len;
+	void *msg;
+	struct expression *len_expr, *info_expr;
+	struct sctp_sndrcvinfo info;
+
+	if (check_arg_count(args, 5, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	if (ellipsis_arg(args, 1, error))
+		return STATUS_ERR;
+	len_expr = get_arg(args, 2, error);
+	if (get_u32(len_expr, &len, error)) {
+		 return STATUS_ERR;
+	}
+	info_expr = get_arg(args, 3, error);
+	if (check_type(info_expr, EXPR_SCTP_SNDRCVINFO, error)) {
+		return STATUS_ERR;
+	}
+	if (parse_expression_to_sctp_sndrcvinfo(info_expr, &info, true, error)) {
+		return STATUS_ERR;
+	}
+	if (s32_arg(args, 4, &flags, error)) {
+		return STATUS_ERR;
+	}
+	msg = calloc(len, 1);
+	assert(msg != NULL);
+
+	begin_syscall(state, syscall);
+
+	result = sctp_send(live_fd, msg, len, &info, flags);
+	free(msg);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
+		return STATUS_ERR;
+	}
+	if (check_sctp_sndrcvinfo(info_expr->value.sctp_sndrcvinfo, &info, error)) {
+		return STATUS_ERR;
+	}
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_send is not supported");
+	return STATUS_ERR;
+#endif
+}
+
+
 static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
@@ -4810,6 +4892,46 @@ static int syscall_sctp_connectx(struct state *state, struct syscall_spec *sysca
 #endif
 }
 
+static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscall,
+			        struct expression_list *args,
+			        char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	int live_fd, script_fd, result, script_new_fd;
+	sctp_assoc_t assoc_id;
+	struct expression *expr_assoc;
+	if (check_arg_count(args, 2, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	expr_assoc = get_arg(args, 1, error);
+	if (get_u32(expr_assoc, &assoc_id, error))
+		return STATUS_ERR;
+
+	//check connection Type and set assoc_id if one-to-many style socket
+	
+	begin_syscall(state, syscall);
+
+	result = sctp_peeloff(live_fd, assoc_id);
+
+	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
+		return STATUS_ERR;
+
+	if (get_s32(syscall->result, &script_new_fd, error))
+		return STATUS_ERR;
+	if (run_syscall_sctp_peeloff(state, script_fd, script_new_fd, result, error)) {
+		asprintf(error, "can't copy socket definition");
+		return STATUS_ERR;
+	}
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_connectx is not supported");
+	return STATUS_ERR;
+#endif
+}
 
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
@@ -4819,6 +4941,7 @@ struct system_call_entry {
 			 struct expression_list *args,
 			 char **error);
 };
+
 struct system_call_entry system_call_table[] = {
 	{"socket",     syscall_socket},
 	{"bind",       syscall_bind},
@@ -4842,12 +4965,14 @@ struct system_call_entry system_call_table[] = {
 	{"getsockopt", syscall_getsockopt},
 	{"setsockopt", syscall_setsockopt},
 	{"poll",       syscall_poll},
+	{"sctp_send",     syscall_sctp_send},
 	{"sctp_sendmsg",  syscall_sctp_sendmsg},
 	{"sctp_recvmsg",  syscall_sctp_recvmsg},
 	{"sctp_sendv",    syscall_sctp_sendv},
 	{"sctp_recvv",    syscall_sctp_recvv},
 	{"sctp_bindx",    syscall_sctp_bindx},
-	{"sctp_connectx", syscall_sctp_connectx}
+	{"sctp_connectx", syscall_sctp_connectx},
+	{"sctp_peeloff",  syscall_sctp_peeloff}
 };
 
 /* Evaluate the system call arguments and invoke the system call. */
