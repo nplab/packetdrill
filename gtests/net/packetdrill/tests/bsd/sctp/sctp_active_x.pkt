@@ -18,6 +18,12 @@
 +0.0 sctp_getpaddrs(3, 3, [{sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")}]) = 1
 +0.0 sctp_freepaddrs([...]) = 0
 
++0.0 sctp_getladdrs(3, 3, [...]) = 1
++0.0 sctp_freeladdrs([...]) = 0
+
++0.0 sctp_getladdrs(3, 3, [{sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.168.0.1")}]) = 1
++0.0 sctp_freeladdrs([...]) = 0
+
 +0.0 sctp_sendmsg(3, ..., 1000, ..., ..., htonl(1234), SCTP_UNORDERED, 1, 0, 0) = 1000
 *    > sctp: DATA[flgs=UBE, len=1016, tsn=1, sid=1, ssn=0, ppid=1234]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
