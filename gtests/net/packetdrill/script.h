@@ -247,6 +247,7 @@ struct sctp_paddrinfo_expr {
 
 /* Parse tree for a sctp_paddrparams struct in a [gs]etsockopt syscall. */
 struct sctp_paddrparams_expr {
+	struct expression *spp_assoc_id;
 	struct expression *spp_address;
 	struct expression *spp_hbinterval;
 	struct expression *spp_pathmaxrxt;

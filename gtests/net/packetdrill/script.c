@@ -357,6 +357,7 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		assert(expression->value.sctp_paddrparams);
+		free_expression(expression->value.sctp_paddrparams->spp_assoc_id);
 		free_expression(expression->value.sctp_paddrparams->spp_address);
 		free_expression(expression->value.sctp_paddrparams->spp_hbinterval);
 		free_expression(expression->value.sctp_paddrparams->spp_pathmaxrxt);
@@ -1014,6 +1015,10 @@ static int evaluate_sctp_peer_addr_param_expression(struct expression *in,
 	in_paddrparams = in->value.sctp_paddrparams;
 	out_paddrparams = out->value.sctp_paddrparams;
 
+	if (evaluate(in_paddrparams->spp_assoc_id,
+	             &out_paddrparams->spp_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_paddrparams->spp_address,
 	             &out_paddrparams->spp_address,
 	             error))

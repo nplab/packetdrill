@@ -2943,13 +2943,15 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_paddrparams *live_params = malloc(sizeof(struct sctp_paddrparams));
 		memset(live_params, 0, sizeof(struct sctp_paddrparams));
 		live_optlen = sizeof(struct sctp_paddrparams);
-		if (get_sockstorage_arg(expr_params->spp_address, &live_params->spp_address,
-					live_fd)) {
+		if (get_sockstorage_arg(expr_params->spp_address, &live_params->spp_address, live_fd)) {
 			asprintf(error, "can't determine spp_address");
 			free(live_params);
 			return STATUS_ERR;
 		}
-		live_params->spp_assoc_id = 0;
+		if (get_sctp_assoc_t(expr_params->spp_assoc_id, &live_params->spp_assoc_id, error)) {
+			free(live_params);
+			return STATUS_ERR;
+		}
 		live_optval = live_params;
 		break;
 	}
@@ -3462,7 +3464,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
-		paddrparams.spp_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_paddrparams->spp_assoc_id,
+				     &paddrparams.spp_assoc_id, error)) {
+			return STATUS_ERR;
+		}
 		if (get_sockstorage_arg(val_expression->value.sctp_paddrparams->spp_address,
 					&paddrparams.spp_address, live_fd)) {
 			asprintf(error, "can't determine spp_address");

@@ -534,7 +534,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> COOKIE_RECEIVED_WHILE_SHUTDOWN RESTART_WITH_NEW_ADDRESSES
 %token <reserved> USER_INITIATED_ABORT PROTOCOL_VIOLATION
 %token <reserved> STALENESS CHK PARAM UNRECOGNIZED_PARAMETERS
-%token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
+%token <reserved> SPP_ASSOC_ID SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <reserved> SASOC_ASOCMAXRXT SASOC_ASSOC_ID SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_ASSOC_ID SE_TYPE SE_ON
@@ -609,7 +609,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value
 %type <expression> sctp_sackinfo sack_delay sack_freq
 %type <expression> sctp_rtoinfo srto_assoc_id srto_initial srto_max srto_min sctp_paddrinfo
-%type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
+%type <expression> sctp_paddrparams spp_assoc_id spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <expression> sasoc_assoc_id sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
@@ -3074,6 +3074,16 @@ sctp_status
 }
 ;
 
+spp_assoc_id
+: SPP_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("spp_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SPP_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 spp_address
 : SPP_ADDRESS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 | SPP_ADDRESS '=' sockaddr { $$ = $3; }
@@ -3134,16 +3144,18 @@ spp_dscp
 ;
 
 sctp_paddrparams
-: '{' spp_address ',' spp_hbinterval ',' spp_pathmaxrxt ',' spp_pathmtu ','spp_flags ',' spp_ipv6_flowlabel ',' spp_dscp'}' {
+: '{' spp_assoc_id ',' spp_address ',' spp_hbinterval ',' spp_pathmaxrxt ',' spp_pathmtu ','spp_flags ','
+      spp_ipv6_flowlabel ',' spp_dscp'}' {
 	$$ = new_expression(EXPR_SCTP_PEER_ADDR_PARAMS);
 	$$->value.sctp_paddrparams = calloc(1, sizeof(struct sctp_paddrparams_expr));
-	$$->value.sctp_paddrparams->spp_address = $2;
-	$$->value.sctp_paddrparams->spp_hbinterval = $4;
-	$$->value.sctp_paddrparams->spp_pathmaxrxt = $6;
-	$$->value.sctp_paddrparams->spp_pathmtu = $8;
-	$$->value.sctp_paddrparams->spp_flags = $10;
-	$$->value.sctp_paddrparams->spp_ipv6_flowlabel = $12;
-	$$->value.sctp_paddrparams->spp_dscp = $14;
+	$$->value.sctp_paddrparams->spp_assoc_id = $2;
+	$$->value.sctp_paddrparams->spp_address = $4;
+	$$->value.sctp_paddrparams->spp_hbinterval = $6;
+	$$->value.sctp_paddrparams->spp_pathmaxrxt = $8;
+	$$->value.sctp_paddrparams->spp_pathmtu = $10;
+	$$->value.sctp_paddrparams->spp_flags = $12;
+	$$->value.sctp_paddrparams->spp_ipv6_flowlabel = $14;
+	$$->value.sctp_paddrparams->spp_dscp = $16;
 }
 ;
 

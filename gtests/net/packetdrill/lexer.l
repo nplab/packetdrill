@@ -243,6 +243,7 @@ spinfo_cwnd			return SPINFO_CWND;
 spinfo_srtt			return SPINFO_SRTT;
 spinfo_rto			return SPINFO_RTO;
 spinfo_mtu			return SPINFO_MTU;
+spp_assoc_id			return SPP_ASSOC_ID;
 spp_address			return SPP_ADDRESS;
 spp_hbinterval			return SPP_HBINTERVAL;
 spp_pathmaxrxt			return SPP_PATHMAXRXT;
