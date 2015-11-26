@@ -63,6 +63,7 @@ enum expression_t {
 	EXPR_SCTP_SETADAPTATION,  /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
 	EXPR_SCTP_SNDRCVINFO,     /* struct sctp_sndrcvinfo for syscall sctp_recvmsg */
 	EXPR_SCTP_PRINFO,	  /* struct sctp_prinfo for syscall sctp_sendv */
+	EXPR_SCTP_DEFAULT_PRINFO, /* expression tree for struct sctp_default_prinfo for syscall [gs]etsockopt */
 	EXPR_SCTP_AUTHINFO,	  /* struct sctp_authinfo for syscall sctp_sendv */
 	EXPR_SCTP_SENDV_SPA,	  /* struct sctp_sendv_spa for syscall sctp_sendv */
 	EXPR_SCTP_RCVINFO,        /* struct sctp_rcvinfo for syscall sctp_recvv */
@@ -116,6 +117,7 @@ struct expression {
 		struct sctp_setadaptation_expr *sctp_setadaptation;
 		struct sctp_sndrcvinfo_expr *sctp_sndrcvinfo;
 		struct sctp_prinfo_expr *sctp_prinfo;
+		struct sctp_default_prinfo_expr *sctp_default_prinfo;
 		struct sctp_authinfo_expr *sctp_authinfo;
 		struct sctp_sendv_spa_expr *sctp_sendv_spa;
 		struct sctp_rcvinfo_expr *sctp_rcvinfo;
@@ -327,6 +329,13 @@ struct sctp_sndrcvinfo_expr {
 struct sctp_prinfo_expr {
 	struct expression *pr_policy;
 	struct expression *pr_value;
+};
+
+/* Parse tree for sctp_default_prinfo in [gs]etsockopt syscall. */
+struct sctp_default_prinfo_expr {
+	struct expression *pr_policy;
+	struct expression *pr_value;
+	struct expression *pr_assoc_id;
 };
 
 /* Parse tree for sctp_authinfo in sctp_sendv syscall. */

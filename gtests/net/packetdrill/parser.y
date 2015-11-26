@@ -544,7 +544,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT SINFO_ASSOC_ID
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN SINFO_PR_VALUE SERINFO_NEXT_FLAGS
 %token <reserved> SERINFO_NEXT_STREAM SERINFO_NEXT_AID SERINFO_NEXT_LENGTH SERINFO_NEXT_PPID
-%token <reserved> PR_POLICY PR_VALUE AUTH_KEYNUMBER SENDV_FLAGS SENDV_SNDINFO
+%token <reserved> PR_POLICY PR_VALUE PR_ASSOC_ID AUTH_KEYNUMBER SENDV_FLAGS SENDV_SNDINFO
 %token <reserved> SENDV_PRINFO SENDV_AUTHINFO
 %token <reserved> RCV_SID RCV_SSN RCV_FLAGS RCV_PPID RCV_TSN RCV_CUMTSN RCV_CONTEXT RCV_ASSOC_ID
 %token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH NXT_ASSOC_ID
@@ -619,7 +619,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn sinfo_assoc_id sinfo_pr_value serinfo_next_flags
 %type <expression> serinfo_next_stream serinfo_next_aid serinfo_next_length serinfo_next_ppid sctp_extrcvinfo
-%type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa
+%type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa sctp_default_prinfo
 %type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context rcv_assoc_id
 %type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length nxt_assoc_id sctp_recvv_rn
 %type <expression> sctp_shutdown_event sse_type sse_flags sse_length sse_assoc_id
@@ -2522,6 +2522,9 @@ expression
 | sctp_prinfo       {
 	$$ = $1;
 }
+|sctp_default_prinfo{
+	$$ = $1;
+}
 | sctp_authinfo     {
 	$$ = $1;
 }
@@ -3697,8 +3700,21 @@ pr_policy
 	$$ = new_integer_expression($3, "%hu");
 };
 
+sctp_default_prinfo
+: '{' pr_policy ',' PR_VALUE '=' INTEGER ',' PR_ASSOC_ID '=' expression'}' {
+	$$ = new_expression(EXPR_SCTP_DEFAULT_PRINFO);
+	$$->value.sctp_default_prinfo = calloc(1, sizeof(struct sctp_default_prinfo_expr));
+	$$->value.sctp_default_prinfo->pr_policy = $2;
+	if (!is_valid_u32($6)) {
+		semantic_error("pr_value out of range");
+	}
+	$$->value.sctp_default_prinfo->pr_value = new_integer_expression($6, "%u");
+	$$->value.sctp_default_prinfo->pr_assoc_id = $10;
+}
+;
+
 sctp_prinfo
-: '{' pr_policy ',' PR_VALUE '=' INTEGER'}' {
+: '{' pr_policy ',' PR_VALUE '=' INTEGER '}' {
 	$$ = new_expression(EXPR_SCTP_PRINFO);
 	$$->value.sctp_prinfo = calloc(1, sizeof(struct sctp_prinfo_expr));
 	$$->value.sctp_prinfo->pr_policy = $2;

@@ -93,6 +93,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_EVENT,                       "SCTP_EVENT"                      },
 	{ SCTP_EVENTS,                      "SCTP_EVENTS"                     },
 	{ SCTP_DEFAULT_SNDINFO,             "SCTP_DEFAULT_SNDINFO"            },
+	{ SCTP_DEFAULT_PRINFO,              "SCTP_DEFAULT_PRINFO"             },
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_GET_PEER_ADDR_INFO,          "SCTP_GET_PEER_ADDR_INFO"         },
 	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },

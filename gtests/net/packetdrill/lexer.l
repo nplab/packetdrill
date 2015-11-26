@@ -291,6 +291,7 @@ serinfo_next_length             return SERINFO_NEXT_LENGTH;
 serinfo_next_ppid		return SERINFO_NEXT_PPID;
 pr_policy			return PR_POLICY;
 pr_value			return PR_VALUE;
+pr_assoc_id                     return PR_ASSOC_ID;
 sendv_flags			return SENDV_FLAGS;
 sendv_sndinfo			return SENDV_SNDINFO;
 sendv_prinfo			return SENDV_PRINFO;

@@ -83,6 +83,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
 	{ EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
 	{ EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
+	{ EXPR_SCTP_DEFAULT_PRINFO,  "sctp_default_prinfo"},
 	{ EXPR_SCTP_AUTHINFO,        "sctp_authinfo"   },
 	{ EXPR_SCTP_SENDV_SPA,       "sctp_sendv_spa"  },
 	{ EXPR_SCTP_RCVINFO,         "sctp_rcvinfo"    },
@@ -426,6 +427,11 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_PRINFO:
 		free_expression(expression->value.sctp_prinfo->pr_policy);
 		free_expression(expression->value.sctp_prinfo->pr_value);
+		break;		
+	case EXPR_SCTP_DEFAULT_PRINFO:
+		free_expression(expression->value.sctp_default_prinfo->pr_policy);
+		free_expression(expression->value.sctp_default_prinfo->pr_value);
+		free_expression(expression->value.sctp_default_prinfo->pr_assoc_id);
 		break;		
 	case EXPR_SCTP_AUTHINFO:
 		free_expression(expression->value.sctp_authinfo->auth_keynumber);
@@ -1399,6 +1405,38 @@ static int evaluate_sctp_prinfo_expression(struct expression *in,
 	return STATUS_OK;	
 }
 
+static int evaluate_sctp_default_prinfo_expression(struct expression *in,
+						   struct expression *out,
+						   char **error)
+{
+        struct sctp_default_prinfo_expr *in_info;
+        struct sctp_default_prinfo_expr *out_info;
+
+        assert(in->type == EXPR_SCTP_DEFAULT_PRINFO);
+        assert(in->value.sctp_default_prinfo);
+        assert(out->type == EXPR_SCTP_DEFAULT_PRINFO);
+
+        out->value.sctp_default_prinfo = calloc(1, sizeof(struct sctp_default_prinfo_expr));
+                     
+        in_info = in->value.sctp_default_prinfo;
+        out_info = out->value.sctp_default_prinfo;
+                     
+        if (evaluate(in_info->pr_policy,
+		     &out_info->pr_policy,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->pr_value,
+		     &out_info->pr_value,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->pr_assoc_id,
+		     &out_info->pr_assoc_id,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;	
+}
+
 static int evaluate_sctp_authinfo_expression(struct expression *in,
 					     struct expression *out,
 					     char **error)
@@ -2204,6 +2242,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_PRINFO:
 		result = evaluate_sctp_prinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_DEFAULT_PRINFO:
+		result = evaluate_sctp_default_prinfo_expression(in, out, error);
 		break;
 	case EXPR_SCTP_AUTHINFO:
 		result = evaluate_sctp_authinfo_expression(in, out, error);
