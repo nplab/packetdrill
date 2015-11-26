@@ -641,7 +641,6 @@ static int map_inbound_sctp_packet(
 					sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
 				}
 			}
-
 			break;
 		case SCTP_ABORT_CHUNK_TYPE:
 			abort = (struct sctp_abort_chunk *)chunk;
