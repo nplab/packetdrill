@@ -269,6 +269,27 @@ static int get_size_t(struct expression *expression,
 }
 #endif
 
+#if defined(linux) || defined(__FreeBSD__)
+/* Sets the value from the expression argument, checking that it is a
+ * valid sctp_assoc_t, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static int get_sctp_assoc_t(struct expression *expression,
+			    sctp_assoc_t *value, char **error)
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if (expression->value.num < 0) {
+		asprintf(error,
+			 "Value out of range for sctp_assoc_t: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+#endif
+
 /* Sets the value from the expression argument, checking that it is a
  * valid u32, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -2795,6 +2816,21 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 }
 #endif
 
+#ifdef SCTP_PRIMARY_ADDR
+static int check_sctp_setprim(struct sctp_setprim_expr *expr,
+			      struct sctp_setprim *sctp_setprim,
+			      char **error)
+{
+	if (check_u32_expr(expr->ssp_assoc_id, sctp_setprim->ssp_assoc_id,
+			   "sctp_setprim.ssp_assoc_id", error))
+		return STATUS_ERR;
+	if (check_sockaddr(expr->ssp_addr, (struct sockaddr *)&sctp_setprim->ssp_addr, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 #ifdef SCTP_ADAPTATION_LAYER
 static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 				    struct sctp_setadaptation *sctp_setadaptation,
@@ -2844,15 +2880,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_RTOINFO:
 		live_optval = malloc(sizeof(struct sctp_rtoinfo));
 		live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
-		if (val_expression->value.sctp_rtoinfo->srto_assoc_id->type != EXPR_ELLIPSIS) {
-			if (get_u32(val_expression->value.sctp_rtoinfo->srto_assoc_id,
-				    &((struct sctp_rtoinfo*)live_optval)->srto_assoc_id,
-				    error)) {
-				free(live_optval);
-				return STATUS_ERR;
-			}
-		} else {
-			((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_rtoinfo->srto_assoc_id,
+				     &((struct sctp_rtoinfo*)live_optval)->srto_assoc_id,
+				     error)) {
+			free(live_optval);
+			return STATUS_ERR;
 		}
 		break;
 #endif
@@ -2860,15 +2892,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_ASSOCPARAMS:
 		live_optval = malloc(sizeof(struct sctp_assocparams));
 		live_optlen = (socklen_t)sizeof(struct sctp_assocparams);
-		if (val_expression->value.sctp_rtoinfo->srto_assoc_id->type != EXPR_ELLIPSIS) {
-			if (get_u32(val_expression->value.sctp_assocparams->sasoc_assoc_id,
+		if (get_sctp_assoc_t(val_expression->value.sctp_assocparams->sasoc_assoc_id,
 				    &((struct sctp_assocparams*) live_optval)->sasoc_assoc_id,
 				    error)) {
-				free(live_optval);
-				return STATUS_ERR;
-			}
-		} else {
-			((struct sctp_assocparams*) live_optval)->sasoc_assoc_id = 0;
+			free(live_optval);
+			return STATUS_ERR;
 		}
 		break;
 #endif
@@ -2888,7 +2916,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_STATUS:
 		live_optval = malloc(sizeof(struct sctp_status));
-		live_optlen = (socklen_t)sizeof(struct sctp_status);
+		live_optlen = (socklen_t) sizeof(struct sctp_status);
 		((struct sctp_status*) live_optval)->sstat_assoc_id = 0;
 		break;
 #endif
@@ -2896,7 +2924,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_PADDRINFO: {
 		struct sctp_paddrinfo_expr *expr_paddrinfo = val_expression->value.sctp_paddrinfo;
 		struct sctp_paddrinfo *live_paddrinfo = malloc(sizeof(struct sctp_paddrinfo));
-		live_optlen = (socklen_t)sizeof(struct sctp_paddrinfo);
+		live_optlen = (socklen_t) sizeof(struct sctp_paddrinfo);
 		memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
 		live_paddrinfo->spinfo_assoc_id = 0;
 		if (get_sockstorage_arg(expr_paddrinfo->spinfo_address,
@@ -2950,15 +2978,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_EVENT:
 		live_optval = malloc(sizeof(struct sctp_event));
 		live_optlen = sizeof(struct sctp_event);
-		if (val_expression->value.sctp_event->se_assoc_id->type != EXPR_ELLIPSIS) {
-			if (get_u32(val_expression->value.sctp_event->se_assoc_id,
-				    &((struct sctp_event *)live_optval)->se_assoc_id,
-				    error)) {
-				free(live_optval);
-				return STATUS_ERR;
-			}
-		} else {
-			((struct sctp_event *)live_optval)->se_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_event->se_assoc_id,
+				     &((struct sctp_event *)live_optval)->se_assoc_id,
+				     error)) {
+			free(live_optval);
+			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_event->se_type,
 			    &((struct sctp_event *)live_optval)->se_type,
@@ -2978,9 +3002,21 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_SNDINFO:
 		live_optval = malloc(sizeof(struct sctp_sndinfo));
 		live_optlen = sizeof(struct sctp_sndinfo);
-		if (get_u32(val_expression->value.sctp_sndinfo->snd_assoc_id,
-			    &((struct sctp_sndinfo *)live_optval)->snd_assoc_id,
-			    error)) {
+		if (get_sctp_assoc_t(val_expression->value.sctp_sndinfo->snd_assoc_id,
+				     &((struct sctp_sndinfo *)live_optval)->snd_assoc_id,
+				     error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+		break;
+#endif
+#ifdef SCTP_PRIMARY_ADDR
+	case EXPR_SCTP_SETPRIM:
+		live_optval = malloc(sizeof(struct sctp_setprim));
+		live_optlen = sizeof(struct sctp_setprim);
+		if (get_sctp_assoc_t(val_expression->value.sctp_setprim->ssp_assoc_id,
+				     &((struct sctp_setprim *)live_optval)->ssp_assoc_id,
+				     error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
@@ -3083,6 +3119,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_sndinfo(val_expression->value.sctp_sndinfo, live_optval, error);
 		break;
 #endif
+#ifdef SCTP_PRIMARY_ADDR
+	case EXPR_SCTP_SETPRIM:
+		result = check_sctp_setprim(val_expression->value.sctp_setprim, live_optval, error);
+		break;
+#endif
 #ifdef SCTP_ADAPTATION_LAYER
 	case EXPR_SCTP_SETADAPTATION:
 		result = check_sctp_setadaptation(val_expression->value.sctp_setadaptation, live_optval, error);
@@ -3144,6 +3185,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_DEFAULT_SNDINFO
 	struct sctp_sndinfo sndinfo;
 #endif
+#ifdef SCTP_PRIMARY_ADDR
+	struct sctp_setprim setprim;
+#endif
 #ifdef SCTP_ADAPTATION_LAYER
 	struct sctp_setadaptation setadaptation;
 #endif
@@ -3189,8 +3233,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
 		if (val_expression->value.sctp_rtoinfo->srto_assoc_id->type != EXPR_ELLIPSIS) {
-			if (get_u32(val_expression->value.sctp_rtoinfo->srto_assoc_id,
-				    &rtoinfo.srto_assoc_id, error)) {
+			if (get_sctp_assoc_t(val_expression->value.sctp_rtoinfo->srto_assoc_id,
+					      &rtoinfo.srto_assoc_id, error)) {
 				return STATUS_ERR;
 			}
 		} else {
@@ -3213,8 +3257,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_ASSOCINFO
 	case EXPR_SCTP_ASSOCPARAMS:
-		if (get_u32(val_expression->value.sctp_assocparams->sasoc_assoc_id,
-			    &assocparams.sasoc_assoc_id, error)) {
+		if (get_sctp_assoc_t(val_expression->value.sctp_assocparams->sasoc_assoc_id,
+				     &assocparams.sasoc_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_assocparams->sasoc_asocmaxrxt,
@@ -3306,8 +3350,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
 		if (val_expression->value.sctp_event->se_assoc_id->type != EXPR_ELLIPSIS) {
-			if (get_u16(val_expression->value.sctp_event->se_assoc_id,
-				    &event.se_type, error)) {
+			if (get_sctp_assoc_t(val_expression->value.sctp_event->se_assoc_id,
+					     &event.se_assoc_id, error)) {
 				return STATUS_ERR;
 			}
 		} else {
@@ -3387,11 +3431,24 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			    &sndinfo.snd_context, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u32(val_expression->value.sctp_sndinfo->snd_assoc_id,
-			    &sndinfo.snd_assoc_id, error)) {
+		if (get_sctp_assoc_t(val_expression->value.sctp_sndinfo->snd_assoc_id,
+				     &sndinfo.snd_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 		optval = &sndinfo;
+		break;
+#endif
+#ifdef SCTP_PRIMARY_ADDR
+	case EXPR_SCTP_SETPRIM:
+		if (get_sctp_assoc_t(val_expression->value.sctp_setprim->ssp_assoc_id,
+				     &setprim.ssp_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_sockstorage_arg(val_expression->value.sctp_setprim->ssp_addr,
+			    	&setprim.ssp_addr, live_fd)) {
+			return STATUS_ERR;
+		}
+		optval = &setprim;		
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
@@ -3915,7 +3972,7 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr,
 				info->sinfo_assoc_id = 0;
 			}
 		} else {
-			if (get_u32(sndrcvinfo_expr->sinfo_assoc_id, (u32 *)&info->sinfo_assoc_id, error)) {
+			if (get_sctp_assoc_t(sndrcvinfo_expr->sinfo_assoc_id, &info->sinfo_assoc_id, error)) {
 				return STATUS_ERR;
 			}
 		}
@@ -3942,7 +3999,7 @@ static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp
 		if (get_u32(sndinfo_expr->snd_context, &info->snd_context, error)) {
 			return STATUS_ERR;
 		}
-		if (get_u32(sndinfo_expr->snd_assoc_id, &info->snd_assoc_id, error)) {
+		if (get_sctp_assoc_t(sndinfo_expr->snd_assoc_id, &info->snd_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 	} else {
@@ -5047,7 +5104,7 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 	if (to_live_fd(state, script_fd, &live_fd, error))
 		return STATUS_ERR;
 	expr_assoc = get_arg(args, 1, error);
-	if (get_u32(expr_assoc, (u32 *)&assoc_id, error))
+	if (get_sctp_assoc_t(expr_assoc, &assoc_id, error))
 		return STATUS_ERR;
 
 	//check connection Type and set assoc_id if one-to-many style socket
@@ -5094,7 +5151,7 @@ static int syscall_sctp_getpaddrs(struct state *state, struct syscall_spec *sysc
 	if (to_live_fd(state, script_fd, &live_fd, error))
 		return STATUS_ERR;
 	assoc_expr = get_arg(args, 1, error);
-	if (get_u32(assoc_expr, (u32 *)&assoc_id, error))
+	if (get_sctp_assoc_t(assoc_expr, (u32 *)&assoc_id, error))
 		return STATUS_ERR;
 
 	begin_syscall(state, syscall);
@@ -5179,7 +5236,7 @@ static int syscall_sctp_getladdrs(struct state *state, struct syscall_spec *sysc
 	if (to_live_fd(state, script_fd, &live_fd, error))
 		return STATUS_ERR;
 	assoc_expr = get_arg(args, 1, error);
-	if (get_u32(assoc_expr, (u32 *)&assoc_id, error))
+	if (get_sctp_assoc_t(assoc_expr, &assoc_id, error))
 		return STATUS_ERR;
 
 	begin_syscall(state, syscall);

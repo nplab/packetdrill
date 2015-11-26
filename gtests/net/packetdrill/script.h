@@ -59,6 +59,7 @@ enum expression_t {
 	EXPR_SCTP_EVENT,	  /* struct sctp_event for SCTP_EVENT */
 	EXPR_SCTP_EVENT_SUBSCRIBE,/* struct sctp_event_subscribe for SCTP_EVENTS */
 	EXPR_SCTP_SNDINFO,	  /* struct sctp_sndinfo for SCTP_DEFAULT_SNDINFO */
+	EXPR_SCTP_SETPRIM,        /* expression tree for sctp_setprim SCTP_PRIMARY_ADDR */
 	EXPR_SCTP_SETADAPTATION,  /* struct sctp_setadaptation for SCTP_ADATTATION_LAYER */
 	EXPR_SCTP_SNDRCVINFO,     /* struct sctp_sndrcvinfo for syscall sctp_recvmsg */
 	EXPR_SCTP_PRINFO,	  /* struct sctp_prinfo for syscall sctp_sendv */
@@ -111,6 +112,7 @@ struct expression {
 		struct sctp_event_expr *sctp_event;
 		struct sctp_event_subscribe_expr *sctp_event_subscribe;
 		struct sctp_sndinfo_expr *sctp_sndinfo;
+		struct sctp_setprim_expr *sctp_setprim;
 		struct sctp_setadaptation_expr *sctp_setadaptation;
 		struct sctp_sndrcvinfo_expr *sctp_sndrcvinfo;
 		struct sctp_prinfo_expr *sctp_prinfo;
@@ -292,6 +294,12 @@ struct sctp_sndinfo_expr {
 	struct expression *snd_ppid;
 	struct expression *snd_context;
 	struct expression *snd_assoc_id;
+};
+
+/* Parse tree for sctp_setadaptation struct in [gs]etsockopt syscall. */
+struct sctp_setprim_expr {
+	struct expression *ssp_assoc_id;
+	struct expression *ssp_addr;
 };
 
 /* Parse tree for sctp_setadaptation struct in [gs]etsockopt syscall. */

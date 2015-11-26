@@ -79,6 +79,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
 	{ EXPR_SCTP_EVENT_SUBSCRIBE, "sctp_event_subscribe"},
 	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
+	{ EXPR_SCTP_SETPRIM,         "sctp_setprim"    },
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
 	{ EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
 	{ EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
@@ -400,6 +401,10 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sndinfo->snd_ppid);
 		free_expression(expression->value.sctp_sndinfo->snd_context);
 		free_expression(expression->value.sctp_sndinfo->snd_assoc_id);
+		break;
+	case EXPR_SCTP_SETPRIM:
+		free_expression(expression->value.sctp_setprim->ssp_assoc_id);
+		free_expression(expression->value.sctp_setprim->ssp_addr);
 		break;		
 	case EXPR_SCTP_SETADAPTATION:
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
@@ -1240,6 +1245,34 @@ static int evaluate_sctp_sndinfo_expression(struct expression *in,
 		     &out_sndinfo->snd_assoc_id,
 		     error))
 		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_setprim_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+        struct sctp_setprim_expr *in_prim;
+        struct sctp_setprim_expr *out_prim;
+
+        assert(in->type == EXPR_SCTP_SETPRIM);
+        assert(in->value.sctp_setprim);
+        assert(out->type == EXPR_SCTP_SETPRIM);
+
+        out->value.sctp_setprim = calloc(1, sizeof(struct sctp_setprim_expr));
+                     
+        in_prim = in->value.sctp_setprim;
+        out_prim = out->value.sctp_setprim;
+                     
+        if (evaluate(in_prim->ssp_assoc_id,
+		     &out_prim->ssp_assoc_id,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_prim->ssp_addr,
+		     &out_prim->ssp_addr,
+		     error))
+		return STATUS_ERR;
+
 	return STATUS_OK;
 }
 
@@ -2144,6 +2177,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SNDINFO:
 		result = evaluate_sctp_sndinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SETPRIM:
+		result = evaluate_sctp_setprim_expression(in, out, error);
 		break;
 	case EXPR_SCTP_SETADAPTATION:
 		result = evaluate_sctp_setadaptation_expression(in, out, error);

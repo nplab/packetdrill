@@ -538,6 +538,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <reserved> SASOC_ASOCMAXRXT SASOC_ASSOC_ID SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_ASSOC_ID SE_TYPE SE_ON
+%token <reserved> SSP_ASSOC_ID SSP_ADDR
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SND_ASSOC_ID SSB_ADAPTATION_IND
 %token <reserved> BAD_CRC32C NULL_
 %token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT SINFO_ASSOC_ID
@@ -614,7 +615,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sasoc_assoc_id sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_assoc_id snd_context
-%type <expression> sctp_event se_assoc_id se_type se_on sctp_setadaptation null
+%type <expression> sctp_event se_assoc_id se_type se_on sctp_setadaptation sctp_setprim ssp_assoc_id null
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn sinfo_assoc_id sinfo_pr_value serinfo_next_flags
 %type <expression> serinfo_next_stream serinfo_next_aid serinfo_next_length serinfo_next_ppid sctp_extrcvinfo
@@ -2509,6 +2510,9 @@ expression
 | sctp_sndinfo      {
 	$$ = $1;
 }
+| sctp_setprim      {
+	$$ = $1;
+}
 | sctp_setadaptation{
 	$$ = $1;
 }
@@ -3371,7 +3375,28 @@ sctp_sndinfo
 	$$->value.sctp_sndinfo->snd_assoc_id = $10;
 }
 ;
+ssp_assoc_id
+: SSP_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("ssp_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SSP_ASSOC_ID '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| SSP_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
 
+sctp_setprim
+: '{' ssp_assoc_id ',' SSP_ADDR '=' sockaddr'}' {
+	$$ = new_expression(EXPR_SCTP_SETPRIM);
+	$$->value.sctp_setprim = calloc(1, sizeof(struct sctp_setprim_expr));
+	$$->value.sctp_setprim->ssp_assoc_id = $2;
+	$$->value.sctp_setprim->ssp_addr = $6;
+}
+;
 sctp_setadaptation
 : '{' SSB_ADAPTATION_IND '=' INTEGER '}' {
 	$$ = new_expression(EXPR_SCTP_SETADAPTATION);

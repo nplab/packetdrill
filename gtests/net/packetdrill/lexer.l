@@ -268,6 +268,8 @@ snd_flags			return SND_FLAGS;
 snd_ppid			return SND_PPID;
 snd_context			return SND_CONTEXT;
 snd_assoc_id                    return SND_ASSOC_ID;
+ssp_assoc_id			return SSP_ASSOC_ID;
+ssp_addr			return SSP_ADDR;
 ssb_adaptation_ind		return SSB_ADAPTATION_IND;
 sinfo_stream			return SINFO_STREAM;
 sinfo_ssn			return SINFO_SSN;
