@@ -488,6 +488,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
 		free_expression(expression->value.sctp_shutdown_event->sse_flags);
 		free_expression(expression->value.sctp_shutdown_event->sse_length);
+		free_expression(expression->value.sctp_shutdown_event->sse_assoc_id);
 		break;
 	case EXPR_SCTP_ADAPTATION_EVENT:
 		free_expression(expression->value.sctp_adaptation_event->sai_type);
@@ -1740,6 +1741,10 @@ static int evaluate_sctp_shutdown_event_expression(struct expression *in,
 		return STATUS_ERR;
 	if (evaluate(in_event->sse_length,
 		     &out_event->sse_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->sse_assoc_id,
+		     &out_event->sse_assoc_id,
 		     error))
 		return STATUS_ERR;
 

@@ -406,6 +406,7 @@ struct sctp_shutdown_event_expr {
 	struct expression *sse_type;
 	struct expression *sse_flags;
 	struct expression *sse_length;
+	struct expression *sse_assoc_id;
 };
 
 /* Parse tree for sctp_adaptation_event for notifications. */

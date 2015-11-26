@@ -548,7 +548,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> RCV_SID RCV_SSN RCV_FLAGS RCV_PPID RCV_TSN RCV_CUMTSN RCV_CONTEXT RCV_ASSOC_ID
 %token <reserved> NXT_SID NXT_FLAGS NXT_PPID NXT_LENGTH NXT_ASSOC_ID
 %token <reserved> RECVV_RCVINFO RECVV_NXTINFO
-%token <reserved> SSE_TYPE SSE_FLAGS SSE_LENGTH
+%token <reserved> SSE_TYPE SSE_FLAGS SSE_LENGTH SSE_ASSOC_ID
 %token <reserved> SENDER_DRY_TYPE SENDER_DRY_FLAGS SENDER_DRY_LENGTH SENDER_DRY_ASSOC_ID
 %token <reserved> _SCTP_DATA_IO_EVENT_ _SCTP_ASSOCIATION_EVENT_ _SCTP_ADDRESS_EVENT_
 %token <reserved> _SCTP_SEND_FAILURE_EVENT_ _SCTP_PEER_ERROR_EVENT_ _SCTP_SHUTDOWN_EVENT_
@@ -621,7 +621,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_prinfo sctp_authinfo pr_policy sctp_sendv_spa
 %type <expression> sctp_rcvinfo rcv_sid rcv_ssn rcv_flags rcv_ppid rcv_tsn rcv_cumtsn rcv_context rcv_assoc_id
 %type <expression> sctp_nxtinfo nxt_sid nxt_flags nxt_ppid nxt_length nxt_assoc_id sctp_recvv_rn
-%type <expression> sctp_shutdown_event sse_type sse_flags sse_length
+%type <expression> sctp_shutdown_event sse_type sse_flags sse_length sse_assoc_id
 %type <expression> sctp_sender_dry_event sender_dry_type sender_dry_flags sender_dry_length sender_dry_assoc_id
 %type <expression> sctp_event_subscribe
 %type <expression> sctp_assoc_change sac_type sac_flags sac_length sac_state sac_error sac_outbound_streams
@@ -3734,6 +3734,16 @@ sctp_recvv_rn
 }
 ;
 
+sse_assoc_id
+: SSE_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sse_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SSE_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 sse_type
 : SSE_TYPE '=' INTEGER {
 	if (!is_valid_u16($3)) {
@@ -3769,12 +3779,13 @@ sse_length
 ;
 
 sctp_shutdown_event
-: '{' sse_type ',' sse_flags ',' sse_length '}' {
+: '{' sse_type ',' sse_flags ',' sse_length ',' sse_assoc_id '}' {
 	$$ = new_expression(EXPR_SCTP_SHUTDOWN_EVENT);
 	$$->value.sctp_shutdown_event = calloc(1, sizeof(struct sctp_shutdown_event_expr));
 	$$->value.sctp_shutdown_event->sse_type = $2;
 	$$->value.sctp_shutdown_event->sse_flags = $4;
 	$$->value.sctp_shutdown_event->sse_length = $6;
+	$$->value.sctp_shutdown_event->sse_assoc_id = $8;
 };
 
 pdapi_type

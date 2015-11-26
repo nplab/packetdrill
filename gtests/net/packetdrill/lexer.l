@@ -313,6 +313,7 @@ recvv_nxtinfo                   return RECVV_NXTINFO;
 sse_type                        return SSE_TYPE;
 sse_flags                       return SSE_FLAGS;
 sse_length                      return SSE_LENGTH;
+sse_assoc_id                    return SSE_ASSOC_ID;
 sac_type                        return SAC_TYPE;
 sac_flags                       return SAC_FLAGS;
 sac_length                      return SAC_LENGTH;

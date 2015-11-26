@@ -4453,6 +4453,9 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 	if (check_u32_expr(expr->sse_length, sctp_event->sse_length,
 			   "sctp_shutdown_event.sse_length", error))
 		return STATUS_ERR;
+	if (check_u32_expr(expr->sse_assoc_id, sctp_event->sse_assoc_id,
+			   "sctp_shutdown_event.sse_assoc_id", error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
