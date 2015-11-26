@@ -333,8 +333,9 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_SACKINFO:
 		assert(expression->value.sctp_sack_info);
+		free_expression(expression->value.sctp_sack_info->sack_assoc_id);
 		free_expression(expression->value.sctp_sack_info->sack_delay);
-		free_expression(expression->value.sctp_sack_info->sack_freq);		
+		free_expression(expression->value.sctp_sack_info->sack_freq);
 		break;
 	case EXPR_SCTP_PADDRINFO:
 		assert(expression->value.sctp_paddrinfo);
@@ -897,6 +898,10 @@ static int evaluate_sctp_sack_info_expression(struct expression *in,
 	in_sack_info = in->value.sctp_sack_info;
 	out_sack_info = out->value.sctp_sack_info;
 
+	if (evaluate(in_sack_info->sack_assoc_id,
+		     &out_sack_info->sack_assoc_id,
+		     error))
+		return STATUS_ERR;
 	if (evaluate(in_sack_info->sack_delay,
 		     &out_sack_info->sack_delay,
 		     error))

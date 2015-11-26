@@ -508,7 +508,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_ID ASSOC_VALUE
 %token <reserved> STREAM_ID STREAM_VALUE
-%token <reserved> SACK_DELAY SACK_FREQ
+%token <reserved> SACK_ASSOC_ID SACK_DELAY SACK_FREQ
 %token <reserved> SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
 %token <reserved> SSTAT_PRIMARY
@@ -2910,11 +2910,12 @@ sack_freq
 | SACK_FREQ '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 
 sctp_sackinfo
-: '{' sack_delay ',' sack_freq '}' {
+: '{' SACK_ASSOC_ID '=' expression ',' sack_delay ',' sack_freq '}' {
 	$$ = new_expression(EXPR_SCTP_SACKINFO);
 	$$->value.sctp_sack_info = calloc(1, sizeof(struct sctp_sack_info_expr));
-	$$->value.sctp_sack_info->sack_delay = $2;
-	$$->value.sctp_sack_info->sack_freq = $4;
+	$$->value.sctp_sack_info->sack_assoc_id = $4;
+	$$->value.sctp_sack_info->sack_delay = $6;
+	$$->value.sctp_sack_info->sack_freq = $8;
 }
 ;
 

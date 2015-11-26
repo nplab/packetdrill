@@ -220,6 +220,7 @@ struct sctp_stream_value_expr {
 
 /* Parse tree for a sctp_sack_info struct in a [gs]etsockopt syscall. */
 struct sctp_sack_info_expr {
+	struct expression *sack_assoc_id;
 	struct expression *sack_delay;
 	struct expression *sack_freq;
 };

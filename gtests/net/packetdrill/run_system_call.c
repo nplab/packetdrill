@@ -2552,6 +2552,9 @@ static int check_sctp_sack_info(struct sctp_sack_info_expr *expr,
 				struct sctp_sack_info *sctp_sack_info,
 				char **error)
 {
+	if (check_u32_expr(expr->sack_assoc_id, sctp_sack_info->sack_assoc_id,
+			   "sctp_sack_info.sack_assoc_id", error))
+		return STATUS_ERR;
 	if (check_u32_expr(expr->sack_delay, sctp_sack_info->sack_delay,
 			   "sctp_sack_info.sack_delay", error))
 		return STATUS_ERR;
@@ -2913,7 +2916,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_SACKINFO:
 		live_optval = malloc(sizeof(struct sctp_sack_info));
 		live_optlen = (socklen_t)sizeof(struct sctp_sack_info);
-		((struct sctp_sack_info*) live_optval)->sack_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_sack_info->sack_assoc_id,
+				    &((struct sctp_sack_info*) live_optval)->sack_assoc_id,
+				    error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
 		break;
 #endif
 #ifdef SCTP_STATUS
@@ -3331,6 +3339,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_DELAYED_SACK
 	case EXPR_SCTP_SACKINFO:
 		sack_info.sack_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_sack_info->sack_assoc_id,
+				    &sack_info.sack_assoc_id, error)) {
+			return STATUS_ERR;
+		}
 		if (get_u32(val_expression->value.sctp_sack_info->sack_delay,
 			    &sack_info.sack_delay, error)) {
 			return STATUS_ERR;
