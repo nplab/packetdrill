@@ -248,7 +248,7 @@ static int get_socklen_t(struct expression *expression,
 	return STATUS_OK;
 }
 
-#ifdef linux
+#if defined(linux) || defined(__FreeBSD__)
 /* Sets the value from the expression argument, checking that it is a
  * valid size_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -3468,14 +3468,16 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 			struct expression_list *args, char **error)
 {
 #if defined(__FreeBSD__) || defined(linux)
-	int result, script_fd, live_fd, len;
+	int result, script_fd, live_fd;
 	void *msg = NULL;
 	struct sockaddr_storage to;
 	struct sockaddr_storage *to_ptr = &to;
 	socklen_t tolen = 0;
+	size_t len;
 	u32 ppid, flags, timetolive, context;
 	u16 stream_no;
-	struct expression *sockaddr_expr, *tolen_expr, *ppid_expr, *flags_expr, *ttl_expr, *stream_no_expr, *context_expr;
+	struct expression *sockaddr_expr, *tolen_expr, *ppid_expr, *flags_expr, *ttl_expr;
+	struct expression *len_expr, *stream_no_expr, *context_expr;
 
 	if (check_arg_count(args, 10, error))
 		return STATUS_ERR;
@@ -3485,15 +3487,16 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 		return STATUS_ERR;
 	if (ellipsis_arg(args, 1, error))
 		return STATUS_ERR;
-	if (s32_arg(args, 2, &len, error))
+	len_expr = get_arg(args, 2, error);
+	if (get_size_t(len_expr, &len, error))
 		return STATUS_ERR;
 	sockaddr_expr = get_arg(args, 3, error);
 	if (sockaddr_expr->type == EXPR_ELLIPSIS) {
-		socklen_t len = (socklen_t)sizeof(struct sockaddr_storage);
-		if (getpeername(live_fd, (struct sockaddr *)to_ptr, &len)) {
+		socklen_t socklen = (socklen_t)sizeof(struct sockaddr_storage);
+		if (getpeername(live_fd, (struct sockaddr *)to_ptr, &socklen)) {
 			return STATUS_ERR;
 		}
-		tolen = len;
+		tolen = socklen;
 	} else if (sockaddr_expr->type == EXPR_NULL) {
 		to_ptr = NULL;
 		tolen = 0;
@@ -3533,7 +3536,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	assert(msg != NULL);
 
 	begin_syscall(state, syscall);
-	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr *) to_ptr,
+	result = sctp_sendmsg(live_fd, msg, len, (struct sockaddr *) to_ptr,
 			      tolen, ppid, flags, stream_no, timetolive, context);
 
 	free(msg);
@@ -3731,7 +3734,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	}
 	return STATUS_OK;
 #else
-	asprintf(error, "sctp_sendmsg is not supported");
+	asprintf(error, "sctp_recvmsg is not supported");
 	return STATUS_ERR;
 #endif
 }
@@ -4019,7 +4022,7 @@ static int syscall_sctp_send(struct state *state, struct syscall_spec *syscall,
 	if (ellipsis_arg(args, 1, error))
 		return STATUS_ERR;
 	len_expr = get_arg(args, 2, error);
-	if (get_u32(len_expr, &len, error)) {
+	if (get_size_t(len_expr, &len, error)) {
 		 return STATUS_ERR;
 	}
 	info_expr = get_arg(args, 3, error);
@@ -4996,10 +4999,14 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 	begin_syscall(state, syscall);
 
 	result = sctp_peeloff(live_fd, assoc_id);
-
-	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
-		return STATUS_ERR;
-
+	if (result < 0) {
+		if (end_syscall(state, syscall, CHECK_EXACT, result, error))
+			return STATUS_ERR;
+		return STATUS_OK;
+	} else {
+		if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
+			return STATUS_ERR;
+	}
 	if (get_s32(syscall->result, &script_new_fd, error))
 		return STATUS_ERR;
 	if (run_syscall_sctp_peeloff(state, script_fd, script_new_fd, result, error)) {
@@ -5013,6 +5020,178 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 	return STATUS_ERR;
 #endif
 }
+
+static int syscall_sctp_getpaddrs(struct state *state, struct syscall_spec *syscall,
+				  struct expression_list *args,
+				  char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	int live_fd, script_fd, result;
+	sctp_assoc_t assoc_id;
+	struct expression *assoc_expr, *addrs_list_expr;
+	struct sockaddr *live_addrs;
+
+	if (check_arg_count(args, 3, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	assoc_expr = get_arg(args, 1, error);
+	if (get_u32(assoc_expr, (u32 *)&assoc_id, error))
+		return STATUS_ERR;
+
+	begin_syscall(state, syscall);
+
+	result = sctp_getpaddrs(live_fd, assoc_id, &live_addrs);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
+		goto error_out;
+	addrs_list_expr = get_arg(args, 2, error);
+	if (addrs_list_expr->type != EXPR_ELLIPSIS) {
+		int list_length = 0, i = 0;
+		struct sockaddr *live_addr = live_addrs;
+		if (check_type(addrs_list_expr, EXPR_LIST, error)) {
+			goto error_out;
+		}
+		list_length = get_arg_count(addrs_list_expr->value.list);
+		if (list_length != result) {
+			asprintf(error, "Bad length of struct sockaddr array. expected: %d, actual %d", list_length, result);
+			goto error_out;
+		}
+		for (i = 0; i < result; i++) {
+			struct expression *script_addr_expr;
+			script_addr_expr = get_arg(addrs_list_expr->value.list, i, error);
+			if (check_sockaddr(script_addr_expr,  live_addr, error)) {
+				goto error_out;
+			}
+			if (live_addr->sa_family == AF_INET) {
+                                live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in);
+			} else if (live_addr->sa_family == AF_INET6) {
+				live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in6);
+			} else {
+				asprintf(error, "Bad Type of addrs[%d]", i);
+				goto error_out;
+			}
+		}
+	}
+	return STATUS_OK;
+error_out:
+	sctp_freepaddrs(live_addrs);
+	return STATUS_ERR;
+#else
+	asprintf(error, "sctp_getpaddrs is not supported");
+	return STATUS_ERR;
+#endif
+}
+
+static int syscall_sctp_freepaddrs(struct state *state, struct syscall_spec *syscall,
+				   struct expression_list *args,
+				   char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	struct expression *addrs_expr;
+	if (check_arg_count(args, 1, error))
+		return STATUS_ERR;
+	addrs_expr = get_arg(args, 0, error);
+	if (check_type(addrs_expr, EXPR_LIST, error))
+		return STATUS_ERR;
+	if (ellipsis_arg(addrs_expr->value.list, 0, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_freepaddrs is not supported");
+	return STATUS_ERR;
+#endif
+}
+
+static int syscall_sctp_getladdrs(struct state *state, struct syscall_spec *syscall,
+				  struct expression_list *args,
+				  char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	int live_fd, script_fd, result;
+	sctp_assoc_t assoc_id;
+	struct expression *assoc_expr, *addrs_list_expr;
+	struct sockaddr *live_addrs;
+
+	if (check_arg_count(args, 3, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_fd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		return STATUS_ERR;
+	assoc_expr = get_arg(args, 1, error);
+	if (get_u32(assoc_expr, (u32 *)&assoc_id, error))
+		return STATUS_ERR;
+
+	begin_syscall(state, syscall);
+
+	result = sctp_getladdrs(live_fd, assoc_id, &live_addrs);
+
+	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
+		goto error_out;
+	addrs_list_expr = get_arg(args, 2, error);
+	if (addrs_list_expr->type != EXPR_ELLIPSIS) {
+		int list_length = 0, i = 0;
+		struct sockaddr *live_addr = live_addrs;
+		if (check_type(addrs_list_expr, EXPR_LIST, error)) {
+			goto error_out;
+		}
+		list_length = get_arg_count(addrs_list_expr->value.list);
+		if (list_length != result) {
+			asprintf(error, "Bad length of struct sockaddr array. expected: %d, actual %d", list_length, result);
+			goto error_out;
+		}
+		for (i = 0; i < result; i++) {
+			struct expression *script_addr_expr;
+			script_addr_expr = get_arg(addrs_list_expr->value.list, i, error);
+			if (check_sockaddr(script_addr_expr,  live_addr, error)) {
+				goto error_out;
+			}
+			if (live_addr->sa_family == AF_INET) {
+                                live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in);
+			} else if (live_addr->sa_family == AF_INET6) {
+				live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in6);
+			} else {
+				asprintf(error, "Bad Type of addrs[%d]", i);
+				goto error_out;
+			}
+		}
+	}
+	return STATUS_OK;
+error_out:
+	sctp_freeladdrs(live_addrs);
+	return STATUS_ERR;
+#else
+	asprintf(error, "sctp_getladdrs is not supported");
+	return STATUS_ERR;
+#endif
+}
+
+static int syscall_sctp_freeladdrs(struct state *state, struct syscall_spec *syscall,
+				   struct expression_list *args,
+				   char **error)
+{
+#if defined(__FreeBSD__) || defined(linux)
+	struct expression *addrs_expr;
+	if (check_arg_count(args, 1, error))
+		return STATUS_ERR;
+	addrs_expr = get_arg(args, 0, error);
+	if (check_type(addrs_expr, EXPR_LIST, error))
+		return STATUS_ERR;
+	if (ellipsis_arg(addrs_expr->value.list, 0, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+#else
+	asprintf(error, "sctp_freeladdrs is not supported");
+	return STATUS_ERR;
+#endif
+}
+
+
 
 /* A dispatch table with all the system calls that we support... */
 struct system_call_entry {
@@ -5046,15 +5225,19 @@ struct system_call_entry system_call_table[] = {
 	{"getsockopt", syscall_getsockopt},
 	{"setsockopt", syscall_setsockopt},
 	{"poll",       syscall_poll},
-	{"sctp_send",     syscall_sctp_send},
-	{"sctp_sendx",    syscall_sctp_sendx},
-	{"sctp_sendmsg",  syscall_sctp_sendmsg},
-	{"sctp_recvmsg",  syscall_sctp_recvmsg},
-	{"sctp_sendv",    syscall_sctp_sendv},
-	{"sctp_recvv",    syscall_sctp_recvv},
-	{"sctp_bindx",    syscall_sctp_bindx},
-	{"sctp_connectx", syscall_sctp_connectx},
-	{"sctp_peeloff",  syscall_sctp_peeloff}
+	{"sctp_bindx",     syscall_sctp_bindx},
+	{"sctp_peeloff",   syscall_sctp_peeloff},
+	{"sctp_getpaddrs", syscall_sctp_getpaddrs},
+	{"sctp_freepaddrs",syscall_sctp_freepaddrs},
+	{"sctp_getladdrs", syscall_sctp_getladdrs},
+	{"sctp_freeladdrs",syscall_sctp_freeladdrs},
+	{"sctp_sendmsg",   syscall_sctp_sendmsg},
+	{"sctp_recvmsg",   syscall_sctp_recvmsg},
+	{"sctp_connectx",  syscall_sctp_connectx},
+	{"sctp_send",      syscall_sctp_send},
+	{"sctp_sendx",     syscall_sctp_sendx},
+	{"sctp_sendv",     syscall_sctp_sendv},
+	{"sctp_recvv",     syscall_sctp_recvv}
 };
 
 /* Evaluate the system call arguments and invoke the system call. */
