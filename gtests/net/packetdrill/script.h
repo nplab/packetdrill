@@ -229,6 +229,7 @@ struct sctp_sack_info_expr {
 
 /* Parse tree for a sctp_status struct in a [gs]etsockopt syscall. */
 struct sctp_status_expr {
+	struct expression *sstat_assoc_id;
 	struct expression *sstat_state;
 	struct expression *sstat_rwnd;
 	struct expression *sstat_unackdata;

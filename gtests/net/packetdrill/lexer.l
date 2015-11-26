@@ -231,6 +231,7 @@ sinit_num_ostreams		return SINIT_NUM_OSTREAMS;
 sinit_max_instreams		return SINIT_MAX_INSTREAMS;
 sinit_max_attempts		return SINIT_MAX_ATTEMPTS;
 sinit_max_init_timeo		return SINIT_MAX_INIT_TIMEO;
+sstat_assoc_id                  return SSTAT_ASSOC_ID;
 sstat_state			return SSTAT_STATE;
 sstat_rwnd			return SSTAT_RWND;
 sstat_unackdata			return SSTAT_UNACKDATA;

@@ -349,6 +349,7 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_STATUS:
 		assert(expression->value.sctp_status);
+		free_expression(expression->value.sctp_status->sstat_assoc_id);
 		free_expression(expression->value.sctp_status->sstat_state);
 		free_expression(expression->value.sctp_status->sstat_rwnd);
 		free_expression(expression->value.sctp_status->sstat_unackdata);
@@ -980,6 +981,10 @@ static int evaluate_sctp_status_expression(struct expression *in,
 	in_status = in->value.sctp_status;
 	out_status = out->value.sctp_status;
 
+	if (evaluate(in_status->sstat_assoc_id,
+	             &out_status->sstat_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_status->sstat_state,
 	             &out_status->sstat_state,
 	             error))
