@@ -635,9 +635,13 @@ static int map_inbound_sctp_packet(
 			DEBUGP("New SACK cum TSN %d\n", ntohl(sack->cum_tsn));
 			nr_gap_blocks = ntohs(sack->nr_gap_blocks);
 			nr_dup_tsns = ntohs(sack->nr_dup_tsns);
-			for (i = 0; i < nr_dup_tsns; i++) {
-				sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
+
+			if (ntohs(sack->length) == sizeof(struct sctp_sack_chunk) + sizeof(union sctp_sack_block) * (nr_dup_tsns+nr_gap_blocks)) {
+				for (i = 0; i < nr_dup_tsns; i++) {
+					sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
+				}
 			}
+
 			break;
 		case SCTP_ABORT_CHUNK_TYPE:
 			abort = (struct sctp_abort_chunk *)chunk;
