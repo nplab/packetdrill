@@ -215,6 +215,7 @@ stream_id			return STREAM_ID;
 stream_value			return STREAM_VALUE;
 sack_delay			return SACK_DELAY;
 sack_freq			return SACK_FREQ;
+srto_assoc_id			return SRTO_ASSOC_ID;
 srto_initial			return SRTO_INITIAL;
 srto_max			return SRTO_MAX;
 srto_min			return SRTO_MIN;

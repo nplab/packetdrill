@@ -503,7 +503,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
-%token <reserved> SRTO_INITIAL SRTO_MAX SRTO_MIN
+%token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_VALUE
@@ -607,7 +607,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts
 %type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value
 %type <expression> sctp_sackinfo sack_delay sack_freq
-%type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
+%type <expression> sctp_rtoinfo srto_assoc_id srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
@@ -2766,6 +2766,16 @@ linger
 }
 ;
 
+srto_assoc_id
+: SRTO_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)){
+		semantic_error("srto_assoc_id out of range");
+	}
+        $$ = new_integer_expression($3, "%u");
+}
+| SRTO_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 srto_initial
 : SRTO_INITIAL '=' INTEGER {
 	if (!is_valid_u32($3)){
@@ -2797,12 +2807,13 @@ srto_min
 ;
 
 sctp_rtoinfo
-: '{' srto_initial ',' srto_max ',' srto_min '}' {
+: '{' srto_assoc_id ',' srto_initial ',' srto_max ',' srto_min '}' {
 	$$ = new_expression(EXPR_SCTP_RTOINFO);
 	$$->value.sctp_rtoinfo = calloc(1, sizeof(struct sctp_rtoinfo_expr));
-	$$->value.sctp_rtoinfo->srto_initial = $2;
-	$$->value.sctp_rtoinfo->srto_max = $4;
-	$$->value.sctp_rtoinfo->srto_min = $6;
+	$$->value.sctp_rtoinfo->srto_assoc_id = $2;
+	$$->value.sctp_rtoinfo->srto_initial = $4;
+	$$->value.sctp_rtoinfo->srto_max = $6;
+	$$->value.sctp_rtoinfo->srto_min = $8;
 }
 ;
 

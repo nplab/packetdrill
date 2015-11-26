@@ -190,6 +190,7 @@ struct linger_expr {
 
 /* Parse tree for a sctp_rtoinfo struct in a [gs]etsockopt syscall. */
 struct sctp_rtoinfo_expr {
+	struct expression *srto_assoc_id;
 	struct expression *srto_initial;
 	struct expression *srto_max;
 	struct expression *srto_min;

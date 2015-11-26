@@ -2488,6 +2488,9 @@ static int check_linger(struct linger_expr *expr,
 static int check_sctp_rtoinfo(struct sctp_rtoinfo_expr *expr,
 			      struct sctp_rtoinfo *sctp_rtoinfo, char **error)
 {
+	if (check_u32_expr(expr->srto_assoc_id, sctp_rtoinfo->srto_assoc_id,
+			   "sctp_rtoinfo.srto_assoc_id", error))
+		return STATUS_ERR;
 	if (check_u32_expr(expr->srto_initial, sctp_rtoinfo->srto_initial,
 			   "sctp_rtoinfo.srto_initial", error))
 		return STATUS_ERR;
@@ -2835,7 +2838,16 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_RTOINFO:
 		live_optval = malloc(sizeof(struct sctp_rtoinfo));
 		live_optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
-		((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
+		if (val_expression->value.sctp_rtoinfo->srto_assoc_id->type != EXPR_ELLIPSIS) {
+			if (get_u32(val_expression->value.sctp_rtoinfo->srto_assoc_id,
+				    &((struct sctp_rtoinfo*)live_optval)->srto_assoc_id,
+				    error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else {
+			((struct sctp_rtoinfo*)live_optval)->srto_assoc_id = 0;
+		}
 		break;
 #endif
 #ifdef SCTP_ASSOCINFO
@@ -3152,7 +3164,14 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
-		rtoinfo.srto_assoc_id = 0;
+		if (val_expression->value.sctp_rtoinfo->srto_assoc_id->type != EXPR_ELLIPSIS) {
+			if (get_u32(val_expression->value.sctp_rtoinfo->srto_assoc_id,
+				    &rtoinfo.srto_assoc_id, error)) {
+				return STATUS_ERR;
+			}
+		} else {
+			rtoinfo.srto_assoc_id = 0;
+		}
 		if (get_u32(val_expression->value.sctp_rtoinfo->srto_initial,
 			    &rtoinfo.srto_initial, error)) {
 			return STATUS_ERR;

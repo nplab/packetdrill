@@ -313,6 +313,7 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_RTOINFO:
 		assert(expression->value.sctp_rtoinfo);
+		free_expression(expression->value.sctp_rtoinfo->srto_assoc_id);
 		free_expression(expression->value.sctp_rtoinfo->srto_initial);
 		free_expression(expression->value.sctp_rtoinfo->srto_max);
 		free_expression(expression->value.sctp_rtoinfo->srto_min);
@@ -787,6 +788,10 @@ static int evaluate_sctp_rtoinfo_expression(struct expression *in,
 	in_rtoinfo = in->value.sctp_rtoinfo;
 	out_rtoinfo = out->value.sctp_rtoinfo;
 
+	if (evaluate(in_rtoinfo->srto_assoc_id,
+	             &out_rtoinfo->srto_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_rtoinfo->srto_initial,
 	             &out_rtoinfo->srto_initial,
 	             error))
