@@ -370,6 +370,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_stream_value->stream_value);
 		break;
 	case EXPR_SCTP_ASSOCPARAMS:
+		free_expression(expression->value.sctp_assocparams->sasoc_assoc_id);
 		free_expression(expression->value.sctp_assocparams->sasoc_asocmaxrxt);
 		free_expression(expression->value.sctp_assocparams->sasoc_number_peer_destinations);
 		free_expression(expression->value.sctp_assocparams->sasoc_peer_rwnd);
@@ -1175,6 +1176,10 @@ static int evaluate_sctp_accocparams_expression(struct expression *in,
 	in_params = in->value.sctp_assocparams;
 	out_params = out->value.sctp_assocparams;
 
+	if (evaluate(in_params->sasoc_assoc_id,
+		     &out_params->sasoc_assoc_id,
+		     error))
+		return STATUS_ERR;
 	if (evaluate(in_params->sasoc_asocmaxrxt,
 		     &out_params->sasoc_asocmaxrxt,
 		     error))

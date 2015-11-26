@@ -256,6 +256,7 @@ struct sctp_paddrparams_expr {
 
 /* Parse tree for sctp_assocparams struct in [gs]etsockopt syscall. */
 struct sctp_assocparams_expr {
+	struct expression *sasoc_assoc_id;
 	struct expression *sasoc_asocmaxrxt;
 	struct expression *sasoc_number_peer_destinations;
 	struct expression *sasoc_peer_rwnd;

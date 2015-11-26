@@ -2679,6 +2679,9 @@ static int check_sctp_assocparams(struct sctp_assocparams_expr *expr,
 			     struct sctp_assocparams *sctp_assocparams,
 			     char **error)
 {
+	if (check_u32_expr(expr->sasoc_assoc_id, sctp_assocparams->sasoc_assoc_id,
+			   "sctp_assocparams.sasoc_assoc_id", error))
+		return STATUS_ERR;
 	if (check_u16_expr(expr->sasoc_asocmaxrxt, sctp_assocparams->sasoc_asocmaxrxt,
 			   "sctp_assocparams.sasoc_asocmaxrxt", error))
 		return STATUS_ERR;
@@ -2857,7 +2860,16 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_ASSOCPARAMS:
 		live_optval = malloc(sizeof(struct sctp_assocparams));
 		live_optlen = (socklen_t)sizeof(struct sctp_assocparams);
-		((struct sctp_assocparams*) live_optval)->sasoc_assoc_id = 0;
+		if (val_expression->value.sctp_rtoinfo->srto_assoc_id->type != EXPR_ELLIPSIS) {
+			if (get_u32(val_expression->value.sctp_assocparams->sasoc_assoc_id,
+				    &((struct sctp_assocparams*) live_optval)->sasoc_assoc_id,
+				    error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else {
+			((struct sctp_assocparams*) live_optval)->sasoc_assoc_id = 0;
+		}
 		break;
 #endif
 #ifdef SCTP_INITMSG
@@ -3201,7 +3213,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_ASSOCINFO
 	case EXPR_SCTP_ASSOCPARAMS:
-		assocparams.sasoc_assoc_id = 0;
+		if (get_u32(val_expression->value.sctp_assocparams->sasoc_assoc_id,
+			    &assocparams.sasoc_assoc_id, error)) {
+			return STATUS_ERR;
+		}
 		if (get_u16(val_expression->value.sctp_assocparams->sasoc_asocmaxrxt,
 			    &assocparams.sasoc_asocmaxrxt, error)) {
 			return STATUS_ERR;

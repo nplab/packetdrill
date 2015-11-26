@@ -219,6 +219,7 @@ srto_assoc_id			return SRTO_ASSOC_ID;
 srto_initial			return SRTO_INITIAL;
 srto_max			return SRTO_MAX;
 srto_min			return SRTO_MIN;
+sasoc_assoc_id	 		return SASOC_ASSOC_ID;
 sasoc_asocmaxrxt		return SASOC_ASOCMAXRXT;
 sasoc_number_peer_destinations	return SASOC_NUMBER_PEER_DESTINATIONS;
 sasoc_peer_rwnd			return SASOC_PEER_RWND;
