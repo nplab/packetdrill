@@ -569,10 +569,6 @@ static int map_inbound_icmp_packet(
 	return STATUS_ERR;
 }
 
-static inline bool is_valid_sack_length(struct sctp_sack_chunk *sack) {
-	return sack->length == 16+2*sack->nr_gap_blocks+4*sack->nr_dup_tsns;
-}
-
 static int map_inbound_sctp_packet(
 	struct socket *socket, struct packet *live_packet, char **error)
 {
@@ -640,7 +636,7 @@ static int map_inbound_sctp_packet(
 			nr_gap_blocks = ntohs(sack->nr_gap_blocks);
 			nr_dup_tsns = ntohs(sack->nr_dup_tsns);
 
-			if (is_valid_sack_length(sack)) {
+			if (ntohs(sack->length) == (sizeof(struct sctp_sack_chunk)+(sizeof(union sctp_sack_block()))*nr_gap_blocks+(sizeof(union sctp_sack_block))*nr_dup_tsns)) {
 				for (i = 0; i < nr_dup_tsns; i++) {
 					sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
 				}
