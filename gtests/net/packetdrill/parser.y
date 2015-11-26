@@ -537,7 +537,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPP_ADDRESS SPP_HBINTERVAL SPP_PATHMAXRXT SPP_PATHMTU
 %token <reserved> SPP_FLAGS SPP_IPV6_FLOWLABEL_ SPP_DSCP_
 %token <reserved> SASOC_ASOCMAXRXT SASOC_NUMBER_PEER_DESTINATIONS SASOC_PEER_RWND
-%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_TYPE SE_ON
+%token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_ASSOC_ID SE_TYPE SE_ON
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SND_ASSOC_ID SSB_ADAPTATION_IND
 %token <reserved> BAD_CRC32C NULL_
 %token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT SINFO_ASSOC_ID
@@ -614,7 +614,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_assoc_id snd_context
-%type <expression> sctp_event se_type se_on sctp_setadaptation null
+%type <expression> sctp_event se_assoc_id se_type se_on sctp_setadaptation null
 %type <expression> sctp_sndrcvinfo sinfo_stream sinfo_ssn sinfo_flags sinfo_ppid sinfo_context
 %type <expression> sinfo_timetolive sinfo_tsn sinfo_cumtsn sinfo_assoc_id sinfo_pr_value serinfo_next_flags
 %type <expression> serinfo_next_stream serinfo_next_aid serinfo_next_length serinfo_next_ppid sctp_extrcvinfo
@@ -3205,6 +3205,16 @@ sctp_assocparams
 }
 ;
 
+se_assoc_id
+: SE_ASSOC_ID '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("se_assoc_id out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SE_ASSOC_ID '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
 se_type
 : SE_TYPE '=' INTEGER {
 	if (!is_valid_u16($3)) {
@@ -3229,11 +3239,12 @@ se_on
 ;
 
 sctp_event
-: '{' se_type ',' se_on '}' {
+: '{' se_assoc_id ',' se_type ',' se_on '}' {
 	$$ = new_expression(EXPR_SCTP_EVENT);
 	$$->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
-	$$->value.sctp_event->se_type = $2;
-	$$->value.sctp_event->se_on = $4;
+	$$->value.sctp_event->se_assoc_id = $2;
+	$$->value.sctp_event->se_type = $4;
+	$$->value.sctp_event->se_on = $6;
 }
 ;
 

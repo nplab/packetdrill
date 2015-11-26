@@ -265,6 +265,7 @@ struct sctp_assocparams_expr {
 
 /* Parse tree for sctp_event struct in [gs]etsockopt syscall. */
 struct sctp_event_expr {
+	struct expression *se_assoc_id;
 	struct expression *se_type;
 	struct expression *se_on;
 };

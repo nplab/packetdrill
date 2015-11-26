@@ -2704,6 +2704,9 @@ static int check_sctp_event(struct sctp_event_expr *expr,
 			    struct sctp_event *sctp_event,
 			    char **error)
 {
+	if (check_u32_expr(expr->se_assoc_id, sctp_event->se_assoc_id,
+			   "sctp_event.se_assoc_id", error))
+		return STATUS_ERR;
 	if (check_u16_expr(expr->se_type, sctp_event->se_type,
 			   "sctp_event.se_type", error))
 		return STATUS_ERR;
@@ -2935,7 +2938,16 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_EVENT:
 		live_optval = malloc(sizeof(struct sctp_event));
 		live_optlen = sizeof(struct sctp_event);
-		((struct sctp_event *)live_optval)->se_assoc_id = 0;
+		if (val_expression->value.sctp_event->se_assoc_id->type != EXPR_ELLIPSIS) {
+			if (get_u32(val_expression->value.sctp_event->se_assoc_id,
+				    &((struct sctp_event *)live_optval)->se_assoc_id,
+				    error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		} else {
+			((struct sctp_event *)live_optval)->se_assoc_id = 0;
+		}
 		if (get_u16(val_expression->value.sctp_event->se_type,
 			    &((struct sctp_event *)live_optval)->se_type,
 			    error)) {
@@ -3278,7 +3290,14 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
-		event.se_assoc_id = 0;
+		if (val_expression->value.sctp_event->se_assoc_id->type != EXPR_ELLIPSIS) {
+			if (get_u16(val_expression->value.sctp_event->se_assoc_id,
+				    &event.se_type, error)) {
+				return STATUS_ERR;
+			}
+		} else {
+			event.se_assoc_id = 0;
+		}
 		if (get_u16(val_expression->value.sctp_event->se_type,
 			    &event.se_type, error)) {
 			return STATUS_ERR;

@@ -377,6 +377,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_assocparams->sasoc_cookie_life);
 		break;
 	case EXPR_SCTP_EVENT:
+		free_expression(expression->value.sctp_event->se_assoc_id);
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
 		break;
@@ -1082,6 +1083,10 @@ static int evaluate_sctp_event_expression(struct expression *in,
 	in_event = in->value.sctp_event;
 	out_event = out->value.sctp_event;
 
+	if (evaluate(in_event->se_assoc_id,
+		    &out_event->se_assoc_id,
+		    error))
+		return STATUS_ERR;
 	if (evaluate(in_event->se_type,
 		    &out_event->se_type,
 		    error))

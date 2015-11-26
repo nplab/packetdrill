@@ -249,6 +249,7 @@ spp_pathmtu			return SPP_PATHMTU;
 spp_flags			return SPP_FLAGS;
 spp_ipv6_flowlabel		return SPP_IPV6_FLOWLABEL_; /* avoid name clash */
 spp_dscp			return SPP_DSCP_; /* avoid name clash */
+se_assoc_id			return SE_ASSOC_ID;
 se_type				return SE_TYPE;
 se_on				return SE_ON;
 sctp_data_io_event              return _SCTP_DATA_IO_EVENT_;
