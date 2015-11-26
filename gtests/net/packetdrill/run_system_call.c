@@ -248,7 +248,7 @@ static int get_socklen_t(struct expression *expression,
 	return STATUS_OK;
 }
 
-#ifdef linux
+#if defined(linux) || defined(__FreeBSD__)
 /* Sets the value from the expression argument, checking that it is a
  * valid size_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -3468,14 +3468,16 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 			struct expression_list *args, char **error)
 {
 #if defined(__FreeBSD__) || defined(linux)
-	int result, script_fd, live_fd, len;
+	int result, script_fd, live_fd;
 	void *msg = NULL;
 	struct sockaddr_storage to;
 	struct sockaddr_storage *to_ptr = &to;
 	socklen_t tolen = 0;
+	size_t len;
 	u32 ppid, flags, timetolive, context;
 	u16 stream_no;
-	struct expression *sockaddr_expr, *tolen_expr, *ppid_expr, *flags_expr, *ttl_expr, *stream_no_expr, *context_expr;
+	struct expression *sockaddr_expr, *tolen_expr, *ppid_expr, *flags_expr, *ttl_expr;
+	struct expression *len_expr, *stream_no_expr, *context_expr;
 
 	if (check_arg_count(args, 10, error))
 		return STATUS_ERR;
@@ -3485,15 +3487,16 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 		return STATUS_ERR;
 	if (ellipsis_arg(args, 1, error))
 		return STATUS_ERR;
-	if (s32_arg(args, 2, &len, error))
+	len_expr = get_arg(args, 2, error);
+	if (get_size_t(len_expr, &len, error))
 		return STATUS_ERR;
 	sockaddr_expr = get_arg(args, 3, error);
 	if (sockaddr_expr->type == EXPR_ELLIPSIS) {
-		socklen_t len = (socklen_t)sizeof(struct sockaddr_storage);
-		if (getpeername(live_fd, (struct sockaddr *)to_ptr, &len)) {
+		socklen_t socklen = (socklen_t)sizeof(struct sockaddr_storage);
+		if (getpeername(live_fd, (struct sockaddr *)to_ptr, &socklen)) {
 			return STATUS_ERR;
 		}
-		tolen = len;
+		tolen = socklen;
 	} else if (sockaddr_expr->type == EXPR_NULL) {
 		to_ptr = NULL;
 		tolen = 0;
@@ -3533,7 +3536,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 	assert(msg != NULL);
 
 	begin_syscall(state, syscall);
-	result = sctp_sendmsg(live_fd, msg, (size_t)len, (struct sockaddr *) to_ptr,
+	result = sctp_sendmsg(live_fd, msg, len, (struct sockaddr *) to_ptr,
 			      tolen, ppid, flags, stream_no, timetolive, context);
 
 	free(msg);
@@ -3731,7 +3734,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	}
 	return STATUS_OK;
 #else
-	asprintf(error, "sctp_sendmsg is not supported");
+	asprintf(error, "sctp_recvmsg is not supported");
 	return STATUS_ERR;
 #endif
 }
@@ -4019,7 +4022,7 @@ static int syscall_sctp_send(struct state *state, struct syscall_spec *syscall,
 	if (ellipsis_arg(args, 1, error))
 		return STATUS_ERR;
 	len_expr = get_arg(args, 2, error);
-	if (get_u32(len_expr, &len, error)) {
+	if (get_size_t(len_expr, &len, error)) {
 		 return STATUS_ERR;
 	}
 	info_expr = get_arg(args, 3, error);
