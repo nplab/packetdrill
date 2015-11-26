@@ -210,6 +210,7 @@ ce				return CE;
 iov_base			return IOV_BASE;
 iov_len				return IOV_LEN;
 [.][.][.]			return ELLIPSIS;
+assoc_id			return ASSOC_ID;
 assoc_value			return ASSOC_VALUE;
 stream_id			return STREAM_ID;
 stream_value			return STREAM_VALUE;

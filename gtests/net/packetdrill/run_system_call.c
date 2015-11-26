@@ -2671,6 +2671,9 @@ static int check_sctp_assoc_value(struct sctp_assoc_value_expr *expr,
 				  struct sctp_assoc_value *sctp_assoc_value,
 				  char **error)
 {
+	if (check_u32_expr(expr->assoc_id, sctp_assoc_value->assoc_id,
+			   "sctp_assoc_value.assoc_id", error))
+		return STATUS_ERR;
 	if (check_u16_expr(expr->assoc_value, sctp_assoc_value->assoc_value,
 			   "sctp_assoc_value.stream_id", error))
 		return STATUS_ERR;
@@ -2960,7 +2963,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_ASSOC_VALUE:
 		live_optval = malloc(sizeof(struct sctp_assoc_value));
 		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
-		((struct sctp_assoc_value *) live_optval)->assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_assoc_value->assoc_id,
+			&((struct sctp_assoc_value *) live_optval)->assoc_id, error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
 		break;
 #endif
 #ifdef SCTP_SS_VALUE
@@ -3296,7 +3303,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
 	case EXPR_SCTP_ASSOC_VALUE:
-		assoc_value.assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_assoc_value->assoc_id,
+				     &assoc_value.assoc_id, error)) {
+			return STATUS_ERR;
+		}
 		if (get_u32(val_expression->value.sctp_assoc_value->assoc_value,
 			    &assoc_value.assoc_value, error)) {
 			return STATUS_ERR;
@@ -3351,13 +3361,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
-		if (val_expression->value.sctp_event->se_assoc_id->type != EXPR_ELLIPSIS) {
-			if (get_sctp_assoc_t(val_expression->value.sctp_event->se_assoc_id,
-					     &event.se_assoc_id, error)) {
-				return STATUS_ERR;
-			}
-		} else {
-			event.se_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_event->se_assoc_id,
+				     &event.se_assoc_id, error)) {
+			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_event->se_type,
 			    &event.se_type, error)) {

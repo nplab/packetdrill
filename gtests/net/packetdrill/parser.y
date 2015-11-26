@@ -506,7 +506,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
-%token <reserved> ASSOC_VALUE
+%token <reserved> ASSOC_ID ASSOC_VALUE
 %token <reserved> STREAM_ID STREAM_VALUE
 %token <reserved> SACK_DELAY SACK_FREQ
 %token <reserved> SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
@@ -2883,10 +2883,11 @@ sctp_stream_value
 ;
 
 sctp_assoc_value
-: '{' ASSOC_VALUE '=' expression '}' {
+: '{' ASSOC_ID '=' expression ',' ASSOC_VALUE '=' expression '}' {
 	$$ = new_expression(EXPR_SCTP_ASSOC_VALUE);
 	$$->value.sctp_assoc_value = calloc(1, sizeof(struct sctp_assoc_value_expr));
-	$$->value.sctp_assoc_value->assoc_value = $4;
+	$$->value.sctp_assoc_value->assoc_id = $4;
+	$$->value.sctp_assoc_value->assoc_value = $8;
 }
 ;
 

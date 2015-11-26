@@ -321,6 +321,7 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_ASSOC_VALUE:
 		assert(expression->value.sctp_assoc_value);
+		free_expression(expression->value.sctp_assoc_value->assoc_id);
 		free_expression(expression->value.sctp_assoc_value->assoc_value);
 		break;
 	case EXPR_SCTP_INITMSG:
@@ -868,6 +869,10 @@ static int evaluate_sctp_assoc_value_expression(struct expression *in,
 	in_value = in->value.sctp_assoc_value;
 	out_value = out->value.sctp_assoc_value;
 
+	if (evaluate(in_value->assoc_id,
+	             &out_value->assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_value->assoc_value,
 	             &out_value->assoc_value,
 	             error))

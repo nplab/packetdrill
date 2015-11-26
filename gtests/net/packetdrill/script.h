@@ -208,6 +208,7 @@ struct sctp_initmsg_expr {
 
 /* Parse tree for a sctp_assoc_value struct in a [gs]etsockopt syscall. */
 struct sctp_assoc_value_expr {
+	struct expression *assoc_id;
 	struct expression *assoc_value;
 };
 
