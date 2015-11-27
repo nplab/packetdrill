@@ -19,6 +19,13 @@
 *    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=1, ssn=0, ppid=1234]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
 
++0.0 sctp_sendv(3, [{iov_base=..., iov_len=1000}], 1, ..., 1, {snd_sid=1,
+							       snd_flags=0,
+							       snd_ppid=htonl(1234),
+							       snd_context=0}, 16, SCTP_SENDV_SNDINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=1, ssn=1, ppid=1234]
++0.0 < sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=1500, gaps=[], dups=[]]
+
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
 +0.1 < sctp: SHUTDOWN_ACK[flgs=0]

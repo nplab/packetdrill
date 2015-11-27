@@ -40,5 +40,16 @@
 						sasoc_peer_rwnd=...,
 						sasoc_local_rwnd=...,
 						sasoc_cookie_life=...}, [20]) = 0
+//now test structure without associd
++0 setsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5,
+						sasoc_number_peer_destinations=2,
+						sasoc_peer_rwnd=1800,
+						sasoc_local_rwnd=2000,
+						sasoc_cookie_life=40000}, 20) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5,
+						sasoc_number_peer_destinations=1,
+						sasoc_peer_rwnd=1500,
+						sasoc_local_rwnd=1864135,
+						sasoc_cookie_life=40000}, [20]) = 0
 
 +0 close(3) = 0

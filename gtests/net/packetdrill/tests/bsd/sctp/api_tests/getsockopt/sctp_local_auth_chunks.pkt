@@ -14,4 +14,7 @@
 							gauth_number_of_chunks=...,
 							gauth_chunks=[...]}, [10]) = 0
 
++0 getsockopt(3, IPPROTO_SCTP, SCTP_LOCAL_AUTH_CHUNKS, {gauth_number_of_chunks=...,
+							gauth_chunks=[...]}, [10]) = 0
+
 +0 close(3) = 0

@@ -18,4 +18,7 @@
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_assoc_id=..., sack_delay=..., sack_freq=1}, [12]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_assoc_id=..., sack_delay=250, sack_freq=...}, [12]) = 0
 
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=200, sack_freq=1}, 12) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=200, sack_freq=1}, [12]) = 0
+
 +0 close(3) = 0

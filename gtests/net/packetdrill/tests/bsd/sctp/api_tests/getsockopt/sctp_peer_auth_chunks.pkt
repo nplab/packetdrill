@@ -12,5 +12,6 @@
 
 //only dummy values, unimplemented in packetdrill
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_AUTH_CHUNKS, {gauth_assoc_id=..., gauth_number_of_chunks=2, gauth_chunks=[0x00, 0x01]}, [10]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_AUTH_CHUNKS, {gauth_number_of_chunks=2, gauth_chunks=[0x00, 0x01]}, [10]) = 0
 
 +0 close(3) = 0
