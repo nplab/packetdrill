@@ -564,6 +564,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPC_TYPE SPC_FLAGS SPC_LENGTH SPC_AADDR SPC_STATE SPC_ERROR SPC_ASSOC_ID
 %token <reserved> SSF_TYPE SSF_LENGTH SSF_FLAGS SSF_ERROR SSF_INFO SSF_ASSOC_ID SSF_DATA
 %token <reserved> SAI_TYPE SAI_FLAGS SAI_LENGTH SAI_ADAPTATION_IND SAI_ASSOC_ID
+%token <reserved> GAIDS_NUMBER_OF_IDS GAIDS_ASSOC_ID
 %token <reserved> SN_TYPE SN_FLAGS SN_LENGTH
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
@@ -635,7 +636,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_paddr_change spc_type spc_flags spc_length spc_aaddr spc_error spc_state
 %type <expression> sctp_send_failed ssf_type ssf_length ssf_flags ssf_error ssf_info ssf_data
 %type <expression> sctp_adaptation_event sai_type sai_flags sai_length sai_adaptation_ind
-%type <expression> sctp_tlv sn_type sn_flags sn_length
+%type <expression> sctp_tlv sn_type sn_flags sn_length sctp_assoc_ids gaids_number_of_ids
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2545,6 +2546,9 @@ expression
 	$$ = $1;
 }
 | sctp_recvv_rn     {
+	$$ = $1;
+}
+| sctp_assoc_ids    {
 	$$ = $1;
 }
 | null              {
@@ -4762,6 +4766,24 @@ sctp_tlv
 	$$->value.sctp_tlv->sn_length = $6;
 }
 ;
+
+gaids_number_of_ids
+: GAIDS_NUMBER_OF_IDS '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("gaids_number_of_ids out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| GAIDS_NUMBER_OF_IDS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_assoc_ids
+: '{' gaids_number_of_ids ',' GAIDS_ASSOC_ID '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_ASSOC_IDS);
+	$$->value.sctp_assoc_ids = calloc(1, sizeof(struct sctp_assoc_ids_expr));
+	$$->value.sctp_assoc_ids->gaids_number_of_ids = $2;
+	$$->value.sctp_assoc_ids->gaids_assoc_id = $6;
+};
 
 opt_errno
 :                   { $$ = NULL; }

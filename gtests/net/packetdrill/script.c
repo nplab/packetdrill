@@ -103,6 +103,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_SEND_FAILED_EVENT,"sctp_send_failed_event"},
 	{ EXPR_SCTP_TLV,             "sctp_tlv"        },
 	{ EXPR_SCTP_EXTRCVINFO,      "sctp_extrcvinfo" },
+	{ EXPR_SCTP_ASSOC_IDS,       "sctp_assoc_ids"  },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -579,6 +580,10 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_length);
 		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_ppid);
 		free_expression(expression->value.sctp_extrcvinfo->sinfo_assoc_id);
+		break;
+	case EXPR_SCTP_ASSOC_IDS:
+		free_expression(expression->value.sctp_assoc_ids->gaids_number_of_ids);
+		free_expression(expression->value.sctp_assoc_ids->gaids_assoc_id);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2247,6 +2252,33 @@ static int evaluate_sctp_extrcvinfo_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_assoc_ids_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_assoc_ids_expr *in_ids;
+	struct sctp_assoc_ids_expr *out_ids;
+
+	assert(in->type == EXPR_SCTP_ASSOC_IDS);
+	assert(in->value.sctp_assoc_ids);
+	assert(out->type == EXPR_SCTP_ASSOC_IDS);
+
+	out->value.sctp_assoc_ids = calloc(1, sizeof(struct sctp_assoc_ids_expr));
+
+	in_ids = in->value.sctp_assoc_ids;
+	out_ids = out->value.sctp_assoc_ids;
+
+	if (evaluate(in_ids->gaids_number_of_ids,
+		     &out_ids->gaids_number_of_ids,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_ids->gaids_assoc_id,
+		     &out_ids->gaids_assoc_id,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2379,6 +2411,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_EXTRCVINFO:
 		result = evaluate_sctp_extrcvinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_ASSOC_IDS:
+		result = evaluate_sctp_assoc_ids_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

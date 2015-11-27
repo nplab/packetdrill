@@ -2982,6 +2982,45 @@ static int check_sctp_hamcalgo(struct sctp_hmacalgo_expr *expr,
 	return STATUS_OK;
 }
 
+static int check_sctp_assoc_ids(struct sctp_assoc_ids_expr *expr,
+			        struct sctp_assoc_ids *sctp_assoc_ids,
+			        char **error) {
+	int list_len = 0, i = 0;
+	struct expression *assoc_id;  
+	struct expression_list *ids;
+
+	if (check_u32_expr(expr->gaids_number_of_ids, sctp_assoc_ids->gaids_number_of_ids,
+			   "sctp_assoc_ids.gaids_number_of_ids", error)) {
+		return STATUS_ERR;
+	}
+	ids = expr->gaids_assoc_id->value.list;
+	list_len = expression_list_length(ids);
+	if (list_len != sctp_assoc_ids->gaids_number_of_ids) {
+		asprintf(error, "live gaids_number_if_ids unequal to length if expected gaids_assoc_id. actual %u, expected %d", 
+			sctp_assoc_ids->gaids_number_of_ids, list_len);
+		return STATUS_ERR;
+	}
+	if (list_len == 1) {
+		assoc_id = get_arg(ids, 0, error);
+		if (assoc_id->type == EXPR_ELLIPSIS) {
+			return STATUS_OK;
+		}
+	}
+	for (i = 0; i < list_len; i++) {
+		assoc_id = get_arg(ids, i, error);
+		sctp_assoc_t script_id;
+		if (get_sctp_assoc_t(assoc_id, &script_id, error)) {
+			return STATUS_ERR;
+		}
+		if (script_id != sctp_assoc_ids->gaids_assoc_id[i]) {
+			asprintf(error, "sctp_assoc_ids.gaids_assoc_id[%d]. expected %u, actual %u",
+				 i, script_id, sctp_assoc_ids->gaids_assoc_id[i]);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -3227,6 +3266,14 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = sizeof(struct sctp_setadaptation);
 		break;
 #endif
+#ifdef SCTP_GET_ASSOC_ID_LIST
+	case EXPR_SCTP_ASSOC_IDS: {
+		s32 len = expression_list_length(val_expression->value.sctp_assoc_ids->gaids_assoc_id->value.list);
+		live_optval = malloc(sizeof(u32) + (sizeof(sctp_assoc_t) * len));
+		live_optlen = sizeof(u32) + (sizeof(sctp_assoc_t) * len);
+		break;
+	}
+#endif
 	case EXPR_LIST:
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -3347,6 +3394,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_SETADAPTATION:
 		result = check_sctp_setadaptation(val_expression->value.sctp_setadaptation, live_optval, error);
 		break;
+#endif
+#ifdef SCTP_GET_ASSOC_ID_LIST
+	case EXPR_SCTP_ASSOC_IDS: {
+		result = check_sctp_assoc_ids(val_expression->value.sctp_assoc_ids, live_optval, error);
+		break;
+		}
 #endif
 	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {

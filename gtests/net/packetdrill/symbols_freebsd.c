@@ -108,6 +108,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_STATUS,                      "SCTP_STATUS"                     },
 	{ SCTP_GET_PEER_ADDR_INFO,          "SCTP_GET_PEER_ADDR_INFO"         },
 	{ SCTP_GET_ASSOC_NUMBER,            "SCTP_GET_ASSOC_NUMBER"           },
+	{ SCTP_GET_ASSOC_ID_LIST,           "SCTP_GET_ASSOC_ID_LIST"          },
 	{ SCTP_FRAGMENT_INTERLEAVE,         "SCTP_FRAGMENT_INTERLEAVE"        },
 #if defined(SCTP_INTERLEAVING_SUPPORTED)
 	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },

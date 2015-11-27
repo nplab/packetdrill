@@ -382,6 +382,8 @@ sai_assoc_id                    return SAI_ASSOC_ID;
 sn_type                         return SN_TYPE;
 sn_length                       return SN_LENGTH;
 sn_flags                        return SN_FLAGS;
+gaids_number_of_ids             return GAIDS_NUMBER_OF_IDS;
+gaids_assoc_id			return GAIDS_ASSOC_ID;
 CHUNK				return CHUNK;
 DATA				return DATA;
 INIT				return INIT;
