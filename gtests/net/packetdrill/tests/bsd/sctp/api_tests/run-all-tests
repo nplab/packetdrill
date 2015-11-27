@@ -107,6 +107,7 @@ set testcases = (setsockopt/sctp_rtoinfo_1 \
 		 sctp_send/sctp_send_1 \
 		 sctp_send/sctp_send_2 \
 		 sctp_sendx/sctp_sendx_1 \
+		 sctp_sendx/sctp_sendx_2 \
 		 sctp_sendv/sctp_sendv \
 		 sctp_sendv/sctp_sendv_1 \
 		 sctp_sendv/sctp_sendv_2 \
@@ -115,7 +116,24 @@ set testcases = (setsockopt/sctp_rtoinfo_1 \
 		 sctp_sendv/sctp_sendv_5 \
 		 sctp_sendv/sctp_sendv_6 \
 		 sctp_sendv/sctp_sendv_7 \
-		 sctp_sendv/sctp_sendv_8 )
+		 sctp_sendv/sctp_sendv_8 \
+		 sctp_bindx/sctp_bindx \
+		 sctp_peeloff/sctp_peeloff \
+		 sctp_getpaddrs/sctp_getpaddrs \
+		 sctp_getladdrs/sctp_getladdrs \
+		 sctp_sendmsg/sctp_sendmsg_1 \
+		 sctp_sendmsg/sctp_sendmsg_2 \
+		 sctp_sendmsg/sctp_sendmsg_3 \
+		 sctp_recvmsg/sctp_recvmsg_1 \
+		 sctp_recvmsg/sctp_recvmsg_2 \
+		 sctp_recvmsg/sctp_recvmsg_3 \
+		 sctp_recvv/sctp_recvv_1 \
+		 sctp_recvv/sctp_recvv_2 \
+		 sctp_recvv/sctp_recvv_3 \
+		 sctp_recvv/sctp_recvv_4 \
+		 sctp_recvv/sctp_recvv_5 \
+		 sctp_recvv/sctp_recvv_6 \
+		 sctp_recvv/sctp_recvv_7 )
 
 set rootdir = `/usr/bin/dirname $0`
 set os = `uname -s | tr '[A-Z]' '[a-z]'`

@@ -4109,12 +4109,7 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr,
 			}
 		}
 		if (sndrcvinfo_expr->sinfo_assoc_id->type == EXPR_ELLIPSIS) {
-			if (send) {
-				asprintf(error, "sinfo_assoc_id must be specified");
-				return STATUS_ERR;
-			} else {
-				info->sinfo_assoc_id = 0;
-			}
+			info->sinfo_assoc_id = 0;
 		} else {
 			if (get_sctp_assoc_t(sndrcvinfo_expr->sinfo_assoc_id, &info->sinfo_assoc_id, error)) {
 				return STATUS_ERR;
