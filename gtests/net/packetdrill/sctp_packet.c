@@ -315,6 +315,59 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
 	return item;
 }
 
+static void print_sctp_byte_list(struct sctp_byte_list *list) {
+	struct sctp_byte_list_item *item;
+
+	for (item = list->first; item != NULL; item = item->next) {
+		DEBUGP("0x%.2x,", item->byte);
+	}
+}
+
+struct sctp_chunk_list_item *
+sctp_generic_new(struct sctp_byte_list *bytes)
+{
+	struct sctp_chunk *chunk;
+	struct sctp_byte_list_item *item;
+	u16 length, padding_length, i;
+	u32 flags = 0;
+
+	print_sctp_byte_list(bytes);
+
+	length = bytes->nr_entries;
+
+	padding_length = length % 4;
+	if (padding_length > 0) {
+		padding_length = 4 - padding_length;
+	}
+
+	chunk = malloc(length + padding_length);
+	assert(chunk != NULL);
+
+	item = bytes->first;
+	chunk->type = item->byte;
+	item = item->next;
+	chunk->flags = item->byte;
+
+	item = item->next;
+	chunk->length = (item->byte << 4) | item->next->byte;
+	chunk->length = htons(chunk->length);
+
+	item = item->next->next;
+
+	for (i = 0; item != NULL; i++, item = item->next) {
+		chunk->value[i] = item->byte;
+	}
+
+	memset(chunk->value + (length - sizeof(struct sctp_chunk)),
+	       0, padding_length);
+
+	return sctp_chunk_list_item_new(chunk,
+	                                length + padding_length,
+	                                flags,
+	                                sctp_parameter_list_new(),
+	                                sctp_cause_list_new());
+}
+
 struct sctp_chunk_list_item *
 sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
                        struct sctp_byte_list *bytes)
