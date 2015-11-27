@@ -349,7 +349,7 @@ sctp_generic_new(struct sctp_byte_list *bytes)
 	chunk->flags = item->byte;
 
 	item = item->next;
-	chunk->length = (item->byte << 4) | item->next->byte;
+	chunk->length = (item->byte << 8) | item->next->byte;
 	chunk->length = htons(chunk->length);
 
 	item = item->next->next;
