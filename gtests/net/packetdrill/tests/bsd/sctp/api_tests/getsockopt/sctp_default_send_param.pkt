@@ -10,24 +10,15 @@
 
 +0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SEND_PARAM, {sinfo_stream=0,
-							 sinfo_ssn=1,
-							 sinfo_flags=0,
-							 sinfo_ppid=htonl(123),
-							 sinfo_context=0,
-							 sinfo_timetolive=0,
-							 sinfo_tsn=2,
-							 sinfo_cumtsn=1,
-							 sinfo_assoc_id=3}, 30) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SEND_PARAM, {sinfo_stream=0,
-							 sinfo_ssn=1,
+							 sinfo_ssn=0,
 							 sinfo_flags=0,
-							 sinfo_ppid=htonl(123),
+							 sinfo_ppid=htonl(0),
 							 sinfo_context=0,
 							 sinfo_timetolive=0,
-							 sinfo_tsn=2,
-							 sinfo_cumtsn=1,
-							 sinfo_assoc_id=3}, [30]) = 0
+							 sinfo_tsn=0,
+							 sinfo_cumtsn=0,
+							 sinfo_assoc_id=0}, [128]) = 0
 
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SEND_PARAM, {sinfo_stream=0,
 							 sinfo_ssn=1,
@@ -36,7 +27,9 @@
 							 sinfo_context=0,
 							 sinfo_timetolive=0,
 							 sinfo_tsn=2,
-							 sinfo_cumtsn=1}, 30) = 0
+							 sinfo_cumtsn=1,
+							 sinfo_assoc_id=3}, 128) = 0
+
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SEND_PARAM, {sinfo_stream=0,
 							 sinfo_ssn=1,
 							 sinfo_flags=0,
@@ -44,6 +37,25 @@
 							 sinfo_context=0,
 							 sinfo_timetolive=0,
 							 sinfo_tsn=2,
-							 sinfo_cumtsn=1}, [30]) = 0
+							 sinfo_cumtsn=1,
+							 sinfo_assoc_id=3}, [128]) = 0
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SEND_PARAM, {sinfo_stream=0,
+							 sinfo_ssn=1,
+							 sinfo_flags=0,
+							 sinfo_ppid=htonl(123),
+							 sinfo_context=0,
+							 sinfo_timetolive=0,
+							 sinfo_tsn=2,
+							 sinfo_cumtsn=1}, 128) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_DEFAULT_SEND_PARAM, {sinfo_stream=0,
+							 sinfo_ssn=1,
+							 sinfo_flags=0,
+							 sinfo_ppid=htonl(123),
+							 sinfo_context=0,
+							 sinfo_timetolive=0,
+							 sinfo_tsn=2,
+							 sinfo_cumtsn=1}, [128]) = 0
 
 +0 close(3) = 0

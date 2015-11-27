@@ -3103,6 +3103,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		break;
 #endif
+#ifdef SCTP_DEFAULT_SEND_PARAM
+	case EXPR_SCTP_SNDRCVINFO:
+		live_optval = malloc(sizeof(struct sctp_sndrcvinfo));
+		live_optlen = sizeof(struct sctp_sndrcvinfo);
+		break;
+#endif
 #ifdef SCTP_EVENTS
 	case EXPR_SCTP_EVENT_SUBSCRIBE:
 		live_optval = malloc(sizeof(struct sctp_event_subscribe));
@@ -3242,6 +3248,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_event(val_expression->value.sctp_event, live_optval, error);
 		break;
 #endif
+#ifdef SCTP_DEFAULT_SEND_PARAM
+	case EXPR_SCTP_SNDRCVINFO:
+		result = check_sctp_sndrcvinfo(val_expression->value.sctp_sndrcvinfo, live_optval, error);
+		break;
+#endif
 #ifdef SCTP_EVENTS
 	case EXPR_SCTP_EVENT_SUBSCRIBE:
 		result = check_sctp_event_subscribe(val_expression->value.sctp_event_subscribe, live_optval, error);
@@ -3322,6 +3333,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_EVENTS
 	struct sctp_event_subscribe event_subscribe;
+#endif
+#ifdef SCTP_DEFAULT_SEND_PARAM
+	struct sctp_sndrcvinfo sndrcvinfo;
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	struct sctp_sndinfo sndinfo;
@@ -3573,6 +3587,14 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		optval = &event_subscribe;
 		break;
+#endif
+#ifdef SCTP_DEFAULT_SEND_PARAM
+	case EXPR_SCTP_SNDRCVINFO:
+		if (parse_expression_to_sctp_sndrcvinfo(val_expression, &sndrcvinfo, true, error)) {
+			return STATUS_ERR;
+		}
+		optval = &sndrcvinfo;	
+		break;	
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	case EXPR_SCTP_SNDINFO:
