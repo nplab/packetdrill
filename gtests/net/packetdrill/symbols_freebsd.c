@@ -97,6 +97,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_PARTIAL_DELIVERY_POINT,      "SCTP_PARTIAL_DELIVERY_POINT"     },
 	{ SCTP_AUTO_ASCONF,                 "SCTP_AUTO_ASCONF"                },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+	{ SCTP_CONTEXT,                     "SCTP_CONTEXT"                    },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_EVENT,                       "SCTP_EVENT"                      },
 	{ SCTP_EXPLICIT_EOR,                "SCTP_EXPLICIT_EOR"               },
