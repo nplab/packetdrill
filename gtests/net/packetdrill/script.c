@@ -70,6 +70,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
 	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
+	{ EXPR_SCTP_HMACALGO,        "sctp_hmacalgo"},
 	{ EXPR_SCTP_AUTHKEYID,       "sctp_authkeyid"},
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
 	{ EXPR_SCTP_STATUS,          "sctp_status"},
@@ -320,6 +321,11 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_rtoinfo->srto_initial);
 		free_expression(expression->value.sctp_rtoinfo->srto_max);
 		free_expression(expression->value.sctp_rtoinfo->srto_min);
+		break;
+	case EXPR_SCTP_HMACALGO:
+		assert(expression->value.sctp_hmacalgo);
+		free_expression(expression->value.sctp_hmacalgo->shmac_number_of_idents);
+		free_expression(expression->value.sctp_hmacalgo->shmac_idents);
 		break;
 	case EXPR_SCTP_ASSOC_VALUE:
 		assert(expression->value.sctp_assoc_value);
@@ -865,6 +871,34 @@ static int evaluate_sctp_initmsg_expression(struct expression *in,
 		     &out_initmsg->sinit_max_init_timeo,
 		     error))
 		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_hmacalgo_expression(struct expression *in,
+					     struct expression *out,
+					     char **error)
+{
+	struct sctp_hmacalgo_expr *in_hmac;
+	struct sctp_hmacalgo_expr *out_hmac;
+
+	assert(in->type == EXPR_SCTP_HMACALGO);
+	assert(in->value.sctp_hmacalgo);
+	assert(out->type == EXPR_SCTP_HMACALGO);
+
+	out->value.sctp_hmacalgo = calloc(1, sizeof(struct sctp_hmacalgo_expr));
+
+	in_hmac = in->value.sctp_hmacalgo;
+	out_hmac = out->value.sctp_hmacalgo;
+
+	if (evaluate(in_hmac->shmac_number_of_idents,
+	             &out_hmac->shmac_number_of_idents,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_hmac->shmac_idents,
+	             &out_hmac->shmac_idents,
+	             error))
+		return STATUS_ERR;
+
 	return STATUS_OK;
 }
 
@@ -2243,6 +2277,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_ASSOCPARAMS:
 		result = evaluate_sctp_accocparams_expression(in, out, error);
+		break;
+	case EXPR_SCTP_HMACALGO:
+		result = evaluate_sctp_hmacalgo_expression(in, out, error);
 		break;
 	case EXPR_SCTP_INITMSG:
 		result = evaluate_sctp_initmsg_expression(in, out, error);

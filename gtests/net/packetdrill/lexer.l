@@ -212,6 +212,8 @@ iov_len				return IOV_LEN;
 [.][.][.]			return ELLIPSIS;
 assoc_id			return ASSOC_ID;
 assoc_value			return ASSOC_VALUE;
+shmac_number_of_idents		return SHMAC_NUMBER_OF_IDENTS;
+shmac_idents			return SHMAC_IDENTS;
 stream_id			return STREAM_ID;
 stream_value			return STREAM_VALUE;
 scact_assoc_id			return SCACT_ASSOC_ID;

@@ -755,6 +755,48 @@ static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t dat
 }
 #endif
 
+#if defined(__FreeBSD__) || defined(linux)
+static int check_u16array_expr(struct expression *expr_list, u16 *data, int data_len, char *val_name, char **error) {
+	if ( expr_list->type != EXPR_ELLIPSIS) {
+		struct expression *expr = NULL;
+		unsigned int i;
+
+		switch(expr_list->type) {
+		case EXPR_LIST:
+			if (data_len != expression_list_length(expr_list->value.list)) {
+				asprintf(error, "%s length: expected: %u actual %zu",
+					 val_name, expression_list_length(expr_list->value.list), data_len);
+				return STATUS_ERR;
+			}
+			for (i = 0; i < data_len; i++) {
+				expr = get_arg(expr_list->value.list, i, error);
+				if (expr->type != EXPR_ELLIPSIS) {
+					u16 script_val;
+
+					if (get_u16(expr, &script_val, error)) {
+						return STATUS_ERR;
+					}
+					if (script_val != data[i]) {
+						asprintf(error, "%s[%d]: expected: %hu actual: %hu",
+							val_name, i, script_val, data[i]);
+						return STATUS_ERR;
+					}
+				}
+			}
+			break;
+		case EXPR_NULL:
+			if (data != NULL)
+				return STATUS_ERR;
+			break;
+		default: asprintf(error, "Bad expressiontype for %s", val_name);
+			return STATUS_ERR;
+			break;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 /* Free all the space used by the given iovec. */
 static void iovec_free(struct iovec *iov, size_t iov_len)
 {
@@ -2923,6 +2965,23 @@ static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 }
 #endif
 
+static int check_sctp_hamcalgo(struct sctp_hmacalgo_expr *expr,
+			       struct sctp_hmacalgo *sctp_hmacalgo,
+			       char **error) {
+	if (check_u32_expr(expr->shmac_number_of_idents, sctp_hmacalgo->shmac_number_of_idents,
+			   "sctp_hmacalgo.shmac_number_of_idents", error))
+		return STATUS_ERR;
+	if (check_type(expr->shmac_idents, EXPR_LIST, error)) {
+		return STATUS_ERR;
+	}
+	if (check_u16array_expr(expr->shmac_idents, sctp_hmacalgo->shmac_idents,
+				sctp_hmacalgo->shmac_number_of_idents,
+				"sctp_hmacalgo.shmac_idents", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -3070,6 +3129,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		break;
+#endif
+#ifdef SCTP_HMAC_IDENT
+	case EXPR_SCTP_HMACALGO:
+		live_optval = malloc(sizeof(struct sctp_hmacalgo));
+		live_optlen = sizeof(struct sctp_hmacalgo);
 		break;
 #endif
 #ifdef SCTP_SS_VALUE
@@ -3238,6 +3303,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_assoc_value(val_expression->value.sctp_assoc_value, live_optval, error);
 		break;
 #endif
+#ifdef SCTP_HMAC_IDENT
+	case EXPR_SCTP_HMACALGO:
+		result = check_sctp_hamcalgo(val_expression->value.sctp_hmacalgo, live_optval, error);
+		break;
+#endif		
 #ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
 		result = check_sctp_stream_value(val_expression->value.sctp_stream_value, live_optval, error);
@@ -3458,6 +3528,33 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		optval = &assoc_value;
 		break;
+#endif
+#ifdef SCTP_HMAC_IDENT
+	case EXPR_SCTP_HMACALGO: {
+		int len, i;
+		struct sctp_hmacalgo *hmacalgo;
+		struct expression_list *list;
+
+		if (check_type(val_expression->value.sctp_hmacalgo->shmac_idents, EXPR_LIST, error)) {
+			return STATUS_ERR;
+		}
+		list = val_expression->value.sctp_hmacalgo->shmac_idents->value.list;
+		len = expression_list_length(list);
+		hmacalgo = malloc(sizeof(u32) + (sizeof(u16) * len));
+
+		if (get_u32(val_expression->value.sctp_hmacalgo->shmac_number_of_idents,
+			    &hmacalgo->shmac_number_of_idents, error)) {
+			free(hmacalgo);
+			return STATUS_ERR;
+		}
+		for (i = 0; i < len; i++) {
+			struct expression *expr;
+			expr = get_arg(list, i, error);
+			get_u16(expr, &(hmacalgo->shmac_idents[i]), error);
+		}
+		optval = &hmacalgo;
+		break;
+		}
 #endif
 #ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
@@ -3740,6 +3837,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
 	return end_syscall(state, syscall, CHECK_EXACT, result, error);
+#ifdef SCTP_HMAC_IDENT
+	free(optval);
+#endif
 }
 
 static int syscall_poll(struct state *state, struct syscall_spec *syscall,

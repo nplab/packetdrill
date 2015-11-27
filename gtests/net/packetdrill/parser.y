@@ -506,7 +506,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
-%token <reserved> ASSOC_ID ASSOC_VALUE
+%token <reserved> ASSOC_ID ASSOC_VALUE SHMAC_NUMBER_OF_IDENTS SHMAC_IDENTS
 %token <reserved> STREAM_ID STREAM_VALUE
 %token <reserved> SCACT_ASSOC_ID SCACT_KEYNUMBER SACK_ASSOC_ID SACK_DELAY SACK_FREQ
 %token <reserved> SSTAT_ASSOC_ID SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
@@ -606,7 +606,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
 %type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts
-%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value
+%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value sctp_hmacalgo
+%type <expression> shmac_number_of_idents
 %type <expression> sctp_authkeyid scact_keynumber sctp_sackinfo sack_delay sack_freq
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
@@ -2483,7 +2484,10 @@ expression
 | sctp_assoc_value  {
 	$$ = $1;
 }
-| sctp_stream_value  {
+| sctp_hmacalgo     {
+	$$ = $1;
+}
+| sctp_stream_value {
 	$$ = $1;
 }
 | sctp_authkeyid    {
@@ -2914,6 +2918,25 @@ sctp_assoc_value
 	$$->value.sctp_assoc_value->assoc_value = $4;
 }
 ;
+
+shmac_number_of_idents
+: SHMAC_NUMBER_OF_IDENTS '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("shmac_number_of_idents out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SHMAC_NUMBER_OF_IDENTS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_hmacalgo
+: '{' shmac_number_of_idents ',' SHMAC_IDENTS '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_HMACALGO);
+	$$->value.sctp_hmacalgo = calloc(1, sizeof(struct sctp_assoc_value_expr));
+	$$->value.sctp_hmacalgo->shmac_number_of_idents = $2;
+	$$->value.sctp_hmacalgo->shmac_idents = $6;
+}
+
 scact_keynumber
 : SCACT_KEYNUMBER '=' INTEGER {
 	if (!is_valid_u16($3)) {

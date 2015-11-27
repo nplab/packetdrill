@@ -91,6 +91,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_DEFAULT_SEND_PARAM,          "SCTP_DEFAULT_SEND_PARAM"         },
 	{ SCTP_I_WANT_MAPPED_V4_ADDR,       "SCTP_I_WANT_MAPPED_V4_ADDR"      },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
+	{ SCTP_HMAC_IDENT,                  "SCTP_HMAC_IDENT"                 },
 	{ SCTP_AUTH_ACTIVE_KEY,             "SCTP_AUTH_ACTIVE_KEY"            },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
@@ -246,6 +247,8 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_DSTADDRV6,                   "SCTP_DSTADDRV6"                  },
 	{ SCTP_EXTRCV,                      "SCTP_EXTRCV"                     },
 	{ SCTP_USE_EXT_RCVINFO,             "SCTP_USE_EXT_RCVINFO"            },
+	{ SCTP_AUTH_HMAC_ID_SHA1,           "SCTP_AUTH_HMAC_ID_SHA1"          },
+	{ SCTP_AUTH_HMAC_ID_SHA256,         "SCTP_AUTH_HMAC_ID_SHA256"        },
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },

@@ -50,6 +50,7 @@ enum expression_t {
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
+	EXPR_SCTP_HMACALGO,       /* expression tree for sctp_hmacalgo struct for [gs]etsockopt */
 	EXPR_SCTP_AUTHKEYID,      /* expression tree for sctp_authkeyid struct for [gs]etsockopt */
 	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for */
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
@@ -104,6 +105,7 @@ struct expression {
 		struct pollfd_expr *pollfd;
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 		struct sctp_initmsg_expr *sctp_initmsg;
+		struct sctp_hmacalgo_expr *sctp_hmacalgo;
 		struct sctp_assoc_value_expr *sctp_assoc_value;
 		struct sctp_authkeyid_expr *sctp_authkeyid;
 		struct sctp_sack_info_expr *sctp_sack_info;
@@ -208,6 +210,12 @@ struct sctp_initmsg_expr {
 	struct expression *sinit_max_instreams;
 	struct expression *sinit_max_attempts;
 	struct expression *sinit_max_init_timeo;
+};
+
+/* Parse tree for a sctp_hmacalgo struct in a [gs]etsockopt syscall. */
+struct sctp_hmacalgo_expr {
+	struct expression *shmac_number_of_idents;
+	struct expression *shmac_idents;
 };
 
 /* Parse tree for a sctp_assoc_value struct in a [gs]etsockopt syscall. */
