@@ -94,6 +94,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_HMAC_IDENT,                  "SCTP_HMAC_IDENT"                 },
 	{ SCTP_AUTH_ACTIVE_KEY,             "SCTP_AUTH_ACTIVE_KEY"            },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
+	{ SCTP_PARTIAL_DELIVERY_POINT,      "SCTP_PARTIAL_DELIVERY_POINT"     },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },
 	{ SCTP_EVENT,                       "SCTP_EVENT"                      },
