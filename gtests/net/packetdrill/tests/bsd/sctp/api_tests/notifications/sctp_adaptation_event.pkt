@@ -1,0 +1,27 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.0 bind(3, ..., ...) = 0
++0.0 listen(3, 1) = 0
+
+// Enable Event notification
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_ADAPTATION_INDICATION, se_on=1}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_ADAPTATION_INDICATION, se_on=1}, [8]) = 0
+
+// Send Adaptation Indication with Init chunk
++0.0 < sctp: INIT[flgs=0, tag=1, a_rwnd=1500, os=1, is=1, tsn=0,
+                  ECN_CAPABLE[],
+		  ADAPTATION_INDICATION[adaptation_code_point=3],
+                  COOKIE_PRESERVATIVE[incr=12345],
+                  SUPPORTED_ADDRESS_TYPES[types=[IPv4]]]
+
+*    > sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=..., os=..., is=..., tsn=10, ...]
++0.0 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]
+*    > sctp: COOKIE_ACK[flgs=0]
+
++0.0 accept(3, ..., ...) = 4
+
+//TODO: Packetdrill does not support Path reconfiguration, after that update this test
++0.0 sctp_recvv(4, [{iov_base={sai_type=SCTP_ADAPTATION_INDICATION, sai_flags=0, sai_length=16, sai_adaptation_ind=3, sai_assoc_id=...},
+iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO],[MSG_NOTIFICATION|MSG_EOR]) = 16

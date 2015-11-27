@@ -3362,6 +3362,12 @@ sctp_setprim
 	$$->value.sctp_setprim->ssp_assoc_id = $4;
 	$$->value.sctp_setprim->ssp_addr = $8;
 }
+| '{' SSP_ASSOC_ID '=' sctp_assoc_id ',' SSP_ADDR '=' ELLIPSIS'}' {
+	$$ = new_expression(EXPR_SCTP_SETPRIM);
+	$$->value.sctp_setprim = calloc(1, sizeof(struct sctp_setprim_expr));
+	$$->value.sctp_setprim->ssp_assoc_id = $4;
+	$$->value.sctp_setprim->ssp_addr = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 sctp_setadaptation
@@ -3372,6 +3378,11 @@ sctp_setadaptation
 		semantic_error("ssb_adaptation_ind out of range");
 	}
 	$$->value.sctp_setadaptation->ssb_adaptation_ind = new_integer_expression($4, "%u");
+}
+| '{' SSB_ADAPTATION_IND '=' ELLIPSIS '}' {
+	$$ = new_expression(EXPR_SCTP_SETADAPTATION);
+	$$->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation_expr));
+	$$->value.sctp_setadaptation->ssb_adaptation_ind = new_expression(EXPR_ELLIPSIS);
 }
 ;
 
