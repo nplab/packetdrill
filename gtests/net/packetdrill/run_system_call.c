@@ -2849,20 +2849,32 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 }
 #endif
 #ifdef SCTP_DEFAULT_PRINFO
-static int check_sctp_default_prinfo(struct sctp_default_prinfo_expr *expr,
+static int check_sctp_default_prinfo(struct expression *expression,
 				     struct sctp_default_prinfo *info,
 				     char **error)
 {
-	if (check_sctp_assoc_t_expr(expr->pr_assoc_id, info->pr_assoc_id,
-				   "sctp_default_prinfo.pr_assoc_id", error))
+	if (expression->type == EXPR_SCTP_DEFAULT_PRINFO) {
+		struct sctp_default_prinfo_expr *expr = expression->value.sctp_default_prinfo;
+		if (check_sctp_assoc_t_expr(expr->pr_assoc_id, info->pr_assoc_id,
+					   "sctp_default_prinfo.pr_assoc_id", error))
+			return STATUS_ERR;
+		if (check_u16_expr(expr->pr_policy, info->pr_policy,
+				   "sctp_default_prinfo.pr_policy", error))
+			return STATUS_ERR;
+		if (check_u32_expr(expr->pr_value, info->pr_value,
+				   "sctp_default_prinfo.pr_value", error))
+			return STATUS_ERR;
+	} else if (expression->type == EXPR_SCTP_PRINFO) {
+		struct sctp_prinfo_expr *expr = expression->value.sctp_prinfo;
+		if (check_u16_expr(expr->pr_policy, info->pr_policy,
+				   "sctp_default_prinfo.pr_policy", error))
+			return STATUS_ERR;
+		if (check_u32_expr(expr->pr_value, info->pr_value,
+				   "sctp_default_prinfo.pr_value", error))
+			return STATUS_ERR;	
+	} else {
 		return STATUS_ERR;
-	if (check_u16_expr(expr->pr_policy, info->pr_policy,
-			   "sctp_default_prinfo.pr_policy", error))
-		return STATUS_ERR;
-	if (check_u32_expr(expr->pr_value, info->pr_value,
-			   "sctp_default_prinfo.pr_value", error))
-		return STATUS_ERR;
-
+	}
 	return STATUS_OK;
 }
 #endif
@@ -3082,14 +3094,19 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 #endif
 #ifdef SCTP_DEFAULT_PRINFO
+	case EXPR_SCTP_PRINFO:
 	case EXPR_SCTP_DEFAULT_PRINFO:
 		live_optval = malloc(sizeof(struct sctp_default_prinfo));
 		live_optlen = sizeof(struct sctp_default_prinfo);
-		if (get_sctp_assoc_t(val_expression->value.sctp_default_prinfo->pr_assoc_id,
-				     &((struct sctp_default_prinfo *)live_optval)->pr_assoc_id,
-				     error)) {
-			free(live_optval);
-			return STATUS_ERR;
+		if (EXPR_SCTP_DEFAULT_PRINFO) {
+			if (get_sctp_assoc_t(val_expression->value.sctp_default_prinfo->pr_assoc_id,
+					     &((struct sctp_default_prinfo *)live_optval)->pr_assoc_id,
+					     error)) {
+				free(live_optval);
+				return STATUS_ERR;
+			}
+		}else{
+			((struct sctp_default_prinfo *)live_optval)->pr_assoc_id = 0;
 		}
 		break;
 #endif
@@ -3204,7 +3221,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_DEFAULT_PRINFO
 	case EXPR_SCTP_DEFAULT_PRINFO:
-		result = check_sctp_default_prinfo(val_expression->value.sctp_default_prinfo, live_optval, error);
+		result = check_sctp_default_prinfo(val_expression, live_optval, error);
 		break;
 #endif
 #ifdef SCTP_PRIMARY_ADDR
@@ -3534,6 +3551,18 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 #endif
 #ifdef SCTP_DEFAULT_PRINFO
+	case EXPR_SCTP_PRINFO:
+		if (get_u16(val_expression->value.sctp_prinfo->pr_policy,
+			    &default_prinfo.pr_policy, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.sctp_prinfo->pr_value,
+			    &default_prinfo.pr_value, error)) {
+			return STATUS_ERR;
+		}
+		default_prinfo.pr_assoc_id = 0;
+		optval = &default_prinfo;
+		break;
 	case EXPR_SCTP_DEFAULT_PRINFO:
 		if (get_u16(val_expression->value.sctp_default_prinfo->pr_policy,
 			    &default_prinfo.pr_policy, error)) {
