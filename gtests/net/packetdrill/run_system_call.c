@@ -2965,6 +2965,7 @@ static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 }
 #endif
 
+#ifdef SCTP_HMAC_IDENT
 static int check_sctp_hamcalgo(struct sctp_hmacalgo_expr *expr,
 			       struct sctp_hmacalgo *sctp_hmacalgo,
 			       char **error) {
@@ -2981,7 +2982,9 @@ static int check_sctp_hamcalgo(struct sctp_hmacalgo_expr *expr,
 
 	return STATUS_OK;
 }
+#endif
 
+#ifdef SCTP_GET_ASSOC_ID_LIST
 static int check_sctp_assoc_ids(struct sctp_assoc_ids_expr *expr,
 			        struct sctp_assoc_ids *sctp_assoc_ids,
 			        char **error) {
@@ -3020,6 +3023,26 @@ static int check_sctp_assoc_ids(struct sctp_assoc_ids_expr *expr,
 	}
 	return STATUS_OK;
 }
+#endif
+
+#if defined(SCTP_PEER_AUTH_CHUNKS) || defined(SCTP_LOCAL_AUTH_CHUNKS)
+static int check_sctp_authchunks(struct sctp_authchunks_expr *expr,
+			         struct sctp_authchunks *sctp_authchunks,
+			         char **error) {
+	if (check_sctp_assoc_t_expr(expr->gauth_assoc_id, sctp_authchunks->gauth_assoc_id,
+			   "sctp_authchunks.gauth_assoc_id", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->gauth_number_of_chunks, sctp_authchunks->gauth_number_of_chunks,
+			   "sctp_authchunks.gauth_number_of_chunks", error))
+		return STATUS_ERR;
+	if (check_u8array_expr(expr->gauth_chunks, sctp_authchunks->gauth_chunks,
+				sctp_authchunks->gauth_number_of_chunks,
+				"sctp_authchunks.gauth_chunks", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
 
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
@@ -3268,9 +3291,23 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_GET_ASSOC_ID_LIST
 	case EXPR_SCTP_ASSOC_IDS: {
-		s32 len = expression_list_length(val_expression->value.sctp_assoc_ids->gaids_assoc_id->value.list);
+		int len = expression_list_length(val_expression->value.sctp_assoc_ids->gaids_assoc_id->value.list);
 		live_optval = malloc(sizeof(u32) + (sizeof(sctp_assoc_t) * len));
 		live_optlen = sizeof(u32) + (sizeof(sctp_assoc_t) * len);
+		break;
+	}
+#endif
+#if defined(SCTP_PEER_AUTH_CHUNKS) || defined(SCTP_LOCAL_AUTH_CHUNKS)
+	case EXPR_SCTP_AUTHCHUNKS: {
+		int len = expression_list_length(val_expression->value.sctp_authchunks->gauth_chunks->value.list);
+		live_optval = malloc(sizeof(sctp_assoc_t) + sizeof(u32) + (sizeof(u8) * len));
+		live_optlen = sizeof(sctp_assoc_t) + sizeof(u32) + (sizeof(u8) * len);		
+		if (get_sctp_assoc_t(val_expression->value.sctp_authchunks->gauth_assoc_id,
+				     &((struct sctp_authchunks *)live_optval)->gauth_assoc_id,
+				     error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
 		break;
 	}
 #endif
@@ -3396,10 +3433,14 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 #endif
 #ifdef SCTP_GET_ASSOC_ID_LIST
-	case EXPR_SCTP_ASSOC_IDS: {
+	case EXPR_SCTP_ASSOC_IDS:
 		result = check_sctp_assoc_ids(val_expression->value.sctp_assoc_ids, live_optval, error);
 		break;
-		}
+#endif
+#if defined(SCTP_PEER_AUTH_CHUNKS) || defined(SCTP_LOCAL_AUTH_CHUNKS)
+	case EXPR_SCTP_AUTHCHUNKS:
+		result = check_sctp_authchunks(val_expression->value.sctp_authchunks, live_optval, error);
+		break;
 #endif
 	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {

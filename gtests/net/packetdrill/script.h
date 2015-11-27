@@ -84,6 +84,7 @@ enum expression_t {
 	EXPR_SCTP_TLV,            /* expression tree for sctp_notifications_stopped_event */
 	EXPR_SCTP_EXTRCVINFO,     /* expression tree for sctp_extrcvinfo struct in cmsghdr */
 	EXPR_SCTP_ASSOC_IDS,      /* expression tree for sctp_assoc_ids struct for [gs]etsockopt */
+	EXPR_SCTP_AUTHCHUNKS,     /* expression tree for sctp_authchunks struct for [gs]etsockopt */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -141,6 +142,7 @@ struct expression {
 		struct sctp_tlv_expr *sctp_tlv;
 		struct sctp_extrcvinfo_expr *sctp_extrcvinfo;
 		struct sctp_assoc_ids_expr *sctp_assoc_ids;
+		struct sctp_authchunks_expr *sctp_authchunks;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -525,10 +527,17 @@ struct sctp_extrcvinfo_expr {
 	struct expression *sinfo_assoc_id;
 };
 
-/* Parse tree for sctp_extrcvinfo struct for cmsg. */
+/* Parse tree for sctp_extrcvinfo struct for [gs]etsockopt. */
 struct sctp_assoc_ids_expr {
 	struct expression *gaids_number_of_ids;
 	struct expression *gaids_assoc_id;
+};
+
+/* Parse tree for sctp_authchunks struct for [gs]etsockopt. */
+struct sctp_authchunks_expr {
+	struct expression *gauth_assoc_id;
+	struct expression *gauth_number_of_chunks;
+	struct expression *gauth_chunks;
 };
 
 /* The errno-related info from strace to summarize a system call error */

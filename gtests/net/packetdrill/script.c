@@ -104,6 +104,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_TLV,             "sctp_tlv"        },
 	{ EXPR_SCTP_EXTRCVINFO,      "sctp_extrcvinfo" },
 	{ EXPR_SCTP_ASSOC_IDS,       "sctp_assoc_ids"  },
+	{ EXPR_SCTP_AUTHCHUNKS,      "sctp_authchunks" },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -584,6 +585,11 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_ASSOC_IDS:
 		free_expression(expression->value.sctp_assoc_ids->gaids_number_of_ids);
 		free_expression(expression->value.sctp_assoc_ids->gaids_assoc_id);
+		break;
+	case EXPR_SCTP_AUTHCHUNKS:
+		free_expression(expression->value.sctp_authchunks->gauth_assoc_id);
+		free_expression(expression->value.sctp_authchunks->gauth_number_of_chunks);
+		free_expression(expression->value.sctp_authchunks->gauth_chunks);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2279,6 +2285,37 @@ static int evaluate_sctp_assoc_ids_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_authchunks_expression(struct expression *in,
+					       struct expression *out,
+					       char **error)
+{
+	struct sctp_authchunks_expr *in_chunks;
+	struct sctp_authchunks_expr *out_chunks;
+
+	assert(in->type == EXPR_SCTP_AUTHCHUNKS);
+	assert(in->value.sctp_authchunks);
+	assert(out->type == EXPR_SCTP_AUTHCHUNKS);
+
+	out->value.sctp_authchunks = calloc(1, sizeof(struct sctp_authchunks_expr));
+
+	in_chunks = in->value.sctp_authchunks;
+	out_chunks = out->value.sctp_authchunks;
+
+	if (evaluate(in_chunks->gauth_assoc_id,
+		     &out_chunks->gauth_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_chunks->gauth_number_of_chunks,
+		     &out_chunks->gauth_number_of_chunks,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_chunks->gauth_chunks,
+		     &out_chunks->gauth_chunks,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2414,6 +2451,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_ASSOC_IDS:
 		result = evaluate_sctp_assoc_ids_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHCHUNKS:
+		result = evaluate_sctp_authchunks_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

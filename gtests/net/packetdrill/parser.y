@@ -513,7 +513,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
 %token <reserved> SSTAT_PRIMARY
 %token <reserved> SPINFO_ASSOC_ID SPINFO_ADDRESS SPINFO_STATE SPINFO_CWND SPINFO_SRTT SPINFO_RTO
-%token <reserved> SPINFO_MTU
+%token <reserved> SPINFO_MTU GAUTH_ASSOC_ID GAUTH_NUMBER_OF_CHUNKS GAUTH_CHUNKS
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE I_DATA PAD
@@ -614,6 +614,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp ssp_addr
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
+%type <expression> sctp_authchunks gauth_number_of_chunks
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
@@ -2549,6 +2550,9 @@ expression
 	$$ = $1;
 }
 | sctp_assoc_ids    {
+	$$ = $1;
+}
+| sctp_authchunks   {
 	$$ = $1;
 }
 | null              {
@@ -4783,6 +4787,32 @@ sctp_assoc_ids
 	$$->value.sctp_assoc_ids = calloc(1, sizeof(struct sctp_assoc_ids_expr));
 	$$->value.sctp_assoc_ids->gaids_number_of_ids = $2;
 	$$->value.sctp_assoc_ids->gaids_assoc_id = $6;
+};
+
+gauth_number_of_chunks
+: GAUTH_NUMBER_OF_CHUNKS '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("gauth_number_of_chunks out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| GAUTH_NUMBER_OF_CHUNKS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_authchunks
+: '{' GAUTH_ASSOC_ID '=' sctp_assoc_id ',' gauth_number_of_chunks ',' GAUTH_CHUNKS '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHCHUNKS);
+	$$->value.sctp_authchunks = calloc(1, sizeof(struct sctp_authchunks_expr));
+	$$->value.sctp_authchunks->gauth_assoc_id = $4;
+	$$->value.sctp_authchunks->gauth_number_of_chunks = $6;
+	$$->value.sctp_authchunks->gauth_chunks = $10;
+}
+| '{' gauth_number_of_chunks ',' GAUTH_CHUNKS '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHCHUNKS);
+	$$->value.sctp_authchunks = calloc(1, sizeof(struct sctp_authchunks_expr));
+	$$->value.sctp_authchunks->gauth_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_authchunks->gauth_number_of_chunks = $2;
+	$$->value.sctp_authchunks->gauth_chunks = $6;
 };
 
 opt_errno
