@@ -2610,7 +2610,7 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr,
 }
 #endif
 
-#ifdef SCTP_AUTH_ACTIVE_KEY
+#if defined(SCTP_AUTH_ACTIVE_KEY) || defined(SCTP_AUTH_DEACTIVATE_KEY) || defined(SCTP_AUTH_DELETE_KEY)
 static int check_sctp_authkeyid(struct sctp_authkeyid_expr *expr,
 				struct sctp_authkeyid *sctp_authkeyid,
 				char **error)
@@ -3106,7 +3106,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct sctp_initmsg);
 		break;
 #endif
-#ifdef SCTP_AUTH_ACTIVE_KEY
+#if defined(SCTP_AUTH_ACTIVE_KEY) || defined(SCTP_AUTH_DEACTIVATE_KEY) || defined(SCTP_AUTH_DELETE_KEY)
 	case EXPR_SCTP_AUTHKEYID:
 		live_optval = malloc(sizeof(struct sctp_authkeyid));
 		live_optlen = (socklen_t)sizeof(struct sctp_authkeyid);
@@ -3357,7 +3357,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_initmsg(val_expression->value.sctp_initmsg, live_optval, error);
 		break;
 #endif
-#ifdef SCTP_AUTH_ACTIVE_KEY
+#if defined(SCTP_AUTH_ACTIVE_KEY) || defined(SCTP_AUTH_DEACTIVATE_KEY) || defined(SCTP_AUTH_DELETE_KEY)
 	case EXPR_SCTP_AUTHKEYID:
 		result = check_sctp_authkeyid(val_expression->value.sctp_authkeyid, live_optval, error);
 		break;
@@ -3664,7 +3664,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &stream_value;
 		break;
 #endif
-#ifdef SCTP_AUTH_ACTIVE_KEY
+#if defined(SCTP_AUTH_ACTIVE_KEY) || defined(SCTP_AUTH_DEACTIVATE_KEY) || defined(SCTP_AUTH_DELETE_KEY)
 	case EXPR_SCTP_AUTHKEYID:
 		if (get_sctp_assoc_t(val_expression->value.sctp_authkeyid->scact_assoc_id,
 				    &authkeyid.scact_assoc_id, error)) {
