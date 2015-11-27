@@ -28,11 +28,44 @@
 
 set packetdrill = ./../../../../packetdrill
 set delay = 1
-set testcases = (8.1_rw_socketoptions/8.1.1_sctp_rtoinfo_1 \
-		 8.1_rw_socketoptions/8.1.1_sctp_rtoinfo_2 \
-		 8.1_rw_socketoptions/8.1.1_sctp_rtoinfo_3 \
-		 9.10_sctp_send/sctp_send_1                \
-		 9.11_sctp_sendx/sctp_sendx_1 )
+set testcases = (setsockopt/sctp_rtoinfo_1 \
+		 setsockopt/sctp_rtoinfo_2 \
+		 setsockopt/sctp_rtoinfo_3 \
+		 getsockopt/sctp_rtoinfo \
+		 getsockopt/sctp_associnfo \
+		 getsockopt/sctp_initmsg \
+		 getsockopt/so_linger \
+		 getsockopt/sctp_nodelay \
+		 getsockopt/sctp_autoclose \
+		 getsockopt/sctp_primary_addr \
+		 getsockopt/sctp_adaptation_layer \
+		 getsockopt/sctp_disable_fragments \
+		 getsockopt/sctp_peer_addr_params \
+		 getsockopt/sctp_default_send_param \
+		 getsockopt/sctp_events \
+		 getsockopt/sctp_i_want_mapped_v4_addr \
+		 getsockopt/sctp_maxseg \
+		 getsockopt/sctp_hmac_ident \
+		 getsockopt/sctp_auth_active_key \
+		 getsockopt/sctp_delayed_sack \
+		 getsockopt/sctp_fragment_interleave \
+		 getsockopt/sctp_partial_delivery_point \
+		 getsockopt/sctp_use_ext_rcvinfo \
+		 getsockopt/sctp_auto_asconf \
+		 getsockopt/sctp_max_burst \
+		 getsockopt/sctp_context \
+		 getsockopt/sctp_explicit_eor \
+		 getsockopt/sctp_reuse_port \
+		 getsockopt/sctp_event \
+		 getsockopt/sctp_recvrcvinfo \
+		 getsockopt/sctp_recvnxtinfo \
+		 getsockopt/sctp_default_sndinfo \
+		 getsockopt/sctp_default_prinfo \
+		 getsockopt/sctp_status \
+		 getsockopt/sctp_get_peer_addr_info \
+		 sctp_send/sctp_send_1     \
+		 sctp_send/sctp_send_2     \
+		 sctp_sendx/sctp_sendx_1 )
 
 set rootdir = `/usr/bin/dirname $0`
 set os = `uname -s | tr '[A-Z]' '[a-z]'`

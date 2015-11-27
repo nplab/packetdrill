@@ -1,0 +1,140 @@
+0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
+
++0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=...,
+					     sstat_rwnd=...,
+					     sstat_unackdata=..., sstat_penddata=...,
+					     sstat_instrms=...,
+					     sstat_outstrms=...,
+					     sstat_fragmentation_point=...,
+					     sstat_primary=...}, 176) = -1
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=3,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500,
+					     sstat_unackdata=0, 
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary={spinfo_assoc_id=3,
+							    spinfo_address={sa_family=AF_INET,
+									    sin_port=htons(8080),
+									    sin_addr=inet_addr("192.0.2.1")},
+							    spinfo_state=SCTP_ACTIVE,
+							    spinfo_cwnd=4464,
+							    spinfo_srtt=...,
+							    spinfo_rto=1000,
+							    spinfo_mtu=1468}}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=3,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=...,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=..., 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=...,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=...,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=...,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=...,
+					     sstat_fragmentation_point=1452,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=SCTP_ESTABLISHED,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=...,
+					     sstat_primary=...}, [176]) = 0
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_STATUS, {sstat_assoc_id=...,
+					     sstat_state=8,
+					     sstat_rwnd=1500, 
+					     sstat_unackdata=0,
+					     sstat_penddata=0,
+					     sstat_instrms=1,
+					     sstat_outstrms=1,
+					     sstat_fragmentation_point=...,
+					     sstat_primary=...}, [176]) = 0
+
++0 close(3) = 0
