@@ -242,6 +242,7 @@ struct sctp_status_expr {
 
 /* Parse tree for a sctp_paddrinfo struct in a [gs]etsockopt syscall. */
 struct sctp_paddrinfo_expr {
+	struct expression *spinfo_assoc_id;
 	struct expression *spinfo_address;
 	struct expression *spinfo_state;
 	struct expression *spinfo_cwnd;

@@ -240,6 +240,7 @@ sstat_instrms			return SSTAT_INSTRMS;
 sstat_outstrms			return SSTAT_OUTSTRMS;
 sstat_fragmentation_point	return SSTAT_FRAGMENTATION_POINT;
 sstat_primary			return SSTAT_PRIMARY;
+spinfo_assoc_id			return SPINFO_ASSOC_ID;
 spinfo_address			return SPINFO_ADDRESS;
 spinfo_state			return SPINFO_STATE;
 spinfo_cwnd			return SPINFO_CWND;

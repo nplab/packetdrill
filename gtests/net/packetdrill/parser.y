@@ -512,7 +512,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SSTAT_ASSOC_ID SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
 %token <reserved> SSTAT_PRIMARY
-%token <reserved> SPINFO_ADDRESS SPINFO_STATE SPINFO_CWND SPINFO_SRTT SPINFO_RTO
+%token <reserved> SPINFO_ASSOC_ID SPINFO_ADDRESS SPINFO_STATE SPINFO_CWND SPINFO_SRTT SPINFO_RTO
 %token <reserved> SPINFO_MTU
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
@@ -3055,15 +3055,17 @@ spinfo_mtu
 ;
 
 sctp_paddrinfo
-: '{' spinfo_address ',' spinfo_state ',' spinfo_cwnd ',' spinfo_srtt ',' spinfo_rto ',' spinfo_mtu '}' {
+: '{' SPINFO_ASSOC_ID '=' sctp_assoc_id ',' spinfo_address ',' spinfo_state ',' spinfo_cwnd ','
+      spinfo_srtt ',' spinfo_rto ',' spinfo_mtu '}' {
 	$$ = new_expression(EXPR_SCTP_PADDRINFO);
 	$$->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_paddrinfo_expr));
-	$$->value.sctp_paddrinfo->spinfo_address = $2;
-	$$->value.sctp_paddrinfo->spinfo_state = $4;
-	$$->value.sctp_paddrinfo->spinfo_cwnd = $6;
-	$$->value.sctp_paddrinfo->spinfo_srtt = $8;
-	$$->value.sctp_paddrinfo->spinfo_rto = $10;
-	$$->value.sctp_paddrinfo->spinfo_mtu = $12;
+	$$->value.sctp_paddrinfo->spinfo_assoc_id = $4;
+	$$->value.sctp_paddrinfo->spinfo_address = $6;
+	$$->value.sctp_paddrinfo->spinfo_state = $8;
+	$$->value.sctp_paddrinfo->spinfo_cwnd = $10;
+	$$->value.sctp_paddrinfo->spinfo_srtt = $12;
+	$$->value.sctp_paddrinfo->spinfo_rto = $14;
+	$$->value.sctp_paddrinfo->spinfo_mtu = $16;
 }
 ;
 

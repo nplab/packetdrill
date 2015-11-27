@@ -340,6 +340,7 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_PADDRINFO:
 		assert(expression->value.sctp_paddrinfo);
+		free_expression(expression->value.sctp_paddrinfo->spinfo_assoc_id);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_address);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_state);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_cwnd);
@@ -937,6 +938,10 @@ static int evaluate_sctp_paddrinfo_expression(struct expression *in,
 	in_paddrinfo = in->value.sctp_paddrinfo;
 	out_paddrinfo = out->value.sctp_paddrinfo;
 
+	if (evaluate(in_paddrinfo->spinfo_assoc_id,
+	             &out_paddrinfo->spinfo_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_paddrinfo->spinfo_address,
 	             &out_paddrinfo->spinfo_address,
 	             error))

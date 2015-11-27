@@ -277,15 +277,19 @@ static int get_size_t(struct expression *expression,
 static int get_sctp_assoc_t(struct expression *expression,
 			    sctp_assoc_t *value, char **error)
 {
-	if (check_type(expression, EXPR_INTEGER, error))
-		return STATUS_ERR;
-	if (expression->value.num < 0) {
-		asprintf(error,
-			 "Value out of range for sctp_assoc_t: %lld",
-			 expression->value.num);
-		return STATUS_ERR;
+	if (expression->type == EXPR_ELLIPSIS) {
+		value = 0;
+	} else {
+		if (check_type(expression, EXPR_INTEGER, error))
+			return STATUS_ERR;
+		if (expression->value.num < 0) {
+			asprintf(error,
+				 "Value out of range for sctp_assoc_t: %lld",
+				 expression->value.num);
+			return STATUS_ERR;
+		}
+		*value = expression->value.num;
 	}
-	*value = expression->value.num;
 	return STATUS_OK;
 }
 #endif
@@ -2588,6 +2592,9 @@ static int check_sctp_paddrinfo(struct sctp_paddrinfo_expr *expr,
 				struct sctp_paddrinfo *sctp_paddrinfo,
 				char **error)
 {
+	if (check_sctp_assoc_t_expr(expr->spinfo_assoc_id, sctp_paddrinfo->spinfo_assoc_id,
+				    "sctp_paddrinfo.spinfo_assoc_id", error))
+		return STATUS_ERR;
 	if (check_s32_expr(expr->spinfo_state, sctp_paddrinfo->spinfo_state,
 			   "sctp_paddrinfo.spinfo_state", error))
 		return STATUS_ERR;
@@ -2980,7 +2987,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_paddrinfo *live_paddrinfo = malloc(sizeof(struct sctp_paddrinfo));
 		live_optlen = (socklen_t) sizeof(struct sctp_paddrinfo);
 		memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
-		live_paddrinfo->spinfo_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_paddrinfo->spinfo_assoc_id,
+				    &(live_paddrinfo->spinfo_assoc_id), error)) {
+			free(live_paddrinfo);
+			return STATUS_ERR;
+		}
 		if (get_sockstorage_arg(expr_paddrinfo->spinfo_address,
 					&(live_paddrinfo->spinfo_address), live_fd)) {
 			asprintf(error, "can't determine spinfo_address");
@@ -3427,7 +3438,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_GET_PEER_ADDR_INFO
 	case EXPR_SCTP_PADDRINFO:
-		paddrinfo.spinfo_assoc_id = 0;
+		if (get_sctp_assoc_t(val_expression->value.sctp_paddrinfo->spinfo_assoc_id,
+				    &paddrinfo.spinfo_assoc_id, error)) {
+			return STATUS_ERR;
+		}
 		if (get_sockstorage_arg(val_expression->value.sctp_paddrinfo->spinfo_address,
 					&paddrinfo.spinfo_address, live_fd)) {
 			asprintf(error, "can't determine spp_address");
