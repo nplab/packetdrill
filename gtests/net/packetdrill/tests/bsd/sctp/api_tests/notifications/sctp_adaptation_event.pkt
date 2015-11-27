@@ -23,5 +23,8 @@
 +0.0 accept(3, ..., ...) = 4
 
 //TODO: Packetdrill does not support Path reconfiguration, after that update this test
-+0.0 sctp_recvv(4, [{iov_base={sai_type=SCTP_ADAPTATION_INDICATION, sai_flags=0, sai_length=16, sai_adaptation_ind=3, sai_assoc_id=...},
-iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO],[MSG_NOTIFICATION|MSG_EOR]) = 16
++0.0 sctp_recvv(4, [{iov_base={sai_type=SCTP_ADAPTATION_INDICATION,
+			       sai_flags=0,
+			       sai_length=16,
+			       sai_adaptation_ind=3,
+			       sai_assoc_id=...}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO],[MSG_NOTIFICATION|MSG_EOR]) = 16

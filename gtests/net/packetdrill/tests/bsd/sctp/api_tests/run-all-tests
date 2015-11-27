@@ -75,14 +75,22 @@ set testcases = (setsockopt/sctp_rtoinfo_1 \
 		 notifications/sctp_adaptation_event \
                  notifications/sctp_notifications_stopped_event \
                  notifications/sctp_remote_error \
+                 notifications/sctp_remote_error_2 \
                  notifications/sctp_sender_dry_event \
+                 notifications/sctp_sender_dry_event_2 \
                  notifications/sctp_assoc_change_event \
                  notifications/sctp_partial_delivery_event \
+                 notifications/sctp_partial_delivery_event_2 \
                  notifications/sctp_send_failed \
+                 notifications/sctp_send_failed_2 \
                  notifications/sctp_shutdown_event \
+                 notifications/sctp_shutdown_event_2 \
                  notifications/sctp_authentication_event \
+                 notifications/sctp_authentication_event_2 \
                  notifications/sctp_peer_addr_change \
+                 notifications/sctp_peer_addr_change_2 \
                  notifications/sctp_send_failed_event \
+                 notifications/sctp_send_failed_event_2 \
 		 cmsgs/sendmsg_sctp_init \
 		 cmsgs/sendmsg_sctp_sndrcv \
 		 cmsgs/sendmsg_sctp_sndinfo \

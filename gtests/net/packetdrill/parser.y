@@ -3578,7 +3578,7 @@ sctp_sndrcvinfo
 	$$->value.sctp_sndrcvinfo->sinfo_timetolive = $12;
 	$$->value.sctp_sndrcvinfo->sinfo_tsn = $14;
 	$$->value.sctp_sndrcvinfo->sinfo_cumtsn = $16;
-	$$->value.sctp_sndrcvinfo->sinfo_assoc_id = new_integer_expression(0, "%u");
+	$$->value.sctp_sndrcvinfo->sinfo_assoc_id = new_expression(EXPR_ELLIPSIS);
 };
 
 sinfo_pr_value
