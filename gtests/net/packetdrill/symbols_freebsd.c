@@ -89,6 +89,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ADAPTATION_LAYER,            "SCTP_ADAPTATION_LAYER"           },
 	{ SCTP_DISABLE_FRAGMENTS,           "SCTP_DISABLE_FRAGMENTS"          },
 	{ SCTP_DEFAULT_SEND_PARAM,          "SCTP_DEFAULT_SEND_PARAM"         },
+	{ SCTP_I_WANT_MAPPED_V4_ADDR,       "SCTP_I_WANT_MAPPED_V4_ADDR"      },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
 	{ SCTP_AUTH_ACTIVE_KEY,             "SCTP_AUTH_ACTIVE_KEY"            },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
