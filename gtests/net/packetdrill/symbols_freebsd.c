@@ -87,6 +87,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_PRIMARY_ADDR,                "SCTP_PRIMARY_ADDR"               },
 	{ SCTP_ADAPTATION_LAYER,            "SCTP_ADAPTATION_LAYER"           },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
+	{ SCTP_AUTH_ACTIVE_KEY,             "SCTP_AUTH_ACTIVE_KEY"            },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
 	{ SCTP_PEER_ADDR_PARAMS,            "SCTP_PEER_ADDR_PARAMS"           },

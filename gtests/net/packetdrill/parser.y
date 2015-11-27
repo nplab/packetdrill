@@ -508,7 +508,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SINIT_MAX_INIT_TIMEO
 %token <reserved> ASSOC_ID ASSOC_VALUE
 %token <reserved> STREAM_ID STREAM_VALUE
-%token <reserved> SACK_ASSOC_ID SACK_DELAY SACK_FREQ
+%token <reserved> SCACT_ASSOC_ID SCACT_KEYNUMBER SACK_ASSOC_ID SACK_DELAY SACK_FREQ
 %token <reserved> SSTAT_ASSOC_ID SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
 %token <reserved> SSTAT_PRIMARY
@@ -607,7 +607,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
 %type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts
 %type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value
-%type <expression> sctp_sackinfo sack_delay sack_freq
+%type <expression> sctp_authkeyid scact_keynumber sctp_sackinfo sack_delay sack_freq
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp ssp_addr
@@ -2486,6 +2486,9 @@ expression
 | sctp_stream_value  {
 	$$ = $1;
 }
+| sctp_authkeyid    {
+	$$ = $1;
+}
 | sctp_sackinfo     {
 	$$ = $1;
 }
@@ -2911,6 +2914,28 @@ sctp_assoc_value
 	$$->value.sctp_assoc_value->assoc_value = $4;
 }
 ;
+scact_keynumber
+: SCACT_KEYNUMBER '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("scact_keynumber out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SCACT_KEYNUMBER '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+
+sctp_authkeyid
+: '{' SCACT_ASSOC_ID '=' sctp_assoc_id ',' scact_keynumber '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEYID);
+	$$->value.sctp_authkeyid = calloc(1, sizeof(struct sctp_authkeyid_expr));
+	$$->value.sctp_authkeyid->scact_assoc_id = $4;
+	$$->value.sctp_authkeyid->scact_keynumber = $6;
+}
+| '{' scact_keynumber '}'{ 
+	$$ = new_expression(EXPR_SCTP_AUTHKEYID);
+	$$->value.sctp_authkeyid = calloc(1, sizeof(struct sctp_authkeyid_expr));
+	$$->value.sctp_authkeyid->scact_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_authkeyid->scact_keynumber = $2;
+}
 
 sack_delay
 : SACK_DELAY '=' INTEGER {

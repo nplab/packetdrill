@@ -127,6 +127,7 @@ set testcases = (setsockopt/sctp_rtoinfo_1 \
 		 sctp_recvmsg/sctp_recvmsg_1 \
 		 sctp_recvmsg/sctp_recvmsg_2 \
 		 sctp_recvmsg/sctp_recvmsg_3 \
+		 sctp_connectx/sctp_connectx \
 		 sctp_recvv/sctp_recvv_1 \
 		 sctp_recvv/sctp_recvv_2 \
 		 sctp_recvv/sctp_recvv_3 \

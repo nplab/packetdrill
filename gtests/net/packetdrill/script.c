@@ -70,6 +70,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
 	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
+	{ EXPR_SCTP_AUTHKEYID,       "sctp_authkeyid"},
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
 	{ EXPR_SCTP_STATUS,          "sctp_status"},
 	{ EXPR_SCTP_PADDRINFO,	     "sctp_paddrinfo"},
@@ -331,6 +332,11 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_initmsg->sinit_max_instreams);
 		free_expression(expression->value.sctp_initmsg->sinit_max_attempts);
 		free_expression(expression->value.sctp_initmsg->sinit_max_init_timeo);
+		break;
+	case EXPR_SCTP_AUTHKEYID:
+		assert(expression->value.sctp_authkeyid);
+		free_expression(expression->value.sctp_authkeyid->scact_assoc_id);
+		free_expression(expression->value.sctp_authkeyid->scact_keynumber);
 		break;
 	case EXPR_SCTP_SACKINFO:
 		assert(expression->value.sctp_sack_info);
@@ -887,6 +893,33 @@ static int evaluate_sctp_assoc_value_expression(struct expression *in,
 	             error))
 		return STATUS_ERR;
 
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_authkeyid_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_authkeyid_expr *in_authkeyid;
+	struct sctp_authkeyid_expr *out_authkeyid;
+
+	assert(in->type == EXPR_SCTP_AUTHKEYID);
+	assert(in->value.sctp_authkeyid);
+	assert(out->type == EXPR_SCTP_AUTHKEYID);
+
+	out->value.sctp_authkeyid = calloc(1, sizeof(struct sctp_authkeyid_expr));
+
+	in_authkeyid = in->value.sctp_authkeyid;
+	out_authkeyid = out->value.sctp_authkeyid;
+
+	if (evaluate(in_authkeyid->scact_assoc_id,
+		     &out_authkeyid->scact_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkeyid->scact_keynumber,
+		     &out_authkeyid->scact_keynumber,
+		     error))
+		return STATUS_ERR;
 	return STATUS_OK;
 }
 
@@ -2216,6 +2249,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_ASSOC_VALUE:
 		result = evaluate_sctp_assoc_value_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHKEYID:
+		result = evaluate_sctp_authkeyid_expression(in, out, error);	
 		break;
 	case EXPR_SCTP_SACKINFO:
 		result = evaluate_sctp_sack_info_expression(in, out, error);	

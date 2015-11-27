@@ -50,6 +50,7 @@ enum expression_t {
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
+	EXPR_SCTP_AUTHKEYID,      /* expression tree for sctp_authkeyid struct for [gs]etsockopt */
 	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for */
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
 	EXPR_SCTP_PADDRINFO,
@@ -104,6 +105,7 @@ struct expression {
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 		struct sctp_initmsg_expr *sctp_initmsg;
 		struct sctp_assoc_value_expr *sctp_assoc_value;
+		struct sctp_authkeyid_expr *sctp_authkeyid;
 		struct sctp_sack_info_expr *sctp_sack_info;
 		struct sctp_status_expr *sctp_status;
 		struct sctp_paddrinfo_expr *sctp_paddrinfo;
@@ -218,6 +220,12 @@ struct sctp_assoc_value_expr {
 struct sctp_stream_value_expr {
 	struct expression *stream_id;
 	struct expression *stream_value;
+};
+
+/* Parse tree for a sctp_authkey struct in a [gs]etsockopt syscall. */
+struct sctp_authkeyid_expr {
+	struct expression *scact_assoc_id;
+	struct expression *scact_keynumber;
 };
 
 /* Parse tree for a sctp_sack_info struct in a [gs]etsockopt syscall. */

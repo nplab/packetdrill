@@ -214,6 +214,8 @@ assoc_id			return ASSOC_ID;
 assoc_value			return ASSOC_VALUE;
 stream_id			return STREAM_ID;
 stream_value			return STREAM_VALUE;
+scact_assoc_id			return SCACT_ASSOC_ID;
+scact_keynumber			return SCACT_KEYNUMBER;
 sack_assoc_id			return SACK_ASSOC_ID;
 sack_delay			return SACK_DELAY;
 sack_freq			return SACK_FREQ;
