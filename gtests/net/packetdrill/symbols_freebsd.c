@@ -84,6 +84,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
 	{ SCTP_INIT,                        "SCTP_INIT"                       },
 	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
+	{ SCTP_AUTOCLOSE,                   "SCTP_AUTOCLOSE"                  },
 	{ SCTP_PRIMARY_ADDR,                "SCTP_PRIMARY_ADDR"               },
 	{ SCTP_ADAPTATION_LAYER,            "SCTP_ADAPTATION_LAYER"           },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
