@@ -565,7 +565,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SSF_TYPE SSF_LENGTH SSF_FLAGS SSF_ERROR SSF_INFO SSF_ASSOC_ID SSF_DATA
 %token <reserved> SAI_TYPE SAI_FLAGS SAI_LENGTH SAI_ADAPTATION_IND SAI_ASSOC_ID
 %token <reserved> GAIDS_NUMBER_OF_IDS GAIDS_ASSOC_ID SSPP_ASSOC_ID SSPP_ADDR
-%token <reserved> SN_TYPE SN_FLAGS SN_LENGTH
+%token <reserved> SN_TYPE SN_FLAGS SN_LENGTH SAUTH_CHUNK
+%token <reserved> SCA_ASSOC_ID SCA_KEYNUMBER SCA_KEYLENGTH SCA_KEY
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -638,7 +639,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_send_failed ssf_type ssf_length ssf_flags ssf_error ssf_info ssf_data
 %type <expression> sctp_adaptation_event sai_type sai_flags sai_length sai_adaptation_ind
 %type <expression> sctp_tlv sn_type sn_flags sn_length sctp_assoc_ids gaids_number_of_ids
-%type <expression> sctp_setpeerprim 
+%type <expression> sctp_setpeerprim sctp_authchunk sctp_authkey
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2557,6 +2558,12 @@ expression
 	$$ = $1;
 }
 | sctp_setpeerprim  {
+	$$ = $1;
+}
+| sctp_authchunk    {
+	$$ = $1;
+}
+| sctp_authkey      {
 	$$ = $1;
 }
 | null              {
@@ -4831,6 +4838,46 @@ sctp_setpeerprim
 	$$->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
 	$$->value.sctp_setpeerprim->sspp_assoc_id = new_expression(EXPR_ELLIPSIS);
 	$$->value.sctp_setpeerprim->sspp_addr = $4;
+};
+
+sctp_authchunk
+: '{' SAUTH_CHUNK '=' INTEGER '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHCHUNK);
+	$$->value.sctp_authchunk = calloc(1, sizeof(struct sctp_authchunk_expr));
+	if (!is_valid_u8($4)) {
+		semantic_error("sauth_chunk out of range");
+	}
+	$$->value.sctp_authchunk->sauth_chunk = new_integer_expression($4, "%hhu");
+};
+
+sctp_authkey
+: '{' SCA_ASSOC_ID '=' sctp_assoc_id ',' SCA_KEYNUMBER '=' INTEGER ',' SCA_KEYLENGTH '=' INTEGER ',' SCA_KEY '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEY);
+	$$->value.sctp_authkey = calloc(1, sizeof(struct sctp_authkey_expr));
+	$$->value.sctp_authkey->sca_assoc_id = $4;
+	if (!is_valid_u16($8)) {
+		semantic_error("sca_keynumber out of range");
+	}
+	$$->value.sctp_authkey->sca_keynumber = new_integer_expression($8, "%hu");
+	if (!is_valid_u16($12)) {
+		semantic_error("sca_keylength out of range");
+	}
+	$$->value.sctp_authkey->sca_keylength = new_integer_expression($12, "%hu");
+	$$->value.sctp_authkey->sca_key = $16;
+}
+| '{' SCA_KEYNUMBER '=' INTEGER ',' SCA_KEYLENGTH '=' INTEGER ',' SCA_KEY '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEY);
+	$$->value.sctp_authkey = calloc(1, sizeof(struct sctp_authkey_expr));
+	$$->value.sctp_authkey->sca_assoc_id = new_expression(EXPR_ELLIPSIS);
+	if (!is_valid_u16($4)) {
+		semantic_error("sca_keynumber out of range");
+	}
+	$$->value.sctp_authkey->sca_keynumber = new_integer_expression($4, "%hu");
+	if (!is_valid_u16($8)) {
+		semantic_error("sca_keylength out of range");
+	}
+	$$->value.sctp_authkey->sca_keylength = new_integer_expression($8, "%hu");
+	$$->value.sctp_authkey->sca_key = $12;
 };
 
 opt_errno
