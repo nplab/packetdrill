@@ -564,7 +564,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPC_TYPE SPC_FLAGS SPC_LENGTH SPC_AADDR SPC_STATE SPC_ERROR SPC_ASSOC_ID
 %token <reserved> SSF_TYPE SSF_LENGTH SSF_FLAGS SSF_ERROR SSF_INFO SSF_ASSOC_ID SSF_DATA
 %token <reserved> SAI_TYPE SAI_FLAGS SAI_LENGTH SAI_ADAPTATION_IND SAI_ASSOC_ID
-%token <reserved> GAIDS_NUMBER_OF_IDS GAIDS_ASSOC_ID
+%token <reserved> GAIDS_NUMBER_OF_IDS GAIDS_ASSOC_ID SSPP_ASSOC_ID SSPP_ADDR
 %token <reserved> SN_TYPE SN_FLAGS SN_LENGTH
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
@@ -638,6 +638,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_send_failed ssf_type ssf_length ssf_flags ssf_error ssf_info ssf_data
 %type <expression> sctp_adaptation_event sai_type sai_flags sai_length sai_adaptation_ind
 %type <expression> sctp_tlv sn_type sn_flags sn_length sctp_assoc_ids gaids_number_of_ids
+%type <expression> sctp_setpeerprim 
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2553,6 +2554,9 @@ expression
 	$$ = $1;
 }
 | sctp_authchunks   {
+	$$ = $1;
+}
+| sctp_setpeerprim  {
 	$$ = $1;
 }
 | null              {
@@ -4813,6 +4817,20 @@ sctp_authchunks
 	$$->value.sctp_authchunks->gauth_assoc_id = new_expression(EXPR_ELLIPSIS);
 	$$->value.sctp_authchunks->gauth_number_of_chunks = $2;
 	$$->value.sctp_authchunks->gauth_chunks = $6;
+};
+
+sctp_setpeerprim
+: '{' SSPP_ASSOC_ID '=' sctp_assoc_id ',' SSPP_ADDR '=' sockaddr '}' {
+	$$ = new_expression(EXPR_SCTP_SETPEERPRIM);
+	$$->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+	$$->value.sctp_setpeerprim->sspp_assoc_id = $4;
+	$$->value.sctp_setpeerprim->sspp_addr = $8;
+}
+| '{' SSPP_ADDR '=' sockaddr '}' {
+	$$ = new_expression(EXPR_SCTP_SETPEERPRIM);
+	$$->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+	$$->value.sctp_setpeerprim->sspp_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_setpeerprim->sspp_addr = $4;
 };
 
 opt_errno

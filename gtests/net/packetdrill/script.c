@@ -105,6 +105,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_EXTRCVINFO,      "sctp_extrcvinfo" },
 	{ EXPR_SCTP_ASSOC_IDS,       "sctp_assoc_ids"  },
 	{ EXPR_SCTP_AUTHCHUNKS,      "sctp_authchunks" },
+	{ EXPR_SCTP_SETPEERPRIM,     "sctp_setpeerprim"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -590,6 +591,10 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_authchunks->gauth_assoc_id);
 		free_expression(expression->value.sctp_authchunks->gauth_number_of_chunks);
 		free_expression(expression->value.sctp_authchunks->gauth_chunks);
+		break;
+	case EXPR_SCTP_SETPEERPRIM:
+		free_expression(expression->value.sctp_setpeerprim->sspp_assoc_id);
+		free_expression(expression->value.sctp_setpeerprim->sspp_addr);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2316,6 +2321,33 @@ static int evaluate_sctp_authchunks_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_setpeerprim_expression(struct expression *in,
+					        struct expression *out,
+					        char **error)
+{
+	struct sctp_setpeerprim_expr *in_sspp;
+	struct sctp_setpeerprim_expr *out_sspp;
+
+	assert(in->type == EXPR_SCTP_SETPEERPRIM);
+	assert(in->value.sctp_setpeerprim);
+	assert(out->type == EXPR_SCTP_SETPEERPRIM);
+
+	out->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+
+	in_sspp = in->value.sctp_setpeerprim;
+	out_sspp = out->value.sctp_setpeerprim;
+
+	if (evaluate(in_sspp->sspp_assoc_id,
+		     &out_sspp->sspp_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sspp->sspp_addr,
+		     &out_sspp->sspp_addr,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2454,6 +2486,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_AUTHCHUNKS:
 		result = evaluate_sctp_authchunks_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SETPEERPRIM:
+		result = evaluate_sctp_setpeerprim_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

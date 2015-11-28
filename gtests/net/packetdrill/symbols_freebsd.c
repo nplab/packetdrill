@@ -111,6 +111,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_LOCAL_AUTH_CHUNKS,           "SCTP_LOCAL_AUTH_CHUNKS"          },
 	{ SCTP_GET_ASSOC_NUMBER,            "SCTP_GET_ASSOC_NUMBER"           },
 	{ SCTP_GET_ASSOC_ID_LIST,           "SCTP_GET_ASSOC_ID_LIST"          },
+	{ SCTP_SET_PEER_PRIMARY_ADDR,       "SCTP_SET_PEER_PRIMARY_ADDR"      },
 	{ SCTP_AUTH_CHUNK,                  "SCTP_AUTH_CHUNK"                 },
 	{ SCTP_AUTH_KEY,                    "SCTP_AUTH_KEY"                   },
 	{ SCTP_AUTH_DEACTIVATE_KEY,         "SCTP_AUTH_DEACTIVATE_KEY"        },

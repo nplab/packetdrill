@@ -10,7 +10,12 @@
 
 +0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_SET_PEER_PRIMARY_ADDR, {sspp_assoc_id=..., sspp={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},}, 20) = 0
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_SET_PEER_PRIMARY_ADDR, {sspp={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},}, 20) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_SET_PEER_PRIMARY_ADDR, {sspp_addr={sa_family=AF_INET,
+								       sin_port=htons(8080),
+								       sin_addr=inet_addr("192.0.2.1")}}, 136) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_SET_PEER_PRIMARY_ADDR, {sspp_assoc_id=...,
+							    sspp_addr={sa_family=AF_INET,
+								       sin_port=htons(8080),
+								       sin_addr=inet_addr("192.0.2.1")}}, 136) = 0
 
 +0 close(3) = 0

@@ -495,7 +495,7 @@ static int ellipsis_arg(struct expression_list *args, int index, char **error)
 	return STATUS_OK;
 }
 
-#if defined(SCTP_GET_PEER_ADDR_INFO) || defined(SCTP_PEER_ADDR_PARAMS)
+#if defined(SCTP_GET_PEER_ADDR_INFO) || defined(SCTP_PEER_ADDR_PARAMS) || defined(SCTP_SET_PEER_PRIMARY_ADDR)
 /* Return STATUS_OK if the argument in from type sockaddr_in or
  * sockaddr_in6
  */
@@ -3513,6 +3513,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_ADAPTATION_LAYER
 	struct sctp_setadaptation setadaptation;
 #endif
+#ifdef SCTP_SET_PEER_PRIMARY_ADDR
+	struct sctp_setpeerprim setpeerprim;
+#endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	struct sctp_paddrparams paddrparams;
 #ifdef linux
@@ -3861,6 +3864,19 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &setadaptation;
+		break;
+#endif
+#ifdef SCTP_SET_PEER_PRIMARY_ADDR
+	case EXPR_SCTP_SETPEERPRIM:
+		if (get_sctp_assoc_t(val_expression->value.sctp_setpeerprim->sspp_assoc_id,
+				     &setpeerprim.sspp_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_sockstorage_arg(val_expression->value.sctp_setpeerprim->sspp_addr,
+		    		&setpeerprim.sspp_addr, live_fd)) {
+			return STATUS_ERR;
+		}
+		optval = &setpeerprim;
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS

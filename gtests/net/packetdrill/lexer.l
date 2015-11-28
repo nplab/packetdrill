@@ -387,6 +387,8 @@ gaids_assoc_id			return GAIDS_ASSOC_ID;
 gauth_assoc_id			return GAUTH_ASSOC_ID;
 gauth_number_of_chunks		return GAUTH_NUMBER_OF_CHUNKS;
 gauth_chunks			return GAUTH_CHUNKS;
+sspp_assoc_id			return SSPP_ASSOC_ID;
+sspp_addr			return SSPP_ADDR;
 CHUNK				return CHUNK;
 DATA				return DATA;
 INIT				return INIT;
