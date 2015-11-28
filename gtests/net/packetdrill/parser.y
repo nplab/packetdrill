@@ -1451,7 +1451,7 @@ dup
 
 sctp_generic_spec
 : '[' byte_list ']' {
-	if (($2 == NULL)) {
+	if ($2 == NULL) {
 		semantic_error("byte field can not be empty");
 	}
 
