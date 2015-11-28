@@ -86,6 +86,8 @@ enum expression_t {
 	EXPR_SCTP_ASSOC_IDS,      /* expression tree for sctp_assoc_ids struct for [gs]etsockopt */
 	EXPR_SCTP_AUTHCHUNKS,     /* expression tree for sctp_authchunks struct for [gs]etsockopt */
 	EXPR_SCTP_SETPEERPRIM,    /* expression tree for sctp_setpeerprim struct for [gs]etsockopt */
+	EXPR_SCTP_AUTHCHUNK,      /* expression tree for sctp_authchunk struct for setsockopt */
+	EXPR_SCTP_AUTHKEY,        /* expression tree for sctp_authkey struct for setsockopt */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -145,6 +147,8 @@ struct expression {
 		struct sctp_assoc_ids_expr *sctp_assoc_ids;
 		struct sctp_authchunks_expr *sctp_authchunks;
 		struct sctp_setpeerprim_expr *sctp_setpeerprim;
+		struct sctp_authchunk_expr *sctp_authchunk;
+		struct sctp_authkey_expr *sctp_authkey;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -546,6 +550,19 @@ struct sctp_authchunks_expr {
 struct sctp_setpeerprim_expr {
 	struct expression *sspp_assoc_id;
 	struct expression *sspp_addr;
+};
+
+/* Parse tree for sctp_authchunk struct for setsockopt. */
+struct sctp_authchunk_expr {
+	struct expression *sauth_chunk;
+};
+
+/* Parse tree for sctp_authkey struct for setsockopt. */
+struct sctp_authkey_expr {
+	struct expression *sca_assoc_id;
+	struct expression *sca_keynumber;
+	struct expression *sca_keylength;
+	struct expression *sca_key;
 };
 
 /* The errno-related info from strace to summarize a system call error */

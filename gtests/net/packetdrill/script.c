@@ -106,6 +106,8 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_ASSOC_IDS,       "sctp_assoc_ids"  },
 	{ EXPR_SCTP_AUTHCHUNKS,      "sctp_authchunks" },
 	{ EXPR_SCTP_SETPEERPRIM,     "sctp_setpeerprim"},
+	{ EXPR_SCTP_AUTHCHUNK,       "sctp_authchunk"  },
+	{ EXPR_SCTP_AUTHKEY,         "sctp_authkey"    },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -595,6 +597,15 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_SETPEERPRIM:
 		free_expression(expression->value.sctp_setpeerprim->sspp_assoc_id);
 		free_expression(expression->value.sctp_setpeerprim->sspp_addr);
+		break;
+	case EXPR_SCTP_AUTHCHUNK:
+		free_expression(expression->value.sctp_authchunk->sauth_chunk);
+		break;
+	case EXPR_SCTP_AUTHKEY:
+		free_expression(expression->value.sctp_authkey->sca_assoc_id);
+		free_expression(expression->value.sctp_authkey->sca_keynumber);
+		free_expression(expression->value.sctp_authkey->sca_keylength);
+		free_expression(expression->value.sctp_authkey->sca_key);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2348,6 +2359,65 @@ static int evaluate_sctp_setpeerprim_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_authchunk_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_authchunk_expr *in_authchunk;
+	struct sctp_authchunk_expr *out_authchunk;
+
+	assert(in->type == EXPR_SCTP_AUTHCHUNK);
+	assert(in->value.sctp_authchunk);
+	assert(out->type == EXPR_SCTP_AUTHCHUNK);
+
+	out->value.sctp_authchunk = calloc(1, sizeof(struct sctp_authchunk_expr));
+
+	in_authchunk = in->value.sctp_authchunk;
+	out_authchunk = out->value.sctp_authchunk;
+
+	if (evaluate(in_authchunk->sauth_chunk,
+		     &out_authchunk->sauth_chunk,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_authkey_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+	struct sctp_authkey_expr *in_authkey;
+	struct sctp_authkey_expr *out_authkey;
+
+	assert(in->type == EXPR_SCTP_AUTHKEY);
+	assert(in->value.sctp_authkey);
+	assert(out->type == EXPR_SCTP_AUTHKEY);
+
+	out->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+
+	in_authkey = in->value.sctp_authkey;
+	out_authkey = out->value.sctp_authkey;
+
+	if (evaluate(in_authkey->sca_assoc_id,
+		     &out_authkey->sca_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkey->sca_keynumber,
+		     &out_authkey->sca_keynumber,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkey->sca_keylength,
+		     &out_authkey->sca_keylength,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkey->sca_key,
+		     &out_authkey->sca_key,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2489,6 +2559,12 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_SETPEERPRIM:
 		result = evaluate_sctp_setpeerprim_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHCHUNK:
+		result = evaluate_sctp_authchunk_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHKEY:
+		result = evaluate_sctp_authkey_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;
