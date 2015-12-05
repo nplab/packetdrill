@@ -6,8 +6,8 @@
 +0.0 listen(3, 1) = 0
 
 // Enable Event notification
-+0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_ADAPTATION_INDICATION, se_on=1}, 8) = 0
-+0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_ADAPTATION_INDICATION, se_on=1}, [8]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_ADAPTATION_INDICATION, se_on=1}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_ADAPTATION_INDICATION, se_on=1}, [8]) = 0
 
 // Send Adaptation Indication with Init chunk
 +0.0 < sctp: INIT[flgs=0, tag=1, a_rwnd=1500, os=1, is=1, tsn=0,

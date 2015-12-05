@@ -13,8 +13,16 @@
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 //sendmsg(sd, msghdr, flags)
 
-+0.0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(8080), sin_addr=inet_addr("192.0.2.1")},
-spp_hbinterval=0, spp_pathmaxrxt=8, spp_pathmtu=1468, spp_flags=SPP_HB_DISABLE, spp_ipv6_flowlabel=0, spp_dscp=0}, 152) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_assoc_id=3,
+							 spp_address={sa_family=AF_INET,
+								      sin_port=htons(8080),
+								      sin_addr=inet_addr("192.0.2.1")},
+							 spp_hbinterval=0,
+							 spp_pathmaxrxt=8,
+							 spp_pathmtu=1468,
+							 spp_flags=SPP_HB_DISABLE,
+							 spp_ipv6_flowlabel=0, 
+							 spp_dscp=0}, 152)= 0
 
 +1.0 sctp_send(3, ..., 1000, {sinfo_stream=3,
                               sinfo_ssn=3,
