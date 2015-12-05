@@ -4303,7 +4303,7 @@ static int syscall_sctp_sendx(struct state *state, struct syscall_spec *syscall,
 	if (ellipsis_arg(args, 1, error))
 		return STATUS_ERR;
 	len_expr = get_arg(args, 2, error);
-	if (get_u32(len_expr, &len, error)) {
+	if (get_size_t(len_expr, &len, error)) {
 		 return STATUS_ERR;
 	}
 	addrs_expr = get_arg(args, 3, error);
