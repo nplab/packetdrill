@@ -315,59 +315,6 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
 	return item;
 }
 
-static void print_sctp_byte_list(struct sctp_byte_list *list) {
-	struct sctp_byte_list_item *item;
-
-	for (item = list->first; item != NULL; item = item->next) {
-		DEBUGP("0x%.2x,", item->byte);
-	}
-}
-
-struct sctp_chunk_list_item *
-sctp_generic_new(struct sctp_byte_list *bytes)
-{
-	struct sctp_chunk *chunk;
-	struct sctp_byte_list_item *item;
-	u16 length, padding_length, i;
-	u32 flags = 0;
-
-	print_sctp_byte_list(bytes);
-
-	length = bytes->nr_entries;
-
-	padding_length = length % 4;
-	if (padding_length > 0) {
-		padding_length = 4 - padding_length;
-	}
-
-	chunk = malloc(length + padding_length);
-	assert(chunk != NULL);
-
-	item = bytes->first;
-	chunk->type = item->byte;
-	item = item->next;
-	chunk->flags = item->byte;
-
-	item = item->next;
-	chunk->length = (item->byte << 8) | item->next->byte;
-	chunk->length = htons(chunk->length);
-
-	item = item->next->next;
-
-	for (i = 0; item != NULL; i++, item = item->next) {
-		chunk->value[i] = item->byte;
-	}
-
-	memset(chunk->value + (length - sizeof(struct sctp_chunk)),
-	       0, padding_length);
-
-	return sctp_chunk_list_item_new(chunk,
-	                                length + padding_length,
-	                                flags,
-	                                sctp_parameter_list_new(),
-	                                sctp_cause_list_new());
-}
-
 struct sctp_chunk_list_item *
 sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
                        struct sctp_byte_list *bytes)
@@ -2641,6 +2588,102 @@ new_sctp_packet(int address_family,
 	}
 	free(packet->chunk_list);
 	packet->chunk_list = list;
+	packet->ip_bytes = ip_bytes;
+	return packet;
+}
+
+#ifdef DEBUG_LOGGING
+static void print_sctp_byte_list(struct sctp_byte_list *list) {
+	struct sctp_byte_list_item *item;
+
+	for (item = list->first; item != NULL; item = item->next) {
+		DEBUGP("0x%.2x,", item->byte);
+	}
+}
+#endif
+
+struct packet *
+new_sctp_generic_packet(int address_family,
+                enum direction_t direction,
+                enum ip_ecn_t ecn,
+                s64 tag,
+                bool bad_crc32c,
+                struct sctp_byte_list *bytes,
+                char **error) {
+	struct packet *packet;  /* the newly-allocated result packet */
+	struct header *sctp_header;  /* the SCTP header info */
+	struct sctp_byte_list_item *item = NULL;
+	/* Calculate lengths in bytes of all sections of the packet */
+	const int ip_option_bytes = 0;
+	const int ip_header_bytes = (ip_header_min_len(address_family) +
+				     ip_option_bytes);
+	const int sctp_header_bytes = sizeof(struct sctp_common_header);
+	const int sctp_chunk_bytes = bytes->nr_entries;
+	const int ip_bytes =
+		 ip_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+	bool overbook = false;
+	u16 i;
+
+#ifdef DEBUG_LOGGING
+	print_sctp_byte_list(bytes);
+#endif
+
+	if (direction == DIRECTION_OUTBOUND) {
+		asprintf(error,
+			"generic packets can only be specified as inbound.");
+		return NULL;
+	}
+
+	/* Sanity-check all the various lengths */
+	if (ip_option_bytes & 0x3) {
+		asprintf(error, "IP options are not padded correctly "
+			 "to ensure IP header is a multiple of 4 bytes: "
+			 "%d excess bytes", ip_option_bytes & 0x3);
+		return NULL;
+	}
+	assert((ip_header_bytes & 0x3) == 0);
+
+	if (ip_bytes > MAX_SCTP_DATAGRAM_BYTES) {
+		asprintf(error, "SCTP packet too large");
+		return NULL;
+	}
+
+	/* Allocate and zero out a packet object of the desired size */
+	packet = packet_new(overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
+	memset(packet->buffer, 0, overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
+
+	packet->direction = direction;
+	packet->flags = FLAGS_SCTP_GENERIC_PACKET;
+	if (bad_crc32c) {
+		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
+	}
+	if (tag != -1) {
+		packet->flags |= FLAGS_SCTP_EXPLICIT_TAG;
+	}
+	packet->ecn = ecn;
+
+	/* Set IP header fields */
+	set_packet_ip_header(packet, address_family, ip_bytes, ecn,
+			     IPPROTO_SCTP);
+
+	sctp_header = packet_append_header(packet, HEADER_SCTP, sctp_header_bytes);
+	sctp_header->total_bytes = sctp_header_bytes + sctp_chunk_bytes;
+
+	/* Find the start of the SCTP common header of the packet */
+	packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes);
+	u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
+
+	/* Set SCTP header fields */
+	packet->sctp->src_port = htons(0);
+	packet->sctp->dst_port = htons(0);
+	packet->sctp->v_tag = htonl((u32)tag);
+	packet->sctp->crc32c = htonl(0);
+
+	for (i = 0, item = bytes->first; item != NULL; i++, item = item->next) {
+		sctp_chunk_start[i] = item->byte;
+	}
+
+	packet->chunk_list = sctp_chunk_list_new();
 	packet->ip_bytes = ip_bytes;
 	return packet;
 }

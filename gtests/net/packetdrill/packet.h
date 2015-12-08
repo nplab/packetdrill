@@ -105,11 +105,12 @@ struct packet {
 
 	s64 time_usecs;		/* wall time of receive/send if non-zero */
 
-	u32 flags;		/* various meta-flags */
-#define FLAG_WIN_NOCHECK	0x1  /* don't check TCP receive window */
-#define FLAG_OPTIONS_NOCHECK	0x2  /* don't check TCP options */
-#define FLAGS_SCTP_BAD_CRC32C   0x4  /* compute bad CRC32C for SCTP packets */
-#define FLAGS_SCTP_EXPLICIT_TAG 0x8  /* verification tag specified */
+	u32 flags;		  /* various meta-flags */
+#define FLAG_WIN_NOCHECK	  0x1  /* don't check TCP receive window */
+#define FLAG_OPTIONS_NOCHECK	  0x2  /* don't check TCP options */
+#define FLAGS_SCTP_BAD_CRC32C     0x4  /* compute bad CRC32C for SCTP packets */
+#define FLAGS_SCTP_EXPLICIT_TAG   0x8  /* verification tag specified */
+#define FLAGS_SCTP_GENERIC_PACKET 0x10 /* set if it is a generic packet */
 
 	enum ip_ecn_t ecn;	/* IPv4/IPv6 ECN treatment for packet */
 

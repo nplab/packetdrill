@@ -637,7 +637,6 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
-%type <chunk_list_item> sctp_generic_spec
 %type <chunk_list_item> sctp_generic_chunk_spec
 %type <chunk_list_item> sctp_data_chunk_spec
 %type <chunk_list_item> sctp_init_chunk_spec sctp_init_ack_chunk_spec
@@ -928,6 +927,72 @@ sctp_packet_spec
 
 	$$ = packet_encapsulate_and_free(outer, inner);
 }
+| packet_prefix opt_ip_info SCTP ':' '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                        -1, false, $6, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+        semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ')' ':'  '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                        -1, true, $9, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' TAG '=' INTEGER ')' ':' '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	if (!is_valid_u32($7)) {
+		semantic_error("tag value out of range");
+	}
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                        $7, false, $11, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ',' TAG '=' INTEGER ')' ':' '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	if (!is_valid_u32($9)) {
+		semantic_error("tag value out of range");
+	}
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                        $9, true, $13, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
 ;
 
 sctp_chunk_list_spec
@@ -940,7 +1005,6 @@ sctp_chunk_list_spec
 
 sctp_chunk_spec
 : sctp_generic_chunk_spec           { $$ = $1; }
-| sctp_generic_spec                 { $$ = $1; }
 | sctp_data_chunk_spec              { $$ = $1; }
 | sctp_init_chunk_spec              { $$ = $1; }
 | sctp_init_ack_chunk_spec          { $$ = $1; }
@@ -1448,19 +1512,6 @@ dup
 	$$ = sctp_sack_block_list_item_dup_new($1);
 }
 ;
-
-sctp_generic_spec
-: '[' byte_list ']' {
-	if ($2 == NULL) {
-		semantic_error("byte field can not be empty");
-	}
-
-	if ($2->nr_entries < sizeof(struct sctp_chunk)) {
-		semantic_error("generic sctp chunk must at least contain type, flags and length");
-	}
-
-	$$ = sctp_generic_new($2);
-}
 
 sctp_generic_chunk_spec
 : CHUNK '[' opt_chunk_type ',' opt_flags ',' opt_len ',' opt_val ']' {
