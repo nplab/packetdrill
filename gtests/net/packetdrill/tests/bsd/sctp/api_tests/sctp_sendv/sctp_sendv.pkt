@@ -1,0 +1,84 @@
+--tolerance_usecs=100000
+
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
++0.0 bind(3, ..., ...) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=16, is=16, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+
+//sctp_sendv(int sd, const struct iovec *iov, int iovcnt, struct sockaddr *addrs, int addrcnt, void *info, socklen_t infolen, unsigned int infotype, int flags);
+
+//test with sctp_sendv_authinfo
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=500}, {iov_base=..., iov_len=500}], 2, NULL, 0, {auth_keynumber=123}, 2, SCTP_SENDV_AUTHINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
+
+//base test
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=1000}], 1, ..., 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=0, ssn=1, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=1500, gaps=[], dups=[]]
+
+//base test
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=1000}], 1, ..., 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=3, sid=0, ssn=2, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=1500, gaps=[], dups=[]]
+
+//base test
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=1000}], 1, ..., 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=4, sid=0, ssn=3, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=4, a_rwnd=1500, gaps=[], dups=[]]
+
+//TEST NULL as sockaddr
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=500}], 1, NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0) = 500
+*    > sctp: DATA[flgs=BE, len=516, tsn=5, sid=0, ssn=4, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=5, a_rwnd=1500, gaps=[], dups=[]]
+
+//TEST with two structs iov
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=500},{iov_base=..., iov_len=500}], 2, ..., 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=6, sid=0, ssn=5, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=6, a_rwnd=1500, gaps=[], dups=[]]
+
+//test with sctp_sendv_prinfo
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=500}, {iov_base=..., iov_len=500}], 2, ..., 1, {pr_policy=0, pr_value=0}, 8, SCTP_SENDV_PRINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=7, sid=0, ssn=6, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=7, a_rwnd=1500, gaps=[], dups=[]]
+
+//test with all sctp_sendv_spainfo
++0.1 sctp_sendv(3, [{..., 500}, {..., 500}], 2, ..., 1, {sendv_flags=SCTP_SEND_SNDINFO_VALID,
+							 sendv_sndinfo={snd_sid=2,
+									snd_flags=0,
+									snd_ppid=htonl(0),
+									snd_context=0,
+									snd_assoc_id=0},
+							 sendv_prinfo={pr_policy=SCTP_PR_SCTP_TTL,
+								       pr_value=10},
+							 sendv_authinfo={auth_keynumber=123}}, 32, SCTP_SENDV_SPA, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=8, sid=2, ssn=0, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=8, a_rwnd=1500, gaps=[], dups=[]]
+
+//test with sctp_sendv_sndinfo
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=1000}], 1, ..., 1, {snd_sid=1,
+							       snd_flags=0,
+							       snd_ppid=htonl(1234),
+							       snd_context=0,
+							       snd_assoc_id=0}, 16, SCTP_SENDV_SNDINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=9, sid=1, ssn=0, ppid=1234]
++0.0 < sctp: SACK[flgs=0, cum_tsn=9, a_rwnd=1500, gaps=[], dups=[]]
+
+//test with struct sockaddr
++0.1 sctp_sendv(3, [{..., 1000}], 1, [{sa_family=AF_INET,
+				       sin_port=htons(8080),
+				       sin_addr=inet_addr("192.0.2.1")}], 1, NULL, 0, SCTP_SENDV_NOINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=10, sid=0, ssn=7, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=10, a_rwnd=1500, gaps=[], dups=[]]
+
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
