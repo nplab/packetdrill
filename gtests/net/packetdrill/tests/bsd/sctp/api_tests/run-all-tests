@@ -63,20 +63,77 @@ set testcases = (setsockopt/sctp_rtoinfo_1 \
 		 getsockopt/sctp_default_prinfo \
 		 getsockopt/sctp_status \
 		 getsockopt/sctp_get_peer_addr_info \
+		 getsockopt/sctp_peer_auth_chunks \
+		 getsockopt/sctp_local_auth_chunks \
+		 getsockopt/sctp_get_assoc_number \
+		 getsockopt/sctp_get_assoc_id_list \
+		 getsockopt/sctp_set_peer_primary_addr \
+		 getsockopt/sctp_auth_chunk \
+		 getsockopt/sctp_auth_key \
+		 getsockopt/sctp_auth_deactivate_key \
+		 getsockopt/sctp_auth_delete_key \
 		 notifications/sctp_adaptation_event \
                  notifications/sctp_notifications_stopped_event \
                  notifications/sctp_remote_error \
+                 notifications/sctp_remote_error_2 \
                  notifications/sctp_sender_dry_event \
+                 notifications/sctp_sender_dry_event_2 \
                  notifications/sctp_assoc_change_event \
                  notifications/sctp_partial_delivery_event \
+                 notifications/sctp_partial_delivery_event_2 \
                  notifications/sctp_send_failed \
+                 notifications/sctp_send_failed_2 \
                  notifications/sctp_shutdown_event \
+                 notifications/sctp_shutdown_event_2 \
                  notifications/sctp_authentication_event \
+                 notifications/sctp_authentication_event_2 \
                  notifications/sctp_peer_addr_change \
+                 notifications/sctp_peer_addr_change_2 \
                  notifications/sctp_send_failed_event \
-		 sctp_send/sctp_send_1     \
-		 sctp_send/sctp_send_2     \
-		 sctp_sendx/sctp_sendx_1 )
+                 notifications/sctp_send_failed_event_2 \
+		 cmsgs/sendmsg_sctp_init \
+		 cmsgs/sendmsg_sctp_sndrcv \
+		 cmsgs/sendmsg_sctp_sndinfo \
+		 cmsgs/sendmsg_sctp_authinfo \
+		 cmsgs/sendmsg_sctp_prinfo \
+		 cmsgs/sendmsg_sctp_dstaddrv4 \
+		 cmsgs/sendmsg_sctp_dstaddrv6 \
+		 cmsgs/recvmsg_sctp_extrcv \
+		 cmsgs/recvmsg_sctp_nxtinfo \
+		 cmsgs/recvmsg_sctp_rcvinfo \
+		 cmsgs/recvmsg_sctp_sndrcv \
+		 cmsgs/recvmsg \
+		 cmsgs/sendmsg \
+		 sctp_send/sctp_send_1 \
+		 sctp_send/sctp_send_2 \
+		 sctp_sendx/sctp_sendx_1 \
+		 sctp_sendx/sctp_sendx_2 \
+		 sctp_sendv/sctp_sendv \
+		 sctp_sendv/sctp_sendv_1 \
+		 sctp_sendv/sctp_sendv_2 \
+		 sctp_sendv/sctp_sendv_3 \
+		 sctp_sendv/sctp_sendv_4 \
+		 sctp_sendv/sctp_sendv_5 \
+		 sctp_sendv/sctp_sendv_6 \
+		 sctp_sendv/sctp_sendv_7 \
+		 sctp_sendv/sctp_sendv_8 \
+		 sctp_bindx/sctp_bindx \
+		 sctp_peeloff/sctp_peeloff \
+		 sctp_getpaddrs/sctp_getpaddrs \
+		 sctp_getladdrs/sctp_getladdrs \
+		 sctp_sendmsg/sctp_sendmsg_1 \
+		 sctp_sendmsg/sctp_sendmsg_2 \
+		 sctp_sendmsg/sctp_sendmsg_3 \
+		 sctp_recvmsg/sctp_recvmsg_1 \
+		 sctp_recvmsg/sctp_recvmsg_2 \
+		 sctp_recvmsg/sctp_recvmsg_3 \
+		 sctp_recvv/sctp_recvv_1 \
+		 sctp_recvv/sctp_recvv_2 \
+		 sctp_recvv/sctp_recvv_3 \
+		 sctp_recvv/sctp_recvv_4 \
+		 sctp_recvv/sctp_recvv_5 \
+		 sctp_recvv/sctp_recvv_6 \
+		 sctp_recvv/sctp_recvv_7 )
 
 set rootdir = `/usr/bin/dirname $0`
 set os = `uname -s | tr '[A-Z]' '[a-z]'`

@@ -24,7 +24,7 @@
 							 spp_ipv6_flowlabel=0,
 							 spp_dscp=0}, 152) = 0
 
-+1.0 sctp_sendx(3, ..., 1000, ..., 1, {sinfo_stream=3,
++0.0 sctp_sendx(3, ..., 1000, ..., 1, {sinfo_stream=3,
                                        sinfo_ssn=3,
                                        sinfo_flags=0,
                                        sinfo_ppid=htonl(1234),
@@ -36,36 +36,6 @@
 *    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=3, ssn=0, ppid=1234]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
 
-
-+1.0 sctp_sendx(3, ..., 1000, {sa_family=AF_INET,
-                               sin_port=htons(8080),
-                               sin_addr=inet_addr("192.0.2.1")}, 1,
-			      {sinfo_stream=3,
-                               sinfo_ssn=3,
-                               sinfo_flags=0,
-                               sinfo_ppid=htonl(7),
-                               sinfo_context=0,
-                               sinfo_timetolive=0,
-                               sinfo_tsn=1,
-                               sinfo_cumtsn=6,
-                               sinfo_assoc_id=3}, 0) = 1000
-*    > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=3, ssn=1, ppid=7]
-+0.0 < sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=1500, gaps=[], dups=[]]
-
-+1.0 sctp_sendx(3, ..., 1000, [{sa_family=AF_INET,
-                               sin_port=htons(8080),
-                               sin_addr=inet_addr("192.0.2.1")}], 1,
-			      {sinfo_stream=3,
-                               sinfo_ssn=3,
-                               sinfo_flags=0,
-                               sinfo_ppid=htonl(7),
-                               sinfo_context=0,
-                               sinfo_timetolive=0,
-                               sinfo_tsn=1,
-                               sinfo_cumtsn=6,
-                               sinfo_assoc_id=3}, 0) = 1000
-*    > sctp: DATA[flgs=BE, len=1016, tsn=3, sid=3, ssn=2, ppid=7]
-+0.0 < sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=1500, gaps=[], dups=[]]
 
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]

@@ -10,8 +10,12 @@
 +0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
 +0.1 < sctp: COOKIE_ACK[flgs=0]
 
-+0.0 sctp_recvv(3, [{iov_base={auth_type=SCTP_AUTHENTICATION_EVENT, auth_flags=0, auth_length=20, auth_keynumber=0, auth_indication=SCTP_AUTH_NO_AUTH,
-auth_assoc_id=3}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION|MSG_EOR]) = 20
++0.0 sctp_recvv(3, [{iov_base={auth_type=SCTP_AUTHENTICATION_EVENT,
+			       auth_flags=0,
+			       auth_length=20,
+			       auth_keynumber=0,
+			       auth_indication=SCTP_AUTH_NO_AUTH,
+			       auth_assoc_id=3}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION|MSG_EOR]) = 20
 
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 +0.0 < sctp: SHUTDOWN[flgs=0, cum_tsn=0]

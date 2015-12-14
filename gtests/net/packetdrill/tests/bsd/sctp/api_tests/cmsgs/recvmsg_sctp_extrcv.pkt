@@ -84,3 +84,25 @@
                                                serinfo_next_ppid=htonl(9879),
                                                sinfo_assoc_id=...}}],
                  msg_flags=MSG_EOR}, 0) = 1000
+
++0.0 < sctp: DATA[flgs=IUBE, len=1016, tsn=4, sid=2, ssn=0, ppid=9880]
+*    > sctp: SACK[flgs=0, cum_tsn=4, a_rwnd=..., gaps=[], dups=[]]
++0.0 recvmsg(3, {msg_name(...)=...,
+                 msg_iov(1)=[{iov_base=..., iov_len=1000}],
+                 msg_control(140)=[{cmsg_len=140,
+                                    cmsg_level=IPPROTO_SCTP,
+                                    cmsg_type=SCTP_EXTRCV,
+                                    cmsg_data={sinfo_stream=1,
+                                               sinfo_ssn=0,
+                                               sinfo_flags=SCTP_UNORDERED,
+                                               sinfo_ppid=htonl(9879),
+                                               sinfo_context=0,
+                                               sinfo_pr_value=0,
+                                               sinfo_tsn=3,
+                                               sinfo_cumtsn=4,
+                                               serinfo_next_flags=SCTP_NEXT_MSG_AVAIL|SCTP_NEXT_MSG_ISCOMPLETE|SCTP_NEXT_MSG_IS_UNORDERED,
+                                               serinfo_next_stream=2,
+                                               serinfo_next_aid=...,
+                                               serinfo_next_length=1000,
+                                               serinfo_next_ppid=htonl(9880)}}],
+                 msg_flags=MSG_EOR}, 0) = 1000

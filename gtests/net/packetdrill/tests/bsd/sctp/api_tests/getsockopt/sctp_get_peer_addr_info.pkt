@@ -80,5 +80,22 @@
 							 spinfo_mtu=...}, [152]) = 0
 
 
++0 setsockopt(3, IPPROTO_SCTP, SCTP_GET_PEER_ADDR_INFO, {spinfo_address={sa_family=AF_INET,
+									 sin_port=htons(8080),
+									 sin_addr=inet_addr("192.0.2.1")},
+							 spinfo_state=SCTP_ACTIVE,
+							 spinfo_cwnd=4464,
+							 spinfo_srtt=111,
+							 spinfo_rto=1000,
+							 spinfo_mtu=1468}, 152) = -1 (ENOPROTOOPT)
+
++0 getsockopt(3, IPPROTO_SCTP, SCTP_GET_PEER_ADDR_INFO, {spinfo_address={sa_family=AF_INET,
+									 sin_port=htons(8080),
+									 sin_addr=inet_addr("192.0.2.1")},
+							 spinfo_state=SCTP_ACTIVE,
+							 spinfo_cwnd=4464,
+							 spinfo_srtt=...,
+							 spinfo_rto=1000,
+							 spinfo_mtu=1468}, [152]) = 0
 
 +0 close(3) = 0

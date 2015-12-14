@@ -78,6 +78,25 @@
 *    > sctp: DATA[flgs=BE, len=1016, tsn=10, sid=0, ssn=7, ppid=0]
 +0.0 < sctp: SACK[flgs=0, cum_tsn=10, a_rwnd=1500, gaps=[], dups=[]]
 
++0.1 sctp_sendv(3, [{..., 500}, {..., 500}], 2, ..., 1, {sendv_flags=SCTP_SEND_SNDINFO_VALID,
+							 sendv_sndinfo={snd_sid=2,
+									snd_flags=0,
+									snd_ppid=htonl(0),
+									snd_context=0},
+							 sendv_prinfo={pr_policy=SCTP_PR_SCTP_TTL,
+								       pr_value=10},
+							 sendv_authinfo={auth_keynumber=123}}, 32, SCTP_SENDV_SPA, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=11, sid=2, ssn=1, ppid=0]
++0.0 < sctp: SACK[flgs=0, cum_tsn=11, a_rwnd=1500, gaps=[], dups=[]]
+
+//test with sctp_sendv_sndinfo
++0.1 sctp_sendv(3, [{iov_base=..., iov_len=1000}], 1, ..., 1, {snd_sid=1,
+							       snd_flags=0,
+							       snd_ppid=htonl(1234),
+							       snd_context=0}, 16, SCTP_SENDV_SNDINFO, 0) = 1000
+*    > sctp: DATA[flgs=BE, len=1016, tsn=12, sid=1, ssn=1, ppid=1234]
++0.0 < sctp: SACK[flgs=0, cum_tsn=12, a_rwnd=1500, gaps=[], dups=[]]
+
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
 +0.1 < sctp: SHUTDOWN_ACK[flgs=0]
