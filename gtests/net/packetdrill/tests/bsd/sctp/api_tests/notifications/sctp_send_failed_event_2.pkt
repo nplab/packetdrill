@@ -1,0 +1,48 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
+
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_assoc_id=...,
+						       spp_address=...,
+						       spp_hbinterval=0,
+						       spp_pathmaxrxt=100,
+						       spp_pathmtu=1468,
+						       spp_flags=SPP_HB_DISABLE,
+						       spp_ipv6_flowlabel=0,
+						       spp_dscp=0}, 152) = 0
+
+//test for SEND_FAILED_EVENT
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0,
+					      se_type=SCTP_SEND_FAILED_EVENT,
+					      se_on=1}, 8) = 0
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_assoc_id=0,
+						srto_initial=100,
+						srto_max=150,
+						srto_min=50}, 16) = 0
+
++0.0 write(3, ..., 1000) = 1000
++0.0 > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
+*    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
++1.0 sctp_recvv(3, [{iov_base={ssfe_type=SCTP_SEND_FAILED_EVENT,
+			       ssfe_flags=SCTP_DATA_SENT,
+			       ssfe_length=1032,
+			       ssfe_error=0,
+			       ssfe_info={snd_sid=0,
+					  snd_flags=3,
+                                          snd_ppid=htonl(0),
+                                          snd_context=0},
+			       ssfe_data=...}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION]) = 1000

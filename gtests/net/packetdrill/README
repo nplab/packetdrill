@@ -32,7 +32,7 @@ Here's a quick example.
 
 On FreeBSD, OpenBSD, and NetBSD, try:
 
-# ./packetdrill tests/bsd/fast_retransmit/fr-4pkt-sack-bsd.pkt
+# ./packetdrill tests/bsd/tcp/fast_retransmit/fr-4pkt-sack-bsd.pkt
 
 On Linux try:
 

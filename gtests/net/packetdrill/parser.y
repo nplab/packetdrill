@@ -610,7 +610,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_sackinfo sack_delay sack_freq
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
-%type <expression> spp_flags spp_ipv6_flowlabel spp_dscp
+%type <expression> spp_flags spp_ipv6_flowlabel spp_dscp ssp_addr
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
@@ -2826,6 +2826,14 @@ sctp_rtoinfo
 	$$->value.sctp_rtoinfo->srto_max = $8;
 	$$->value.sctp_rtoinfo->srto_min = $10;
 }
+| '{' srto_initial ',' srto_max ',' srto_min '}' {
+	$$ = new_expression(EXPR_SCTP_RTOINFO);
+	$$->value.sctp_rtoinfo = calloc(1, sizeof(struct sctp_rtoinfo_expr));
+	$$->value.sctp_rtoinfo->srto_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_rtoinfo->srto_initial = $2;
+	$$->value.sctp_rtoinfo->srto_max = $4;
+	$$->value.sctp_rtoinfo->srto_min = $6;
+}
 ;
 
 sinit_num_ostreams
@@ -2896,6 +2904,12 @@ sctp_assoc_value
 	$$->value.sctp_assoc_value->assoc_id = $4;
 	$$->value.sctp_assoc_value->assoc_value = $8;
 }
+| '{' ASSOC_VALUE '=' expression '}' {
+	$$ = new_expression(EXPR_SCTP_ASSOC_VALUE);
+	$$->value.sctp_assoc_value = calloc(1, sizeof(struct sctp_assoc_value_expr));
+	$$->value.sctp_assoc_value->assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_assoc_value->assoc_value = $4;
+}
 ;
 
 sack_delay
@@ -2923,6 +2937,13 @@ sctp_sackinfo
 	$$->value.sctp_sack_info->sack_assoc_id = $4;
 	$$->value.sctp_sack_info->sack_delay = $6;
 	$$->value.sctp_sack_info->sack_freq = $8;
+}
+| '{' sack_delay ',' sack_freq '}' {
+	$$ = new_expression(EXPR_SCTP_SACKINFO);
+	$$->value.sctp_sack_info = calloc(1, sizeof(struct sctp_sack_info_expr));
+	$$->value.sctp_sack_info->sack_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_sack_info->sack_delay = $2;
+	$$->value.sctp_sack_info->sack_freq = $4;
 }
 ;
 
@@ -3067,6 +3088,18 @@ sctp_paddrinfo
 	$$->value.sctp_paddrinfo->spinfo_rto = $14;
 	$$->value.sctp_paddrinfo->spinfo_mtu = $16;
 }
+| '{' spinfo_address ',' spinfo_state ',' spinfo_cwnd ','
+      spinfo_srtt ',' spinfo_rto ',' spinfo_mtu '}' {
+	$$ = new_expression(EXPR_SCTP_PADDRINFO);
+	$$->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_paddrinfo_expr));
+	$$->value.sctp_paddrinfo->spinfo_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_paddrinfo->spinfo_address = $2;
+	$$->value.sctp_paddrinfo->spinfo_state = $4;
+	$$->value.sctp_paddrinfo->spinfo_cwnd = $6;
+	$$->value.sctp_paddrinfo->spinfo_srtt = $8;
+	$$->value.sctp_paddrinfo->spinfo_rto = $10;
+	$$->value.sctp_paddrinfo->spinfo_mtu = $12;
+}
 ;
 
 sctp_status
@@ -3083,6 +3116,20 @@ sctp_status
 	$$->value.sctp_status->sstat_outstrms = $16;
 	$$->value.sctp_status->sstat_fragmentation_point = $18;
 	$$->value.sctp_status->sstat_primary = $20;
+}
+| '{' sstat_state ',' sstat_rwnd ',' sstat_unackdata ',' sstat_penddata ',' sstat_instrms ',' sstat_outstrms ','
+	sstat_fragmentation_point ',' sstat_primary '}' {
+	$$ = new_expression(EXPR_SCTP_STATUS);
+	$$->value.sctp_status = calloc(1, sizeof(struct sctp_status_expr));
+	$$->value.sctp_status->sstat_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_status->sstat_state = $2;
+	$$->value.sctp_status->sstat_rwnd = $4;
+	$$->value.sctp_status->sstat_unackdata = $6;
+	$$->value.sctp_status->sstat_penddata = $8;
+	$$->value.sctp_status->sstat_instrms = $10;
+	$$->value.sctp_status->sstat_outstrms = $12;
+	$$->value.sctp_status->sstat_fragmentation_point = $14;
+	$$->value.sctp_status->sstat_primary = $16;
 }
 ;
 
@@ -3159,6 +3206,19 @@ sctp_paddrparams
 	$$->value.sctp_paddrparams->spp_ipv6_flowlabel = $16;
 	$$->value.sctp_paddrparams->spp_dscp = $18;
 }
+| '{' spp_address ',' spp_hbinterval ',' spp_pathmaxrxt ',' spp_pathmtu ','spp_flags ','
+      spp_ipv6_flowlabel ',' spp_dscp'}' {
+	$$ = new_expression(EXPR_SCTP_PEER_ADDR_PARAMS);
+	$$->value.sctp_paddrparams = calloc(1, sizeof(struct sctp_paddrparams_expr));
+	$$->value.sctp_paddrparams->spp_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_paddrparams->spp_address = $2;
+	$$->value.sctp_paddrparams->spp_hbinterval = $4;
+	$$->value.sctp_paddrparams->spp_pathmaxrxt = $6;
+	$$->value.sctp_paddrparams->spp_pathmtu = $8;
+	$$->value.sctp_paddrparams->spp_flags = $10;
+	$$->value.sctp_paddrparams->spp_ipv6_flowlabel = $12;
+	$$->value.sctp_paddrparams->spp_dscp = $14;
+}
 ;
 
 sasoc_asocmaxrxt
@@ -3223,6 +3283,17 @@ sctp_assocparams
         $$->value.sctp_assocparams->sasoc_local_rwnd = $12;
         $$->value.sctp_assocparams->sasoc_cookie_life = $14;
 }
+| '{' sasoc_asocmaxrxt ',' sasoc_number_peer_destinations ','
+      sasoc_peer_rwnd ',' sasoc_local_rwnd ',' sasoc_cookie_life '}' {
+	$$ = new_expression(EXPR_SCTP_ASSOCPARAMS);
+        $$->value.sctp_assocparams = calloc(1, sizeof(struct sctp_assocparams_expr));
+        $$->value.sctp_assocparams->sasoc_assoc_id = new_expression(EXPR_ELLIPSIS);
+        $$->value.sctp_assocparams->sasoc_asocmaxrxt = $2;
+        $$->value.sctp_assocparams->sasoc_number_peer_destinations = $4;
+        $$->value.sctp_assocparams->sasoc_peer_rwnd = $6;
+        $$->value.sctp_assocparams->sasoc_local_rwnd = $8;
+        $$->value.sctp_assocparams->sasoc_cookie_life = $10;
+}
 ;
 
 se_type
@@ -3255,6 +3326,13 @@ sctp_event
 	$$->value.sctp_event->se_assoc_id = $4;
 	$$->value.sctp_event->se_type = $6;
 	$$->value.sctp_event->se_on = $8;
+}
+| '{' se_type ',' se_on '}' {
+	$$ = new_expression(EXPR_SCTP_EVENT);
+	$$->value.sctp_event = calloc(1, sizeof(struct sctp_event_expr));
+	$$->value.sctp_event->se_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_event->se_type = $2;
+	$$->value.sctp_event->se_on = $4;
 }
 ;
 
@@ -3353,14 +3431,33 @@ sctp_sndinfo
 	$$->value.sctp_sndinfo->snd_context = $8;
 	$$->value.sctp_sndinfo->snd_assoc_id = $12;
 }
+| '{' snd_sid ',' snd_flags ',' snd_ppid ',' snd_context '}' {
+	$$ = new_expression(EXPR_SCTP_SNDINFO);
+	$$->value.sctp_sndinfo = calloc(1, sizeof(struct sctp_sndinfo_expr));
+	$$->value.sctp_sndinfo->snd_sid = $2;
+	$$->value.sctp_sndinfo->snd_flags = $4;
+	$$->value.sctp_sndinfo->snd_ppid = $6;
+	$$->value.sctp_sndinfo->snd_context = $8;
+	$$->value.sctp_sndinfo->snd_assoc_id = new_expression(EXPR_ELLIPSIS);
+}
+;
+ssp_addr
+: SSP_ADDR '=' sockaddr { $$ = $3; }
+| SSP_ADDR '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
 
 sctp_setprim
-: '{' SSP_ASSOC_ID '=' sctp_assoc_id ',' SSP_ADDR '=' sockaddr'}' {
+: '{' SSP_ASSOC_ID '=' sctp_assoc_id ',' ssp_addr '}' {
 	$$ = new_expression(EXPR_SCTP_SETPRIM);
 	$$->value.sctp_setprim = calloc(1, sizeof(struct sctp_setprim_expr));
 	$$->value.sctp_setprim->ssp_assoc_id = $4;
-	$$->value.sctp_setprim->ssp_addr = $8;
+	$$->value.sctp_setprim->ssp_addr = $6;
+}
+| '{' ssp_addr '}' {
+	$$ = new_expression(EXPR_SCTP_SETPRIM);
+	$$->value.sctp_setprim = calloc(1, sizeof(struct sctp_setprim_expr));
+	$$->value.sctp_setprim->ssp_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_setprim->ssp_addr = $2;
 }
 ;
 
@@ -3372,6 +3469,11 @@ sctp_setadaptation
 		semantic_error("ssb_adaptation_ind out of range");
 	}
 	$$->value.sctp_setadaptation->ssb_adaptation_ind = new_integer_expression($4, "%u");
+}
+| '{' SSB_ADAPTATION_IND '=' ELLIPSIS '}' {
+	$$ = new_expression(EXPR_SCTP_SETADAPTATION);
+	$$->value.sctp_setadaptation = calloc(1, sizeof(struct sctp_setadaptation_expr));
+	$$->value.sctp_setadaptation->ssb_adaptation_ind = new_expression(EXPR_ELLIPSIS);
 }
 ;
 
@@ -3463,6 +3565,20 @@ sctp_sndrcvinfo
 	$$->value.sctp_sndrcvinfo->sinfo_tsn = $14;
 	$$->value.sctp_sndrcvinfo->sinfo_cumtsn = $16;
 	$$->value.sctp_sndrcvinfo->sinfo_assoc_id = $20;
+}
+| '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_timetolive ','
+      sinfo_tsn ',' sinfo_cumtsn '}' {
+	$$ = new_expression(EXPR_SCTP_SNDRCVINFO);
+	$$->value.sctp_sndrcvinfo = calloc(1, sizeof(struct sctp_sndrcvinfo_expr));
+	$$->value.sctp_sndrcvinfo->sinfo_stream = $2;
+	$$->value.sctp_sndrcvinfo->sinfo_ssn = $4;
+	$$->value.sctp_sndrcvinfo->sinfo_flags = $6;
+	$$->value.sctp_sndrcvinfo->sinfo_ppid = $8;
+	$$->value.sctp_sndrcvinfo->sinfo_context = $10;
+	$$->value.sctp_sndrcvinfo->sinfo_timetolive = $12;
+	$$->value.sctp_sndrcvinfo->sinfo_tsn = $14;
+	$$->value.sctp_sndrcvinfo->sinfo_cumtsn = $16;
+	$$->value.sctp_sndrcvinfo->sinfo_assoc_id = new_expression(EXPR_ELLIPSIS);
 };
 
 sinfo_pr_value
@@ -3536,6 +3652,25 @@ serinfo_next_flags ',' serinfo_next_stream ',' serinfo_next_aid ',' serinfo_next
 	$$->value.sctp_extrcvinfo->serinfo_next_length = $24;
 	$$->value.sctp_extrcvinfo->serinfo_next_ppid = $26;
 	$$->value.sctp_extrcvinfo->sinfo_assoc_id = $30;
+}
+| '{' sinfo_stream ',' sinfo_ssn ',' sinfo_flags ',' sinfo_ppid ',' sinfo_context ',' sinfo_pr_value ',' sinfo_tsn ',' sinfo_cumtsn ','
+serinfo_next_flags ',' serinfo_next_stream ',' serinfo_next_aid ',' serinfo_next_length ',' serinfo_next_ppid '}' {
+	$$ = new_expression(EXPR_SCTP_EXTRCVINFO);
+	$$->value.sctp_extrcvinfo = calloc(1, sizeof(struct sctp_extrcvinfo_expr));
+	$$->value.sctp_extrcvinfo->sinfo_stream = $2;
+	$$->value.sctp_extrcvinfo->sinfo_ssn = $4;
+	$$->value.sctp_extrcvinfo->sinfo_flags = $6;
+	$$->value.sctp_extrcvinfo->sinfo_ppid = $8;
+	$$->value.sctp_extrcvinfo->sinfo_context = $10;
+	$$->value.sctp_extrcvinfo->sinfo_pr_value = $12;
+	$$->value.sctp_extrcvinfo->sinfo_tsn = $14;
+	$$->value.sctp_extrcvinfo->sinfo_cumtsn = $16;
+	$$->value.sctp_extrcvinfo->serinfo_next_flags = $18;
+	$$->value.sctp_extrcvinfo->serinfo_next_stream = $20;
+	$$->value.sctp_extrcvinfo->serinfo_next_aid = $22;
+	$$->value.sctp_extrcvinfo->serinfo_next_length = $24;
+	$$->value.sctp_extrcvinfo->serinfo_next_ppid = $26;
+	$$->value.sctp_extrcvinfo->sinfo_assoc_id = new_expression(EXPR_ELLIPSIS);
 };
 
 rcv_sid
@@ -3614,6 +3749,18 @@ sctp_rcvinfo
 	$$->value.sctp_rcvinfo->rcv_cumtsn = $12;
 	$$->value.sctp_rcvinfo->rcv_context = $14;
 	$$->value.sctp_rcvinfo->rcv_assoc_id = $18;
+}
+| '{' rcv_sid ',' rcv_ssn ',' rcv_flags ',' rcv_ppid ',' rcv_tsn ',' rcv_cumtsn ',' rcv_context '}' {
+	$$ = new_expression(EXPR_SCTP_RCVINFO);
+	$$->value.sctp_rcvinfo = calloc(1, sizeof(struct sctp_rcvinfo_expr));
+	$$->value.sctp_rcvinfo->rcv_sid = $2;
+	$$->value.sctp_rcvinfo->rcv_ssn = $4;
+	$$->value.sctp_rcvinfo->rcv_flags = $6;
+	$$->value.sctp_rcvinfo->rcv_ppid = $8;
+	$$->value.sctp_rcvinfo->rcv_tsn = $10;
+	$$->value.sctp_rcvinfo->rcv_cumtsn = $12;
+	$$->value.sctp_rcvinfo->rcv_context = $14;
+	$$->value.sctp_rcvinfo->rcv_assoc_id = new_expression(EXPR_ELLIPSIS);
 }
 ;
 
@@ -3720,6 +3867,15 @@ sctp_nxtinfo
 	$$->value.sctp_nxtinfo->nxt_length = $8;
 	$$->value.sctp_nxtinfo->nxt_assoc_id = $12;
 }
+| '{' nxt_sid ',' nxt_flags ',' nxt_ppid ',' nxt_length '}' {
+	$$ = new_expression(EXPR_SCTP_NXTINFO);
+	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_nxtinfo_expr));
+	$$->value.sctp_nxtinfo->nxt_sid = $2;
+	$$->value.sctp_nxtinfo->nxt_flags = $4;
+	$$->value.sctp_nxtinfo->nxt_ppid = $6;
+	$$->value.sctp_nxtinfo->nxt_length = $8;
+	$$->value.sctp_nxtinfo->nxt_assoc_id = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 sctp_recvv_rn
@@ -3773,6 +3929,14 @@ sctp_shutdown_event
 	$$->value.sctp_shutdown_event->sse_flags = $4;
 	$$->value.sctp_shutdown_event->sse_length = $6;
 	$$->value.sctp_shutdown_event->sse_assoc_id = $10;
+}
+| '{' sse_type ',' sse_flags ',' sse_length '}' {
+	$$ = new_expression(EXPR_SCTP_SHUTDOWN_EVENT);
+	$$->value.sctp_shutdown_event = calloc(1, sizeof(struct sctp_shutdown_event_expr));
+	$$->value.sctp_shutdown_event->sse_type = $2;
+	$$->value.sctp_shutdown_event->sse_flags = $4;
+	$$->value.sctp_shutdown_event->sse_length = $6;
+	$$->value.sctp_shutdown_event->sse_assoc_id = new_expression(EXPR_ELLIPSIS);
 };
 
 pdapi_type
@@ -3854,6 +4018,17 @@ sctp_pdapi_event
 	$$->value.sctp_pdapi_event->pdapi_seq = $12;
 	$$->value.sctp_pdapi_event->pdapi_assoc_id = $16;
 }
+| '{' pdapi_type',' pdapi_flags ',' pdapi_length ',' pdapi_indication ',' pdapi_stream ',' pdapi_seq '}' {
+	$$ = new_expression(EXPR_SCTP_PDAPI_EVENT);
+	$$->value.sctp_pdapi_event = calloc(1, sizeof(struct sctp_pdapi_event_expr));
+	$$->value.sctp_pdapi_event->pdapi_type = $2;
+	$$->value.sctp_pdapi_event->pdapi_flags = $4;
+	$$->value.sctp_pdapi_event->pdapi_length = $6;
+	$$->value.sctp_pdapi_event->pdapi_indication = $8;
+	$$->value.sctp_pdapi_event->pdapi_stream = $10;
+	$$->value.sctp_pdapi_event->pdapi_seq = $12;
+	$$->value.sctp_pdapi_event->pdapi_assoc_id = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 auth_type
@@ -3925,6 +4100,16 @@ sctp_authkey_event
 	$$->value.sctp_authkey_event->auth_indication = $10;
 	$$->value.sctp_authkey_event->auth_assoc_id = $14;
 }
+| '{' auth_type ',' auth_flags ',' auth_length ',' auth_keynumber ',' auth_indication '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEY_EVENT);
+	$$->value.sctp_authkey_event = calloc(1, sizeof(struct sctp_authkey_event_expr));
+	$$->value.sctp_authkey_event->auth_type = $2;
+	$$->value.sctp_authkey_event->auth_flags = $4;
+	$$->value.sctp_authkey_event->auth_length = $6;
+	$$->value.sctp_authkey_event->auth_keynumber = $8;
+	$$->value.sctp_authkey_event->auth_indication = $10;
+	$$->value.sctp_authkey_event->auth_assoc_id = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 sender_dry_type
@@ -3969,6 +4154,14 @@ sctp_sender_dry_event
 	$$->value.sctp_sender_dry_event->sender_dry_flags = $4;
 	$$->value.sctp_sender_dry_event->sender_dry_length = $6;
 	$$->value.sctp_sender_dry_event->sender_dry_assoc_id = $10;
+}
+| '{'sender_dry_type ',' sender_dry_flags ',' sender_dry_length '}' {
+	$$ = new_expression(EXPR_SCTP_SENDER_DRY_EVENT);
+	$$->value.sctp_sender_dry_event = calloc(1, sizeof(struct sctp_sender_dry_event_expr));
+	$$->value.sctp_sender_dry_event->sender_dry_type = $2;
+	$$->value.sctp_sender_dry_event->sender_dry_flags = $4;
+	$$->value.sctp_sender_dry_event->sender_dry_length = $6;
+	$$->value.sctp_sender_dry_event->sender_dry_assoc_id = new_expression(EXPR_ELLIPSIS);
 }
 ;
 
@@ -4036,6 +4229,17 @@ sctp_send_failed_event
 	$$->value.sctp_send_failed_event->ssfe_info = $12;
 	$$->value.sctp_send_failed_event->ssfe_assoc_id = $16;
 	$$->value.sctp_send_failed_event->ssfe_data = $18;
+}
+| '{' ssfe_type ',' ssfe_flags ',' ssfe_length ',' ssfe_error ',' SSFE_INFO '=' sctp_sndinfo ',' ssfe_data '}' {
+	$$ = new_expression(EXPR_SCTP_SEND_FAILED_EVENT);
+	$$->value.sctp_send_failed_event = calloc(1, sizeof(struct sctp_send_failed_event_expr));
+	$$->value.sctp_send_failed_event->ssfe_type = $2;
+	$$->value.sctp_send_failed_event->ssfe_flags = $4;
+	$$->value.sctp_send_failed_event->ssfe_length = $6;
+	$$->value.sctp_send_failed_event->ssfe_error = $8;
+	$$->value.sctp_send_failed_event->ssfe_info = $12;
+	$$->value.sctp_send_failed_event->ssfe_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_send_failed_event->ssfe_data = $14;
 };
 
 sac_type
@@ -4136,6 +4340,20 @@ sac_inbound_streams ',' SAC_ASSOC_ID '=' sctp_assoc_id ',' sac_info '}' {
 	$$->value.sctp_assoc_change->sac_assoc_id = $18;
 	$$->value.sctp_assoc_change->sac_info = $20;
 }
+| '{' sac_type ',' sac_flags ',' sac_length ',' sac_state ',' sac_error ',' sac_outbound_streams ','
+sac_inbound_streams ',' sac_info '}' {
+	$$ = new_expression(EXPR_SCTP_ASSOC_CHANGE);
+	$$->value.sctp_assoc_change = calloc(1, sizeof(struct sctp_assoc_change_expr));
+	$$->value.sctp_assoc_change->sac_type = $2;
+	$$->value.sctp_assoc_change->sac_flags = $4;
+	$$->value.sctp_assoc_change->sac_length = $6;
+	$$->value.sctp_assoc_change->sac_state = $8;
+	$$->value.sctp_assoc_change->sac_error = $10;
+	$$->value.sctp_assoc_change->sac_outbound_streams = $12;
+	$$->value.sctp_assoc_change->sac_inbound_streams = $14;
+	$$->value.sctp_assoc_change->sac_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_assoc_change->sac_info = $16;
+}
 ;
 
 sre_type
@@ -4197,6 +4415,16 @@ sctp_remote_error
 	$$->value.sctp_remote_error->sre_error = $8;
 	$$->value.sctp_remote_error->sre_assoc_id = $12;
 	$$->value.sctp_remote_error->sre_data = $14;
+}
+| '{' sre_type ',' sre_flags ',' sre_length ',' sre_error ',' sre_data '}' {
+	$$ = new_expression(EXPR_SCTP_REMOTE_ERROR);
+	$$->value.sctp_remote_error = calloc(1, sizeof(struct sctp_remote_error_expr));
+	$$->value.sctp_remote_error->sre_type = $2;
+	$$->value.sctp_remote_error->sre_flags = $4;
+	$$->value.sctp_remote_error->sre_length = $6;
+	$$->value.sctp_remote_error->sre_error = $8;
+	$$->value.sctp_remote_error->sre_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_remote_error->sre_data = $10;
 }
 ;
 
@@ -4279,6 +4507,17 @@ sctp_paddr_change
 	$$->value.sctp_paddr_change->spc_error = $12;
 	$$->value.sctp_paddr_change->spc_assoc_id = $16;
 }
+| '{' spc_type ',' spc_flags ',' spc_length ',' spc_aaddr ',' spc_state ',' spc_error '}' {
+	$$ = new_expression(EXPR_SCTP_PADDR_CHANGE);
+	$$->value.sctp_paddr_change = calloc(1, sizeof(struct sctp_paddr_change_expr));
+	$$->value.sctp_paddr_change->spc_type = $2;
+	$$->value.sctp_paddr_change->spc_flags = $4;
+	$$->value.sctp_paddr_change->spc_length = $6;
+	$$->value.sctp_paddr_change->spc_aaddr = $8;
+	$$->value.sctp_paddr_change->spc_state = $10;
+	$$->value.sctp_paddr_change->spc_error = $12;
+	$$->value.sctp_paddr_change->spc_assoc_id = new_expression(EXPR_ELLIPSIS);
+}
 ;
 ssf_type
 : SSF_TYPE '=' INTEGER {
@@ -4354,6 +4593,17 @@ sctp_send_failed
 	$$->value.sctp_send_failed->ssf_assoc_id = $14;
 	$$->value.sctp_send_failed->ssf_data = $16;
 }
+| '{' ssf_type ',' ssf_flags ',' ssf_length ',' ssf_error ',' ssf_info ',' ssf_data '}' {
+	$$ = new_expression(EXPR_SCTP_SEND_FAILED);
+	$$->value.sctp_send_failed = calloc(1, sizeof(struct sctp_send_failed_expr));
+	$$->value.sctp_send_failed->ssf_type = $2;
+	$$->value.sctp_send_failed->ssf_flags = $4;
+	$$->value.sctp_send_failed->ssf_length = $6;
+	$$->value.sctp_send_failed->ssf_error = $8;
+	$$->value.sctp_send_failed->ssf_info = $10;
+	$$->value.sctp_send_failed->ssf_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_send_failed->ssf_data = $12;
+}
 ;
 
 sai_type
@@ -4409,6 +4659,15 @@ sctp_adaptation_event
 	$$->value.sctp_adaptation_event->sai_length = $6;
 	$$->value.sctp_adaptation_event->sai_adaptation_ind = $8;
 	$$->value.sctp_adaptation_event->sai_assoc_id = $12;
+}
+| '{' sai_type ',' sai_flags ',' sai_length ',' sai_adaptation_ind '}' {
+	$$ = new_expression(EXPR_SCTP_ADAPTATION_EVENT);
+	$$->value.sctp_adaptation_event = calloc(1, sizeof(struct sctp_adaptation_event_expr));
+	$$->value.sctp_adaptation_event->sai_type = $2;
+	$$->value.sctp_adaptation_event->sai_flags = $4;
+	$$->value.sctp_adaptation_event->sai_length = $6;
+	$$->value.sctp_adaptation_event->sai_adaptation_ind = $8;
+	$$->value.sctp_adaptation_event->sai_assoc_id = new_expression(EXPR_ELLIPSIS);
 }
 ;
 
