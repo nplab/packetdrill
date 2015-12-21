@@ -3891,6 +3891,47 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &authchunk;
 		break;
 #endif
+#ifdef SCTP_AUTH_KEY
+	case EXPR_SCTP_AUTHKEY: {
+		struct sctp_authkey *key;
+		int i = 0, len = 0;
+		struct expression *key_expr;
+		struct expression_list *list;
+
+		if (check_type(val_expression->value.sctp_authkey->sca_key, EXPR_LIST, error)) {
+			return STATUS_ERR;
+		}
+		list = val_expression->value.sctp_authkey->sca_key->value.list;
+		len = expression_list_length(list);
+		key = malloc(sizeof(sctp_assoc_t) + sizeof(u16) + sizeof(u16) + (sizeof(u8) * len));
+
+		if (get_sctp_assoc_t(val_expression->value.sctp_authkey->sca_assoc_id,
+				     &key->sca_assoc_id, error)) {
+			free(key);
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_authkey->sca_keynumber,
+			    &key->sca_keynumber, error)) {
+			free(key);
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_authkey->sca_keylength,
+			    &key->sca_keylength, error)) {
+			free(key);
+			return STATUS_ERR;
+		}
+		for (i = 0; i < len; i++) {
+			key_expr = get_arg(list, i, error);
+			if (get_u8(key_expr, &(key->sca_key[i]), error)) {
+				free(key);
+				return STATUS_ERR;
+			}
+		}
+		key->sca_keylength = len;
+		optval = key;
+		break;
+	}
+#endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		if (get_sctp_assoc_t(val_expression->value.sctp_paddrparams->spp_assoc_id,
@@ -3959,7 +4000,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
 	return end_syscall(state, syscall, CHECK_EXACT, result, error);
-#ifdef SCTP_HMAC_IDENT
+#if defined(SCTP_HMAC_IDENT) || defined(SCTP_AUTH_KEY)
 	free(optval);
 #endif
 }

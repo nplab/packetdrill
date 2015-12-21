@@ -2393,7 +2393,7 @@ static int evaluate_sctp_authkey_expression(struct expression *in,
 	assert(in->value.sctp_authkey);
 	assert(out->type == EXPR_SCTP_AUTHKEY);
 
-	out->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+	out->value.sctp_authkey = calloc(1, sizeof(struct sctp_authkey_expr));
 
 	in_authkey = in->value.sctp_authkey;
 	out_authkey = out->value.sctp_authkey;
