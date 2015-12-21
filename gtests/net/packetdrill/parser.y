@@ -506,14 +506,14 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
-%token <reserved> ASSOC_ID ASSOC_VALUE
+%token <reserved> ASSOC_ID ASSOC_VALUE SHMAC_NUMBER_OF_IDENTS SHMAC_IDENTS
 %token <reserved> STREAM_ID STREAM_VALUE
-%token <reserved> SACK_ASSOC_ID SACK_DELAY SACK_FREQ
+%token <reserved> SCACT_ASSOC_ID SCACT_KEYNUMBER SACK_ASSOC_ID SACK_DELAY SACK_FREQ
 %token <reserved> SSTAT_ASSOC_ID SSTAT_STATE SSTAT_RWND SSTAT_UNACKDATA SSTAT_PENDDATA
 %token <reserved> SSTAT_INSTRMS SSTAT_OUTSTRMS SSTAT_FRAGMENTATION_POINT
 %token <reserved> SSTAT_PRIMARY
 %token <reserved> SPINFO_ASSOC_ID SPINFO_ADDRESS SPINFO_STATE SPINFO_CWND SPINFO_SRTT SPINFO_RTO
-%token <reserved> SPINFO_MTU
+%token <reserved> SPINFO_MTU GAUTH_ASSOC_ID GAUTH_NUMBER_OF_CHUNKS GAUTH_CHUNKS
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE I_DATA PAD
@@ -564,7 +564,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPC_TYPE SPC_FLAGS SPC_LENGTH SPC_AADDR SPC_STATE SPC_ERROR SPC_ASSOC_ID
 %token <reserved> SSF_TYPE SSF_LENGTH SSF_FLAGS SSF_ERROR SSF_INFO SSF_ASSOC_ID SSF_DATA
 %token <reserved> SAI_TYPE SAI_FLAGS SAI_LENGTH SAI_ADAPTATION_IND SAI_ASSOC_ID
-%token <reserved> SN_TYPE SN_FLAGS SN_LENGTH
+%token <reserved> GAIDS_NUMBER_OF_IDS GAIDS_ASSOC_ID SSPP_ASSOC_ID SSPP_ADDR
+%token <reserved> SN_TYPE SN_FLAGS SN_LENGTH SAUTH_CHUNK
+%token <reserved> SCA_ASSOC_ID SCA_KEYNUMBER SCA_KEYLENGTH SCA_KEY
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -606,12 +608,14 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
 %type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts
-%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value
-%type <expression> sctp_sackinfo sack_delay sack_freq
+%type <expression> sinit_max_init_timeo sctp_assoc_value sctp_stream_value sctp_hmacalgo
+%type <expression> shmac_number_of_idents
+%type <expression> sctp_authkeyid scact_keynumber sctp_sackinfo sack_delay sack_freq
 %type <expression> sctp_rtoinfo srto_initial srto_max srto_min sctp_paddrinfo
 %type <expression> sctp_paddrparams spp_address spp_hbinterval spp_pathmtu spp_pathmaxrxt
 %type <expression> spp_flags spp_ipv6_flowlabel spp_dscp ssp_addr
 %type <expression> spinfo_address spinfo_state spinfo_cwnd spinfo_srtt spinfo_rto spinfo_mtu
+%type <expression> sctp_authchunks gauth_number_of_chunks
 %type <expression> sasoc_asocmaxrxt sasoc_number_peer_destinations sasoc_peer_rwnd
 %type <expression> sasoc_local_rwnd sasoc_cookie_life sctp_assocparams
 %type <expression> sctp_sndinfo snd_sid snd_flags snd_ppid snd_context
@@ -634,7 +638,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_paddr_change spc_type spc_flags spc_length spc_aaddr spc_error spc_state
 %type <expression> sctp_send_failed ssf_type ssf_length ssf_flags ssf_error ssf_info ssf_data
 %type <expression> sctp_adaptation_event sai_type sai_flags sai_length sai_adaptation_ind
-%type <expression> sctp_tlv sn_type sn_flags sn_length
+%type <expression> sctp_tlv sn_type sn_flags sn_length sctp_assoc_ids gaids_number_of_ids
+%type <expression> sctp_setpeerprim sctp_authchunk sctp_authkey
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2483,7 +2488,13 @@ expression
 | sctp_assoc_value  {
 	$$ = $1;
 }
-| sctp_stream_value  {
+| sctp_hmacalgo     {
+	$$ = $1;
+}
+| sctp_stream_value {
+	$$ = $1;
+}
+| sctp_authkeyid    {
 	$$ = $1;
 }
 | sctp_sackinfo     {
@@ -2538,6 +2549,21 @@ expression
 	$$ = $1;
 }
 | sctp_recvv_rn     {
+	$$ = $1;
+}
+| sctp_assoc_ids    {
+	$$ = $1;
+}
+| sctp_authchunks   {
+	$$ = $1;
+}
+| sctp_setpeerprim  {
+	$$ = $1;
+}
+| sctp_authchunk    {
+	$$ = $1;
+}
+| sctp_authkey      {
 	$$ = $1;
 }
 | null              {
@@ -2911,6 +2937,47 @@ sctp_assoc_value
 	$$->value.sctp_assoc_value->assoc_value = $4;
 }
 ;
+
+shmac_number_of_idents
+: SHMAC_NUMBER_OF_IDENTS '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("shmac_number_of_idents out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| SHMAC_NUMBER_OF_IDENTS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_hmacalgo
+: '{' shmac_number_of_idents ',' SHMAC_IDENTS '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_HMACALGO);
+	$$->value.sctp_hmacalgo = calloc(1, sizeof(struct sctp_assoc_value_expr));
+	$$->value.sctp_hmacalgo->shmac_number_of_idents = $2;
+	$$->value.sctp_hmacalgo->shmac_idents = $6;
+}
+
+scact_keynumber
+: SCACT_KEYNUMBER '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("scact_keynumber out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SCACT_KEYNUMBER '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+
+sctp_authkeyid
+: '{' SCACT_ASSOC_ID '=' sctp_assoc_id ',' scact_keynumber '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEYID);
+	$$->value.sctp_authkeyid = calloc(1, sizeof(struct sctp_authkeyid_expr));
+	$$->value.sctp_authkeyid->scact_assoc_id = $4;
+	$$->value.sctp_authkeyid->scact_keynumber = $6;
+}
+| '{' scact_keynumber '}'{ 
+	$$ = new_expression(EXPR_SCTP_AUTHKEYID);
+	$$->value.sctp_authkeyid = calloc(1, sizeof(struct sctp_authkeyid_expr));
+	$$->value.sctp_authkeyid->scact_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_authkeyid->scact_keynumber = $2;
+}
 
 sack_delay
 : SACK_DELAY '=' INTEGER {
@@ -4714,6 +4781,104 @@ sctp_tlv
 	$$->value.sctp_tlv->sn_length = $6;
 }
 ;
+
+gaids_number_of_ids
+: GAIDS_NUMBER_OF_IDS '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("gaids_number_of_ids out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| GAIDS_NUMBER_OF_IDS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_assoc_ids
+: '{' gaids_number_of_ids ',' GAIDS_ASSOC_ID '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_ASSOC_IDS);
+	$$->value.sctp_assoc_ids = calloc(1, sizeof(struct sctp_assoc_ids_expr));
+	$$->value.sctp_assoc_ids->gaids_number_of_ids = $2;
+	$$->value.sctp_assoc_ids->gaids_assoc_id = $6;
+};
+
+gauth_number_of_chunks
+: GAUTH_NUMBER_OF_CHUNKS '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("gauth_number_of_chunks out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| GAUTH_NUMBER_OF_CHUNKS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_authchunks
+: '{' GAUTH_ASSOC_ID '=' sctp_assoc_id ',' gauth_number_of_chunks ',' GAUTH_CHUNKS '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHCHUNKS);
+	$$->value.sctp_authchunks = calloc(1, sizeof(struct sctp_authchunks_expr));
+	$$->value.sctp_authchunks->gauth_assoc_id = $4;
+	$$->value.sctp_authchunks->gauth_number_of_chunks = $6;
+	$$->value.sctp_authchunks->gauth_chunks = $10;
+}
+| '{' gauth_number_of_chunks ',' GAUTH_CHUNKS '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHCHUNKS);
+	$$->value.sctp_authchunks = calloc(1, sizeof(struct sctp_authchunks_expr));
+	$$->value.sctp_authchunks->gauth_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_authchunks->gauth_number_of_chunks = $2;
+	$$->value.sctp_authchunks->gauth_chunks = $6;
+};
+
+sctp_setpeerprim
+: '{' SSPP_ASSOC_ID '=' sctp_assoc_id ',' SSPP_ADDR '=' sockaddr '}' {
+	$$ = new_expression(EXPR_SCTP_SETPEERPRIM);
+	$$->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+	$$->value.sctp_setpeerprim->sspp_assoc_id = $4;
+	$$->value.sctp_setpeerprim->sspp_addr = $8;
+}
+| '{' SSPP_ADDR '=' sockaddr '}' {
+	$$ = new_expression(EXPR_SCTP_SETPEERPRIM);
+	$$->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+	$$->value.sctp_setpeerprim->sspp_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_setpeerprim->sspp_addr = $4;
+};
+
+sctp_authchunk
+: '{' SAUTH_CHUNK '=' INTEGER '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHCHUNK);
+	$$->value.sctp_authchunk = calloc(1, sizeof(struct sctp_authchunk_expr));
+	if (!is_valid_u8($4)) {
+		semantic_error("sauth_chunk out of range");
+	}
+	$$->value.sctp_authchunk->sauth_chunk = new_integer_expression($4, "%hhu");
+};
+
+sctp_authkey
+: '{' SCA_ASSOC_ID '=' sctp_assoc_id ',' SCA_KEYNUMBER '=' INTEGER ',' SCA_KEYLENGTH '=' INTEGER ',' SCA_KEY '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEY);
+	$$->value.sctp_authkey = calloc(1, sizeof(struct sctp_authkey_expr));
+	$$->value.sctp_authkey->sca_assoc_id = $4;
+	if (!is_valid_u16($8)) {
+		semantic_error("sca_keynumber out of range");
+	}
+	$$->value.sctp_authkey->sca_keynumber = new_integer_expression($8, "%hu");
+	if (!is_valid_u16($12)) {
+		semantic_error("sca_keylength out of range");
+	}
+	$$->value.sctp_authkey->sca_keylength = new_integer_expression($12, "%hu");
+	$$->value.sctp_authkey->sca_key = $16;
+}
+| '{' SCA_KEYNUMBER '=' INTEGER ',' SCA_KEYLENGTH '=' INTEGER ',' SCA_KEY '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_AUTHKEY);
+	$$->value.sctp_authkey = calloc(1, sizeof(struct sctp_authkey_expr));
+	$$->value.sctp_authkey->sca_assoc_id = new_expression(EXPR_ELLIPSIS);
+	if (!is_valid_u16($4)) {
+		semantic_error("sca_keynumber out of range");
+	}
+	$$->value.sctp_authkey->sca_keynumber = new_integer_expression($4, "%hu");
+	if (!is_valid_u16($8)) {
+		semantic_error("sca_keylength out of range");
+	}
+	$$->value.sctp_authkey->sca_keylength = new_integer_expression($8, "%hu");
+	$$->value.sctp_authkey->sca_key = $12;
+};
 
 opt_errno
 :                   { $$ = NULL; }

@@ -10,11 +10,11 @@
 
 +0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_LOCAL_AUTH_CHUNKS, {gauth_assoc_id=0,
-							gauth_number_of_chunks=...,
-							gauth_chunks=[...]}, [10]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_LOCAL_AUTH_CHUNKS, {gauth_assoc_id=3,
+							gauth_number_of_chunks=2,
+							gauth_chunks=[0x80,0xC1]}, [10]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_LOCAL_AUTH_CHUNKS, {gauth_number_of_chunks=2,
+							gauth_chunks=[0x80,0xC1]}, [10]) = 0
 
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_LOCAL_AUTH_CHUNKS, {gauth_number_of_chunks=...,
-							gauth_chunks=[...]}, [10]) = 0
 
 +0 close(3) = 0

@@ -50,6 +50,8 @@ enum expression_t {
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
+	EXPR_SCTP_HMACALGO,       /* expression tree for sctp_hmacalgo struct for [gs]etsockopt */
+	EXPR_SCTP_AUTHKEYID,      /* expression tree for sctp_authkeyid struct for [gs]etsockopt */
 	EXPR_SCTP_SACKINFO,	  /* struct sctp_sack_info_expr for */
 	EXPR_SCTP_STATUS,	  /* struct sctp_status for SCTP_STATUS */
 	EXPR_SCTP_PADDRINFO,
@@ -81,6 +83,11 @@ enum expression_t {
 	EXPR_SCTP_SEND_FAILED_EVENT, /* expression tree for sctp_send_failed_event */
 	EXPR_SCTP_TLV,            /* expression tree for sctp_notifications_stopped_event */
 	EXPR_SCTP_EXTRCVINFO,     /* expression tree for sctp_extrcvinfo struct in cmsghdr */
+	EXPR_SCTP_ASSOC_IDS,      /* expression tree for sctp_assoc_ids struct for [gs]etsockopt */
+	EXPR_SCTP_AUTHCHUNKS,     /* expression tree for sctp_authchunks struct for [gs]etsockopt */
+	EXPR_SCTP_SETPEERPRIM,    /* expression tree for sctp_setpeerprim struct for [gs]etsockopt */
+	EXPR_SCTP_AUTHCHUNK,      /* expression tree for sctp_authchunk struct for setsockopt */
+	EXPR_SCTP_AUTHKEY,        /* expression tree for sctp_authkey struct for setsockopt */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -103,7 +110,9 @@ struct expression {
 		struct pollfd_expr *pollfd;
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 		struct sctp_initmsg_expr *sctp_initmsg;
+		struct sctp_hmacalgo_expr *sctp_hmacalgo;
 		struct sctp_assoc_value_expr *sctp_assoc_value;
+		struct sctp_authkeyid_expr *sctp_authkeyid;
 		struct sctp_sack_info_expr *sctp_sack_info;
 		struct sctp_status_expr *sctp_status;
 		struct sctp_paddrinfo_expr *sctp_paddrinfo;
@@ -135,6 +144,11 @@ struct expression {
 		struct sctp_send_failed_event_expr *sctp_send_failed_event;
 		struct sctp_tlv_expr *sctp_tlv;
 		struct sctp_extrcvinfo_expr *sctp_extrcvinfo;
+		struct sctp_assoc_ids_expr *sctp_assoc_ids;
+		struct sctp_authchunks_expr *sctp_authchunks;
+		struct sctp_setpeerprim_expr *sctp_setpeerprim;
+		struct sctp_authchunk_expr *sctp_authchunk;
+		struct sctp_authkey_expr *sctp_authkey;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -208,6 +222,12 @@ struct sctp_initmsg_expr {
 	struct expression *sinit_max_init_timeo;
 };
 
+/* Parse tree for a sctp_hmacalgo struct in a [gs]etsockopt syscall. */
+struct sctp_hmacalgo_expr {
+	struct expression *shmac_number_of_idents;
+	struct expression *shmac_idents;
+};
+
 /* Parse tree for a sctp_assoc_value struct in a [gs]etsockopt syscall. */
 struct sctp_assoc_value_expr {
 	struct expression *assoc_id;
@@ -218,6 +238,12 @@ struct sctp_assoc_value_expr {
 struct sctp_stream_value_expr {
 	struct expression *stream_id;
 	struct expression *stream_value;
+};
+
+/* Parse tree for a sctp_authkey struct in a [gs]etsockopt syscall. */
+struct sctp_authkeyid_expr {
+	struct expression *scact_assoc_id;
+	struct expression *scact_keynumber;
 };
 
 /* Parse tree for a sctp_sack_info struct in a [gs]etsockopt syscall. */
@@ -505,6 +531,38 @@ struct sctp_extrcvinfo_expr {
 	struct expression *serinfo_next_length;
 	struct expression *serinfo_next_ppid;
 	struct expression *sinfo_assoc_id;
+};
+
+/* Parse tree for sctp_extrcvinfo struct for [gs]etsockopt. */
+struct sctp_assoc_ids_expr {
+	struct expression *gaids_number_of_ids;
+	struct expression *gaids_assoc_id;
+};
+
+/* Parse tree for sctp_authchunks struct for [gs]etsockopt. */
+struct sctp_authchunks_expr {
+	struct expression *gauth_assoc_id;
+	struct expression *gauth_number_of_chunks;
+	struct expression *gauth_chunks;
+};
+
+/* Parse tree for sctp_setpeerprim struct for [gs]etsockopt. */
+struct sctp_setpeerprim_expr {
+	struct expression *sspp_assoc_id;
+	struct expression *sspp_addr;
+};
+
+/* Parse tree for sctp_authchunk struct for setsockopt. */
+struct sctp_authchunk_expr {
+	struct expression *sauth_chunk;
+};
+
+/* Parse tree for sctp_authkey struct for setsockopt. */
+struct sctp_authkey_expr {
+	struct expression *sca_assoc_id;
+	struct expression *sca_keynumber;
+	struct expression *sca_keylength;
+	struct expression *sca_key;
 };
 
 /* The errno-related info from strace to summarize a system call error */
