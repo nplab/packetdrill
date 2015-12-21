@@ -764,7 +764,7 @@ static int check_u16array_expr(struct expression *expr_list, u16 *data, int data
 		switch(expr_list->type) {
 		case EXPR_LIST:
 			if (data_len != expression_list_length(expr_list->value.list)) {
-				asprintf(error, "%s length: expected: %u actual %zu",
+				asprintf(error, "%s length: expected: %u actual %d",
 					 val_name, expression_list_length(expr_list->value.list), data_len);
 				return STATUS_ERR;
 			}
@@ -3516,6 +3516,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_SET_PEER_PRIMARY_ADDR
 	struct sctp_setpeerprim setpeerprim;
 #endif
+#ifdef SCTP_AUTH_CHUNK
+	struct sctp_authchunk authchunk;
+#endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	struct sctp_paddrparams paddrparams;
 #ifdef linux
@@ -3877,6 +3880,15 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &setpeerprim;
+		break;
+#endif
+#ifdef SCTP_AUTH_CHUNK
+	case EXPR_SCTP_AUTHCHUNK:
+		if (get_u8(val_expression->value.sctp_authchunk->sauth_chunk,
+			    &authchunk.sauth_chunk, error)) {
+			return STATUS_ERR;
+		}		
+		optval = &authchunk;
 		break;
 #endif
 #ifdef SCTP_PEER_ADDR_PARAMS
@@ -4608,7 +4620,7 @@ static int syscall_sctp_sendx(struct state *state, struct syscall_spec *syscall,
 	if (ellipsis_arg(args, 1, error))
 		return STATUS_ERR;
 	len_expr = get_arg(args, 2, error);
-	if (get_u32(len_expr, &len, error)) {
+	if (get_size_t(len_expr, &len, error)) {
 		 return STATUS_ERR;
 	}
 	addrs_expr = get_arg(args, 3, error);
