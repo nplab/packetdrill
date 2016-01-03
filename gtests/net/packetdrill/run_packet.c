@@ -210,7 +210,7 @@ static struct socket *handle_listen_for_script_packet(
 	}
 	if (!match)
 		return NULL;
-	
+
 	if (packet->sctp != NULL) {
 		if (packet->chunk_list != NULL) {
 			item = packet->chunk_list->first;
