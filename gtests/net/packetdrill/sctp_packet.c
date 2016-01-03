@@ -1254,8 +1254,11 @@ void
 sctp_chunk_list_free(struct sctp_chunk_list *list)
 {
 	struct sctp_chunk_list_item *current_item, *next_item;
-
-	assert(list != NULL);
+	
+	if (list == NULL) {
+		return;
+	}
+	
 	current_item = list->first;
 	while (current_item != NULL) {
 		next_item = current_item->next;
@@ -2683,7 +2686,7 @@ new_sctp_generic_packet(int address_family,
 		sctp_chunk_start[i] = item->byte;
 	}
 
-	packet->chunk_list = sctp_chunk_list_new();
+	packet->chunk_list = NULL;
 	packet->ip_bytes = ip_bytes;
 	return packet;
 }
