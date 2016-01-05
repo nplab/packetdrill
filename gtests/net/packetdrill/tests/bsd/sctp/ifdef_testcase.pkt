@@ -13,14 +13,14 @@
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 // inject sack-chunk(type=3) with invalid len=8| cumulative tsn ack  |
 +0.0 < sctp: CHUNK[type=3, flgs=0, len=8, val=[0x00, 0x00, 0x00, 0x01]]
-__ifdef__Linux
+#ifdef Linux
 // expect protocol violation
 +0.0 > sctp: ABORT[flgs=..., PROTOCOL_VIOLATION[info=...]]
-__endif__Linux
-__ifdef__FreeBSD
+#endif
+#ifdef FreeBSD
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
 +0.1 < sctp: SHUTDOWN_ACK[flgs=0]
 +0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
-__endif__FreeBSD
+#endif
