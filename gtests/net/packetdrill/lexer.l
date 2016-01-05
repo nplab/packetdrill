@@ -103,6 +103,63 @@ static s64 hextol(const char *s)
 	return strtol(yytext + 2, NULL, 16);
 }
 
+enum ifdef_os {
+	Linux_IFDEF = 1, FreeBSD_IFDEF, NetBSD_IFDEF
+};
+
+ #define MAX_IFDEF_DEPTH 10
+YY_BUFFER_STATE ifdef_stack[MAX_IFDEF_DEPTH];
+int ifdef_stack_ptr = 0;
+
+static void handle_ifdef(enum ifdef_os os, const char *s) {
+	char *code = strdup(s);
+	
+	unsigned int ifdef_length = 10;
+	unsigned int endif_length = 10;
+	unsigned int os_name_length = 0; 
+	
+	switch (os) {
+	case Linux_IFDEF:
+		printf("ifdef linux called:");
+		os_name_length = 5;
+		break;
+	case FreeBSD_IFDEF:
+		printf("ifdef freebsd called:");
+		os_name_length = 7;
+		break;
+	case NetBSD_IFDEF:
+		printf("ifdef netbsd called:");
+		os_name_length = 6;
+		break;
+	}
+	
+#ifdef linux
+	if (os != Linux_IFDEF) {
+		return;
+	}
+#endif
+#ifdef __FreeBSD__
+	if (os != FreeBSD_IFDEF) {
+		return;
+	}
+#endif
+	
+	char *code_without_ifdef = code+ifdef_length+os_name_length;
+	code_without_ifdef[strlen(code_without_ifdef) - (endif_length + os_name_length)] = (char) 0;
+//	fprintf( stdout, "\n%s\n", code_without_ifdef);
+	
+	if (ifdef_stack_ptr >= MAX_IFDEF_DEPTH) {
+		fprintf(stderr, "Ifdefs nested too deeply");
+		exit(1);
+	}
+	
+	ifdef_stack[ifdef_stack_ptr++] = YY_CURRENT_BUFFER;
+	YY_BUFFER_STATE state = yy_scan_string(code_without_ifdef);
+	yy_switch_to_buffer(state);
+	
+	free(code);
+}
+
 %}
 
 %{
@@ -121,6 +178,13 @@ cpp_comment	\/\/[^\n]*\n
  *   close comment
  */
 c_comment	\/\*(([^*])|(\*[^\/]))*\*\/
+
+
+ifdef_begin __ifdef__
+ifdef_end   __endif__
+
+ifdef_regex_freebsd	{ifdef_begin}FreeBSD(.|\n)*{ifdef_end}FreeBSD
+ifdef_regex_linux	{ifdef_begin}Linux(.|\n)*{ifdef_end}Linux
 
 /* The regexp for code snippets is analogous to that for C comments.
  * Here is a summary of the regexp for code snippets:
@@ -452,7 +516,21 @@ NULL				return NULL_;
 [ \t\n]+			/* ignore whitespace */;
 {cpp_comment}			/* ignore C++-style comment */;
 {c_comment}			/* ignore C-style comment */;
+{ifdef_regex_freebsd}		handle_ifdef(FreeBSD_IFDEF, yytext);
+{ifdef_regex_linux}		handle_ifdef(Linux_IFDEF, yytext);
 {code}				yylval.string = code(yytext);   return CODE;
 {ipv4_addr}			yylval.string = strdup(yytext); return IPV4_ADDR;
 {ipv6_addr}			yylval.string = strdup(yytext); return IPV6_ADDR;
+ <<EOF>>		{
+				if ( --ifdef_stack_ptr < 0 )
+				{
+					yyterminate();
+				}
+
+				else
+				{
+					yy_delete_buffer(YY_CURRENT_BUFFER);
+					yy_switch_to_buffer(ifdef_stack[ifdef_stack_ptr]);
+				}
+			}
 %%
