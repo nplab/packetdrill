@@ -2688,5 +2688,6 @@ new_sctp_generic_packet(int address_family,
 
 	packet->chunk_list = NULL;
 	packet->ip_bytes = ip_bytes;
+
 	return packet;
 }

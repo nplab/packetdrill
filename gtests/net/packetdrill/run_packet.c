@@ -222,28 +222,41 @@ static struct socket *handle_listen_for_script_packet(
 			} else {
 				return NULL;
 			}
-		}
-		else {
+		} else {
 			if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
-				u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
-				if (sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE) {
-					u8 *initiate_tag_start = (u8 *) (sctp_chunk_start + 4);
-					u8 *initial_tsn_start = (u8 *) (sctp_chunk_start + 16);
-					initiate_tag = initiate_tag_start[3] << 24 | initiate_tag_start[2] << 16 | initiate_tag_start[1] << 8 |  initiate_tag_start[0];
-					initial_tsn = initial_tsn_start[3] << 24 | initial_tsn_start[2] << 16 | initial_tsn_start[1] << 8 |  initial_tsn_start[0];
-					initiate_tag = ntohl(initiate_tag);
-					initial_tsn = ntohl(initial_tsn);
+				struct header sctp_header;
+				int i;
+				bool found = false;
+
+				for (i = 0; i < ARRAY_SIZE(packet->headers); ++i) {
+					if (packet->headers[i].type == HEADER_SCTP) {
+						sctp_header = packet->headers[i];
+						found = true;
+						break;
+					}
 				}
-				else {
+				
+				assert(found != false);
+				size_t chunk_length = sctp_header.total_bytes - sizeof(struct sctp_common_header);
+
+				if (chunk_length < sizeof(struct sctp_init_chunk)) {
+					fprintf(stderr, "length of init chunk too short. you must specify the whole init chunk.");
 					return NULL;
 				}
-			}
-			else {
+				
+				u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
+				if (sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE) {
+					struct sctp_init_chunk *init = (struct sctp_init_chunk *) sctp_chunk_start;
+					initiate_tag = ntohl(init->initiate_tag);
+					initial_tsn = ntohl(init->initial_tsn);
+				} else {
+					return NULL;
+				}
+			} else {
 				return NULL;
 			}
 		}
-	}
-	else {
+	} else {
 		DEBUGP("packet->sctp == NULL");
 	}
 
