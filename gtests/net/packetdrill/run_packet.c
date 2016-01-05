@@ -215,7 +215,7 @@ static struct socket *handle_listen_for_script_packet(
 		if (packet->chunk_list != NULL) {
 			item = packet->chunk_list->first;
 			if ((item != NULL) &&
-				(item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+			    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
 				struct sctp_init_chunk *init = (struct sctp_init_chunk *)item->chunk;
 				initiate_tag = ntohl(init->initiate_tag);
 				initial_tsn = ntohl(init->initial_tsn);
@@ -225,8 +225,9 @@ static struct socket *handle_listen_for_script_packet(
 		} else {
 			if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
 				struct header sctp_header;
-				int i;
+				unsigned int i;
 				bool found = false;
+				size_t chunk_length;
 
 				for (i = 0; i < ARRAY_SIZE(packet->headers); ++i) {
 					if (packet->headers[i].type == HEADER_SCTP) {
@@ -237,7 +238,7 @@ static struct socket *handle_listen_for_script_packet(
 				}
 				
 				assert(found != false);
-				size_t chunk_length = sctp_header.total_bytes - sizeof(struct sctp_common_header);
+				chunk_length = sctp_header.total_bytes - sizeof(struct sctp_common_header);
 
 				if (chunk_length < sizeof(struct sctp_init_chunk)) {
 					fprintf(stderr, "length of init chunk too short. you must specify the whole init chunk.");
