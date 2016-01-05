@@ -966,7 +966,7 @@ sctp_packet_spec
 		semantic_error("tag value out of range");
 	}
 	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
-                                    $7, false, $11, &error);
+	                                $7, false, $11, &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
