@@ -160,10 +160,12 @@ static void handle_ifdef(enum ifdef_os os, const char *s) {
 	
 	if (os_name_length == -1) {
 		fprintf(stderr, "handle_ifdef with unknown os called.\n");
+		free(code);
 		exit(1);
 	}
 	
 	if (ignore_ifdef(os)) {
+		free(code);
 		return;
 	}
 	
