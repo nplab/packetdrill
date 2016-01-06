@@ -191,7 +191,7 @@ static struct socket *handle_listen_for_script_packet(
 	 */
 	struct config *config = state->config;
 	struct socket *socket = state->socket_under_test;	/* shortcut */
-	struct sctp_init_chunk *init;
+	u32 initiate_tag, initial_tsn;
 	struct sctp_chunk_list_item *item;
 
 	bool match = (direction == DIRECTION_INBOUND);
@@ -212,14 +212,53 @@ static struct socket *handle_listen_for_script_packet(
 		return NULL;
 
 	if (packet->sctp != NULL) {
-		assert(packet->chunk_list != NULL);
-		item = packet->chunk_list->first;
-		if ((item != NULL) &&
-		    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
-			init = (struct sctp_init_chunk *)item->chunk;
+		if (packet->chunk_list != NULL) {
+			item = packet->chunk_list->first;
+			if ((item != NULL) &&
+			    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+				struct sctp_init_chunk *init = (struct sctp_init_chunk *)item->chunk;
+				initiate_tag = ntohl(init->initiate_tag);
+				initial_tsn = ntohl(init->initial_tsn);
+			} else {
+				return NULL;
+			}
 		} else {
-			return NULL;
+			if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
+				struct header sctp_header;
+				unsigned int i;
+				bool found = false;
+				size_t chunk_length;
+
+				for (i = 0; i < ARRAY_SIZE(packet->headers); ++i) {
+					if (packet->headers[i].type == HEADER_SCTP) {
+						sctp_header = packet->headers[i];
+						found = true;
+						break;
+					}
+				}
+				
+				assert(found != false);
+				chunk_length = sctp_header.total_bytes - sizeof(struct sctp_common_header);
+
+				if (chunk_length < sizeof(struct sctp_init_chunk)) {
+					fprintf(stderr, "length of init chunk too short. you must specify the whole init chunk.");
+					return NULL;
+				}
+				
+				u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
+				if (sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE) {
+					struct sctp_init_chunk *init = (struct sctp_init_chunk *) sctp_chunk_start;
+					initiate_tag = ntohl(init->initiate_tag);
+					initial_tsn = ntohl(init->initial_tsn);
+				} else {
+					return NULL;
+				}
+			} else {
+				return NULL;
+			}
 		}
+	} else {
+		DEBUGP("packet->sctp == NULL");
 	}
 
 	/* Create a child passive socket for this incoming SYN packet.
@@ -241,8 +280,8 @@ static struct socket *handle_listen_for_script_packet(
 	if (packet->tcp != NULL) {
 		socket->script.remote_isn = ntohl(packet->tcp->seq);
 	} else {
-		socket->script.remote_initiate_tag = ntohl(init->initiate_tag);
-		socket->script.remote_initial_tsn = ntohl(init->initial_tsn);
+		socket->script.remote_initiate_tag = initiate_tag;
+		socket->script.remote_initial_tsn = initial_tsn;
 	}
 	socket->script.fd		= -1;
 
@@ -256,8 +295,8 @@ static struct socket *handle_listen_for_script_packet(
 	if (packet->tcp != NULL) {
 		socket->live.remote_isn = ntohl(packet->tcp->seq);
 	} else {
-		socket->live.remote_initiate_tag = ntohl(init->initiate_tag);
-		socket->live.remote_initial_tsn = ntohl(init->initial_tsn);
+		socket->live.remote_initiate_tag = initiate_tag;
+		socket->live.remote_initial_tsn = initial_tsn;
 	}
 	socket->live.fd			= -1;
 
@@ -2508,93 +2547,95 @@ static int do_inbound_script_packet(
 		}
 	}
 	if (packet->sctp) {
-		for (item = packet->chunk_list->first;
-		     item != NULL;
-		     item = item->next) {
-			switch (item->chunk->type) {
-			case SCTP_INIT_ACK_CHUNK_TYPE:
-				if (socket->state == SOCKET_ACTIVE_INIT_SENT) {
-					init_ack = (struct sctp_init_ack_chunk *)item->chunk;
-					DEBUGP("Moving socket in SOCKET_ACTIVE_INIT_ACK_RECEIVED\n");
-					socket->state = SOCKET_ACTIVE_INIT_ACK_RECEIVED;
-					socket->script.remote_initiate_tag = ntohl(init_ack->initiate_tag);
-					socket->script.remote_initial_tsn = ntohl(init_ack->initial_tsn);
-					socket->live.remote_initiate_tag = ntohl(init_ack->initiate_tag);
-					socket->live.remote_initial_tsn = ntohl(init_ack->initial_tsn);
-					DEBUGP("remote_initiate_tag 0x%08x, remote_initial_tsn 0x%08x\n", ntohl(init_ack->initiate_tag), ntohl(init_ack->initial_tsn));
-				}
-				break;
-			case SCTP_COOKIE_ECHO_CHUNK_TYPE:
-				if (item->flags & FLAG_CHUNK_VALUE_NOCHECK) {
-					temp_offset = socket->prepared_cookie_echo_length - item->length;
-					assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
-					memmove((u8 *)item->chunk + item->length + temp_offset,
-						(u8 *)item->chunk + item->length,
-						packet_end(packet) - ((u8 *)item->chunk + item->length));
-					memcpy(item->chunk,
-					       socket->prepared_cookie_echo,
-					       socket->prepared_cookie_echo_length);
-					item->length = socket->prepared_cookie_echo_length;
-					packet->buffer_bytes += temp_offset;
-					packet->ip_bytes += temp_offset;
-					if (packet->ipv4) {
-						packet->ipv4->tot_len = htons(ntohs(packet->ipv4->tot_len) + temp_offset);
+		if (packet->chunk_list != NULL) {
+			for (item = packet->chunk_list->first;
+			     item != NULL;
+			     item = item->next) {
+				switch (item->chunk->type) {
+				case SCTP_INIT_ACK_CHUNK_TYPE:
+					if (socket->state == SOCKET_ACTIVE_INIT_SENT) {
+						init_ack = (struct sctp_init_ack_chunk *)item->chunk;
+						DEBUGP("Moving socket in SOCKET_ACTIVE_INIT_ACK_RECEIVED\n");
+						socket->state = SOCKET_ACTIVE_INIT_ACK_RECEIVED;
+						socket->script.remote_initiate_tag = ntohl(init_ack->initiate_tag);
+						socket->script.remote_initial_tsn = ntohl(init_ack->initial_tsn);
+						socket->live.remote_initiate_tag = ntohl(init_ack->initiate_tag);
+						socket->live.remote_initial_tsn = ntohl(init_ack->initial_tsn);
+						DEBUGP("remote_initiate_tag 0x%08x, remote_initial_tsn 0x%08x\n", ntohl(init_ack->initiate_tag), ntohl(init_ack->initial_tsn));
 					}
-					if (packet->ipv6) {
-						packet->ipv6->payload_len = htons(ntohs(packet->ipv6->payload_len) + temp_offset);
-					}
-					for (i = 0; i < PACKET_MAX_HEADERS; i++) {
-						if ((packet->ipv4 != NULL && packet->headers[i].h.ipv4 == packet->ipv4) ||
-						    (packet->ipv6 != NULL && packet->headers[i].h.ipv6 == packet->ipv6)) {
-							break;
+					break;
+				case SCTP_COOKIE_ECHO_CHUNK_TYPE:
+					if (item->flags & FLAG_CHUNK_VALUE_NOCHECK) {
+						temp_offset = socket->prepared_cookie_echo_length - item->length;
+						assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
+						memmove((u8 *)item->chunk + item->length + temp_offset,
+							(u8 *)item->chunk + item->length,
+							packet_end(packet) - ((u8 *)item->chunk + item->length));
+						memcpy(item->chunk,
+						       socket->prepared_cookie_echo,
+						       socket->prepared_cookie_echo_length);
+						item->length = socket->prepared_cookie_echo_length;
+						packet->buffer_bytes += temp_offset;
+						packet->ip_bytes += temp_offset;
+						if (packet->ipv4) {
+							packet->ipv4->tot_len = htons(ntohs(packet->ipv4->tot_len) + temp_offset);
 						}
-					}
-					assert(packet->headers[i + 1].type == HEADER_SCTP);
-					packet->headers[i].total_bytes += temp_offset;
-					packet->headers[i + 1].total_bytes += temp_offset;
-					offset += temp_offset;
-				}
-				if (((packet->flags & FLAGS_SCTP_BAD_CRC32C) == 0) &&
-				    (((packet->flags & FLAGS_SCTP_EXPLICIT_TAG) == 0) ||
-				     ((ntohl(packet->sctp->v_tag) == socket->script.local_initiate_tag) &&
-				      (socket->script.local_initiate_tag != 0)))) {
-					socket->state = SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED;
-				}
-				break;
-			case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
-				if (item->flags & FLAG_CHUNK_VALUE_NOCHECK) {
-					temp_offset = socket->prepared_heartbeat_ack_length - item->length;
-					assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
-					memmove((u8 *)item->chunk + item->length + temp_offset,
-						(u8 *)item->chunk + item->length,
-						packet_end(packet) - ((u8 *)item->chunk + item->length));
-					memcpy(item->chunk,
-					       socket->prepared_heartbeat_ack,
-					       socket->prepared_heartbeat_ack_length);
-					item->length = socket->prepared_heartbeat_ack_length;
-					packet->buffer_bytes += temp_offset;
-					packet->ip_bytes += temp_offset;
-					if (packet->ipv4) {
-						packet->ipv4->tot_len = htons(ntohs(packet->ipv4->tot_len) + temp_offset);
-					}
-					if (packet->ipv6) {
-						packet->ipv6->payload_len = htons(ntohs(packet->ipv6->payload_len) + temp_offset);
-					}
-					for (i = 0; i < PACKET_MAX_HEADERS; i++) {
-						if ((packet->ipv4 != NULL && packet->headers[i].h.ipv4 == packet->ipv4) ||
-						    (packet->ipv6 != NULL && packet->headers[i].h.ipv6 == packet->ipv6)) {
-							break;
+						if (packet->ipv6) {
+							packet->ipv6->payload_len = htons(ntohs(packet->ipv6->payload_len) + temp_offset);
 						}
+						for (i = 0; i < PACKET_MAX_HEADERS; i++) {
+							if ((packet->ipv4 != NULL && packet->headers[i].h.ipv4 == packet->ipv4) ||
+							    (packet->ipv6 != NULL && packet->headers[i].h.ipv6 == packet->ipv6)) {
+								break;
+							}
+						}
+						assert(packet->headers[i + 1].type == HEADER_SCTP);
+						packet->headers[i].total_bytes += temp_offset;
+						packet->headers[i + 1].total_bytes += temp_offset;
+						offset += temp_offset;
 					}
-					assert(packet->headers[i + 1].type == HEADER_SCTP);
-					packet->headers[i].total_bytes += temp_offset;
-					packet->headers[i + 1].total_bytes += temp_offset;
-					offset += temp_offset;
+					if (((packet->flags & FLAGS_SCTP_BAD_CRC32C) == 0) &&
+					    (((packet->flags & FLAGS_SCTP_EXPLICIT_TAG) == 0) ||
+					     ((ntohl(packet->sctp->v_tag) == socket->script.local_initiate_tag) &&
+					      (socket->script.local_initiate_tag != 0)))) {
+						socket->state = SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED;
+					}
+					break;
+				case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
+					if (item->flags & FLAG_CHUNK_VALUE_NOCHECK) {
+						temp_offset = socket->prepared_heartbeat_ack_length - item->length;
+						assert(packet->ip_bytes + temp_offset <= packet->buffer_bytes);
+						memmove((u8 *)item->chunk + item->length + temp_offset,
+							(u8 *)item->chunk + item->length,
+							packet_end(packet) - ((u8 *)item->chunk + item->length));
+						memcpy(item->chunk,
+						       socket->prepared_heartbeat_ack,
+						       socket->prepared_heartbeat_ack_length);
+						item->length = socket->prepared_heartbeat_ack_length;
+						packet->buffer_bytes += temp_offset;
+						packet->ip_bytes += temp_offset;
+						if (packet->ipv4) {
+							packet->ipv4->tot_len = htons(ntohs(packet->ipv4->tot_len) + temp_offset);
+						}
+						if (packet->ipv6) {
+							packet->ipv6->payload_len = htons(ntohs(packet->ipv6->payload_len) + temp_offset);
+						}
+						for (i = 0; i < PACKET_MAX_HEADERS; i++) {
+							if ((packet->ipv4 != NULL && packet->headers[i].h.ipv4 == packet->ipv4) ||
+							    (packet->ipv6 != NULL && packet->headers[i].h.ipv6 == packet->ipv6)) {
+								break;
+							}
+						}
+						assert(packet->headers[i + 1].type == HEADER_SCTP);
+						packet->headers[i].total_bytes += temp_offset;
+						packet->headers[i + 1].total_bytes += temp_offset;
+						offset += temp_offset;
+					}
+					break;
+				default:
+					item->chunk = (struct sctp_chunk *)((char *)item->chunk + offset);
+					break;
 				}
-				break;
-			default:
-				item->chunk = (struct sctp_chunk *)((char *)item->chunk + offset);
-				break;
 			}
 		}
 	}

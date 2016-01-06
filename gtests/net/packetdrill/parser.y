@@ -933,6 +933,72 @@ sctp_packet_spec
 
 	$$ = packet_encapsulate_and_free(outer, inner);
 }
+| packet_prefix opt_ip_info SCTP ':' '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                                -1, false, $6, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+        semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ')' ':'  '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                                -1, true, $9, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' TAG '=' INTEGER ')' ':' '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	if (!is_valid_u32($7)) {
+		semantic_error("tag value out of range");
+	}
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                                $7, false, $11, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
+| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ',' TAG '=' INTEGER ')' ':' '[' byte_list ']' {
+	char *error = NULL;
+	struct packet *outer = $1, *inner = NULL;
+	enum direction_t direction = outer->direction;
+
+	if (!is_valid_u32($9)) {
+		semantic_error("tag value out of range");
+	}
+	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
+	                                $9, true, $13, &error);
+	if (inner == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+
+	$$ = packet_encapsulate_and_free(outer, inner);
+}
 ;
 
 sctp_chunk_list_spec

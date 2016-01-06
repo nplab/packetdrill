@@ -430,4 +430,13 @@ extern struct packet *new_sctp_packet(int address_family,
 				      bool bad_crc32c,
 				      struct sctp_chunk_list *chunk_list,
 				      char **error);
+
+struct packet *
+new_sctp_generic_packet(int address_family,
+                enum direction_t direction,
+                enum ip_ecn_t ecn,
+                s64 tag,
+                bool bad_crc32c,
+                struct sctp_byte_list *bytes,
+                char **error);
 #endif /* __SCTP_PACKET_H__ */
