@@ -1,0 +1,46 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_PEER_ADDR_CHANGE, se_on=1}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_PEER_ADDR_CHANGE, se_on=1}, [8]) = 0
+
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_assoc_id=...,
+							 spp_address=...,
+							 spp_hbinterval=1,
+							 spp_pathmaxrxt=3,
+							 spp_pathmtu=1468,
+							 spp_flags=SPP_HB_ENABLE, 
+							 spp_ipv6_flowlabel=0,
+							 spp_dscp=0}, 152) = 0
+
+*    > sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+*    > sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+*    > sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+*    > sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+*    > sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+
++0.5 sctp_recvv(3, [{iov_base={spc_type=SCTP_PEER_ADDR_CHANGE,
+			       spc_flags=0,
+			       spc_length=152,
+			       spc_aaddr=...,
+			       spc_state=SCTP_ADDR_UNREACHABLE,
+			       spc_error=0,
+			       spc_assoc_id=...},
+		     iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION|MSG_EOR]) = 152
+
++0.0 < sctp: HEARTBEAT_ACK[flgs=0, HEARTBEAT_INFORMATION[len=..., val=...]]
+
++0.5 sctp_recvv(3, [{iov_base={spc_type=SCTP_PEER_ADDR_CHANGE,
+			       spc_flags=0,
+			       spc_length=152,
+			       spc_aaddr=...,
+			       spc_state=SCTP_ADDR_AVAILABLE,
+			       spc_error=0},
+		     iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION|MSG_EOR]) = 152

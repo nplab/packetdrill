@@ -70,6 +70,8 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
 	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
+	{ EXPR_SCTP_HMACALGO,        "sctp_hmacalgo"},
+	{ EXPR_SCTP_AUTHKEYID,       "sctp_authkeyid"},
 	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
 	{ EXPR_SCTP_STATUS,          "sctp_status"},
 	{ EXPR_SCTP_PADDRINFO,	     "sctp_paddrinfo"},
@@ -79,9 +81,11 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
 	{ EXPR_SCTP_EVENT_SUBSCRIBE, "sctp_event_subscribe"},
 	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
+	{ EXPR_SCTP_SETPRIM,         "sctp_setprim"    },
 	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
 	{ EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
 	{ EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
+	{ EXPR_SCTP_DEFAULT_PRINFO,  "sctp_default_prinfo"},
 	{ EXPR_SCTP_AUTHINFO,        "sctp_authinfo"   },
 	{ EXPR_SCTP_SENDV_SPA,       "sctp_sendv_spa"  },
 	{ EXPR_SCTP_RCVINFO,         "sctp_rcvinfo"    },
@@ -99,6 +103,11 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_SEND_FAILED_EVENT,"sctp_send_failed_event"},
 	{ EXPR_SCTP_TLV,             "sctp_tlv"        },
 	{ EXPR_SCTP_EXTRCVINFO,      "sctp_extrcvinfo" },
+	{ EXPR_SCTP_ASSOC_IDS,       "sctp_assoc_ids"  },
+	{ EXPR_SCTP_AUTHCHUNKS,      "sctp_authchunks" },
+	{ EXPR_SCTP_SETPEERPRIM,     "sctp_setpeerprim"},
+	{ EXPR_SCTP_AUTHCHUNK,       "sctp_authchunk"  },
+	{ EXPR_SCTP_AUTHKEY,         "sctp_authkey"    },
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -313,12 +322,19 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_RTOINFO:
 		assert(expression->value.sctp_rtoinfo);
+		free_expression(expression->value.sctp_rtoinfo->srto_assoc_id);
 		free_expression(expression->value.sctp_rtoinfo->srto_initial);
 		free_expression(expression->value.sctp_rtoinfo->srto_max);
 		free_expression(expression->value.sctp_rtoinfo->srto_min);
 		break;
+	case EXPR_SCTP_HMACALGO:
+		assert(expression->value.sctp_hmacalgo);
+		free_expression(expression->value.sctp_hmacalgo->shmac_number_of_idents);
+		free_expression(expression->value.sctp_hmacalgo->shmac_idents);
+		break;
 	case EXPR_SCTP_ASSOC_VALUE:
 		assert(expression->value.sctp_assoc_value);
+		free_expression(expression->value.sctp_assoc_value->assoc_id);
 		free_expression(expression->value.sctp_assoc_value->assoc_value);
 		break;
 	case EXPR_SCTP_INITMSG:
@@ -328,13 +344,20 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_initmsg->sinit_max_attempts);
 		free_expression(expression->value.sctp_initmsg->sinit_max_init_timeo);
 		break;
+	case EXPR_SCTP_AUTHKEYID:
+		assert(expression->value.sctp_authkeyid);
+		free_expression(expression->value.sctp_authkeyid->scact_assoc_id);
+		free_expression(expression->value.sctp_authkeyid->scact_keynumber);
+		break;
 	case EXPR_SCTP_SACKINFO:
 		assert(expression->value.sctp_sack_info);
+		free_expression(expression->value.sctp_sack_info->sack_assoc_id);
 		free_expression(expression->value.sctp_sack_info->sack_delay);
-		free_expression(expression->value.sctp_sack_info->sack_freq);		
+		free_expression(expression->value.sctp_sack_info->sack_freq);
 		break;
 	case EXPR_SCTP_PADDRINFO:
 		assert(expression->value.sctp_paddrinfo);
+		free_expression(expression->value.sctp_paddrinfo->spinfo_assoc_id);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_address);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_state);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_cwnd);
@@ -344,6 +367,7 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_STATUS:
 		assert(expression->value.sctp_status);
+		free_expression(expression->value.sctp_status->sstat_assoc_id);
 		free_expression(expression->value.sctp_status->sstat_state);
 		free_expression(expression->value.sctp_status->sstat_rwnd);
 		free_expression(expression->value.sctp_status->sstat_unackdata);
@@ -355,6 +379,7 @@ void free_expression(struct expression *expression)
 		break;
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		assert(expression->value.sctp_paddrparams);
+		free_expression(expression->value.sctp_paddrparams->spp_assoc_id);
 		free_expression(expression->value.sctp_paddrparams->spp_address);
 		free_expression(expression->value.sctp_paddrparams->spp_hbinterval);
 		free_expression(expression->value.sctp_paddrparams->spp_pathmaxrxt);
@@ -369,6 +394,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_stream_value->stream_value);
 		break;
 	case EXPR_SCTP_ASSOCPARAMS:
+		free_expression(expression->value.sctp_assocparams->sasoc_assoc_id);
 		free_expression(expression->value.sctp_assocparams->sasoc_asocmaxrxt);
 		free_expression(expression->value.sctp_assocparams->sasoc_number_peer_destinations);
 		free_expression(expression->value.sctp_assocparams->sasoc_peer_rwnd);
@@ -376,6 +402,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_assocparams->sasoc_cookie_life);
 		break;
 	case EXPR_SCTP_EVENT:
+		free_expression(expression->value.sctp_event->se_assoc_id);
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
 		break;
@@ -397,6 +424,10 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sndinfo->snd_ppid);
 		free_expression(expression->value.sctp_sndinfo->snd_context);
 		free_expression(expression->value.sctp_sndinfo->snd_assoc_id);
+		break;
+	case EXPR_SCTP_SETPRIM:
+		free_expression(expression->value.sctp_setprim->ssp_assoc_id);
+		free_expression(expression->value.sctp_setprim->ssp_addr);
 		break;		
 	case EXPR_SCTP_SETADAPTATION:
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
@@ -415,6 +446,11 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_PRINFO:
 		free_expression(expression->value.sctp_prinfo->pr_policy);
 		free_expression(expression->value.sctp_prinfo->pr_value);
+		break;		
+	case EXPR_SCTP_DEFAULT_PRINFO:
+		free_expression(expression->value.sctp_default_prinfo->pr_policy);
+		free_expression(expression->value.sctp_default_prinfo->pr_value);
+		free_expression(expression->value.sctp_default_prinfo->pr_assoc_id);
 		break;		
 	case EXPR_SCTP_AUTHINFO:
 		free_expression(expression->value.sctp_authinfo->auth_keynumber);
@@ -487,6 +523,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
 		free_expression(expression->value.sctp_shutdown_event->sse_flags);
 		free_expression(expression->value.sctp_shutdown_event->sse_length);
+		free_expression(expression->value.sctp_shutdown_event->sse_assoc_id);
 		break;
 	case EXPR_SCTP_ADAPTATION_EVENT:
 		free_expression(expression->value.sctp_adaptation_event->sai_type);
@@ -547,6 +584,28 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_length);
 		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_ppid);
 		free_expression(expression->value.sctp_extrcvinfo->sinfo_assoc_id);
+		break;
+	case EXPR_SCTP_ASSOC_IDS:
+		free_expression(expression->value.sctp_assoc_ids->gaids_number_of_ids);
+		free_expression(expression->value.sctp_assoc_ids->gaids_assoc_id);
+		break;
+	case EXPR_SCTP_AUTHCHUNKS:
+		free_expression(expression->value.sctp_authchunks->gauth_assoc_id);
+		free_expression(expression->value.sctp_authchunks->gauth_number_of_chunks);
+		free_expression(expression->value.sctp_authchunks->gauth_chunks);
+		break;
+	case EXPR_SCTP_SETPEERPRIM:
+		free_expression(expression->value.sctp_setpeerprim->sspp_assoc_id);
+		free_expression(expression->value.sctp_setpeerprim->sspp_addr);
+		break;
+	case EXPR_SCTP_AUTHCHUNK:
+		free_expression(expression->value.sctp_authchunk->sauth_chunk);
+		break;
+	case EXPR_SCTP_AUTHKEY:
+		free_expression(expression->value.sctp_authkey->sca_assoc_id);
+		free_expression(expression->value.sctp_authkey->sca_keynumber);
+		free_expression(expression->value.sctp_authkey->sca_keylength);
+		free_expression(expression->value.sctp_authkey->sca_key);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -787,6 +846,10 @@ static int evaluate_sctp_rtoinfo_expression(struct expression *in,
 	in_rtoinfo = in->value.sctp_rtoinfo;
 	out_rtoinfo = out->value.sctp_rtoinfo;
 
+	if (evaluate(in_rtoinfo->srto_assoc_id,
+	             &out_rtoinfo->srto_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_rtoinfo->srto_initial,
 	             &out_rtoinfo->srto_initial,
 	             error))
@@ -838,6 +901,34 @@ static int evaluate_sctp_initmsg_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_hmacalgo_expression(struct expression *in,
+					     struct expression *out,
+					     char **error)
+{
+	struct sctp_hmacalgo_expr *in_hmac;
+	struct sctp_hmacalgo_expr *out_hmac;
+
+	assert(in->type == EXPR_SCTP_HMACALGO);
+	assert(in->value.sctp_hmacalgo);
+	assert(out->type == EXPR_SCTP_HMACALGO);
+
+	out->value.sctp_hmacalgo = calloc(1, sizeof(struct sctp_hmacalgo_expr));
+
+	in_hmac = in->value.sctp_hmacalgo;
+	out_hmac = out->value.sctp_hmacalgo;
+
+	if (evaluate(in_hmac->shmac_number_of_idents,
+	             &out_hmac->shmac_number_of_idents,
+	             error))
+		return STATUS_ERR;
+	if (evaluate(in_hmac->shmac_idents,
+	             &out_hmac->shmac_idents,
+	             error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_assoc_value_expression(struct expression *in,
 						struct expression *out,
 						char **error)
@@ -854,11 +945,42 @@ static int evaluate_sctp_assoc_value_expression(struct expression *in,
 	in_value = in->value.sctp_assoc_value;
 	out_value = out->value.sctp_assoc_value;
 
+	if (evaluate(in_value->assoc_id,
+	             &out_value->assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_value->assoc_value,
 	             &out_value->assoc_value,
 	             error))
 		return STATUS_ERR;
 
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_authkeyid_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_authkeyid_expr *in_authkeyid;
+	struct sctp_authkeyid_expr *out_authkeyid;
+
+	assert(in->type == EXPR_SCTP_AUTHKEYID);
+	assert(in->value.sctp_authkeyid);
+	assert(out->type == EXPR_SCTP_AUTHKEYID);
+
+	out->value.sctp_authkeyid = calloc(1, sizeof(struct sctp_authkeyid_expr));
+
+	in_authkeyid = in->value.sctp_authkeyid;
+	out_authkeyid = out->value.sctp_authkeyid;
+
+	if (evaluate(in_authkeyid->scact_assoc_id,
+		     &out_authkeyid->scact_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkeyid->scact_keynumber,
+		     &out_authkeyid->scact_keynumber,
+		     error))
+		return STATUS_ERR;
 	return STATUS_OK;
 }
 
@@ -878,6 +1000,10 @@ static int evaluate_sctp_sack_info_expression(struct expression *in,
 	in_sack_info = in->value.sctp_sack_info;
 	out_sack_info = out->value.sctp_sack_info;
 
+	if (evaluate(in_sack_info->sack_assoc_id,
+		     &out_sack_info->sack_assoc_id,
+		     error))
+		return STATUS_ERR;
 	if (evaluate(in_sack_info->sack_delay,
 		     &out_sack_info->sack_delay,
 		     error))
@@ -906,6 +1032,10 @@ static int evaluate_sctp_paddrinfo_expression(struct expression *in,
 	in_paddrinfo = in->value.sctp_paddrinfo;
 	out_paddrinfo = out->value.sctp_paddrinfo;
 
+	if (evaluate(in_paddrinfo->spinfo_assoc_id,
+	             &out_paddrinfo->spinfo_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_paddrinfo->spinfo_address,
 	             &out_paddrinfo->spinfo_address,
 	             error))
@@ -950,6 +1080,10 @@ static int evaluate_sctp_status_expression(struct expression *in,
 	in_status = in->value.sctp_status;
 	out_status = out->value.sctp_status;
 
+	if (evaluate(in_status->sstat_assoc_id,
+	             &out_status->sstat_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_status->sstat_state,
 	             &out_status->sstat_state,
 	             error))
@@ -1001,6 +1135,10 @@ static int evaluate_sctp_peer_addr_param_expression(struct expression *in,
 	in_paddrparams = in->value.sctp_paddrparams;
 	out_paddrparams = out->value.sctp_paddrparams;
 
+	if (evaluate(in_paddrparams->spp_assoc_id,
+	             &out_paddrparams->spp_assoc_id,
+	             error))
+		return STATUS_ERR;
 	if (evaluate(in_paddrparams->spp_address,
 	             &out_paddrparams->spp_address,
 	             error))
@@ -1076,6 +1214,10 @@ static int evaluate_sctp_event_expression(struct expression *in,
 	in_event = in->value.sctp_event;
 	out_event = out->value.sctp_event;
 
+	if (evaluate(in_event->se_assoc_id,
+		    &out_event->se_assoc_id,
+		    error))
+		return STATUS_ERR;
 	if (evaluate(in_event->se_type,
 		    &out_event->se_type,
 		    error))
@@ -1164,6 +1306,10 @@ static int evaluate_sctp_accocparams_expression(struct expression *in,
 	in_params = in->value.sctp_assocparams;
 	out_params = out->value.sctp_assocparams;
 
+	if (evaluate(in_params->sasoc_assoc_id,
+		     &out_params->sasoc_assoc_id,
+		     error))
+		return STATUS_ERR;
 	if (evaluate(in_params->sasoc_asocmaxrxt,
 		     &out_params->sasoc_asocmaxrxt,
 		     error))
@@ -1224,6 +1370,34 @@ static int evaluate_sctp_sndinfo_expression(struct expression *in,
 		     &out_sndinfo->snd_assoc_id,
 		     error))
 		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_setprim_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+        struct sctp_setprim_expr *in_prim;
+        struct sctp_setprim_expr *out_prim;
+
+        assert(in->type == EXPR_SCTP_SETPRIM);
+        assert(in->value.sctp_setprim);
+        assert(out->type == EXPR_SCTP_SETPRIM);
+
+        out->value.sctp_setprim = calloc(1, sizeof(struct sctp_setprim_expr));
+                     
+        in_prim = in->value.sctp_setprim;
+        out_prim = out->value.sctp_setprim;
+                     
+        if (evaluate(in_prim->ssp_assoc_id,
+		     &out_prim->ssp_assoc_id,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_prim->ssp_addr,
+		     &out_prim->ssp_addr,
+		     error))
+		return STATUS_ERR;
+
 	return STATUS_OK;
 }
 
@@ -1329,6 +1503,38 @@ static int evaluate_sctp_prinfo_expression(struct expression *in,
 		return STATUS_ERR;
         if (evaluate(in_info->pr_value,
 		     &out_info->pr_value,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;	
+}
+
+static int evaluate_sctp_default_prinfo_expression(struct expression *in,
+						   struct expression *out,
+						   char **error)
+{
+        struct sctp_default_prinfo_expr *in_info;
+        struct sctp_default_prinfo_expr *out_info;
+
+        assert(in->type == EXPR_SCTP_DEFAULT_PRINFO);
+        assert(in->value.sctp_default_prinfo);
+        assert(out->type == EXPR_SCTP_DEFAULT_PRINFO);
+
+        out->value.sctp_default_prinfo = calloc(1, sizeof(struct sctp_default_prinfo_expr));
+                     
+        in_info = in->value.sctp_default_prinfo;
+        out_info = out->value.sctp_default_prinfo;
+                     
+        if (evaluate(in_info->pr_policy,
+		     &out_info->pr_policy,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->pr_value,
+		     &out_info->pr_value,
+		     error))
+		return STATUS_ERR;
+        if (evaluate(in_info->pr_assoc_id,
+		     &out_info->pr_assoc_id,
 		     error))
 		return STATUS_ERR;
 
@@ -1737,6 +1943,10 @@ static int evaluate_sctp_shutdown_event_expression(struct expression *in,
 		     &out_event->sse_length,
 		     error))
 		return STATUS_ERR;
+	if (evaluate(in_event->sse_assoc_id,
+		     &out_event->sse_assoc_id,
+		     error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
@@ -2064,6 +2274,150 @@ static int evaluate_sctp_extrcvinfo_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_assoc_ids_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_assoc_ids_expr *in_ids;
+	struct sctp_assoc_ids_expr *out_ids;
+
+	assert(in->type == EXPR_SCTP_ASSOC_IDS);
+	assert(in->value.sctp_assoc_ids);
+	assert(out->type == EXPR_SCTP_ASSOC_IDS);
+
+	out->value.sctp_assoc_ids = calloc(1, sizeof(struct sctp_assoc_ids_expr));
+
+	in_ids = in->value.sctp_assoc_ids;
+	out_ids = out->value.sctp_assoc_ids;
+
+	if (evaluate(in_ids->gaids_number_of_ids,
+		     &out_ids->gaids_number_of_ids,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_ids->gaids_assoc_id,
+		     &out_ids->gaids_assoc_id,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_authchunks_expression(struct expression *in,
+					       struct expression *out,
+					       char **error)
+{
+	struct sctp_authchunks_expr *in_chunks;
+	struct sctp_authchunks_expr *out_chunks;
+
+	assert(in->type == EXPR_SCTP_AUTHCHUNKS);
+	assert(in->value.sctp_authchunks);
+	assert(out->type == EXPR_SCTP_AUTHCHUNKS);
+
+	out->value.sctp_authchunks = calloc(1, sizeof(struct sctp_authchunks_expr));
+
+	in_chunks = in->value.sctp_authchunks;
+	out_chunks = out->value.sctp_authchunks;
+
+	if (evaluate(in_chunks->gauth_assoc_id,
+		     &out_chunks->gauth_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_chunks->gauth_number_of_chunks,
+		     &out_chunks->gauth_number_of_chunks,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_chunks->gauth_chunks,
+		     &out_chunks->gauth_chunks,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_setpeerprim_expression(struct expression *in,
+					        struct expression *out,
+					        char **error)
+{
+	struct sctp_setpeerprim_expr *in_sspp;
+	struct sctp_setpeerprim_expr *out_sspp;
+
+	assert(in->type == EXPR_SCTP_SETPEERPRIM);
+	assert(in->value.sctp_setpeerprim);
+	assert(out->type == EXPR_SCTP_SETPEERPRIM);
+
+	out->value.sctp_setpeerprim = calloc(1, sizeof(struct sctp_setpeerprim_expr));
+
+	in_sspp = in->value.sctp_setpeerprim;
+	out_sspp = out->value.sctp_setpeerprim;
+
+	if (evaluate(in_sspp->sspp_assoc_id,
+		     &out_sspp->sspp_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_sspp->sspp_addr,
+		     &out_sspp->sspp_addr,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_authchunk_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_authchunk_expr *in_authchunk;
+	struct sctp_authchunk_expr *out_authchunk;
+
+	assert(in->type == EXPR_SCTP_AUTHCHUNK);
+	assert(in->value.sctp_authchunk);
+	assert(out->type == EXPR_SCTP_AUTHCHUNK);
+
+	out->value.sctp_authchunk = calloc(1, sizeof(struct sctp_authchunk_expr));
+
+	in_authchunk = in->value.sctp_authchunk;
+	out_authchunk = out->value.sctp_authchunk;
+
+	if (evaluate(in_authchunk->sauth_chunk,
+		     &out_authchunk->sauth_chunk,
+		     error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+static int evaluate_sctp_authkey_expression(struct expression *in,
+					    struct expression *out,
+					    char **error)
+{
+	struct sctp_authkey_expr *in_authkey;
+	struct sctp_authkey_expr *out_authkey;
+
+	assert(in->type == EXPR_SCTP_AUTHKEY);
+	assert(in->value.sctp_authkey);
+	assert(out->type == EXPR_SCTP_AUTHKEY);
+
+	out->value.sctp_authkey = calloc(1, sizeof(struct sctp_authkey_expr));
+
+	in_authkey = in->value.sctp_authkey;
+	out_authkey = out->value.sctp_authkey;
+
+	if (evaluate(in_authkey->sca_assoc_id,
+		     &out_authkey->sca_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkey->sca_keynumber,
+		     &out_authkey->sca_keynumber,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkey->sca_keylength,
+		     &out_authkey->sca_keylength,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_authkey->sca_key,
+		     &out_authkey->sca_key,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2095,11 +2449,17 @@ static int evaluate(struct expression *in,
 	case EXPR_SCTP_ASSOCPARAMS:
 		result = evaluate_sctp_accocparams_expression(in, out, error);
 		break;
+	case EXPR_SCTP_HMACALGO:
+		result = evaluate_sctp_hmacalgo_expression(in, out, error);
+		break;
 	case EXPR_SCTP_INITMSG:
 		result = evaluate_sctp_initmsg_expression(in, out, error);
 		break;
 	case EXPR_SCTP_ASSOC_VALUE:
 		result = evaluate_sctp_assoc_value_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHKEYID:
+		result = evaluate_sctp_authkeyid_expression(in, out, error);	
 		break;
 	case EXPR_SCTP_SACKINFO:
 		result = evaluate_sctp_sack_info_expression(in, out, error);	
@@ -2125,6 +2485,9 @@ static int evaluate(struct expression *in,
 	case EXPR_SCTP_SNDINFO:
 		result = evaluate_sctp_sndinfo_expression(in, out, error);
 		break;
+	case EXPR_SCTP_SETPRIM:
+		result = evaluate_sctp_setprim_expression(in, out, error);
+		break;
 	case EXPR_SCTP_SETADAPTATION:
 		result = evaluate_sctp_setadaptation_expression(in, out, error);
 		break;
@@ -2133,6 +2496,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_PRINFO:
 		result = evaluate_sctp_prinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_DEFAULT_PRINFO:
+		result = evaluate_sctp_default_prinfo_expression(in, out, error);
 		break;
 	case EXPR_SCTP_AUTHINFO:
 		result = evaluate_sctp_authinfo_expression(in, out, error);
@@ -2184,6 +2550,21 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_EXTRCVINFO:
 		result = evaluate_sctp_extrcvinfo_expression(in, out, error);
+		break;
+	case EXPR_SCTP_ASSOC_IDS:
+		result = evaluate_sctp_assoc_ids_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHCHUNKS:
+		result = evaluate_sctp_authchunks_expression(in, out, error);
+		break;
+	case EXPR_SCTP_SETPEERPRIM:
+		result = evaluate_sctp_setpeerprim_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHCHUNK:
+		result = evaluate_sctp_authchunk_expression(in, out, error);
+		break;
+	case EXPR_SCTP_AUTHKEY:
+		result = evaluate_sctp_authkey_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

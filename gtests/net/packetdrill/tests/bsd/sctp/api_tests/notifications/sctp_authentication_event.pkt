@@ -1,0 +1,24 @@
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_AUTHENTICATION_EVENT, se_on=1}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_AUTHENTICATION_EVENT, se_on=1}, [8]) = 0
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
+
++0.0 sctp_recvv(3, [{iov_base={auth_type=SCTP_AUTHENTICATION_EVENT,
+			       auth_flags=0,
+			       auth_length=20,
+			       auth_keynumber=0,
+			       auth_indication=SCTP_AUTH_NO_AUTH,
+			       auth_assoc_id=3}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION|MSG_EOR]) = 20
+
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
++0.0 < sctp: SHUTDOWN[flgs=0, cum_tsn=0]
+*    > sctp: SHUTDOWN_ACK[flgs=0]
++0.0 < sctp: SHUTDOWN_COMPLETE[flgs=0]
+

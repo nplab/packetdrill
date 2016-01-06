@@ -13,8 +13,14 @@
 spp_ipv6_flowlabel=0, spp_dscp=0}, 152) = 0
 
 //test for SEND_FAILED_EVENT
-+0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_SEND_FAILED, se_on=1}, 8) = 0
-+0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_initial=100, srto_max=150, srto_min=50}, 16) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_SEND_FAILED, se_on=1}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_assoc_id=0, se_type=SCTP_SEND_FAILED, se_on=1}, [8]) = 0
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RTOINFO, {srto_assoc_id=0,
+						srto_initial=100,
+						srto_max=150,
+						srto_min=50}, 16) = 0
+
 +0.0 write(3, ..., 1000) = 1000
 +0.0 > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
 *    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
@@ -24,7 +30,18 @@ spp_ipv6_flowlabel=0, spp_dscp=0}, 152) = 0
 *    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
 *    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
 *    > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=0]
-+1.0 sctp_recvv(3, [{iov_base={ssf_type=SCTP_SEND_FAILED, ssf_flags=SCTP_DATA_SENT, ssf_length=1144, ssf_error=0,
-ssf_info={sinfo_stream=0, sinfo_ssn=0, sinfo_flags=3, sinfo_ppid=htonl(0), sinfo_context=0, sinfo_timetolive=0, sinfo_tsn=0, sinfo_cumtsn=0},
-ssf_assoc_id=3, ssf_data=...}, iov_len=1000}],
-1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION]) = 1000
++1.0 sctp_recvv(3, [{iov_base={ssf_type=SCTP_SEND_FAILED,
+			       ssf_flags=SCTP_DATA_SENT,
+			       ssf_length=1144,
+			       ssf_error=0,
+			       ssf_info={sinfo_stream=0,
+					 sinfo_ssn=0,
+					 sinfo_flags=3,
+					 sinfo_ppid=htonl(0),
+					 sinfo_context=0,
+					 sinfo_timetolive=0,
+					 sinfo_tsn=0,
+					 sinfo_cumtsn=0,
+					 sinfo_assoc_id=3},
+			       ssf_assoc_id=3,
+			       ssf_data=...}, iov_len=1000}], 1, ..., 20, NULL, [0], [SCTP_RECVV_NOINFO], [MSG_NOTIFICATION]) = 1000
