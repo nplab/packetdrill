@@ -111,54 +111,65 @@ enum ifdef_os {
 YY_BUFFER_STATE ifdef_stack[MAX_IFDEF_DEPTH];
 int ifdef_stack_ptr = 0;
 
+static inline int get_os_name_length(enum ifdef_os os) {
+	switch (os) {
+	case Linux_IFDEF:
+		return strlen("Linux");
+	case FreeBSD_IFDEF:
+		return strlen("FreeBSD");
+	case NetBSD_IFDEF:
+		return strlen("NetBSD");
+	case OpenBSD_IFDEF:
+		return strlen("OpenBSD");
+	default:
+		return -1;
+	}
+}
+
+static inline bool ignore_ifdef(enum ifdef_os os) {
+#ifdef linux
+	if (os == Linux_IFDEF) {
+		return false;
+	}
+#endif
+#ifdef __FreeBSD__
+	if (os == FreeBSD_IFDEF) {
+		return false;
+	}
+#endif
+#ifdef __OpenBSD__
+	if (os == OpenBSD_IFDEF) {
+		return false;
+	}
+#endif
+#ifdef __NetBSD__
+	if (os == NetBSD_IFDEF) {
+		return false;
+	}
+#endif
+	
+	return true;
+}
+
 static void handle_ifdef(enum ifdef_os os, const char *s) {
 	char *code = strdup(s);
 	
 	unsigned int ifdef_length = strlen("#ifdef ");
 	unsigned int endif_length = strlen("#endif");
-	unsigned int os_name_length = 0; 
+	int os_name_length = get_os_name_length(os); 
 	
-	switch (os) {
-	case Linux_IFDEF:
-		os_name_length = strlen("Linux");
-		break;
-	case FreeBSD_IFDEF:
-		os_name_length = strlen("FreeBSD");
-		break;
-	case NetBSD_IFDEF:
-		os_name_length = strlen("NetBSD");
-		break;
-	case OpenBSD_IFDEF:
-		os_name_length = strlen("OpenBSD");
-		break;
-	default:
+	if (os_name_length == -1) {
 		fprintf(stderr, "handle_ifdef with unknown os called.\n");
 		exit(1);
 	}
 	
-#ifdef linux
-	if (os != Linux_IFDEF) {
+	if (ignore_ifdef(os)) {
 		return;
 	}
-#endif
-#ifdef __FreeBSD__
-	if (os != FreeBSD_IFDEF) {
-		return;
-	}
-#endif
-#ifdef __OpenBSD__
-	if (os != OpenBSD_IFDEF) {
-		return;
-	}
-#endif
-#ifdef __NetBSD__
-	if (os != NetBSD_IFDEF) {
-		return;
-	}
-#endif
 	
-	char *code_without_ifdef = code+ifdef_length+os_name_length;
-	code_without_ifdef[strlen(code_without_ifdef) - (endif_length)] = (char) 0;
+	char *code_without_ifdef = code + ifdef_length + os_name_length;
+	unsigned int newline_before_endif = strlen(code_without_ifdef) - endif_length;
+	code_without_ifdef[newline_before_endif] = (char) 0;
 //	fprintf( stdout, "\n%s\n", code_without_ifdef);
 	
 	if (ifdef_stack_ptr >= MAX_IFDEF_DEPTH) {
