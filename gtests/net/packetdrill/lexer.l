@@ -152,32 +152,31 @@ static inline bool ignore_ifdef(enum ifdef_os os) {
 }
 
 static void handle_ifdef(enum ifdef_os os, const char *s) {
-	char *code = strdup(s);
-	
+	char *code = NULL;
+	char *code_without_ifdef = NULL;
 	unsigned int ifdef_length = strlen("#ifdef ");
 	unsigned int endif_length = strlen("#endif");
-	int os_name_length = get_os_name_length(os); 
+	unsigned int newline_before_endif = 0;
+	int os_name_length = get_os_name_length(os);
 	
 	if (os_name_length == -1) {
 		fprintf(stderr, "handle_ifdef with unknown os called.\n");
-		free(code);
 		exit(1);
 	}
 	
 	if (ignore_ifdef(os)) {
-		free(code);
 		return;
 	}
-	
-	char *code_without_ifdef = code + ifdef_length + os_name_length;
-	unsigned int newline_before_endif = strlen(code_without_ifdef) - endif_length;
-	code_without_ifdef[newline_before_endif] = (char) 0;
-//	fprintf( stdout, "\n%s\n", code_without_ifdef);
 	
 	if (ifdef_stack_ptr >= MAX_IFDEF_DEPTH) {
 		fprintf(stderr, "Ifdefs nested too deeply");
 		exit(1);
 	}
+	
+	code = strdup(s);
+	code_without_ifdef = code + ifdef_length + os_name_length;
+	newline_before_endif = strlen(code_without_ifdef) - endif_length;
+	code_without_ifdef[newline_before_endif] = (char) 0;
 	
 	ifdef_stack[ifdef_stack_ptr++] = YY_CURRENT_BUFFER;
 	YY_BUFFER_STATE state = yy_scan_string(code_without_ifdef);
