@@ -3327,7 +3327,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 
 	live_result = getsockopt(live_fd, level, optname, live_optval, &live_optlen);
 
-	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, live_result, error)) {
+	if (end_syscall(state, syscall, CHECK_EXACT, live_result, error)) {
 		return STATUS_ERR;
 	}
 
