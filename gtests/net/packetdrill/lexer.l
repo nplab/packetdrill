@@ -151,12 +151,22 @@ static inline bool ignore_ifdef(enum ifdef_os os) {
 	return true;
 }
 
-static void handle_ifdef(enum ifdef_os os, const char *s) {
-	char *code = NULL;
-	char *code_without_ifdef = NULL;
+static inline char* remove_ifdef_start_and_endtag(char *code, int os_name_length) {
 	unsigned int ifdef_length = strlen("#ifdef ");
 	unsigned int endif_length = strlen("#endif");
 	unsigned int newline_before_endif = 0;
+	char *code_without_ifdef = NULL;
+	
+	code_without_ifdef = code + ifdef_length + os_name_length;
+	newline_before_endif = strlen(code_without_ifdef) - endif_length;
+	code_without_ifdef[newline_before_endif] = (char) 0;
+	return code_without_ifdef;
+}
+	
+
+static void handle_ifdef(enum ifdef_os os, const char *s) {
+	char *code = NULL;
+	char *code_without_ifdef = NULL;
 	int os_name_length = get_os_name_length(os);
 	
 	if (os_name_length == -1) {
@@ -174,13 +184,10 @@ static void handle_ifdef(enum ifdef_os os, const char *s) {
 	}
 	
 	code = strdup(s);
-	code_without_ifdef = code + ifdef_length + os_name_length;
-	newline_before_endif = strlen(code_without_ifdef) - endif_length;
-	code_without_ifdef[newline_before_endif] = (char) 0;
 	
+	code_without_ifdef = remove_ifdef_start_and_endtag(code, os_name_length);
 	ifdef_stack[ifdef_stack_ptr++] = YY_CURRENT_BUFFER;
-	YY_BUFFER_STATE state = yy_scan_string(code_without_ifdef);
-	yy_switch_to_buffer(state);
+	yy_switch_to_buffer(yy_scan_string(code_without_ifdef));
 	
 	free(code);
 }
@@ -215,8 +222,11 @@ c_comment	\/\*(([^*])|(\*[^\/]))*\*\/
  *   (specific code only for linux)
  *   #endif
  */
+
+/* these are the tags that identify the start and ending of an ifdef block */
 ifdef_begin #ifdef[ ]
 ifdef_end   #endif
+/* end_matcher actually matches everything except the "#endif" tag. */
 end_matcher (([^#])|(#[^e])|(#e[^n])|(#en[^d])|(#end[^i])|(#endi[^f]))*
 
 ifdef_freebsd	{ifdef_begin}FreeBSD{end_matcher}{ifdef_end}
@@ -589,12 +599,12 @@ NULL				return NULL_;
 {code}				yylval.string = code(yytext);   return CODE;
 {ipv4_addr}			yylval.string = strdup(yytext); return IPV4_ADDR;
 {ipv6_addr}			yylval.string = strdup(yytext); return IPV6_ADDR;
- <<EOF>>		{
-				if ( --ifdef_stack_ptr < 0 ) {
-					yyterminate();
-				} else {
-					yy_delete_buffer(YY_CURRENT_BUFFER);
-					yy_switch_to_buffer(ifdef_stack[ifdef_stack_ptr]);
+<<EOF>>				{
+					if ( --ifdef_stack_ptr < 0 ) {
+						yyterminate();
+					} else {
+						yy_delete_buffer(YY_CURRENT_BUFFER);
+						yy_switch_to_buffer(ifdef_stack[ifdef_stack_ptr]);
+					}
 				}
-			}
 %%
