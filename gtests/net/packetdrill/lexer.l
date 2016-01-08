@@ -229,10 +229,10 @@ ifdef_end   #endif
 /* end_matcher actually matches everything except the "#endif" tag. */
 end_matcher (([^#])|(#[^e])|(#e[^n])|(#en[^d])|(#end[^i])|(#endi[^f]))*
 
-ifdef_freebsd	{ifdef_begin}FreeBSD{end_matcher}{ifdef_end}
-ifdef_linux	{ifdef_begin}Linux{end_matcher}{ifdef_end}
-ifdef_openbsd	{ifdef_begin}OpenBSD{end_matcher}{ifdef_end}
-ifdef_netbsd	{ifdef_begin}NetBSD{end_matcher}{ifdef_end}
+ifdef_freebsd	{ifdef_begin}(?i:FreeBSD){end_matcher}{ifdef_end}
+ifdef_linux		{ifdef_begin}(?i:Linux){end_matcher}{ifdef_end}
+ifdef_openbsd	{ifdef_begin}(?i:OpenBSD){end_matcher}{ifdef_end}
+ifdef_netbsd	{ifdef_begin}(?i:NetBSD){end_matcher}{ifdef_end}
 
 /* The regexp for code snippets is analogous to that for C comments.
  * Here is a summary of the regexp for code snippets:
