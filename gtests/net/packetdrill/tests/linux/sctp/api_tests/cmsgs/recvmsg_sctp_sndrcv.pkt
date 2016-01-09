@@ -1,0 +1,89 @@
+--tolerance_usecs=100000
+
+ 0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
++0.0 bind(3, ..., ...) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=16, is=16, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+//recvmsg(sd, msghdr, flags)
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENTS, {sctp_data_io_event=1,
+					       sctp_association_event=0,
+					       sctp_address_event=0,
+					       sctp_send_failure_event=0,
+					       sctp_peer_error_event=0,
+					       sctp_shutdown_event=0,
+					       sctp_partial_delivery_event=0,
+					       sctp_adaptation_layer_event=0,
+					       sctp_authentication_event=0,
+					       sctp_sender_dry_event=0}, 11) = 0
+
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS,
+                {spp_assoc_id=0,
+		 spp_address=...,
+                 spp_hbinterval=0,
+                 spp_pathmaxrxt=8,
+                 spp_pathmtu=1468,
+                 spp_flags=SPP_HB_DISABLE,
+                 spp_ipv6_flowlabel=0,
+                 spp_dscp=0}, 152) = 0
+
++0.0 < sctp: DATA[flgs=IBE, len=1016, tsn=1, sid=0, ssn=0, ppid=9877]
+*    > sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]]
++0.0 recvmsg(3, {msg_name(...)=...,
+                 msg_iov(1)=[{iov_base=..., iov_len=1000}],
+                 msg_control(140)=[{cmsg_len=140,
+                                    cmsg_level=IPPROTO_SCTP,
+                                    cmsg_type=SCTP_SNDRCV,
+                                    cmsg_data={sinfo_stream=0,
+                                               sinfo_ssn=0,
+                                               sinfo_flags=0,
+                                               sinfo_ppid=htonl(9877),
+                                               sinfo_context=0,
+                                               sinfo_timetolive=0,
+                                               sinfo_tsn=1,
+                                               sinfo_cumtsn=1,
+                                               sinfo_assoc_id=...}}],
+                 msg_flags=MSG_EOR}, 0) = 1000
+
++0.0 < sctp: DATA[flgs=IUBE, len=1016, tsn=2, sid=0, ssn=1, ppid=9878]
+*    > sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=..., gaps=[], dups=[]]
++0.0 recvmsg(3, {msg_name(...)=...,
+                 msg_iov(1)=[{iov_base=..., iov_len=1000}],
+                 msg_control(140)=[{cmsg_len=140,
+                                    cmsg_level=IPPROTO_SCTP,
+                                    cmsg_type=SCTP_SNDRCV,
+                                    cmsg_data={sinfo_stream=0,
+                                               sinfo_ssn=1,
+                                               sinfo_flags=SCTP_UNORDERED,
+                                               sinfo_ppid=htonl(9878),
+                                               sinfo_context=0,
+                                               sinfo_timetolive=0,
+                                               sinfo_tsn=2,
+                                               sinfo_cumtsn=2,
+                                               sinfo_assoc_id=...}}],
+                 msg_flags=MSG_EOR}, 0) = 1000
+
++0.0 < sctp: DATA[flgs=IUBE, len=1016, tsn=3, sid=0, ssn=2, ppid=9879]
+*    > sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=..., gaps=[], dups=[]]
++0.0 recvmsg(3, {msg_name(...)=...,
+                 msg_iov(1)=[{iov_base=..., iov_len=1000}],
+                 msg_control(140)=[{cmsg_len=140,
+                                    cmsg_level=IPPROTO_SCTP,
+                                    cmsg_type=SCTP_SNDRCV,
+                                    cmsg_data={sinfo_stream=0,
+                                               sinfo_ssn=2,
+                                               sinfo_flags=SCTP_UNORDERED,
+                                               sinfo_ppid=htonl(9879),
+                                               sinfo_context=0,
+                                               sinfo_timetolive=0,
+                                               sinfo_tsn=3,
+                                               sinfo_cumtsn=3}}],
+                 msg_flags=MSG_EOR}, 0) = 1000

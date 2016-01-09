@@ -1,0 +1,55 @@
+0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
+
++0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+
++0 setsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_assoc_id=...,
+						sasoc_asocmaxrxt=5,
+						sasoc_number_peer_destinations=3,
+						sasoc_peer_rwnd=1800,
+						sasoc_local_rwnd=2000,
+						sasoc_cookie_life=40000}, 20) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_assoc_id=...,
+						sasoc_asocmaxrxt=5,
+						sasoc_number_peer_destinations=1,
+						sasoc_peer_rwnd=1500,
+						sasoc_local_rwnd=81920,
+						sasoc_cookie_life=40000}, [20]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_assoc_id=...,
+						sasoc_asocmaxrxt=...,
+						sasoc_number_peer_destinations=...,
+						sasoc_peer_rwnd=1500,
+						sasoc_local_rwnd=...,
+						sasoc_cookie_life=40000}, [20]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_assoc_id=...,
+						sasoc_asocmaxrxt=5,
+						sasoc_number_peer_destinations=1,
+						sasoc_peer_rwnd=1500,
+						sasoc_local_rwnd=...,
+						sasoc_cookie_life=40000}, [20]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_assoc_id=...,
+						sasoc_asocmaxrxt=...,
+						sasoc_number_peer_destinations=...,
+						sasoc_peer_rwnd=...,
+						sasoc_local_rwnd=...,
+						sasoc_cookie_life=...}, [20]) = 0
+//now test structure without associd
++0 setsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5,
+						sasoc_number_peer_destinations=2,
+						sasoc_peer_rwnd=1800,
+						sasoc_local_rwnd=2000,
+						sasoc_cookie_life=40000}, 20) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_ASSOCINFO, {sasoc_asocmaxrxt=5,
+						sasoc_number_peer_destinations=1,
+						sasoc_peer_rwnd=1500,
+						sasoc_local_rwnd=81920,
+						sasoc_cookie_life=40000}, [20]) = 0
+
++0 close(3) = 0
