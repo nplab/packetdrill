@@ -104,9 +104,25 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ASSOCINFO,                   "SCTP_ASSOCINFO"                  },
 	{ SCTP_INITMSG,                     "SCTP_INITMSG"                    },
 	{ SCTP_NODELAY,                     "SCTP_NODELAY"                    },
+	{ SCTP_AUTOCLOSE,                   "SCTP_AUTOCLOSE"                  },
+	{ SCTP_PRIMARY_ADDR,                "SCTP_PRIMARY_ADDR"               },
+	{ SCTP_I_WANT_MAPPED_V4_ADDR,       "SCTP_I_WANT_MAPPED_V4_ADDR"      },
+	{ SCTP_DISABLE_FRAGMENTS,           "SCTP_DISABLE_FRAGMENTS"          },
+	{ SCTP_DEFAULT_SEND_PARAM,          "SCTP_DEFAULT_SEND_PARAM"         },
 	{ SCTP_MAXSEG,                      "SCTP_MAXSEG"                     },
+	{ SCTP_HMAC_IDENT,                  "SCTP_HMAC_IDENT"                 },
+	{ SCTP_AUTH_ACTIVE_KEY,             "SCTP_AUTH_ACTIVE_KEY"            },
 	{ SCTP_DELAYED_SACK,                "SCTP_DELAYED_SACK"               },
+	{ SCTP_PARTIAL_DELIVERY_POINT,      "SCTP_PARTIAL_DELIVERY_POINT"     },
 	{ SCTP_MAX_BURST,                   "SCTP_MAX_BURST"                  },
+	{ SCTP_CONTEXT,                     "SCTP_CONTEXT"                    },
+	{ SCTP_PEER_AUTH_CHUNKS,            "SCTP_PEER_AUTH_CHUNKS"           },
+	{ SCTP_LOCAL_AUTH_CHUNKS,           "SCTP_LOCAL_AUTH_CHUNKS"          },
+	{ SCTP_GET_ASSOC_NUMBER,            "SCTP_GET_ASSOC_NUMBER"           },
+	{ SCTP_SET_PEER_PRIMARY_ADDR,       "SCTP_SET_PEER_PRIMARY_ADDR"      },
+	{ SCTP_AUTH_CHUNK,                  "SCTP_AUTH_CHUNK"                 },
+	{ SCTP_AUTH_KEY,                    "SCTP_AUTH_KEY"                   },
+	{ SCTP_AUTH_DELETE_KEY,             "SCTP_AUTH_DELETE_KEY"            },
 #if 0
 	{ SCTP_DEFAULT_SNDINFO,             "SCTP_DEFAULT_SNDINFO"            },
 #endif
@@ -204,6 +220,36 @@ struct int_symbol platform_symbols_table[] = {
         { SCTP_SENDALL,                     "SCTP_SENDALL"                    },
         { SCTP_EOR,                         "SCTP_EOR"                        },
 #endif
+//sctp auth hmac ident
+	{ SCTP_AUTH_HMAC_ID_SHA1,           "SCTP_AUTH_HMAC_ID_SHA1"          },
+	{ SCTP_AUTH_HMAC_ID_SHA1,           "SCTP_AUTH_HMAC_ID_SHA256"        },
+//cmsgs type for sctp
+	{ SCTP_INIT,                        "SCTP_INIT"                       },
+	{ SCTP_SNDRCV,                      "SCTP_SNDRCV"                     },
+//flags for sctp_assoc_change
+	{ SCTP_COMM_UP,                     "SCTP_COMM_UP"                    },
+	{ SCTP_COMM_LOST,                   "SCTP_COMM_LOST"                  },
+	{ SCTP_RESTART,                     "SCTP_RESTART"                    },
+	{ SCTP_SHUTDOWN_COMP,               "SCTP_SHUTDOWN_COMP"              },
+	{ SCTP_CANT_STR_ASSOC,              "SCTP_CANT_STR_ASSOC"             },
+#if 0
+	{ SCTP_ASSOC_SUPPORTS_PR,           "SCTP_ASSOC_SUPPORTS_PR"          },
+	{ SCTP_ASSOC_SUPPORTS_AUTH,         "SCTP_ASSOC_SUPPORTS_AUTH"        },
+	{ SCTP_ASSOC_SUPPORTS_ASCONF,       "SCTP_ASSOC_SUPPORTS_ASCONF"      },
+	{ SCTP_ASSOC_SUPPORTS_MULTIBUF,     "SCTP_ASSOC_SUPPORTS_MULTIBUF"    },
+#endif
+//flags for sctp_send_failed
+	{ SCTP_DATA_UNSENT,                 "SCTP_DATA_UNSENT"                },
+	{ SCTP_DATA_SENT,                   "SCTP_DATA_SENT"                  },
+//flags for sctp_peer_addr_change
+	{ SCTP_ADDR_AVAILABLE,              "SCTP_ADDR_AVAILABLE"             },
+	{ SCTP_ADDR_UNREACHABLE,            "SCTP_ADDR_UNREACHABLE"           },
+	{ SCTP_ADDR_REMOVED,                "SCTP_ADDR_REMOVED"               },
+	{ SCTP_ADDR_ADDED,                  "SCTP_ADDR_ADDED"                 },
+	{ SCTP_ADDR_MADE_PRIM,              "SCTP_ADDR_MADE_PRIM"             },
+//flags for sctp_partial_delivery_event
+	{ SCTP_PARTIAL_DELIVERY_ABORTED,    "SCTP_PARTIAL_DELIVERY_ABORTED"   },
+
 	{ SCTP_BINDX_ADD_ADDR,              "SCTP_BINDX_ADD_ADDR"             },
 	{ SCTP_BINDX_REM_ADDR,              "SCTP_BINDX_REM_ADDR"             },
         { SCTP_SACK_IMMEDIATELY,            "SCTP_SACK_IMMEDIATELY"           },
@@ -301,6 +347,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ MSG_MORE,                         "MSG_MORE"                        },
 	{ MSG_CMSG_CLOEXEC,                 "MSG_CMSG_CLOEXEC"                },
 	{ MSG_FASTOPEN,                     "MSG_FASTOPEN"                    },
+	{ MSG_NOTIFICATION,                 "MSG_NOTIFICATION"                },
 
 #ifdef SIOCINQ
 	{ SIOCINQ,                          "SIOCINQ"                         },
