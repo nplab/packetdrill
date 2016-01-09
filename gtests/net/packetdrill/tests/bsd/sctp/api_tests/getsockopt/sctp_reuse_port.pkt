@@ -1,7 +1,6 @@
 0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
 +0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
 +0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
-+0.0 bind(3, ..., ...) = 0
 
 +0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 
