@@ -1,0 +1,176 @@
+#!/usr/bin/env tcsh
+
+#
+# Copyright (c) 2015 Michael Tuexen
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+
+set packetdrill = ./../../../../packetdrill
+set delay = 1
+set testcases = (setsockopt/sctp_rtoinfo_1 \
+		 setsockopt/sctp_rtoinfo_2 \
+		 setsockopt/sctp_rtoinfo_3 \
+		 getsockopt/sctp_rtoinfo \
+		 getsockopt/sctp_associnfo \
+		 getsockopt/sctp_initmsg \
+		 getsockopt/so_linger \
+		 getsockopt/sctp_nodelay \
+		 getsockopt/sctp_autoclose \
+		 getsockopt/sctp_primary_addr \
+		 getsockopt/sctp_adaptation_layer \
+		 getsockopt/sctp_disable_fragments \
+		 getsockopt/sctp_peer_addr_params \
+		 getsockopt/sctp_default_send_param \
+		 getsockopt/sctp_events \
+		 getsockopt/sctp_i_want_mapped_v4_addr \
+		 getsockopt/sctp_maxseg \
+		 getsockopt/sctp_hmac_ident \
+		 getsockopt/sctp_auth_active_key \
+		 getsockopt/sctp_delayed_sack \
+		 getsockopt/sctp_fragment_interleave \
+		 getsockopt/sctp_partial_delivery_point \
+		 getsockopt/sctp_use_ext_rcvinfo \
+		 getsockopt/sctp_auto_asconf \
+		 getsockopt/sctp_max_burst \
+		 getsockopt/sctp_context \
+		 getsockopt/sctp_explicit_eor \
+		 getsockopt/sctp_reuse_port \
+		 getsockopt/sctp_event \
+		 getsockopt/sctp_recvrcvinfo \
+		 getsockopt/sctp_recvnxtinfo \
+		 getsockopt/sctp_default_sndinfo \
+		 getsockopt/sctp_default_prinfo \
+		 getsockopt/sctp_status \
+		 getsockopt/sctp_get_peer_addr_info \
+		 getsockopt/sctp_peer_auth_chunks \
+		 getsockopt/sctp_local_auth_chunks \
+		 getsockopt/sctp_get_assoc_number \
+		 getsockopt/sctp_get_assoc_id_list \
+		 getsockopt/sctp_set_peer_primary_addr \
+		 getsockopt/sctp_auth_chunk \
+		 getsockopt/sctp_auth_key \
+		 getsockopt/sctp_auth_deactivate_key \
+		 getsockopt/sctp_auth_delete_key \
+		 notifications/sctp_adaptation_event \
+                 notifications/sctp_notifications_stopped_event \
+                 notifications/sctp_remote_error \
+                 notifications/sctp_remote_error_2 \
+                 notifications/sctp_sender_dry_event \
+                 notifications/sctp_sender_dry_event_2 \
+                 notifications/sctp_assoc_change_event \
+                 notifications/sctp_partial_delivery_event \
+                 notifications/sctp_partial_delivery_event_2 \
+                 notifications/sctp_send_failed \
+                 notifications/sctp_send_failed_2 \
+                 notifications/sctp_shutdown_event \
+                 notifications/sctp_shutdown_event_2 \
+                 notifications/sctp_authentication_event \
+                 notifications/sctp_authentication_event_2 \
+                 notifications/sctp_peer_addr_change \
+                 notifications/sctp_peer_addr_change_2 \
+                 notifications/sctp_send_failed_event \
+                 notifications/sctp_send_failed_event_2 \
+		 cmsgs/sendmsg_sctp_init \
+		 cmsgs/sendmsg_sctp_sndrcv \
+		 cmsgs/sendmsg_sctp_sndinfo \
+		 cmsgs/sendmsg_sctp_authinfo \
+		 cmsgs/sendmsg_sctp_prinfo \
+		 cmsgs/sendmsg_sctp_dstaddrv4 \
+		 cmsgs/sendmsg_sctp_dstaddrv6 \
+		 cmsgs/recvmsg_sctp_extrcv \
+		 cmsgs/recvmsg_sctp_nxtinfo \
+		 cmsgs/recvmsg_sctp_rcvinfo \
+		 cmsgs/recvmsg_sctp_sndrcv \
+		 cmsgs/recvmsg \
+		 cmsgs/sendmsg \
+		 sctp_send/sctp_send_1 \
+		 sctp_send/sctp_send_2 \
+		 sctp_bindx/sctp_bindx \
+		 sctp_peeloff/sctp_peeloff \
+		 sctp_getpaddrs/sctp_getpaddrs \
+		 sctp_getladdrs/sctp_getladdrs \
+		 sctp_sendmsg/sctp_sendmsg_1 \
+		 sctp_sendmsg/sctp_sendmsg_2 \
+		 sctp_sendmsg/sctp_sendmsg_3 \
+		 sctp_recvmsg/sctp_recvmsg_1 \
+		 sctp_recvmsg/sctp_recvmsg_2 \
+		 sctp_recvmsg/sctp_recvmsg_3 \
+		 sctp_connectx/sctp_connectx \
+		 sctp_sendx/sctp_sendx \
+		 sctp_sendv/sctp_sendv \
+		 sctp_recvv/sctp_recvv )
+
+set rootdir = `/usr/bin/dirname $0`
+set os = `uname -s | tr '[A-Z]' '[a-z]'`
+set passed = 0
+set failed = 0
+set run = 0
+set skipped = 0
+set first = 1
+
+printf "Name                                        Verdict\n"
+printf "===================================================\n"
+foreach testcase ($testcases)
+  printf "%-40.40s " `/usr/bin/basename $testcase`
+  if ($first == 0) then
+    if ($delay != 0) then
+      printf "\033[33m%10s\033[0m" "WAITING"
+      sleep $delay
+      printf "\b\b\b\b\b\b\b\b\b\b"
+    endif
+  else
+    set first = 0
+  endif
+  printf "\033[33m%10s\033[0m" "RUNNING"
+  if (-f ${rootdir}/${testcase}-$os.pkt) then
+    $packetdrill ${rootdir}/${testcase}-$os.pkt >& /dev/null
+    set result = $status
+    set found = 1
+  else if (-f ${rootdir}/${testcase}.pkt) then
+    $packetdrill ${rootdir}/${testcase}.pkt >& /dev/null
+    set result = $status
+    set found = 1
+  else
+    set found = 0
+  endif
+  printf "\b\b\b\b\b\b\b\b\b\b"
+  if ($found == 1) then
+    if ($result == 0) then
+      @ passed++
+      printf "\033[32m%10s\033[0m\n" "PASSED"
+    else
+      @ failed++
+      printf "\033[31m%10s\033[0m\n" "FAILED"
+    endif
+    @ run++
+  else
+    printf "\033[34m%10s\033[0m\n" "SKIPPED"
+    @ skipped++
+  endif
+end
+printf "===================================================\n"
+printf "Summary: Number of tests run:     %3u\n" $run
+printf "         Number of tests passed:  %3u\n" $passed
+printf "         Number of tests failed:  %3u\n" $failed
+printf "         Number of tests skipped: %3u\n" $skipped

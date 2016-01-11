@@ -2884,18 +2884,9 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr,
 	if (check_u16_expr(expr->snd_flags, sctp_sndinfo->snd_flags,
 			   "sctp_sndinfo.snd_flags", error))
 		return STATUS_ERR;
-	if (expr->snd_ppid->type != EXPR_ELLIPSIS) {
-		u32 snd_ppid;
-
-		if (get_u32(expr->snd_ppid, &snd_ppid, error)) {
-			return STATUS_ERR;
-		}
-		if (sctp_sndinfo->snd_ppid != snd_ppid) {
-			asprintf(error, "sctp_sndinfo.snd_ppid: expected: %u actual: %u",
-				 snd_ppid, sctp_sndinfo->snd_ppid);
-			return STATUS_ERR;
-		}
-	}
+	if (check_u32_hton_expr(expr->snd_ppid, sctp_sndinfo->snd_ppid,
+			   "sctp_sndinfo.snd_ppid", error))
+		return STATUS_ERR;
 	if (check_u32_expr(expr->snd_context, sctp_sndinfo->snd_context,
 			   "sctp_sndinfo.snd_context", error))
 		return STATUS_ERR;
@@ -3790,8 +3781,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		if (parse_expression_to_sctp_sndrcvinfo(val_expression, &sndrcvinfo, true, error)) {
 			return STATUS_ERR;
 		}
-		optval = &sndrcvinfo;	
-		break;	
+		optval = &sndrcvinfo;
+		break;
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	case EXPR_SCTP_SNDINFO:
@@ -4254,7 +4245,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 				char **error)
 {
 #if defined(__FreeBSD__) || defined(linux)
-	int script_fd, live_fd, live_msg_flags, result;
+	int script_fd, live_fd, live_msg_flags = 0, result;
 	void *msg;
 	u32 len;
 	struct sockaddr live_from;
@@ -4288,21 +4279,14 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	}
 
 	script_from_expr = get_arg(args, 3, error);
-	if (check_sockaddr(script_from_expr, &live_from, error))
+	if (check_sockaddr(script_from_expr, &live_from, error)) {
 		return STATUS_ERR;
-
-	script_fromlen_expr = get_arg(args, 4, error);
-	if (script_fromlen_expr->type != EXPR_ELLIPSIS) {
-		int script_fromlen;
-		if (get_s32(script_fromlen_expr, &script_fromlen, error))
-			return STATUS_ERR;
-		if (script_fromlen != live_fromlen) {
-			asprintf(error, "sctp_recvmsg fromlen: expected: %d actual: %d",
-				 script_fromlen, live_fromlen);
-			return STATUS_ERR;
-		}
 	}
-
+	script_fromlen_expr = get_arg(args, 4, error);
+	if (check_socklen_t_expr(script_fromlen_expr, live_fromlen,
+				 "sctp_recvmsg fromlen", error)) {
+		return STATUS_ERR;
+	}
 	script_sinfo_expr = get_arg(args, 5, error);
 	if (script_sinfo_expr->type != EXPR_ELLIPSIS) {
 		if (check_sctp_sndrcvinfo(script_sinfo_expr->value.sctp_sndrcvinfo, &live_sinfo, error)) {
@@ -4310,16 +4294,11 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 		}
 	}
 	script_msg_flags_expr = get_arg(args, 6, error);
-	if (script_msg_flags_expr->type != EXPR_ELLIPSIS) {
-		int script_msg_flags;
-		if (get_s32(script_msg_flags_expr, &script_msg_flags, error))
-			return STATUS_ERR;
-		if (script_msg_flags != live_msg_flags) {
-			asprintf(error, "sctp_recvmsg msg_flags: expected: %d actual: %d",
-				 script_msg_flags, live_msg_flags);
-			return STATUS_ERR;
-		}
+	if (check_s32_expr(script_msg_flags_expr, live_msg_flags,
+			   "sctp_recvmsg msg_flags", error)) {
+		return STATUS_ERR;
 	}
+
 	return STATUS_OK;
 #else
 	asprintf(error, "sctp_recvmsg is not supported");
