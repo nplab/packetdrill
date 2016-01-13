@@ -10,9 +10,8 @@
 
 +0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_NODELAY, [1], 4) = 0
-+0 getsockopt(3, SOL_SOCKET, SCTP_NODELAY, [4], [4]) = 0
-+0 setsockopt(3, SOL_SOCKET, SCTP_NODELAY, [0], 4) = 0
-+0 getsockopt(3, SOL_SOCKET, SCTP_NODELAY, [0], [4]) = 0
++0 getsockopt(3, IPPROTO_SCTP, SCTP_AUTOCLOSE, [0], [4]) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_AUTOCLOSE, [1], 4) = -1
++0 getsockopt(3, IPPROTO_SCTP, SCTP_AUTOCLOSE, [0], [4]) = 0
 
 +0 close(3) = 0

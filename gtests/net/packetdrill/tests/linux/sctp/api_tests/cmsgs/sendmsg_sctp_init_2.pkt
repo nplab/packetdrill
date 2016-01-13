@@ -28,8 +28,7 @@
 				   cmsg_type=SCTP_DSTADDRV4,
 				   cmsg_data={sa_family=AF_INET,
 					      sin_port=htons(8080),
-					      sin_addr=inet_addr("192.0.2.1")}}],
-		 msg_flags=0}, 0) = 1000
+					      sin_addr=inet_addr("192.0.2.1")}}], msg_flags=0}, 0) = 1000
 
 *    > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
 +0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=16, is=16, tsn=1, STATE_COOKIE[len=4, val=...]]
