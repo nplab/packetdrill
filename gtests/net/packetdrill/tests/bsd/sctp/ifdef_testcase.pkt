@@ -1,0 +1,26 @@
+// Create a non-blocking 1-to-1 style socket
+ 0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 bind(3, ..., ...) = 0
++0.0 fcntl(3, F_GETFL) = 0x02 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR | O_NONBLOCK) = 0
+// Trigger the active associtation setup
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=0, ...]
++0.0 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.0 < sctp: COOKIE_ACK[flgs=0]
+// Check if the setup was sucessful
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+// inject sack-chunk(type=3) with invalid len=8| cumulative tsn ack  |
++0.0 < sctp: CHUNK[type=3, flgs=0, len=8, val=[0x00, 0x00, 0x00, 0x01]]
+#ifdef Linux
+// expect protocol violation
++0.0 > sctp: ABORT[flgs=..., PROTOCOL_VIOLATION[info=...]]
+#endif
+#ifdef FreeBSD
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
+#endif
