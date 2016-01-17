@@ -174,6 +174,41 @@ static struct socket *find_socket_for_live_packet(
 	return NULL;
 }
 
+static struct socket *setup_new_child_socket(struct state *state, const struct packet *packet) {
+	/* Create a child passive socket for this incoming SYN packet.
+	 * Any further packets in the test script will be directed to
+	 * this child socket.
+	 */
+	struct config *config = state->config;
+	struct socket *socket;	/* shortcut */
+	
+	DEBUGP("creating new child_socket!\n");
+	
+	socket = socket_new(state);
+	state->socket_under_test = socket;
+	assert(socket->state == SOCKET_INIT);
+	socket->state = SOCKET_PASSIVE_PACKET_RECEIVED;
+	socket->address_family = packet_address_family(packet);
+	socket->protocol = packet_ip_protocol(packet);
+
+	/* Set script info for this socket using script packet. */
+	struct tuple tuple;
+	get_packet_tuple(packet, &tuple);
+	socket->script.remote		= tuple.src;
+	socket->script.local		= tuple.dst;
+	socket->script.fd		= -1;
+	
+	/* Set up the live info for this socket based
+	 * on the script packet and our overall config.
+	 */
+	socket->live.remote.ip		= config->live_remote_ip;
+	socket->live.remote.port	= htons(next_ephemeral_port(state));
+	socket->live.local.ip		= config->live_local_ip;
+	socket->live.local.port		= htons(config->live_bind_port);
+	socket->live.fd			= -1;
+	return socket;
+}
+
 /* See if the socket under test is listening and is willing to receive
  * this incoming SYN packet. If so, create a new child socket, anoint
  * it as the new socket under test, and return a pointer to
@@ -210,6 +245,9 @@ static struct socket *handle_listen_for_script_packet(
 	}
 	if (!match)
 		return NULL;
+	
+	if (socket != NULL)
+		socket = setup_new_child_socket(state, packet);
 
 	if (packet->sctp != NULL) {
 		if (packet->chunk_list != NULL) {
@@ -220,7 +258,7 @@ static struct socket *handle_listen_for_script_packet(
 				initiate_tag = ntohl(init->initiate_tag);
 				initial_tsn = ntohl(init->initial_tsn);
 			} else {
-				return NULL;
+				return socket;
 			}
 		} else {
 			if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
@@ -242,7 +280,7 @@ static struct socket *handle_listen_for_script_packet(
 
 				if (chunk_length < sizeof(struct sctp_init_chunk)) {
 					fprintf(stderr, "length of init chunk too short. you must specify the whole init chunk.");
-					return NULL;
+					return socket;
 				}
 				
 				u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
@@ -251,54 +289,26 @@ static struct socket *handle_listen_for_script_packet(
 					initiate_tag = ntohl(init->initiate_tag);
 					initial_tsn = ntohl(init->initial_tsn);
 				} else {
-					return NULL;
+					return socket;
 				}
 			} else {
-				return NULL;
+				return socket;
 			}
 		}
 	} else {
 		DEBUGP("packet->sctp == NULL");
 	}
 
-	/* Create a child passive socket for this incoming SYN packet.
-	 * Any further packets in the test script will be directed to
-	 * this child socket.
-	 */
-	socket = socket_new(state);
-	state->socket_under_test = socket;
-	assert(socket->state == SOCKET_INIT);
-	socket->state = SOCKET_PASSIVE_PACKET_RECEIVED;
-	socket->address_family = packet_address_family(packet);
-	socket->protocol = packet_ip_protocol(packet);
-
-	/* Set script info for this socket using script packet. */
-	struct tuple tuple;
-	get_packet_tuple(packet, &tuple);
-	socket->script.remote		= tuple.src;
-	socket->script.local		= tuple.dst;
+	
 	if (packet->tcp != NULL) {
 		socket->script.remote_isn = ntohl(packet->tcp->seq);
+		socket->live.remote_isn = ntohl(packet->tcp->seq);
 	} else {
 		socket->script.remote_initiate_tag = initiate_tag;
 		socket->script.remote_initial_tsn = initial_tsn;
-	}
-	socket->script.fd		= -1;
-
-	/* Set up the live info for this socket based
-	 * on the script packet and our overall config.
-	 */
-	socket->live.remote.ip		= config->live_remote_ip;
-	socket->live.remote.port	= htons(next_ephemeral_port(state));
-	socket->live.local.ip		= config->live_local_ip;
-	socket->live.local.port		= htons(config->live_bind_port);
-	if (packet->tcp != NULL) {
-		socket->live.remote_isn = ntohl(packet->tcp->seq);
-	} else {
 		socket->live.remote_initiate_tag = initiate_tag;
 		socket->live.remote_initial_tsn = initial_tsn;
 	}
-	socket->live.fd			= -1;
 
 	if (DEBUG_LOGGING) {
 		char local_string[ADDR_STR_LEN];
