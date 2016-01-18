@@ -209,6 +209,39 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 	return socket;
 }
 
+static inline bool sctp_is_init_packet(const struct packet *packet) {
+	struct sctp_chunk_list_item *item;
+	
+	if (packet->chunk_list != NULL) {
+		item = packet->chunk_list->first;
+		if ((item != NULL) && 
+			(item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+			return true;
+		}
+	} else {
+		if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
+			u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
+			if ((sctp_chunk_start != NULL) && 
+				(sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE)) {
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+static inline void sctp_socket_set_initiate_tag(struct socket *socket, u32 initiate_tag) {
+	socket->script.remote_initiate_tag = initiate_tag;
+	socket->live.remote_initiate_tag = initiate_tag;
+}
+
+static inline void sctp_socket_set_initial_tsn(struct socket *socket, u32 initial_tsn) {
+	socket->script.remote_initial_tsn = initial_tsn;
+	socket->live.remote_initial_tsn = initial_tsn;
+}
+	
+
 /* See if the socket under test is listening and is willing to receive
  * this incoming SYN packet. If so, create a new child socket, anoint
  * it as the new socket under test, and return a pointer to
@@ -226,7 +259,6 @@ static struct socket *handle_listen_for_script_packet(
 	 */
 	struct config *config = state->config;
 	struct socket *socket = state->socket_under_test;	/* shortcut */
-	u32 initiate_tag, initial_tsn;
 	struct sctp_chunk_list_item *item;
 
 	bool match = (direction == DIRECTION_INBOUND);
@@ -250,18 +282,16 @@ static struct socket *handle_listen_for_script_packet(
 		socket = setup_new_child_socket(state, packet);
 
 	if (packet->sctp != NULL) {
-		if (packet->chunk_list != NULL) {
-			item = packet->chunk_list->first;
-			if ((item != NULL) &&
-			    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
-				struct sctp_init_chunk *init = (struct sctp_init_chunk *)item->chunk;
-				initiate_tag = ntohl(init->initiate_tag);
-				initial_tsn = ntohl(init->initial_tsn);
-			} else {
-				return socket;
+		if (sctp_is_init_packet(packet)) {
+			if (packet->chunk_list != NULL) {
+				struct sctp_init_chunk *init;
+				item = packet->chunk_list->first;
+				init = (struct sctp_init_chunk *) item->chunk;
+				
+				sctp_socket_set_initiate_tag(socket, ntohl(init->initiate_tag));
+				sctp_socket_set_initial_tsn(socket, ntohl(init->initial_tsn));
 			}
-		} else {
-			if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
+			else {
 				struct header sctp_header;
 				unsigned int i;
 				bool found = false;
@@ -284,30 +314,19 @@ static struct socket *handle_listen_for_script_packet(
 				}
 				
 				u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
-				if (sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE) {
-					struct sctp_init_chunk *init = (struct sctp_init_chunk *) sctp_chunk_start;
-					initiate_tag = ntohl(init->initiate_tag);
-					initial_tsn = ntohl(init->initial_tsn);
-				} else {
-					return socket;
-				}
-			} else {
-				return socket;
+				struct sctp_init_chunk *init = (struct sctp_init_chunk *) sctp_chunk_start;
+				
+				sctp_socket_set_initiate_tag(socket, ntohl(init->initiate_tag));
+				sctp_socket_set_initial_tsn(socket, ntohl(init->initial_tsn));
 			}
+		} else {
+			return socket;
 		}
-	} else {
-		DEBUGP("packet->sctp == NULL");
 	}
-
 	
 	if (packet->tcp != NULL) {
 		socket->script.remote_isn = ntohl(packet->tcp->seq);
 		socket->live.remote_isn = ntohl(packet->tcp->seq);
-	} else {
-		socket->script.remote_initiate_tag = initiate_tag;
-		socket->script.remote_initial_tsn = initial_tsn;
-		socket->live.remote_initiate_tag = initiate_tag;
-		socket->live.remote_initial_tsn = initial_tsn;
 	}
 
 	if (DEBUG_LOGGING) {
