@@ -310,7 +310,7 @@ static struct socket *handle_listen_for_script_packet(
 
 				if (chunk_length < sizeof(struct sctp_init_chunk)) {
 					fprintf(stderr, "length of init chunk too short. you must specify the whole init chunk.");
-					return socket;
+					return NULL;
 				}
 				
 				u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
