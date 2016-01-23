@@ -960,6 +960,8 @@ static int cmsg_new(struct expression *expression,
 	}
 #ifndef linux
 	*cmsg_len_ptr = (socklen_t)cmsg_size;
+#else
+	*cmsg_len_ptr = cmsg_size;
 #endif
 	cmsg = calloc(1, cmsg_size);
 	*cmsg_ptr = (void *)cmsg;
