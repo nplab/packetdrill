@@ -4255,6 +4255,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	struct sctp_sndrcvinfo live_sinfo;
 	struct expression *len_expr, *script_sinfo_expr, *script_msg_flags_expr;
 	struct expression *script_fromlen_expr, *script_from_expr;
+	memset(&live_sinfo, 0, sizeof(struct sctp_sndrcvinfo));
 
 	if (check_arg_count(args, 7, error))
 		return STATUS_ERR;
@@ -4274,8 +4275,8 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	begin_syscall(state, syscall);
 	result = sctp_recvmsg(live_fd, msg, len, (struct sockaddr*) &live_from,
 			      &live_fromlen, &live_sinfo, &live_msg_flags);
-	free(msg);
 
+	free(msg);
 	if (end_syscall(state, syscall, CHECK_EXACT, result, error)) {
 		return STATUS_ERR;
 	}
