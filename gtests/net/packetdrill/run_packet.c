@@ -2686,6 +2686,14 @@ static int do_inbound_script_packet(
 			packet_payload_len(live_packet);
 	}
 
+	if (live_packet->ipv4->src_ip.s_addr == 0) {
+		DEBUGP("live_packet->ipv4->src_ip.s_addr == 0\n");
+		state->socket_under_test = setup_new_child_socket(state, packet);
+		struct tuple live_inbound;
+		socket_get_inbound(&state->socket_under_test->live, &live_inbound);
+		set_packet_tuple(live_packet, &live_inbound);
+	}
+
 	/* Inject live packet into kernel. */
 	result = send_live_ip_packet(state->netdev, live_packet);
 
