@@ -2686,12 +2686,24 @@ static int do_inbound_script_packet(
 			packet_payload_len(live_packet);
 	}
 
-	if (live_packet->ipv4->src_ip.s_addr == 0) {
-		DEBUGP("live_packet->ipv4->src_ip.s_addr == 0\n");
-		state->socket_under_test = setup_new_child_socket(state, packet);
-		struct tuple live_inbound;
-		socket_get_inbound(&state->socket_under_test->live, &live_inbound);
-		set_packet_tuple(live_packet, &live_inbound);
+	if (live_packet->ipv4 != NULL) {
+		if (live_packet->ipv4->src_ip.s_addr == 0) {
+			DEBUGP("live_packet->ipv4->src_ip.s_addr == 0\n");
+			state->socket_under_test = setup_new_child_socket(state, packet);
+			struct tuple live_inbound;
+			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
+			set_packet_tuple(live_packet, &live_inbound);
+		}
+	}
+
+	if (live_packet->ipv6 != NULL) {
+		uint32_t null_ip[4] = {0x00, 0x00, 0x00, 0x00};
+		if (memcmp(&(live_packet->ipv6->src_ip.__in6_u.__u6_addr32), &null_ip, sizeof(uint32_t) * 4) == 0) {
+			state->socket_under_test = setup_new_child_socket(state, packet);
+			struct tuple live_inbound;
+			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
+			set_packet_tuple(live_packet, &live_inbound);
+		}
 	}
 
 	/* Inject live packet into kernel. */
