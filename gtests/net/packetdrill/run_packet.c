@@ -174,6 +174,74 @@ static struct socket *find_socket_for_live_packet(
 	return NULL;
 }
 
+static struct socket *setup_new_child_socket(struct state *state, const struct packet *packet) {
+	/* Create a child passive socket for this incoming SYN packet.
+	 * Any further packets in the test script will be directed to
+	 * this child socket.
+	 */
+	struct config *config = state->config;
+	struct socket *socket;	/* shortcut */
+	
+	DEBUGP("creating new child_socket!\n");
+	
+	socket = socket_new(state);
+	state->socket_under_test = socket;
+	assert(socket->state == SOCKET_INIT);
+	socket->state = SOCKET_PASSIVE_PACKET_RECEIVED;
+	socket->address_family = packet_address_family(packet);
+	socket->protocol = packet_ip_protocol(packet);
+
+	/* Set script info for this socket using script packet. */
+	struct tuple tuple;
+	get_packet_tuple(packet, &tuple);
+	socket->script.remote		= tuple.src;
+	socket->script.local		= tuple.dst;
+	socket->script.fd		= -1;
+	
+	/* Set up the live info for this socket based
+	 * on the script packet and our overall config.
+	 */
+	socket->live.remote.ip		= config->live_remote_ip;
+	socket->live.remote.port	= htons(next_ephemeral_port(state));
+	socket->live.local.ip		= config->live_local_ip;
+	socket->live.local.port		= htons(config->live_bind_port);
+	socket->live.fd			= -1;
+	return socket;
+}
+
+static inline bool sctp_is_init_packet(const struct packet *packet) {
+	struct sctp_chunk_list_item *item;
+	
+	if (packet->chunk_list != NULL) {
+		item = packet->chunk_list->first;
+		if ((item != NULL) && 
+			(item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+			return true;
+		}
+	} else {
+		if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
+			u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
+			if ((sctp_chunk_start != NULL) && 
+				(sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE)) {
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+static inline void sctp_socket_set_initiate_tag(struct socket *socket, u32 initiate_tag) {
+	socket->script.remote_initiate_tag = initiate_tag;
+	socket->live.remote_initiate_tag = initiate_tag;
+}
+
+static inline void sctp_socket_set_initial_tsn(struct socket *socket, u32 initial_tsn) {
+	socket->script.remote_initial_tsn = initial_tsn;
+	socket->live.remote_initial_tsn = initial_tsn;
+}
+	
+
 /* See if the socket under test is listening and is willing to receive
  * this incoming SYN packet. If so, create a new child socket, anoint
  * it as the new socket under test, and return a pointer to
@@ -191,7 +259,6 @@ static struct socket *handle_listen_for_script_packet(
 	 */
 	struct config *config = state->config;
 	struct socket *socket = state->socket_under_test;	/* shortcut */
-	u32 initiate_tag, initial_tsn;
 	struct sctp_chunk_list_item *item;
 
 	bool match = (direction == DIRECTION_INBOUND);
@@ -210,20 +277,21 @@ static struct socket *handle_listen_for_script_packet(
 	}
 	if (!match)
 		return NULL;
+	
+	if (socket != NULL)
+		socket = setup_new_child_socket(state, packet);
 
 	if (packet->sctp != NULL) {
-		if (packet->chunk_list != NULL) {
-			item = packet->chunk_list->first;
-			if ((item != NULL) &&
-			    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
-				struct sctp_init_chunk *init = (struct sctp_init_chunk *)item->chunk;
-				initiate_tag = ntohl(init->initiate_tag);
-				initial_tsn = ntohl(init->initial_tsn);
-			} else {
-				return NULL;
+		if (sctp_is_init_packet(packet)) {
+			if (packet->chunk_list != NULL) {
+				struct sctp_init_chunk *init;
+				item = packet->chunk_list->first;
+				init = (struct sctp_init_chunk *) item->chunk;
+				
+				sctp_socket_set_initiate_tag(socket, ntohl(init->initiate_tag));
+				sctp_socket_set_initial_tsn(socket, ntohl(init->initial_tsn));
 			}
-		} else {
-			if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
+			else {
 				struct header sctp_header;
 				unsigned int i;
 				bool found = false;
@@ -246,59 +314,20 @@ static struct socket *handle_listen_for_script_packet(
 				}
 				
 				u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
-				if (sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE) {
-					struct sctp_init_chunk *init = (struct sctp_init_chunk *) sctp_chunk_start;
-					initiate_tag = ntohl(init->initiate_tag);
-					initial_tsn = ntohl(init->initial_tsn);
-				} else {
-					return NULL;
-				}
-			} else {
-				return NULL;
+				struct sctp_init_chunk *init = (struct sctp_init_chunk *) sctp_chunk_start;
+				
+				sctp_socket_set_initiate_tag(socket, ntohl(init->initiate_tag));
+				sctp_socket_set_initial_tsn(socket, ntohl(init->initial_tsn));
 			}
+		} else {
+			return socket;
 		}
-	} else {
-		DEBUGP("packet->sctp == NULL");
 	}
-
-	/* Create a child passive socket for this incoming SYN packet.
-	 * Any further packets in the test script will be directed to
-	 * this child socket.
-	 */
-	socket = socket_new(state);
-	state->socket_under_test = socket;
-	assert(socket->state == SOCKET_INIT);
-	socket->state = SOCKET_PASSIVE_PACKET_RECEIVED;
-	socket->address_family = packet_address_family(packet);
-	socket->protocol = packet_ip_protocol(packet);
-
-	/* Set script info for this socket using script packet. */
-	struct tuple tuple;
-	get_packet_tuple(packet, &tuple);
-	socket->script.remote		= tuple.src;
-	socket->script.local		= tuple.dst;
+	
 	if (packet->tcp != NULL) {
 		socket->script.remote_isn = ntohl(packet->tcp->seq);
-	} else {
-		socket->script.remote_initiate_tag = initiate_tag;
-		socket->script.remote_initial_tsn = initial_tsn;
-	}
-	socket->script.fd		= -1;
-
-	/* Set up the live info for this socket based
-	 * on the script packet and our overall config.
-	 */
-	socket->live.remote.ip		= config->live_remote_ip;
-	socket->live.remote.port	= htons(next_ephemeral_port(state));
-	socket->live.local.ip		= config->live_local_ip;
-	socket->live.local.port		= htons(config->live_bind_port);
-	if (packet->tcp != NULL) {
 		socket->live.remote_isn = ntohl(packet->tcp->seq);
-	} else {
-		socket->live.remote_initiate_tag = initiate_tag;
-		socket->live.remote_initial_tsn = initial_tsn;
 	}
-	socket->live.fd			= -1;
 
 	if (DEBUG_LOGGING) {
 		char local_string[ADDR_STR_LEN];
@@ -2655,6 +2684,26 @@ static int do_inbound_script_packet(
 		socket->last_injected_tcp_header = *(live_packet->tcp);
 		socket->last_injected_tcp_payload_len =
 			packet_payload_len(live_packet);
+	}
+
+	if (live_packet->ipv4 != NULL) {
+		if (live_packet->ipv4->src_ip.s_addr == 0) {
+			DEBUGP("live_packet->ipv4->src_ip.s_addr == 0\n");
+			state->socket_under_test = setup_new_child_socket(state, packet);
+			struct tuple live_inbound;
+			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
+			set_packet_tuple(live_packet, &live_inbound);
+		}
+	}
+
+	if (live_packet->ipv6 != NULL) {
+		uint32_t null_ip[4] = {0x00, 0x00, 0x00, 0x00};
+		if (memcmp(&(live_packet->ipv6->src_ip.__in6_u.__u6_addr32), &null_ip, sizeof(uint32_t) * 4) == 0) {
+			state->socket_under_test = setup_new_child_socket(state, packet);
+			struct tuple live_inbound;
+			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
+			set_packet_tuple(live_packet, &live_inbound);
+		}
 	}
 
 	/* Inject live packet into kernel. */
