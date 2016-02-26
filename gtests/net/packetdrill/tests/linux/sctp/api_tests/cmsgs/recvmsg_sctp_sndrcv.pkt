@@ -22,7 +22,7 @@
 					       sctp_partial_delivery_event=0,
 					       sctp_adaptation_layer_event=0,
 					       sctp_authentication_event=0,
-					       sctp_sender_dry_event=0}, 11) = 0
+					       sctp_sender_dry_event=0}, 10) = 0
 
 
 +0.0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS,
@@ -39,7 +39,7 @@
 *    > sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]]
 +0.0 recvmsg(3, {msg_name(...)=...,
                  msg_iov(1)=[{iov_base=..., iov_len=1000}],
-                 msg_control(140)=[{cmsg_len=140,
+                 msg_control(44)=[{cmsg_len=44,
                                     cmsg_level=IPPROTO_SCTP,
                                     cmsg_type=SCTP_SNDRCV,
                                     cmsg_data={sinfo_stream=0,
@@ -49,7 +49,7 @@
                                                sinfo_context=0,
                                                sinfo_timetolive=0,
                                                sinfo_tsn=1,
-                                               sinfo_cumtsn=1,
+                                               sinfo_cumtsn=0,
                                                sinfo_assoc_id=...}}],
                  msg_flags=MSG_EOR}, 0) = 1000
 
@@ -57,7 +57,7 @@
 *    > sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=..., gaps=[], dups=[]]
 +0.0 recvmsg(3, {msg_name(...)=...,
                  msg_iov(1)=[{iov_base=..., iov_len=1000}],
-                 msg_control(140)=[{cmsg_len=140,
+                 msg_control(44)=[{cmsg_len=44,
                                     cmsg_level=IPPROTO_SCTP,
                                     cmsg_type=SCTP_SNDRCV,
                                     cmsg_data={sinfo_stream=0,
@@ -75,7 +75,7 @@
 *    > sctp: SACK[flgs=0, cum_tsn=3, a_rwnd=..., gaps=[], dups=[]]
 +0.0 recvmsg(3, {msg_name(...)=...,
                  msg_iov(1)=[{iov_base=..., iov_len=1000}],
-                 msg_control(140)=[{cmsg_len=140,
+                 msg_control(44)=[{cmsg_len=44,
                                     cmsg_level=IPPROTO_SCTP,
                                     cmsg_type=SCTP_SNDRCV,
                                     cmsg_data={sinfo_stream=0,

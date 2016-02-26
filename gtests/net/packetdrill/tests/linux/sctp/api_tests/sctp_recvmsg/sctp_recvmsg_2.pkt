@@ -1,3 +1,4 @@
+	--tolerance_usecs=100000
 +0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
 +0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
 +0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
@@ -10,17 +11,39 @@
 +0.1 < sctp: COOKIE_ACK[flgs=0]
 +0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 
+//Enable SCTP DATA_IO_EVENT to get sctp_sndrcvinfo
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENTS, {sctp_data_io_event=1,
+					       sctp_association_event=0,
+					       sctp_address_event=0,
+					       sctp_send_failure_event=0,
+					       sctp_peer_error_event=0,
+					       sctp_shutdown_event=0,
+					       sctp_partial_delivery_event=0,
+					       sctp_adaptation_layer_event=0,
+					       sctp_authentication_event=0,
+					       sctp_sender_dry_event=0}, 10) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENTS, {sctp_data_io_event=1,
+					       sctp_association_event=0,
+					       sctp_address_event=0,
+					       sctp_send_failure_event=0,
+					       sctp_peer_error_event=0,
+					       sctp_shutdown_event=0,
+					       sctp_partial_delivery_event=0,
+					       sctp_adaptation_layer_event=0,
+					       sctp_authentication_event=0,
+					       sctp_sender_dry_event=0}, [10]) = 0
+
 +0.0 < sctp: DATA[flgs=BE, len=1016, tsn=1, sid=0, ssn=0, ppid=1234]
 *    > sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]]
-+0.0 sctp_recvmsg(3, ..., 1000, ..., ..., {sinfo_stream=...,
-                                           sinfo_ssn=...,
++0.0 sctp_recvmsg(3, ..., 1000, ..., ..., {sinfo_stream=0,
+                                           sinfo_ssn=0,
                                            sinfo_flags=0,
-                                           sinfo_ppid=htonl(205526792),
-                                           sinfo_context=...,
-                                           sinfo_timetolive=...,
-                                           sinfo_tsn=...,
-                                           sinfo_cumtsn=...,
-                                           sinfo_assoc_id=...}, 128) = 1000
+                                           sinfo_ppid=htonl(1234),
+                                           sinfo_context=0,
+                                           sinfo_timetolive=0,
+                                           sinfo_tsn=1,
+                                           sinfo_cumtsn=0,
+                                           sinfo_assoc_id=...}, MSG_EOR) = 1000
 
 +0.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=1]
