@@ -89,6 +89,7 @@ enum expression_t {
 	EXPR_SCTP_AUTHCHUNK,      /* expression tree for sctp_authchunk struct for setsockopt */
 	EXPR_SCTP_AUTHKEY,        /* expression tree for sctp_authkey struct for setsockopt */
 	EXPR_SCTP_RESET_STREAMS,  /* expression tree for sctp_reset_stream struct for [gs]etsockopt */
+	EXPR_SCTP_ADD_STREAMS,    /* expression tree for sctp_add_streams struct for [gs]etsockopt */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -151,6 +152,7 @@ struct expression {
 		struct sctp_authchunk_expr *sctp_authchunk;
 		struct sctp_authkey_expr *sctp_authkey;
 		struct sctp_reset_streams_expr *sctp_reset_streams;
+		struct sctp_add_streams_expr *sctp_add_streams;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -573,6 +575,13 @@ struct sctp_reset_streams_expr {
 	struct expression *srs_flags;
 	struct expression *srs_number_streams;
 	struct expression *srs_stream_list;
+};
+
+/* Parse tree for sctp_add_stream struct for setsockopt. */
+struct sctp_add_streams_expr {
+	struct expression *sas_assoc_id;
+	struct expression *sas_instrms;
+	struct expression *sas_outstrms;
 };
 
 /* The errno-related info from strace to summarize a system call error */

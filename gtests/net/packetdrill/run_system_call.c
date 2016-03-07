@@ -3519,6 +3519,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	u8 spp_dscp;
 #endif
 #endif
+#ifdef SCTP_ADD_STREAMS
+	struct sctp_add_streams add_streams;
+#endif
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -4017,6 +4020,24 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &reset_streams;
 		break;
 	}
+#endif
+#ifdef SCTP_ADD_STREAMS
+	case EXPR_SCTP_ADD_STREAMS:
+		if (get_sctp_assoc_t(val_expression->value.sctp_add_streams->sas_assoc_id,
+				     &add_streams.sas_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_add_streams->sas_instrms,
+			    &add_streams.sas_instrms, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_add_streams->sas_outstrms,
+			    &add_streams.sas_outstrms, error)) {
+			return STATUS_ERR;
+		}
+
+		optval = &add_streams;
+		break;
 #endif
 	default:
 		asprintf(error, "unsupported value type: %s",

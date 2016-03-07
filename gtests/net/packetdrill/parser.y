@@ -568,6 +568,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SN_TYPE SN_FLAGS SN_LENGTH SAUTH_CHUNK
 %token <reserved> SCA_ASSOC_ID SCA_KEYNUMBER SCA_KEYLENGTH SCA_KEY
 %token <reserved> SRS_ASSOC_ID SRS_FLAGS SRS_NUMBER_STREAMS SRS_STREAM_LIST
+%token <reserved> SAS_ASSOC_ID SAS_INSTRMS SAS_OUTSTRMS
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -642,6 +643,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_tlv sn_type sn_flags sn_length sctp_assoc_ids gaids_number_of_ids
 %type <expression> sctp_setpeerprim sctp_authchunk sctp_authkey
 %type <expression> sctp_reset_streams srs_flags
+%type <expression> sctp_add_streams
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2635,6 +2637,9 @@ expression
 	$$ = $1;
 }
 | sctp_reset_streams{
+	$$ = $1;
+}
+| sctp_add_streams  {
 	$$ = $1;
 }
 | null              {
@@ -4988,6 +4993,36 @@ sctp_reset_streams
 	$$->value.sctp_reset_streams->srs_stream_list = $10;
 }
 ;
+
+sctp_add_streams
+: '{' SAS_ASSOC_ID '=' sctp_assoc_id ',' SAS_INSTRMS '=' INTEGER ',' SAS_OUTSTRMS '=' INTEGER '}' {
+	$$ = new_expression(EXPR_SCTP_ADD_STREAMS);
+	$$->value.sctp_add_streams = calloc(1, sizeof(struct sctp_add_streams_expr));
+	$$->value.sctp_add_streams->sas_assoc_id = $4;
+	if (!is_valid_u16($8)) {
+		semantic_error("sas_instrms out of range");
+	}
+	$$->value.sctp_add_streams->sas_instrms = new_integer_expression($8, "%hu");
+	if (!is_valid_u16($12)) {
+		semantic_error("sas_outstrms out of range");
+	}
+	$$->value.sctp_add_streams->sas_outstrms = new_integer_expression($12, "%hu");
+}
+| '{' SAS_INSTRMS '=' INTEGER ',' SAS_OUTSTRMS '=' INTEGER '}' {
+	$$ = new_expression(EXPR_SCTP_ADD_STREAMS);
+	$$->value.sctp_add_streams = calloc(1, sizeof(struct sctp_add_streams_expr));
+	$$->value.sctp_add_streams->sas_assoc_id = new_expression(EXPR_ELLIPSIS);
+	if (!is_valid_u16($4)) {
+		semantic_error("sas_instrms out of range");
+	}
+	$$->value.sctp_add_streams->sas_instrms = new_integer_expression($4, "%hu");
+	if (!is_valid_u16($8)) {
+		semantic_error("sas_outstrms out of range");
+	}
+	$$->value.sctp_add_streams->sas_outstrms = new_integer_expression($8, "%hu");
+}
+;
+
 opt_errno
 :                   { $$ = NULL; }
 | WORD note         {
