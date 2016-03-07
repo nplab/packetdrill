@@ -4014,11 +4014,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
                         get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
                 }
 
-		printf("SCTP_RESET_STREAMS\n");
-                printf("flags: %hu\n", reset_streams->srs_flags);
-                printf("number_of-streams: %hu\n", reset_streams->srs_number_streams);
-                printf("size: %d\n", len);
-  
 		optval = &reset_streams;
 		break;
 	}
