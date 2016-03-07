@@ -269,6 +269,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ENABLE_RESET_STREAM_REQ,     "SCTP_ENABLE_RESET_STREAM_REQ"    },
 	{ SCTP_ENABLE_RESET_ASSOC_REQ,      "SCTP_ENABLE_RESET_ASSOC_REQ"     },
 	{ SCTP_ENABLE_CHANGE_ASSOC_REQ,     "SCTP_ENABLE_CHANGE_ASSOC_REQ"    },
+	{ SCTP_RESET_STREAMS,               "SCTP_RESET_STREAMS"              },
+	{ SCTP_STREAM_RESET_INCOMING,       "SCTP_STREAM_RESET_INCOMING"      },
+	{ SCTP_STREAM_RESET_OUTGOING,       "SCTP_STREAM_RESET_OUTGOING"      },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
