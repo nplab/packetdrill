@@ -3175,7 +3175,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 	}
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	case EXPR_SCTP_ASSOC_VALUE:
 		live_optval = malloc(sizeof(struct sctp_assoc_value));
 		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
@@ -3375,7 +3375,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_paddrparams(val_expression->value.sctp_paddrparams, live_optval, error);
 		break;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	case EXPR_SCTP_ASSOC_VALUE:
 		result = check_sctp_assoc_value(val_expression->value.sctp_assoc_value, live_optval, error);
 		break;
@@ -3467,7 +3467,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_INITMSG
 	struct sctp_initmsg initmsg;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	struct sctp_assoc_value assoc_value;
 #endif
 #ifdef SCTP_AUTH_ACTIVE_KEY
@@ -3609,7 +3609,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &initmsg;
 		break;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	case EXPR_SCTP_ASSOC_VALUE:
 		if (get_sctp_assoc_t(val_expression->value.sctp_assoc_value->assoc_id,
 				     &assoc_value.assoc_id, error)) {
