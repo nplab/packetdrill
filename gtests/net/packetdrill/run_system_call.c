@@ -3982,6 +3982,47 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &paddrparams;
 		break;
 #endif
+#ifdef SCTP_RESET_STREAMS
+	case EXPR_SCTP_RESET_STREAMS: {
+		struct sctp_reset_streams *reset_streams;
+		struct expression_list *list;
+		int len = 0, i = 0;
+
+		if (check_type(val_expression->value.sctp_reset_streams->srs_stream_list, EXPR_LIST, error)) {
+			return STATUS_ERR;
+		}
+		list = val_expression->value.sctp_reset_streams->srs_stream_list->value.list;
+		len = expression_list_length(list);
+		reset_streams = malloc(sizeof(u32) + sizeof(u16) + sizeof(u16) + (sizeof(u16) * len));
+
+		if (get_sctp_assoc_t(val_expression->value.sctp_reset_streams->srs_assoc_id,
+				     &reset_streams->srs_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_reset_streams->srs_flags,
+			    &reset_streams->srs_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_reset_streams->srs_number_streams,
+			    &reset_streams->srs_number_streams, error)) {
+			return STATUS_ERR;
+		}
+
+                for (i = 0; i < len; i++) {
+                        struct expression *expr;
+                        expr = get_arg(list, i, error);
+                        get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
+                }
+
+		printf("SCTP_RESET_STREAMS\n");
+                printf("flags: %hu\n", reset_streams->srs_flags);
+                printf("number_of-streams: %hu\n", reset_streams->srs_number_streams);
+                printf("size: %d\n", len);
+  
+		optval = &reset_streams;
+		break;
+	}
+#endif
 	default:
 		asprintf(error, "unsupported value type: %s",
 			 expression_type_to_string(val_expression->type));
@@ -3993,7 +4034,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
 	return end_syscall(state, syscall, CHECK_EXACT, result, error);
-#if defined(SCTP_HMAC_IDENT) || defined(SCTP_AUTH_KEY)
+#if defined(SCTP_HMAC_IDENT) || defined(SCTP_AUTH_KEY) || defined(SCTP_RESET_STREAMS)
 	free(optval);
 #endif
 }

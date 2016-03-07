@@ -108,6 +108,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_SETPEERPRIM,     "sctp_setpeerprim"},
 	{ EXPR_SCTP_AUTHCHUNK,       "sctp_authchunk"  },
 	{ EXPR_SCTP_AUTHKEY,         "sctp_authkey"    },
+	{ EXPR_SCTP_RESET_STREAM,    "sctp_reset_stream"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -606,6 +607,12 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_authkey->sca_keynumber);
 		free_expression(expression->value.sctp_authkey->sca_keylength);
 		free_expression(expression->value.sctp_authkey->sca_key);
+		break;
+	case EXPR_SCTP_RESET_STREAM:
+		free_expression(expression->value.sctp_reset_stream->srs_assoc_id);
+		free_expression(expression->value.sctp_reset_stream->srs_flags);
+		free_expression(expression->value.sctp_reset_stream->srs_number_streams);
+		free_expression(expression->value.sctp_reset_stream->srs_stream_list);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2418,6 +2425,42 @@ static int evaluate_sctp_authkey_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_reset_stream_expression(struct expression *in,
+						 struct expression *out,
+						 char **error)
+{
+	struct sctp_reset_stream_expr *in_reset_stream;
+	struct sctp_reset_stream_expr *out_reset_stream;
+
+	assert(in->type == EXPR_SCTP_RESET_STREAM);
+	assert(in->value.sctp_reset_stream);
+	assert(out->type == EXPR_SCTP_RESET_STREAM);
+
+	out->value.sctp_reset_stream = calloc(1, sizeof(struct sctp_reset_stream_expr));
+
+	in_reset_stream = in->value.sctp_reset_stream;
+	out_reset_stream = out->value.sctp_reset_stream;
+
+	if (evaluate(in_reset_stream->srs_assoc_id,
+		     &out_reset_stream->srs_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_reset_stream->srs_flags,
+		     &out_reset_stream->srs_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_reset_stream->srs_number_streams,
+		     &out_reset_stream->srs_number_streams,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_reset_stream->srs_stream_list,
+		     &out_reset_stream->srs_stream_list,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2565,6 +2608,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_AUTHKEY:
 		result = evaluate_sctp_authkey_expression(in, out, error);
+		break;
+	case EXPR_SCTP_RESET_STREAM:
+		result = evaluate_sctp_reset_stream_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

@@ -264,6 +264,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_USE_EXT_RCVINFO,             "SCTP_USE_EXT_RCVINFO"            },
 	{ SCTP_AUTH_HMAC_ID_SHA1,           "SCTP_AUTH_HMAC_ID_SHA1"          },
 	{ SCTP_AUTH_HMAC_ID_SHA256,         "SCTP_AUTH_HMAC_ID_SHA256"        },
+
 	/* sctp stream reconfiguration */
 	{ SCTP_ENABLE_STREAM_RESET,         "SCTP_ENABLE_STREAM_RESET"        },
 	{ SCTP_ENABLE_RESET_STREAM_REQ,     "SCTP_ENABLE_RESET_STREAM_REQ"    },

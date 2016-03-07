@@ -567,6 +567,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> GAIDS_NUMBER_OF_IDS GAIDS_ASSOC_ID SSPP_ASSOC_ID SSPP_ADDR
 %token <reserved> SN_TYPE SN_FLAGS SN_LENGTH SAUTH_CHUNK
 %token <reserved> SCA_ASSOC_ID SCA_KEYNUMBER SCA_KEYLENGTH SCA_KEY
+%token <reserved> SRS_ASSOC_ID SRS_FLAGS SRS_NUMBER_STREAMS SRS_STREAM_LIST
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -640,6 +641,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_adaptation_event sai_type sai_flags sai_length sai_adaptation_ind
 %type <expression> sctp_tlv sn_type sn_flags sn_length sctp_assoc_ids gaids_number_of_ids
 %type <expression> sctp_setpeerprim sctp_authchunk sctp_authkey
+%type <expression> sctp_reset_streams srs_flags
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2630,6 +2632,9 @@ expression
 	$$ = $1;
 }
 | sctp_authkey      {
+	$$ = $1;
+}
+| sctp_reset_streams{
 	$$ = $1;
 }
 | null              {
@@ -4946,6 +4951,43 @@ sctp_authkey
 	$$->value.sctp_authkey->sca_key = $12;
 };
 
+srs_flags
+: SRS_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("srs_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| SRS_FLAGS '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+;
+
+sctp_reset_streams
+: '{' SRS_ASSOC_ID '=' sctp_assoc_id ',' srs_flags ',' SRS_NUMBER_STREAMS '=' INTEGER ',' SRS_STREAM_LIST '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_RESET_STREAMS);
+	$$->value.sctp_reset_streams = calloc(1, sizeof(struct sctp_reset_streams_expr));
+	$$->value.sctp_reset_streams->srs_assoc_id = $4;
+	$$->value.sctp_reset_streams->srs_flags = $6;
+	if (!is_valid_u16($10)) {
+		semantic_error("srs_number_streams out of range");
+	}
+	$$->value.sctp_reset_streams->srs_number_streams = new_integer_expression($10, "%hu");
+	$$->value.sctp_reset_streams->srs_stream_list = $14;
+}
+| '{' srs_flags ',' SRS_NUMBER_STREAMS '=' INTEGER ',' SRS_STREAM_LIST '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_RESET_STREAMS);
+	$$->value.sctp_reset_streams = calloc(1, sizeof(struct sctp_reset_streams_expr));
+	$$->value.sctp_reset_streams->srs_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_reset_streams->srs_flags = $2;
+	if (!is_valid_u16($6)) {
+		semantic_error("srs_number_streams out of range");
+	}
+	$$->value.sctp_reset_streams->srs_number_streams = new_integer_expression($6, "%hu");
+	$$->value.sctp_reset_streams->srs_stream_list = $10;
+}
+;
 opt_errno
 :                   { $$ = NULL; }
 | WORD note         {
