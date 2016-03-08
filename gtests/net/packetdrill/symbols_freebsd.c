@@ -276,6 +276,10 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_RESET_ASSOC,                 "SCTP_RESET_ASSOC"                },
 	{ SCTP_ADD_STREAMS,                 "SCTP_ADD_STREAMS"                },
 	{ SCTP_STREAM_RESET_EVENT,          "SCTP_STREAM_RESET_EVENT"         },
+	{ SCTP_STREAM_RESET_INCOMING_SSN,   "SCTP_STREAM_RESET_INCOMING_SSN"  },
+	{ SCTP_STREAM_RESET_OUTGOING_SSN,   "SCTP_STREAM_RESET_OUTGOING_SSN"  },
+	{ SCTP_STREAM_RESET_DENIED,         "SCTP_STREAM_RESET_DENIED"        },
+	{ SCTP_STREAM_RESET_FAILED,         "SCTP_STREAM_RESET_FAILED"        },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
