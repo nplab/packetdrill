@@ -275,6 +275,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_STREAM_RESET_OUTGOING,       "SCTP_STREAM_RESET_OUTGOING"      },
 	{ SCTP_RESET_ASSOC,                 "SCTP_RESET_ASSOC"                },
 	{ SCTP_ADD_STREAMS,                 "SCTP_ADD_STREAMS"                },
+	{ SCTP_STREAM_RESET_EVENT,          "SCTP_STREAM_RESET_EVENT"         },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },

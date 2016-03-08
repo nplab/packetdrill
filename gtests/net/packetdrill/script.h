@@ -90,6 +90,7 @@ enum expression_t {
 	EXPR_SCTP_AUTHKEY,        /* expression tree for sctp_authkey struct for setsockopt */
 	EXPR_SCTP_RESET_STREAMS,  /* expression tree for sctp_reset_stream struct for [gs]etsockopt */
 	EXPR_SCTP_ADD_STREAMS,    /* expression tree for sctp_add_streams struct for [gs]etsockopt */
+	EXPR_SCTP_STREAM_RESET_EVENT, /* expression tree for sctp_stream_reset_event struct for sctp notifications */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -153,6 +154,7 @@ struct expression {
 		struct sctp_authkey_expr *sctp_authkey;
 		struct sctp_reset_streams_expr *sctp_reset_streams;
 		struct sctp_add_streams_expr *sctp_add_streams;
+		struct sctp_stream_reset_event_expr *sctp_stream_reset_event;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -582,6 +584,15 @@ struct sctp_add_streams_expr {
 	struct expression *sas_assoc_id;
 	struct expression *sas_instrms;
 	struct expression *sas_outstrms;
+};
+
+/* Parse tree for sctp_stream_reset_event struct for sctp notifications. */
+struct sctp_stream_reset_event_expr {
+	struct expression *strreset_type;
+	struct expression *strreset_flags;
+	struct expression *strreset_length;
+	struct expression *strreset_assoc_id;
+	struct expression *strreset_stream_list;
 };
 
 /* The errno-related info from strace to summarize a system call error */

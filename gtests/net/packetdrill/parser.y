@@ -569,6 +569,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SCA_ASSOC_ID SCA_KEYNUMBER SCA_KEYLENGTH SCA_KEY
 %token <reserved> SRS_ASSOC_ID SRS_FLAGS SRS_NUMBER_STREAMS SRS_STREAM_LIST
 %token <reserved> SAS_ASSOC_ID SAS_INSTRMS SAS_OUTSTRMS
+%token <reserved> STRRESET_TYPE STRRESET_FLAGS STRRESET_LENGTH STRRESET_ASSOC_ID STRRESET_STREAM_LIST
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -643,6 +644,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_tlv sn_type sn_flags sn_length sctp_assoc_ids gaids_number_of_ids
 %type <expression> sctp_setpeerprim sctp_authchunk sctp_authkey
 %type <expression> sctp_reset_streams srs_flags
+%type <expression> sctp_stream_reset_event strreset_type strreset_flags strreset_length
 %type <expression> sctp_add_streams
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2740,6 +2742,7 @@ data
 | sctp_send_failed_event    { $$ = $1; }
 | sctp_authkey_event        { $$ = $1; }
 | sctp_tlv                  { $$ = $1; }
+| sctp_stream_reset_event   { $$ = $1; }
 ;
 
 msghdr
@@ -5020,6 +5023,57 @@ sctp_add_streams
 		semantic_error("sas_outstrms out of range");
 	}
 	$$->value.sctp_add_streams->sas_outstrms = new_integer_expression($8, "%hu");
+}
+;
+
+strreset_type
+: STRRESET_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("strreset_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| STRRESET_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| STRRESET_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+strreset_flags
+: STRRESET_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("strreset_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| STRRESET_FLAGS '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| STRRESET_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| STRRESET_FLAGS '=' binary_expression { $$ = $3; }
+;
+
+strreset_length
+: STRRESET_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("strreset_length out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| STRRESET_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_stream_reset_event
+: '{' strreset_type ',' strreset_flags ',' strreset_length ',' STRRESET_ASSOC_ID '=' sctp_assoc_id ',' STRRESET_STREAM_LIST '=' array '}' {
+	$$ = new_expression(EXPR_SCTP_STREAM_RESET_EVENT);
+	$$->value.sctp_stream_reset_event = calloc(1, sizeof(struct sctp_stream_reset_event_expr));
+	$$->value.sctp_stream_reset_event->strreset_type = $2;
+	$$->value.sctp_stream_reset_event->strreset_flags = $4;
+	$$->value.sctp_stream_reset_event->strreset_length = $6;
+	$$->value.sctp_stream_reset_event->strreset_assoc_id = $10;
+	$$->value.sctp_stream_reset_event->strreset_stream_list = $14;
 }
 ;
 
