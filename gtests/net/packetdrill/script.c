@@ -112,6 +112,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_ADD_STREAMS,     "sctp_add_streams"},
 	{ EXPR_SCTP_STREAM_RESET_EVENT, "sctp_stream_reset_event"},
 	{ EXPR_SCTP_ASSOC_RESET_EVENT, "sctp_assoc_reset_event"},
+	{ EXPR_SCTP_STREAM_CHANGE_EVENT, "sctp_stream_change_event"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -636,6 +637,14 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_assoc_id);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_local_tsn);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_remote_tsn);
+		break;
+	case EXPR_SCTP_STREAM_CHANGE_EVENT:
+		free_expression(expression->value.sctp_stream_change_event->strchange_type);
+		free_expression(expression->value.sctp_stream_change_event->strchange_flags);
+		free_expression(expression->value.sctp_stream_change_event->strchange_length);
+		free_expression(expression->value.sctp_stream_change_event->strchange_assoc_id);
+		free_expression(expression->value.sctp_stream_change_event->strchange_instrms);
+		free_expression(expression->value.sctp_stream_change_event->strchange_outstrms);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2600,6 +2609,50 @@ static int evaluate_sctp_assoc_reset_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_stream_change_event_expression(struct expression *in,
+						        struct expression *out,
+						        char **error)
+{
+	struct sctp_stream_change_event_expr *in_event;
+	struct sctp_stream_change_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_STREAM_CHANGE_EVENT);
+	assert(in->value.sctp_stream_change_event);
+	assert(out->type == EXPR_SCTP_STREAM_CHANGE_EVENT);
+
+	out->value.sctp_stream_change_event = calloc(1, sizeof(struct sctp_stream_change_event_expr));
+
+	in_event = in->value.sctp_stream_change_event;
+	out_event = out->value.sctp_stream_change_event;
+
+	if (evaluate(in_event->strchange_type,
+		     &out_event->strchange_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->strchange_flags,
+		     &out_event->strchange_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->strchange_length,
+		     &out_event->strchange_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->strchange_assoc_id,
+		     &out_event->strchange_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->strchange_instrms,
+		     &out_event->strchange_instrms,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->strchange_outstrms,
+		     &out_event->strchange_outstrms,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2759,6 +2812,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_ASSOC_RESET_EVENT:
 		result = evaluate_sctp_assoc_reset_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_STREAM_CHANGE_EVENT:
+		result = evaluate_sctp_stream_change_event_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

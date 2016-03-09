@@ -571,6 +571,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SAS_ASSOC_ID SAS_INSTRMS SAS_OUTSTRMS
 %token <reserved> STRRESET_TYPE STRRESET_FLAGS STRRESET_LENGTH STRRESET_ASSOC_ID STRRESET_STREAM_LIST
 %token <reserved> ASSOCRESET_TYPE ASSOCRESET_FLAGS ASSOCRESET_LENGTH ASSOCRESET_ASSOC_ID ASSOCRESET_LOCAL_TSN ASSOCRESET_REMOTE_TSN
+%token <reserved> STRCHANGE_TYPE STRCHANGE_FLAGS STRCHANGE_LENGTH STRCHANGE_ASSOC_ID STRCHANGE_INSTRMS STRCHANGE_OUTSTRMS
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -648,6 +649,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_stream_reset_event strreset_type strreset_flags strreset_length
 %type <expression> sctp_assoc_reset_event assocreset_type assocreset_flags assocreset_length
 %type <expression> assocreset_local_tsn assocreset_remote_tsn
+%type <expression> sctp_stream_change_event strchange_type strchange_flags strchange_length strchange_instrms strchange_outstrms
 %type <expression> sctp_add_streams
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2747,6 +2749,7 @@ data
 | sctp_tlv                  { $$ = $1; }
 | sctp_stream_reset_event   { $$ = $1; }
 | sctp_assoc_reset_event    { $$ = $1; }
+| sctp_stream_change_event  { $$ = $1; }
 ;
 
 msghdr
@@ -5151,6 +5154,79 @@ sctp_assoc_reset_event
 	$$->value.sctp_assoc_reset_event->assocreset_assoc_id = $10;
 	$$->value.sctp_assoc_reset_event->assocreset_local_tsn = $12;
 	$$->value.sctp_assoc_reset_event->assocreset_remote_tsn = $14;
+}
+;
+
+strchange_type
+: STRCHANGE_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("strchange_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| STRCHANGE_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| STRCHANGE_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+strchange_flags
+: STRCHANGE_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("strchange_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| STRCHANGE_FLAGS '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| STRCHANGE_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| STRCHANGE_FLAGS '=' binary_expression { $$ = $3; }
+;
+
+strchange_length
+: STRCHANGE_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("strchange_length out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| STRCHANGE_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+strchange_instrms
+: STRCHANGE_INSTRMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("strchange_instrms out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| STRCHANGE_INSTRMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+strchange_outstrms
+: STRCHANGE_OUTSTRMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("strchange_outstrms out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| STRCHANGE_OUTSTRMS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_stream_change_event
+: '{' strchange_type ',' strchange_flags ',' strchange_length ',' STRCHANGE_ASSOC_ID '=' sctp_assoc_id ',' strchange_instrms ',' strchange_outstrms '}' {
+	$$ = new_expression(EXPR_SCTP_STREAM_CHANGE_EVENT);
+	$$->value.sctp_stream_change_event = calloc(1, sizeof(struct sctp_stream_change_event_expr));
+	$$->value.sctp_stream_change_event->strchange_type = $2;
+	$$->value.sctp_stream_change_event->strchange_flags = $4;
+	$$->value.sctp_stream_change_event->strchange_length = $6;
+	$$->value.sctp_stream_change_event->strchange_assoc_id = $10;
+	$$->value.sctp_stream_change_event->strchange_instrms = $12;
+	$$->value.sctp_stream_change_event->strchange_outstrms = $14;
+
 }
 ;
 
