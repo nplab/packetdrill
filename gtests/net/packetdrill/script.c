@@ -111,6 +111,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_RESET_STREAMS,   "sctp_reset_streams"},
 	{ EXPR_SCTP_ADD_STREAMS,     "sctp_add_streams"},
 	{ EXPR_SCTP_STREAM_RESET_EVENT, "sctp_stream_reset_event"},
+	{ EXPR_SCTP_ASSOC_RESET_EVENT, "sctp_assoc_reset_event"},
 	{ NUM_EXPR_TYPES,            NULL}
 };
 
@@ -627,6 +628,14 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_stream_reset_event->strreset_length);
 		free_expression(expression->value.sctp_stream_reset_event->strreset_assoc_id);
 		free_expression(expression->value.sctp_stream_reset_event->strreset_stream_list);
+		break;
+	case EXPR_SCTP_ASSOC_RESET_EVENT:
+		free_expression(expression->value.sctp_assoc_reset_event->assocreset_type);
+		free_expression(expression->value.sctp_assoc_reset_event->assocreset_flags);
+		free_expression(expression->value.sctp_assoc_reset_event->assocreset_length);
+		free_expression(expression->value.sctp_assoc_reset_event->assocreset_assoc_id);
+		free_expression(expression->value.sctp_assoc_reset_event->assocreset_local_tsn);
+		free_expression(expression->value.sctp_assoc_reset_event->assocreset_remote_tsn);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2547,6 +2556,50 @@ static int evaluate_sctp_stream_reset_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_assoc_reset_event_expression(struct expression *in,
+						      struct expression *out,
+						      char **error)
+{
+	struct sctp_assoc_reset_event_expr *in_event;
+	struct sctp_assoc_reset_event_expr *out_event;
+
+	assert(in->type == EXPR_SCTP_ASSOC_RESET_EVENT);
+	assert(in->value.sctp_assoc_reset_event);
+	assert(out->type == EXPR_SCTP_ASSOC_RESET_EVENT);
+
+	out->value.sctp_assoc_reset_event = calloc(1, sizeof(struct sctp_assoc_reset_event_expr));
+
+	in_event = in->value.sctp_assoc_reset_event;
+	out_event = out->value.sctp_assoc_reset_event;
+
+	if (evaluate(in_event->assocreset_type,
+		     &out_event->assocreset_type,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->assocreset_flags,
+		     &out_event->assocreset_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->assocreset_length,
+		     &out_event->assocreset_length,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->assocreset_assoc_id,
+		     &out_event->assocreset_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->assocreset_local_tsn,
+		     &out_event->assocreset_local_tsn,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_event->assocreset_remote_tsn,
+		     &out_event->assocreset_remote_tsn,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2703,6 +2756,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_STREAM_RESET_EVENT:
 		result = evaluate_sctp_stream_reset_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_ASSOC_RESET_EVENT:
+		result = evaluate_sctp_assoc_reset_event_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

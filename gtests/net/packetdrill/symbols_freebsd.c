@@ -199,9 +199,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ADAPTION_INDICATION,         "SCTP_ADAPTION_INDICATION"        },
 	{ SCTP_PARTIAL_DELIVERY_EVENT,      "SCTP_PARTIAL_DELIVERY_EVENT"     },
 	{ SCTP_AUTHENTICATION_EVENT,        "SCTP_AUTHENTICATION_EVENT"       },
-	{ SCTP_STREAM_RESET_EVENT,          "SCTP_STREAM_RESET_EVENT"         },
 	{ SCTP_NOTIFICATIONS_STOPPED_EVENT, "SCTP_NOTIFICATIONS_STOPPED_EVENT"},
-	{ SCTP_ASSOC_RESET_EVENT,           "SCTP_ASSOC_RESET_EVENT"          },
 	{ SCTP_STREAM_CHANGE_EVENT,         "SCTP_STREAM_CHANGE_EVENT"        },
 	{ SCTP_SEND_FAILED_EVENT,           "SCTP_SEND_FAILED_EVENT"          },
 	{ SCTP_UNORDERED,                   "SCTP_UNORDERED"                  },
@@ -280,6 +278,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_STREAM_RESET_OUTGOING_SSN,   "SCTP_STREAM_RESET_OUTGOING_SSN"  },
 	{ SCTP_STREAM_RESET_DENIED,         "SCTP_STREAM_RESET_DENIED"        },
 	{ SCTP_STREAM_RESET_FAILED,         "SCTP_STREAM_RESET_FAILED"        },
+	{ SCTP_ASSOC_RESET_EVENT,           "SCTP_ASSOC_RESET_EVENT"          },
+	{ SCTP_ASSOC_RESET_DENIED,          "SCTP_ASSOC_RESET_DENIED"         },
+	{ SCTP_ASSOC_RESET_FAILED,          "SCTP_ASSOC_RESET_FAILED"         },
 
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },

@@ -854,7 +854,8 @@ static int iovec_new(struct expression *expression,
 		       iov_expr->iov_base->type == EXPR_SCTP_SENDER_DRY_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_SEND_FAILED_EVENT ||
 		       iov_expr->iov_base->type == EXPR_SCTP_TLV ||
-		       iov_expr->iov_base->type == EXPR_SCTP_STREAM_RESET_EVENT);
+		       iov_expr->iov_base->type == EXPR_SCTP_STREAM_RESET_EVENT ||
+		       iov_expr->iov_base->type == EXPR_SCTP_ASSOC_RESET_EVENT);
 		assert(iov_expr->iov_len->type == EXPR_INTEGER);
 
 		len = iov_expr->iov_len->value.num;
@@ -5262,6 +5263,33 @@ static int check_sctp_stream_reset_event(struct sctp_stream_reset_event_expr *ex
 }
 #endif
 
+#if defined(__FreeBSD__)
+static int check_sctp_assoc_reset_event(struct sctp_assoc_reset_event_expr *expr,
+					struct sctp_assoc_reset_event *sctp_assoc_reset_event,
+					char **error) {
+	if (check_u16_expr(expr->assocreset_type, sctp_assoc_reset_event->assocreset_type,
+			   "sctp_assoc_reset_event.assocreset_type", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->assocreset_flags, sctp_assoc_reset_event->assocreset_flags,
+			   "sctp_assoc_reset_event.assocreset_flags", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->assocreset_length, sctp_assoc_reset_event->assocreset_length,
+			   "sctp_assoc_reset_event.assocreset_length", error))
+		return STATUS_ERR;
+	if (check_sctp_assoc_t_expr(expr->assocreset_assoc_id, sctp_assoc_reset_event->assocreset_assoc_id,
+			   "sctp_assoc_reset_event.assocreset_assoc_id", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->assocreset_local_tsn, sctp_assoc_reset_event->assocreset_local_tsn,
+			   "sctp_assoc_reset_event.assocreset_local_tsn", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->assocreset_remote_tsn, sctp_assoc_reset_event->assocreset_remote_tsn,
+			   "sctp_assoc_reset_event.assocreset_remote_tsn", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 #if defined(__FreeBSD__) || defined(linux)
 static int check_sctp_notification(struct iovec *iov,
 				   struct expression *iovec_expr,
@@ -5353,6 +5381,14 @@ static int check_sctp_notification(struct iovec *iov,
 			if (check_sctp_stream_reset_event(script_iov_base->value.sctp_stream_reset_event,
 						          (struct sctp_stream_reset_event *) iov[i].iov_base,
 						          error))
+				return STATUS_ERR;
+			break;
+#endif
+#if defined(__FreeBSD__)
+		case EXPR_SCTP_ASSOC_RESET_EVENT:
+			if (check_sctp_assoc_reset_event(script_iov_base->value.sctp_assoc_reset_event,
+						         (struct sctp_assoc_reset_event *) iov[i].iov_base,
+						         error))
 				return STATUS_ERR;
 			break;
 #endif

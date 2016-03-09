@@ -570,6 +570,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SRS_ASSOC_ID SRS_FLAGS SRS_NUMBER_STREAMS SRS_STREAM_LIST
 %token <reserved> SAS_ASSOC_ID SAS_INSTRMS SAS_OUTSTRMS
 %token <reserved> STRRESET_TYPE STRRESET_FLAGS STRRESET_LENGTH STRRESET_ASSOC_ID STRRESET_STREAM_LIST
+%token <reserved> ASSOCRESET_TYPE ASSOCRESET_FLAGS ASSOCRESET_LENGTH ASSOCRESET_ASSOC_ID ASSOCRESET_LOCAL_TSN ASSOCRESET_REMOTE_TSN
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -645,6 +646,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> sctp_setpeerprim sctp_authchunk sctp_authkey
 %type <expression> sctp_reset_streams srs_flags
 %type <expression> sctp_stream_reset_event strreset_type strreset_flags strreset_length
+%type <expression> sctp_assoc_reset_event assocreset_type assocreset_flags assocreset_length
+%type <expression> assocreset_local_tsn assocreset_remote_tsn
 %type <expression> sctp_add_streams
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
@@ -2743,6 +2746,7 @@ data
 | sctp_authkey_event        { $$ = $1; }
 | sctp_tlv                  { $$ = $1; }
 | sctp_stream_reset_event   { $$ = $1; }
+| sctp_assoc_reset_event    { $$ = $1; }
 ;
 
 msghdr
@@ -5060,7 +5064,7 @@ strreset_length
 	if (!is_valid_u32($3)) {
 		semantic_error("strreset_length out of range");
 	}
-	$$ = new_integer_expression($3, "%hu");
+	$$ = new_integer_expression($3, "%u");
 }
 | STRRESET_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;
@@ -5074,6 +5078,79 @@ sctp_stream_reset_event
 	$$->value.sctp_stream_reset_event->strreset_length = $6;
 	$$->value.sctp_stream_reset_event->strreset_assoc_id = $10;
 	$$->value.sctp_stream_reset_event->strreset_stream_list = $14;
+}
+;
+
+assocreset_type
+: ASSOCRESET_TYPE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("assocreset_type out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| ASSOCRESET_TYPE '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| ASSOCRESET_TYPE '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+assocreset_flags
+: ASSOCRESET_FLAGS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("assocreset_flags out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| ASSOCRESET_FLAGS '=' WORD {
+	$$ = new_expression(EXPR_WORD);
+	$$->value.string = $3;
+}
+| ASSOCRESET_FLAGS '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| ASSOCRESET_FLAGS '=' binary_expression { $$ = $3; }
+;
+
+assocreset_length
+: ASSOCRESET_LENGTH '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("assocreset_length out of range");
+	}
+	$$ = new_integer_expression($3, "%hu");
+}
+| ASSOCRESET_LENGTH '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+assocreset_local_tsn
+: ASSOCRESET_LOCAL_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("assocreset_local_tsn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| ASSOCRESET_LOCAL_TSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+assocreset_remote_tsn
+: ASSOCRESET_REMOTE_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("assocreset_remote_tsn out of range");
+	}
+	$$ = new_integer_expression($3, "%u");
+}
+| ASSOCRESET_REMOTE_TSN '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+;
+
+sctp_assoc_reset_event
+: '{' assocreset_type ',' assocreset_flags ',' assocreset_length ',' ASSOCRESET_ASSOC_ID '=' sctp_assoc_id ','
+	assocreset_local_tsn ',' assocreset_remote_tsn '}' {
+	$$ = new_expression(EXPR_SCTP_ASSOC_RESET_EVENT);
+	$$->value.sctp_assoc_reset_event = calloc(1, sizeof(struct sctp_assoc_reset_event_expr));
+	$$->value.sctp_assoc_reset_event->assocreset_type = $2;
+	$$->value.sctp_assoc_reset_event->assocreset_flags = $4;
+	$$->value.sctp_assoc_reset_event->assocreset_length = $6;
+	$$->value.sctp_assoc_reset_event->assocreset_assoc_id = $10;
+	$$->value.sctp_assoc_reset_event->assocreset_local_tsn = $12;
+	$$->value.sctp_assoc_reset_event->assocreset_remote_tsn = $14;
 }
 ;
 
