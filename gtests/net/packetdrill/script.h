@@ -90,6 +90,9 @@ enum expression_t {
 	EXPR_SCTP_AUTHKEY,        /* expression tree for sctp_authkey struct for setsockopt */
 	EXPR_SCTP_RESET_STREAMS,  /* expression tree for sctp_reset_stream struct for [gs]etsockopt */
 	EXPR_SCTP_ADD_STREAMS,    /* expression tree for sctp_add_streams struct for [gs]etsockopt */
+	EXPR_SCTP_STREAM_RESET_EVENT, /* expression tree for sctp_stream_reset_event struct for sctp notifications */
+	EXPR_SCTP_ASSOC_RESET_EVENT,  /* expression tree for sctp_assoc_reset_event struct for sctp notifications */
+	EXPR_SCTP_STREAM_CHANGE_EVENT, /* expression tree for sctp_stream_change_event struct for sctp notifications */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -153,6 +156,9 @@ struct expression {
 		struct sctp_authkey_expr *sctp_authkey;
 		struct sctp_reset_streams_expr *sctp_reset_streams;
 		struct sctp_add_streams_expr *sctp_add_streams;
+		struct sctp_stream_reset_event_expr *sctp_stream_reset_event;
+		struct sctp_assoc_reset_event_expr *sctp_assoc_reset_event;
+		struct sctp_stream_change_event_expr *sctp_stream_change_event;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -582,6 +588,35 @@ struct sctp_add_streams_expr {
 	struct expression *sas_assoc_id;
 	struct expression *sas_instrms;
 	struct expression *sas_outstrms;
+};
+
+/* Parse tree for sctp_stream_reset_event struct for sctp notifications. */
+struct sctp_stream_reset_event_expr {
+	struct expression *strreset_type;
+	struct expression *strreset_flags;
+	struct expression *strreset_length;
+	struct expression *strreset_assoc_id;
+	struct expression *strreset_stream_list;
+};
+
+/* Parse tree for sctp_assoc_reset_event struct for sctp notifications. */
+struct sctp_assoc_reset_event_expr {
+	struct expression *assocreset_type;
+	struct expression *assocreset_flags;
+	struct expression *assocreset_length;
+	struct expression *assocreset_assoc_id;
+	struct expression *assocreset_local_tsn;
+	struct expression *assocreset_remote_tsn;
+};
+
+/* Parse tree for sctp_stream_change_event struct for sctp notifications. */
+struct sctp_stream_change_event_expr {
+	struct expression *strchange_type;
+	struct expression *strchange_flags;
+	struct expression *strchange_length;
+	struct expression *strchange_assoc_id;
+	struct expression *strchange_instrms;
+	struct expression *strchange_outstrms;
 };
 
 /* The errno-related info from strace to summarize a system call error */
