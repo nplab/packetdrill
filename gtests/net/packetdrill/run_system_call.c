@@ -1839,7 +1839,7 @@ static int run_syscall_connect(struct state *state,
 	socket->script.remote.port		= 0;
 	socket->script.local.port		= 0;
 	socket->live.remote.ip   = state->config->live_remote_ip;
-	socket->live.remote.port = htons(state->config->live_connect_port);	
+	socket->live.remote.port = htons(state->config->live_connect_port);
 	DEBUGP("success: setting socket to state %d\n", socket->state);
 	return STATUS_OK;
 }
@@ -2922,7 +2922,7 @@ static int check_sctp_default_prinfo(struct expression *expression,
 			return STATUS_ERR;
 		if (check_u32_expr(expr->pr_value, info->pr_value,
 				   "sctp_default_prinfo.pr_value", error))
-			return STATUS_ERR;	
+			return STATUS_ERR;
 	} else {
 		return STATUS_ERR;
 	}
@@ -2982,7 +2982,7 @@ static int check_sctp_assoc_ids(struct sctp_assoc_ids_expr *expr,
 			        struct sctp_assoc_ids *sctp_assoc_ids,
 			        char **error) {
 	int list_len = 0, i = 0;
-	struct expression *assoc_id;  
+	struct expression *assoc_id;
 	struct expression_list *ids;
 
 	if (check_u32_expr(expr->gaids_number_of_ids, sctp_assoc_ids->gaids_number_of_ids,
@@ -2992,7 +2992,7 @@ static int check_sctp_assoc_ids(struct sctp_assoc_ids_expr *expr,
 	ids = expr->gaids_assoc_id->value.list;
 	list_len = expression_list_length(ids);
 	if (list_len != sctp_assoc_ids->gaids_number_of_ids) {
-		asprintf(error, "live gaids_number_if_ids unequal to length if expected gaids_assoc_id. actual %u, expected %d", 
+		asprintf(error, "live gaids_number_if_ids unequal to length if expected gaids_assoc_id. actual %u, expected %d",
 			sctp_assoc_ids->gaids_number_of_ids, list_len);
 		return STATUS_ERR;
 	}
@@ -3294,7 +3294,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_AUTHCHUNKS: {
 		int len = expression_list_length(val_expression->value.sctp_authchunks->gauth_chunks->value.list);
 		live_optval = malloc(sizeof(sctp_assoc_t) + sizeof(u32) + (sizeof(u8) * len));
-		live_optlen = sizeof(sctp_assoc_t) + sizeof(u32) + (sizeof(u8) * len);		
+		live_optlen = sizeof(sctp_assoc_t) + sizeof(u32) + (sizeof(u8) * len);
 		if (get_sctp_assoc_t(val_expression->value.sctp_authchunks->gauth_assoc_id,
 				     &((struct sctp_authchunks *)live_optval)->gauth_assoc_id,
 				     error)) {
@@ -3384,7 +3384,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_HMACALGO:
 		result = check_sctp_hamcalgo(val_expression->value.sctp_hmacalgo, live_optval, error);
 		break;
-#endif		
+#endif
 #ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
 		result = check_sctp_stream_value(val_expression->value.sctp_stream_value, live_optval, error);
@@ -3840,8 +3840,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 				    &default_prinfo.pr_assoc_id, error)) {
 			return STATUS_ERR;
 		}
-		optval = &default_prinfo;		
-		break;		
+		optval = &default_prinfo;
+		break;
 #endif
 #ifdef SCTP_PRIMARY_ADDR
 	case EXPR_SCTP_SETPRIM:
@@ -3853,7 +3853,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			    	&setprim.ssp_addr, live_fd)) {
 			return STATUS_ERR;
 		}
-		optval = &setprim;		
+		optval = &setprim;
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
@@ -3883,7 +3883,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		if (get_u8(val_expression->value.sctp_authchunk->sauth_chunk,
 			    &authchunk.sauth_chunk, error)) {
 			return STATUS_ERR;
-		}		
+		}
 		optval = &authchunk;
 		break;
 #endif
@@ -4011,11 +4011,12 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 
-                for (i = 0; i < len; i++) {
-                        struct expression *expr;
-                        expr = get_arg(list, i, error);
-                        get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
-                }
+		for (i = 0; i < len; i++) {
+			struct expression *expr;
+
+			expr = get_arg(list, i, error);
+			get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
+		}
 
 		optval = &reset_streams;
 		break;
@@ -4620,7 +4621,7 @@ static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, st
 		addr_size = 0;
 		*addrs = NULL;
 		return STATUS_ERR;
-	}	
+	}
 }
 #endif
 
@@ -4857,7 +4858,7 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	return STATUS_OK;
 error_out:
 	if (iov != NULL)
-		iovec_free(iov, script_iovec_list_len);	
+		iovec_free(iov, script_iovec_list_len);
 	free(addrs);
 	return STATUS_ERR;
 #else
@@ -5625,7 +5626,7 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 		return STATUS_ERR;
 
 	//check connection Type and set assoc_id if one-to-many style socket
-	
+
 	begin_syscall(state, syscall);
 
 	result = sctp_peeloff(live_fd, assoc_id);
