@@ -3175,7 +3175,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 	}
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	case EXPR_SCTP_ASSOC_VALUE:
 		live_optval = malloc(sizeof(struct sctp_assoc_value));
 		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
@@ -3375,7 +3375,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_paddrparams(val_expression->value.sctp_paddrparams, live_optval, error);
 		break;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	case EXPR_SCTP_ASSOC_VALUE:
 		result = check_sctp_assoc_value(val_expression->value.sctp_assoc_value, live_optval, error);
 		break;
@@ -3467,7 +3467,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_INITMSG
 	struct sctp_initmsg initmsg;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	struct sctp_assoc_value assoc_value;
 #endif
 #ifdef SCTP_AUTH_ACTIVE_KEY
@@ -3518,6 +3518,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	u32 spp_ipv6_flowlabel;
 	u8 spp_dscp;
 #endif
+#endif
+#ifdef SCTP_ADD_STREAMS
+	struct sctp_add_streams add_streams;
 #endif
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
@@ -3609,7 +3612,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &initmsg;
 		break;
 #endif
-#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED)
+#if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	case EXPR_SCTP_ASSOC_VALUE:
 		if (get_sctp_assoc_t(val_expression->value.sctp_assoc_value->assoc_id,
 				     &assoc_value.assoc_id, error)) {
@@ -3982,6 +3985,60 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &paddrparams;
 		break;
 #endif
+#ifdef SCTP_RESET_STREAMS
+	case EXPR_SCTP_RESET_STREAMS: {
+		struct sctp_reset_streams *reset_streams;
+		struct expression_list *list;
+		int len = 0, i = 0;
+
+		if (check_type(val_expression->value.sctp_reset_streams->srs_stream_list, EXPR_LIST, error)) {
+			return STATUS_ERR;
+		}
+		list = val_expression->value.sctp_reset_streams->srs_stream_list->value.list;
+		len = expression_list_length(list);
+		reset_streams = malloc(sizeof(u32) + sizeof(u16) + sizeof(u16) + (sizeof(u16) * len));
+
+		if (get_sctp_assoc_t(val_expression->value.sctp_reset_streams->srs_assoc_id,
+				     &reset_streams->srs_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_reset_streams->srs_flags,
+			    &reset_streams->srs_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_reset_streams->srs_number_streams,
+			    &reset_streams->srs_number_streams, error)) {
+			return STATUS_ERR;
+		}
+
+                for (i = 0; i < len; i++) {
+                        struct expression *expr;
+                        expr = get_arg(list, i, error);
+                        get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
+                }
+
+		optval = &reset_streams;
+		break;
+	}
+#endif
+#ifdef SCTP_ADD_STREAMS
+	case EXPR_SCTP_ADD_STREAMS:
+		if (get_sctp_assoc_t(val_expression->value.sctp_add_streams->sas_assoc_id,
+				     &add_streams.sas_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_add_streams->sas_instrms,
+			    &add_streams.sas_instrms, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_add_streams->sas_outstrms,
+			    &add_streams.sas_outstrms, error)) {
+			return STATUS_ERR;
+		}
+
+		optval = &add_streams;
+		break;
+#endif
 	default:
 		asprintf(error, "unsupported value type: %s",
 			 expression_type_to_string(val_expression->type));
@@ -3993,7 +4050,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
 	return end_syscall(state, syscall, CHECK_EXACT, result, error);
-#if defined(SCTP_HMAC_IDENT) || defined(SCTP_AUTH_KEY)
+#if defined(SCTP_HMAC_IDENT) || defined(SCTP_AUTH_KEY) || defined(SCTP_RESET_STREAMS)
 	free(optval);
 #endif
 }

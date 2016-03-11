@@ -264,6 +264,18 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_USE_EXT_RCVINFO,             "SCTP_USE_EXT_RCVINFO"            },
 	{ SCTP_AUTH_HMAC_ID_SHA1,           "SCTP_AUTH_HMAC_ID_SHA1"          },
 	{ SCTP_AUTH_HMAC_ID_SHA256,         "SCTP_AUTH_HMAC_ID_SHA256"        },
+
+	/* sctp stream reconfiguration */
+	{ SCTP_ENABLE_STREAM_RESET,         "SCTP_ENABLE_STREAM_RESET"        },
+	{ SCTP_ENABLE_RESET_STREAM_REQ,     "SCTP_ENABLE_RESET_STREAM_REQ"    },
+	{ SCTP_ENABLE_RESET_ASSOC_REQ,      "SCTP_ENABLE_RESET_ASSOC_REQ"     },
+	{ SCTP_ENABLE_CHANGE_ASSOC_REQ,     "SCTP_ENABLE_CHANGE_ASSOC_REQ"    },
+	{ SCTP_RESET_STREAMS,               "SCTP_RESET_STREAMS"              },
+	{ SCTP_STREAM_RESET_INCOMING,       "SCTP_STREAM_RESET_INCOMING"      },
+	{ SCTP_STREAM_RESET_OUTGOING,       "SCTP_STREAM_RESET_OUTGOING"      },
+	{ SCTP_RESET_ASSOC,                 "SCTP_RESET_ASSOC"                },
+	{ SCTP_ADD_STREAMS,                 "SCTP_ADD_STREAMS"                },
+
 	/* /usr/include/netinet/tcp.h */
 	{ TCP_NODELAY,                      "TCP_NODELAY"                     },
 	{ TCP_MAXSEG,                       "TCP_MAXSEG"                      },
