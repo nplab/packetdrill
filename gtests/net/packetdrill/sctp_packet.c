@@ -95,6 +95,69 @@ sctp_byte_list_item_new(u8 byte)
 	return item;
 }
 
+struct sctp_u16_list *
+sctp_u16_list_new(void)
+{
+	struct sctp_u16_list *list;
+
+	list = malloc(sizeof(struct sctp_u16_list));
+	assert(list != NULL);
+	list->first = NULL;
+	list->last = NULL;
+	list->nr_entries = 0;
+	return list;
+}
+
+void
+sctp_u16_list_append(struct sctp_u16_list *list,
+                      struct sctp_u16_list_item *item)
+{
+	assert(item->next == NULL);
+	if (list->last == NULL) {
+		assert(list->first == NULL);
+		assert(list->nr_entries == 0);
+		list->first = item;
+	} else {
+		assert(list->first != NULL);
+		list->last->next = item;
+	}
+	list->last = item;
+	list->nr_entries++;
+}
+
+void
+sctp_u16_list_free(struct sctp_u16_list *list)
+{
+	struct sctp_u16_list_item *current_item, *next_item;
+
+	if (list == NULL) {
+		return;
+	}
+	current_item = list->first;
+	while (current_item != NULL) {
+		assert(list->nr_entries > 0);
+		next_item = current_item->next;
+		assert(next_item != NULL || current_item == list->last);
+		free(current_item);
+		current_item = next_item;
+		list->nr_entries--;
+	}
+	assert(list->nr_entries == 0);
+	free(list);
+}
+
+struct sctp_u16_list_item *
+sctp_u16_list_item_new(u16 val)
+{
+	struct sctp_u16_list_item *item;
+
+	item = malloc(sizeof(struct sctp_u16_list_item));
+	assert(item != NULL);
+	item->next = NULL;
+	item->value = val;
+	return item;
+}
+
 struct sctp_sack_block_list *
 sctp_sack_block_list_new(void)
 {
@@ -1220,6 +1283,58 @@ sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding)
 	                                sctp_cause_list_new());
 }
 
+struct sctp_chunk_list_item *
+sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters)
+{
+	struct sctp_reconfig_chunk *chunk;
+	struct sctp_parameter_list_item *item;
+	u32 flags;
+	u16 offset, chunk_length, padding_length, parameter_padding_length;
+
+	flags = 0;
+	chunk_length = (u16)sizeof(struct sctp_reconfig_chunk);
+	if (parameters != NULL) {
+		chunk_length += parameters->length;
+	}
+	padding_length = chunk_length % 4;
+	if (padding_length > 0) {
+		padding_length = 4 - padding_length;
+	}
+	chunk = malloc(chunk_length + padding_length);
+	assert(chunk != NULL);
+	chunk->type = SCTP_RECONFIG_CHUNK_TYPE;
+	
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		 chunk->flags = (u8)flgs;
+	}
+	chunk->length = htons(chunk_length);
+
+	offset = 0;
+	for (item = parameters->first; item != NULL; item = item->next) {
+		parameter_padding_length = item->length % 4;
+		if (parameter_padding_length > 0) {
+			parameter_padding_length = 4 - parameter_padding_length;
+		}
+		memcpy(chunk->parameter + offset,
+		       item->parameter,
+		       item->length + parameter_padding_length);
+		free(item->parameter);
+		item->parameter = (struct sctp_parameter *)(chunk->parameter + offset);
+		if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
+			flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		}
+		offset += item->length + parameter_padding_length;
+	}
+
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+					chunk_length + padding_length,
+					flags, parameters,
+	                                sctp_cause_list_new());
+}
+
 struct sctp_chunk_list *
 sctp_chunk_list_new(void)
 {
@@ -1677,6 +1792,39 @@ sctp_pad_parameter_new(s64 len, u8 *padding)
 	memset(parameter->padding_data + padding_length, 0, parameter_padding_length);
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 	                                    parameter_length, flags);
+}
+
+struct sctp_parameter_list_item *
+sctp_outgoing_ssn_reset_request_parameter_new(u32 reqsn, u32 respsn, u32 last_tsn, struct sctp_u16_list *sids)
+{
+	struct sctp_outgoing_ssn_reset_request_parameter *parameter;
+	u32 flags = 0;
+	u16 parameter_length;
+	int i = 0, sid_len = 0;
+
+	if (sids != NULL) {
+		sid_len = sids->nr_entries;
+	}
+	
+	parameter_length = sizeof(struct sctp_outgoing_ssn_reset_request_parameter) + (sizeof(u16) * sid_len);
+
+	parameter = malloc(parameter_length);
+	assert(parameter != NULL);
+
+	parameter->type = htons(SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE);
+	parameter->length = htons(parameter_length);
+	parameter->reqsn = htonl(reqsn);
+	parameter->respsn = htonl(respsn);
+	parameter->last_tsn = htonl(last_tsn);
+	if (sids != NULL) {
+		struct sctp_u16_list_item *item;
+		for (item = sids->first; item != NULL; item = item->next) {
+			parameter->sids[i] = item->value;
+		}
+	}
+
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+					    parameter_length, flags);
 }
 
 struct sctp_parameter_list_item *
@@ -2506,6 +2654,8 @@ new_sctp_packet(int address_family,
 						 "chunk length must be specified for inbound packets");
 					return NULL;
 				}
+				break;
+			case SCTP_RECONFIG_CHUNK_TYPE:
 				break;
 			default:
 				if (chunk_item->flags & FLAG_CHUNK_TYPE_NOCHECK) {

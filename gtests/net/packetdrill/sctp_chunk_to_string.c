@@ -290,6 +290,9 @@ static int sctp_supported_extensions_parameter_to_string(
 		case SCTP_PAD_CHUNK_TYPE:
 			fputs("PAD", s);
 			break;
+		case SCTP_RECONFIG_CHUNK_TYPE:
+			fputs("RECONFIG", s);
+			break;
 		default:
 			fprintf(s, "0x%02x", parameter->chunk_type[i]);
 			break;
@@ -310,6 +313,36 @@ static int sctp_pad_parameter_to_string(
 	fputs("PAD[", s);
 	fprintf(s, "len=%u, ", length);
 	fputs("val=...]", s);
+	return STATUS_OK;
+}
+
+static int sctp_outgoing_ssn_reset_request_parameter_to_string(
+	FILE *s,
+	struct sctp_outgoing_ssn_reset_request_parameter *parameter,
+	char **error)
+{
+	u16 length;
+	u32 reqsn;
+	u32 respsn;
+	u32 last_tsn;
+	int len;
+
+	length = ntohs(parameter->length);
+	reqsn = ntohl(parameter->reqsn);
+	respsn = ntohl(parameter->respsn);
+	last_tsn = ntohl(parameter->last_tsn);
+	fputs("OUTGOING_SSN_RESET[", s);
+	fprintf(s, "len=%hu, ", length);
+	fprintf(s, "reqsn=%u, ", reqsn);
+	fprintf(s, "respsn=%u, ", respsn);
+	fprintf(s, "last_tsn=%u, ", last_tsn);
+	fputs("sids=[", s);
+	for(len = 0; len < ((length-16)/sizeof(u16)); len++) {
+		u16 sid;
+		sid = ntohs(parameter->sids[len]);
+		fprintf(s, "%hu, ", sid);	
+	}
+	fputs("]", s);
 	return STATUS_OK;
 }
 
@@ -419,6 +452,10 @@ static int sctp_parameter_to_string(FILE *s,
 		result = sctp_adaptation_indication_parameter_to_string(s,
 			(struct sctp_adaptation_indication_parameter *)parameter, error);
 		break;
+	case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE:
+		result = sctp_outgoing_ssn_reset_request_parameter_to_string(s,
+			(struct sctp_outgoing_ssn_reset_request_parameter *)parameter, error);
+		break;		
 	default:
 		result = sctp_unknown_parameter_to_string(s, parameter, error);
 		break;
@@ -1374,6 +1411,42 @@ static int sctp_pad_chunk_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_reconfig_chunk_to_string(
+	FILE *s,
+	struct sctp_reconfig_chunk *chunk,
+	char **error)
+{
+	u16 length;
+	int result, parameters_length;
+	struct sctp_parameter *parameter;
+	struct sctp_parameters_iterator iter;
+	
+	length = ntohs(chunk->length);
+	if (length < sizeof(struct sctp_reconfig_chunk)) {
+		asprintf(error, "RECONFIG chunk too short (length=%u)", length);
+		return STATUS_ERR;
+	}
+	parameters_length = length - sizeof(struct sctp_reconfig_chunk);
+	fputs("RECONFIG[", s);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
+	fprintf(s, "len=%u", length);
+
+	for (parameter = sctp_parameters_begin(chunk->parameter,
+					       parameters_length,
+					       &iter, error);
+	     parameter != NULL;
+	     parameter = sctp_parameters_next(&iter, error)) {
+		fputs(", ", s);
+		if (*error != NULL)
+			break;
+		result = sctp_parameter_to_string(s, parameter, error);
+		if (result != STATUS_OK)
+			break;
+	}
+	fputs("]", s);
+	return STATUS_OK;
+}
+
 static int sctp_unknown_chunk_to_string(FILE *s,
 					struct sctp_chunk *chunk,
 					char **error)
@@ -1465,6 +1538,10 @@ int sctp_chunk_to_string(FILE *s, struct sctp_chunk *chunk, char **error)
 	case SCTP_PAD_CHUNK_TYPE:
 		result = sctp_pad_chunk_to_string(s,
 			(struct sctp_pad_chunk *)chunk, error);
+		break;
+	case SCTP_RECONFIG_CHUNK_TYPE:
+		result = sctp_reconfig_chunk_to_string(s,
+			(struct sctp_reconfig_chunk *)chunk, error);
 		break;
 	default:
 		result = sctp_unknown_chunk_to_string(s, chunk, error);

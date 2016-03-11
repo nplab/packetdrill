@@ -53,8 +53,8 @@ struct sctp_common_header {
 #define SCTP_CWR_CHUNK_TYPE				0x0d
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE		0x0e
 #define SCTP_I_DATA_CHUNK_TYPE				0x40
+#define SCTP_RECONFIG_CHUNK_TYPE			0x82
 #define SCTP_PAD_CHUNK_TYPE				0x84
-
 #define MAX_SCTP_CHUNK_BYTES	0xffff
 
 struct sctp_chunk {
@@ -233,6 +233,13 @@ struct sctp_pad_chunk {
 	__u8 padding_data[];
 } __packed;
 
+struct sctp_reconfig_chunk {
+	__u8 type;
+	__u8 flags;
+	__be16 length;
+	__u8 parameter[];
+} __packed;
+
 #define SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE	0x0001
 #define SCTP_IPV4_ADDRESS_PARAMETER_TYPE		0x0005
 #define SCTP_IPV6_ADDRESS_PARAMETER_TYPE		0x0006
@@ -241,12 +248,12 @@ struct sctp_pad_chunk {
 #define SCTP_COOKIE_PRESERVATIVE_PARAMETER_TYPE		0x0009
 #define SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE		0x000b
 #define SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	0x000c
+#define SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE  0x000d
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
 #define SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE	0x8008
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
 #define SCTP_Set_Primary_Address			0xc004
 #define SCTP_ADAPTATION_INDICATION_PARAMETER_TYPE	0xc006
-
 #define MAX_SCTP_PARAMETER_BYTES			0xffff
 
 struct sctp_parameter {
@@ -324,6 +331,15 @@ struct sctp_adaptation_indication_parameter {
 	__be16 type;
 	__be16 length;
 	__be32 adaptation_code_point;
+} __packed;
+
+struct sctp_outgoing_ssn_reset_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+	__be32 respsn;
+	__be32 last_tsn;
+	__be16 sids[];
 } __packed;
 
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001
@@ -424,5 +440,4 @@ struct sctp_protocol_violation_cause {
 	__be16 length;
 	__u8 information[];
 } __packed;
-
 #endif /* __SCTP_HEADERS_H__ */
