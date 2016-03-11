@@ -4022,13 +4022,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 
 		optval = reset_streams;
-		printf("Assoc: %u\n",reset_streams->srs_assoc_id);
-		printf("flags: %u\n",reset_streams->srs_flags);
-		printf("number_streams: %u\n",reset_streams->srs_number_streams);
-                printf("Size: %zu", sizeof(struct sctp_reset_streams));
-		for (i = 0; i < len; i++) {
-			printf("sid[%d]: %hu\n", i, reset_streams->srs_stream_list[i]);
-                }
 		break;
 	}
 #endif
