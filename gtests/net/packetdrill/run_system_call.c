@@ -3473,6 +3473,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	struct sctp_assoc_value assoc_value;
 #endif
+#ifdef SCTP_HMAC_IDENT
+	struct sctp_hmacalgo *hmacalgo = NULL;
+#endif
 #ifdef SCTP_AUTH_ACTIVE_KEY
 	struct sctp_authkeyid authkeyid;
 #endif
@@ -3515,12 +3518,18 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_AUTH_CHUNK
 	struct sctp_authchunk authchunk;
 #endif
+#ifdef SCTP_AUTH_KEY
+	struct sctp_authkey *key = NULL;
+#endif
 #ifdef SCTP_PEER_ADDR_PARAMS
 	struct sctp_paddrparams paddrparams;
 #ifdef linux
 	u32 spp_ipv6_flowlabel;
 	u8 spp_dscp;
 #endif
+#endif
+#ifdef SCTP_RESET_STREAMS
+	struct sctp_reset_streams *reset_streams = NULL;
 #endif
 #ifdef SCTP_ADD_STREAMS
 	struct sctp_add_streams add_streams;
@@ -3631,7 +3640,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_HMAC_IDENT
 	case EXPR_SCTP_HMACALGO: {
 		int len, i;
-		struct sctp_hmacalgo *hmacalgo;
 		struct expression_list *list;
 
 		if (check_type(val_expression->value.sctp_hmacalgo->shmac_idents, EXPR_LIST, error)) {
@@ -3892,7 +3900,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_AUTH_KEY
 	case EXPR_SCTP_AUTHKEY: {
-		struct sctp_authkey *key;
 		int i = 0, len = 0;
 		struct expression *key_expr;
 		struct expression_list *list;
@@ -3990,7 +3997,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_RESET_STREAMS
 	case EXPR_SCTP_RESET_STREAMS: {
-		struct sctp_reset_streams *reset_streams;
 		struct expression_list *list;
 		int len = 0, i = 0;
 
@@ -4054,8 +4060,15 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
 	return end_syscall(state, syscall, CHECK_EXACT, result, error);
-#if defined(SCTP_HMAC_IDENT) || defined(SCTP_AUTH_KEY) || defined(SCTP_RESET_STREAMS)
-	free(optval);
+
+#if defined(SCTP_HMAC_IDENT)
+	free(hmacalgo);
+#endif
+#if defined(SCTP_AUTH_KEY)
+	free(key);
+#endif
+#if defined(SCTP_RESET_STREAMS)
+	free(reset_streams);
 #endif
 }
 
