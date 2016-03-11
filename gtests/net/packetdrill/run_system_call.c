@@ -4021,7 +4021,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
 		}
 
-		optval = &reset_streams;
+		optval = reset_streams;
 		break;
 	}
 #endif
