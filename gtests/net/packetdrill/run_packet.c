@@ -2775,13 +2775,8 @@ static int do_inbound_script_packet(
 	}
 
 	if (live_packet->ipv6 != NULL) {
-		uint32_t null_ip[4] = {0x00, 0x00, 0x00, 0x00};
-#if defined(linux)
-		if (memcmp(&(live_packet->ipv6->src_ip.__in6_u.__u6_addr32), &null_ip, sizeof(uint32_t) * 4) == 0) {
-#elif defined(__FreeBSD__) || defined(OpenBSD) || defined(NetBSD)
-		if (memcmp(&(live_packet->ipv6->src_ip.__u6_addr.__u6_addr32), &null_ip, sizeof(uint32_t) * 4) == 0) {
-#endif
-
+		if (IN6_IS_ADDR_UNSPECIFIED(&live_packet->ipv6->src_ip)) {
+			DEBUGP("live_packet->ipv6->src_ip.s_addr == 0\n");
 			state->socket_under_test = setup_new_child_socket(state, packet);
 			struct tuple live_inbound;
 			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
