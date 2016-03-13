@@ -333,14 +333,16 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 	last_tsn = ntohl(parameter->last_tsn);
 	fputs("OUTGOING_SSN_RESET[", s);
 	fprintf(s, "len=%hu, ", length);
-	fprintf(s, "reqsn=%u, ", reqsn);
-	fprintf(s, "respsn=%u, ", respsn);
+	fprintf(s, "req_sn=%u, ", reqsn);
+	fprintf(s, "resp_sn=%u, ", respsn);
 	fprintf(s, "last_tsn=%u, ", last_tsn);
 	fputs("sids=[", s);
 	for(len = 0; len < ((length-16)/sizeof(u16)); len++) {
 		u16 sid;
 		sid = ntohs(parameter->sids[len]);
-		fprintf(s, "%hu, ", sid);	
+		if (len > 0)
+			fprintf(s, ", ");
+		fprintf(s, "%hu", sid);	
 	}
 	fputs("]", s);
 	return STATUS_OK;

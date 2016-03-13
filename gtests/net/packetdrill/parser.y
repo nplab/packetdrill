@@ -525,7 +525,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
-%token <reserved> OUTGOING_SSN_RESET REQSN RESPSN LAST_TSN SIDS
+%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS RESULT
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -708,7 +708,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_mid opt_fsn
 %type <integer> opt_cum_tsn opt_ppid
-%type <integer> opt_reqsn opt_respsn opt_last_tsn
+%type <integer> opt_req_sn opt_resp_sn opt_last_tsn
 %type <byte_list> opt_val opt_info byte_list chunk_types_list
 %type <byte_list_item> byte 
 %type <u16_list> u16_list
@@ -1688,24 +1688,24 @@ sctp_pad_chunk_spec
 	$$ = sctp_pad_chunk_new($3, $5, NULL);
 }
 
-opt_reqsn
-: REQSN '=' INTEGER {
+opt_req_sn
+: REQ_SN '=' INTEGER {
 	if (!is_valid_u16($3)) {
-		semantic_error("reqsn out of range");
+		semantic_error("req_sn out of range");
 	}
 	$$ = $3;
 }
-| REQSN '=' ELLIPSIS { $$ = -1; }
+| REQ_SN '=' ELLIPSIS { $$ = -1; }
 ;
 
-opt_respsn
-: RESPSN '=' INTEGER {
+opt_resp_sn
+: RESP_SN '=' INTEGER {
 	if (!is_valid_u16($3)) {
-		semantic_error("respsn out of range");
+		semantic_error("resp_sn out of range");
 	}
 	$$ = $3;
 }
-| RESPSN '=' ELLIPSIS { $$ = -1; }
+| RESP_SN '=' ELLIPSIS { $$ = -1; }
 ;
 
 opt_last_tsn
@@ -1730,10 +1730,10 @@ sctp_reconfig_parameter_list_spec
 ;
 
 sctp_reconfig_parameter_spec
-: OUTGOING_SSN_RESET '[' opt_reqsn ',' opt_respsn ',' opt_last_tsn ']' {
+: OUTGOING_SSN_RESET '[' opt_req_sn ',' opt_resp_sn ',' opt_last_tsn ']' {
 	$$ = sctp_outgoing_ssn_reset_request_parameter_new($3, $5, $7, NULL);
 }
-| OUTGOING_SSN_RESET '[' opt_reqsn ',' opt_respsn ',' opt_last_tsn ',' SIDS '=' '[' u16_list ']' ']' {
+| OUTGOING_SSN_RESET '[' opt_req_sn ',' opt_resp_sn ',' opt_last_tsn ',' SIDS '=' '[' u16_list ']' ']' {
 	$$ = sctp_outgoing_ssn_reset_request_parameter_new($3, $5, $7, $12);
 }
 ;
