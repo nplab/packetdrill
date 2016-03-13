@@ -31,6 +31,7 @@
 						      srs_flags=SCTP_STREAM_RESET_OUTGOING,
                                                       srs_number_streams=2,
 						      srs_stream_list=[0, 1]}, 12) = 0
-+0.0 > sctp: RECONFIG[flgs=0, OUTGOING_SSN_RESET[reqsn=1, respsn=0, last_tsn=2, sids=[]]]
++0.0 > sctp: RECONFIG[flgs=0, OUTGOING_SSN_RESET[req_sn=1, resp_sn=0, last_tsn=2, sids=[]]]
++0.0 < sctp: RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=0, result=1]]
 
 +1.0 close(3) = 0
