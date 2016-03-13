@@ -749,13 +749,13 @@ static int map_inbound_sctp_packet(
 								       &iter, error);
 				     parameter != NULL;
 				     parameter = sctp_parameters_next(&iter, error)) {
-					switch(htons(parameter->type)) {
+					switch (htons(parameter->type)) {
 					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_outgoing_ssn_reset_request_parameter *reset;
 						reset = (struct sctp_outgoing_ssn_reset_request_parameter *)parameter;
 						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
 						reset->respsn = htonl(ntohl(reset->respsn) + local_diff);
-						reset->last_tsn = htonl(ntohl(reset->last_tsn) + local_diff);						
+						reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
 						break;
 					}
 					default:
@@ -965,19 +965,18 @@ static int map_outbound_live_sctp_packet(
 				struct sctp_parameter *parameter;
 				struct sctp_parameters_iterator iter;
 				int parameters_length = ntohs(reconfig->length) - sizeof(struct sctp_reconfig_chunk);
-				
 				for (parameter = sctp_parameters_begin(reconfig->parameter,
 						parameters_length,
 						&iter, error);
 					parameter != NULL;
 					parameter = sctp_parameters_next(&iter, error)) {
-					switch(htons(parameter->type)) {
+					switch (htons(parameter->type)) {
 					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_outgoing_ssn_reset_request_parameter *reset;
 						reset = (struct sctp_outgoing_ssn_reset_request_parameter *)parameter;
 						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);
 						reset->respsn = htonl(ntohl(reset->respsn) + remote_diff);
-						reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);						
+						reset->last_tsn = htonl(ntohl(reset->last_tsn) + local_diff);
 						break;
 					}
 					default:
@@ -1254,7 +1253,6 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 	struct sctp_parameter *script_parameter;
 	struct sctp_parameter_list_item *script_parameter_item;
 	u32 flags;
-
 	for (actual_parameter = sctp_parameters_begin(begin, length, &iter, error),
 	     script_parameter_item = script_chunk_item->parameter_list->first;
 	     actual_parameter != NULL && script_parameter_item != NULL;
@@ -1302,6 +1300,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 	if (script_parameter_item != NULL) {
 		DEBUGP("script chunk contains more parameters than actual chunk\n");
 	}
+
 	if ((actual_parameter != NULL) || (script_parameter_item != NULL)) {
 		asprintf(error,
 		         "live chunk and expected chunk have not the same number of parameters");
@@ -1766,11 +1765,14 @@ static int verify_pad_chunk(struct sctp_pad_chunk *actual_chunk,
 }
 
 static int verify_reconfig_chunk(struct sctp_reconfig_chunk *actual_chunk,
-				 struct sctp_reconfig_chunk *script_chunk,
+				 struct sctp_chunk_list_item *script_chunk_item,
 				 u32 flags, char **error)
 {
-	struct sctp_reconfig_chunk *reconfig = (struct sctp_reconfig_chunk *)actual_chunk;
-        int parameter_length = ntohs(reconfig->length) - sizeof(struct sctp_reconfig_chunk);
+	struct sctp_init_chunk *script_chunk;
+        int parameter_length;
+	
+	script_chunk = (struct sctp_init_chunk *)script_chunk_item->chunk;
+	parameter_length = ntohs(actual_chunk->length) - sizeof(struct sctp_reconfig_chunk);
 	if ((flags & FLAG_CHUNK_FLAGS_NOCHECK ? STATUS_OK :
 			check_field("sctp_reconfig_flags",
 		        ntohl(script_chunk->flags),
@@ -1778,8 +1780,10 @@ static int verify_reconfig_chunk(struct sctp_reconfig_chunk *actual_chunk,
 		        error))) {
 		return STATUS_ERR;
 	}
-	return verify_sctp_parameters(reconfig->parameter, parameter_length,
-	                              (struct sctp_chunk_list_item *)script_chunk, error);
+	return verify_sctp_parameters(actual_chunk->parameter,
+				      parameter_length,
+				      script_chunk_item,
+				      error);
 }
 
 /* Verify that required actual SCTP packet fields are as the script expected. */
@@ -1924,7 +1928,7 @@ static int verify_sctp(
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			result = verify_reconfig_chunk((struct sctp_reconfig_chunk *)actual_chunk,
-			                               (struct sctp_reconfig_chunk *)script_chunk,
+			                               script_chunk_item,
 			                               flags, error);
 			break;
 		default:
