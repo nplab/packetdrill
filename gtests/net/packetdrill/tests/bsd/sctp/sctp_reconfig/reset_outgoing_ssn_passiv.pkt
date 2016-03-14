@@ -35,4 +35,4 @@
 +0.0 read(4, ..., 1000) = 1000
 
 +0.0 < sctp: RECONFIG[flgs=0, OUTGOING_SSN_RESET[req_sn=0, resp_sn=10, last_tsn=2, sids=[0]]]
-+0.0 > sctp: RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=10, result=0]]
++0.0 > sctp: RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=0, result=0]]

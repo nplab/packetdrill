@@ -249,6 +249,7 @@ struct sctp_reconfig_chunk {
 #define SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE		0x000b
 #define SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	0x000c
 #define SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE  0x000d
+#define SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE           0x0010
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
 #define SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE	0x8008
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
@@ -340,6 +341,15 @@ struct sctp_outgoing_ssn_reset_request_parameter {
 	__be32 respsn;
 	__be32 last_tsn;
 	__be16 sids[];
+} __packed;
+
+struct sctp_reconfig_response_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 respsn;
+	__be32 result;
+	__be32 sender_next_tsn;
+	__be32 receiver_next_tsn;
 } __packed;
 
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001

@@ -525,7 +525,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
-%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS RESULT
+%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS 
+%token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -686,6 +687,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_supported_extensions_parameter_spec
 %type <parameter_list_item> sctp_adaptation_indication_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec sctp_reconfig_parameter_spec
+%type <parameter_list_item> outgoing_ssn_reset_request reconfig_response
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
 %type <cause_list_item> sctp_generic_cause_spec
@@ -707,8 +709,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <integer> opt_shutdown_complete_flags opt_i_data_flags opt_len
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_mid opt_fsn
-%type <integer> opt_cum_tsn opt_ppid
-%type <integer> opt_req_sn opt_resp_sn opt_last_tsn
+%type <integer> opt_cum_tsn opt_ppid opt_sender_next_tsn opt_receiver_next_tsn
+%type <integer> opt_req_sn opt_resp_sn opt_last_tsn opt_result
 %type <byte_list> opt_val opt_info byte_list chunk_types_list
 %type <byte_list_item> byte 
 %type <u16_list> u16_list
@@ -1690,7 +1692,7 @@ sctp_pad_chunk_spec
 
 opt_req_sn
 : REQ_SN '=' INTEGER {
-	if (!is_valid_u16($3)) {
+	if (!is_valid_u32($3)) {
 		semantic_error("req_sn out of range");
 	}
 	$$ = $3;
@@ -1700,7 +1702,7 @@ opt_req_sn
 
 opt_resp_sn
 : RESP_SN '=' INTEGER {
-	if (!is_valid_u16($3)) {
+	if (!is_valid_u32($3)) {
 		semantic_error("resp_sn out of range");
 	}
 	$$ = $3;
@@ -1710,12 +1712,22 @@ opt_resp_sn
 
 opt_last_tsn
 : LAST_TSN '=' INTEGER {
-	if (!is_valid_u16($3)) {
+	if (!is_valid_u32($3)) {
 		semantic_error("last_tsn out of range");
 	}
 	$$ = $3;
 }
 | LAST_TSN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_result
+: RESULT '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("result out of range");
+	}
+	$$ = $3;
+}
+| RESULT '=' ELLIPSIS { $$ = -1; }
 ;
 
 sctp_reconfig_parameter_list_spec
@@ -1730,11 +1742,44 @@ sctp_reconfig_parameter_list_spec
 ;
 
 sctp_reconfig_parameter_spec
-: OUTGOING_SSN_RESET '[' opt_req_sn ',' opt_resp_sn ',' opt_last_tsn ']' {
+:outgoing_ssn_reset_request { $$ = $1; }
+|reconfig_response          { $$ = $1; }
+; 
+opt_sender_next_tsn
+: SENDER_NEXT_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sender_next_tsn out of range");
+	}
+	$$ = $3;
+}
+| SENDER_NEXT_TSN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_receiver_next_tsn
+: RECEIVER_NEXT_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("receiver_next_tsn out of range");
+	}
+	$$ = $3;
+}
+| RECEIVER_NEXT_TSN '=' ELLIPSIS { $$ = -1; }
+;
+
+outgoing_ssn_reset_request
+:OUTGOING_SSN_RESET '[' opt_req_sn ',' opt_resp_sn ',' opt_last_tsn ']' {
 	$$ = sctp_outgoing_ssn_reset_request_parameter_new($3, $5, $7, NULL);
 }
 | OUTGOING_SSN_RESET '[' opt_req_sn ',' opt_resp_sn ',' opt_last_tsn ',' SIDS '=' '[' u16_list ']' ']' {
 	$$ = sctp_outgoing_ssn_reset_request_parameter_new($3, $5, $7, $12);
+}
+;
+
+reconfig_response
+:RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ']' {
+	$$ = sctp_reconfig_response_new($3, $5, -2, -2);
+}
+|RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ',' opt_sender_next_tsn ',' opt_receiver_next_tsn']' {
+	$$ = sctp_reconfig_response_new($3, $5, $7, $9);
 }
 ;
 

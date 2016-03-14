@@ -376,8 +376,18 @@ sctp_supported_extensions_parameter_new(struct sctp_byte_list *list);
 struct sctp_parameter_list_item *
 sctp_pad_parameter_new(s64 len, u8 *padding);
 
+#define FLAG_RECONFIG_REQ_SN_NOCHECK                            0x00000001
+#define FLAG_RECONFIG_RESP_SN_NOCHECK                           0x00000002
+#define FLAG_RECONFIG_LAST_TSN_NOCHECK                          0x00000004
+
 struct sctp_parameter_list_item *
-sctp_outgoing_ssn_reset_request_parameter_new(u32 reqsn, u32 respsn, u32 last_tsn, struct sctp_u16_list *sids);
+sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_tsn, struct sctp_u16_list *sids);
+
+#define FLAG_RECONFIG_RESULT_NOCHECK                            0x00000001
+#define FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK                   0x00000004
+#define FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK                 0x00000008
+struct sctp_parameter_list_item *
+sctp_reconfig_response_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn);
 
 struct sctp_parameter_list *
 sctp_parameter_list_new(void);

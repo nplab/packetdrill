@@ -1795,7 +1795,7 @@ sctp_pad_parameter_new(s64 len, u8 *padding)
 }
 
 struct sctp_parameter_list_item *
-sctp_outgoing_ssn_reset_request_parameter_new(u32 reqsn, u32 respsn, u32 last_tsn, struct sctp_u16_list *sids)
+sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_tsn, struct sctp_u16_list *sids)
 {
 	struct sctp_outgoing_ssn_reset_request_parameter *parameter;
 	u32 flags = 0;
@@ -1813,9 +1813,24 @@ sctp_outgoing_ssn_reset_request_parameter_new(u32 reqsn, u32 respsn, u32 last_ts
 
 	parameter->type = htons(SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE);
 	parameter->length = htons(parameter_length);
-	parameter->reqsn = htonl(reqsn);
-	parameter->respsn = htonl(respsn);
-	parameter->last_tsn = htonl(last_tsn);
+	if (reqsn == -1) {
+		flags |= FLAG_RECONFIG_REQ_SN_NOCHECK;
+		parameter->reqsn = 0;
+	} else {
+		parameter->reqsn = htonl((u32)reqsn);
+	}
+	if (respsn == -1) {
+		flags |= FLAG_RECONFIG_RESP_SN_NOCHECK;
+		parameter->respsn = 0;	
+	} else {
+		parameter->respsn = htonl((u32)respsn);
+	}
+	if (last_tsn == -1) {
+		flags |= FLAG_RECONFIG_LAST_TSN_NOCHECK;
+		parameter->last_tsn = 0;
+	} else {
+		parameter->last_tsn = htonl((u32)last_tsn);
+	}
 	if (sids != NULL) {
 		struct sctp_u16_list_item *item;
 		for (item = sids->first; item != NULL; item = item->next) {
@@ -1823,6 +1838,54 @@ sctp_outgoing_ssn_reset_request_parameter_new(u32 reqsn, u32 respsn, u32 last_ts
 		}
 	}
 
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+					    parameter_length, flags);
+}
+
+struct sctp_parameter_list_item *
+sctp_reconfig_response_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn)
+{
+	struct sctp_reconfig_response_parameter *parameter;
+	u32 flags = 0;
+	u16 parameter_length;
+
+	parameter_length = sizeof(struct sctp_reconfig_response_parameter);
+	if (receiver_next_tsn == -2 && sender_next_tsn == -2) { 
+		parameter_length -=sizeof(u32);
+		parameter_length -=sizeof(u32);
+	}
+	parameter = malloc(parameter_length);
+	assert(parameter != NULL);
+
+	parameter->type = htons(SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE);
+	parameter->length = htons(parameter_length);
+
+	if (respsn == -1) {
+		flags |= FLAG_RECONFIG_RESP_SN_NOCHECK;
+		parameter->respsn = 0;	
+	} else {
+		parameter->respsn = htonl((u32)respsn);
+	}
+	if (result == -1) {
+		flags |= FLAG_RECONFIG_RESULT_NOCHECK;
+		parameter->result = 0;
+	} else {
+		parameter->result = htonl((u32)result);
+	}
+	if (receiver_next_tsn != -2 && sender_next_tsn != -2) { 
+		if (sender_next_tsn == -1) {
+			flags |= FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK;
+			parameter->sender_next_tsn = 0;
+		} else {
+			parameter->sender_next_tsn = htonl((u32)sender_next_tsn);
+		}
+		if (receiver_next_tsn == -1) {
+			flags |= FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK;
+			parameter->receiver_next_tsn = 0;
+		} else {
+			parameter->receiver_next_tsn = htonl((u32)receiver_next_tsn);
+		}
+	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 					    parameter_length, flags);
 }

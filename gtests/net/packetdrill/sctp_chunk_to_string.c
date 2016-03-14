@@ -348,6 +348,31 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_reconfig_response_parameter_to_string(
+	FILE *s,
+	struct sctp_reconfig_response_parameter *parameter,
+	char **error)
+{
+	u16 length;
+	u32 respsn;
+	u32 sender_next_tsn;
+	u32 receiver_next_tsn;
+
+	length = ntohs(parameter->length);
+	respsn = ntohl(parameter->respsn);
+	fputs("RECONFIG_RESPONSE[", s);
+	fprintf(s, "len=%hu, ", length);
+	fprintf(s, "resp_sn=%u", respsn);
+	if (length == sizeof(struct sctp_reconfig_response_parameter)){
+		sender_next_tsn = ntohl(parameter->sender_next_tsn);
+		receiver_next_tsn = ntohl(parameter->receiver_next_tsn);
+		fprintf(s, ", sender_next_tsn=%u, ", sender_next_tsn);
+		fprintf(s, "receiver_next_tsn=%u", receiver_next_tsn);
+	}
+	fputs("]", s);
+	return STATUS_OK;
+}
+
 static int sctp_unknown_parameter_to_string(
 	FILE *s,
 	struct sctp_parameter *parameter,
@@ -457,7 +482,11 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE:
 		result = sctp_outgoing_ssn_reset_request_parameter_to_string(s,
 			(struct sctp_outgoing_ssn_reset_request_parameter *)parameter, error);
-		break;		
+		break;
+	case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE:
+		result = sctp_reconfig_response_parameter_to_string(s,
+			(struct sctp_reconfig_response_parameter *)parameter, error);
+		break;
 	default:
 		result = sctp_unknown_parameter_to_string(s, parameter, error);
 		break;

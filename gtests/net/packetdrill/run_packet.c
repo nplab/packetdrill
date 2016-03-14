@@ -758,6 +758,16 @@ static int map_inbound_sctp_packet(
 						reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
 						break;
 					}
+					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
+						struct sctp_reconfig_response_parameter *response;
+						response = (struct sctp_reconfig_response_parameter *)parameter;
+						response->respsn = htonl(htonl(response->respsn) + local_diff);
+						if (response->length == sizeof(struct sctp_reconfig_response_parameter)) {
+							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
+							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
+						}
+						break;
+					}
 					default:
 						//do nothing
 						break;
@@ -977,6 +987,16 @@ static int map_outbound_live_sctp_packet(
 						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);
 						reset->respsn = htonl(ntohl(reset->respsn) + remote_diff);
 						reset->last_tsn = htonl(ntohl(reset->last_tsn) + local_diff);
+						break;
+					}
+					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
+						struct sctp_reconfig_response_parameter *response;
+						response = (struct sctp_reconfig_response_parameter *)parameter;
+						response->respsn = htonl(htonl(response->respsn) + remote_diff);
+						if (response->length == sizeof(struct sctp_reconfig_response_parameter)) {
+							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
+							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
+						}
 						break;
 					}
 					default:
