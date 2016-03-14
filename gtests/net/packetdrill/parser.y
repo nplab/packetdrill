@@ -527,7 +527,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
 %token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS INCOMING_SSN_RESET
 %token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
-%token <reserved> SSN_TSN_RESET
+%token <reserved> SSN_TSN_RESET ADD_INCOMING_STREAMS NUMBER_OF_NEW_STREAMS
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -689,7 +689,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_adaptation_indication_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec sctp_reconfig_parameter_spec
 %type <parameter_list_item> outgoing_ssn_reset_request incoming_ssn_reset_request
-%type <parameter_list_item> reconfig_response ssn_tsn_reset_request
+%type <parameter_list_item> reconfig_response ssn_tsn_reset_request add_incoming_streams_request
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
 %type <cause_list_item> sctp_generic_cause_spec
@@ -712,7 +712,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_mid opt_fsn
 %type <integer> opt_cum_tsn opt_ppid opt_sender_next_tsn opt_receiver_next_tsn
-%type <integer> opt_req_sn opt_resp_sn opt_last_tsn opt_result
+%type <integer> opt_req_sn opt_resp_sn opt_last_tsn opt_result opt_number_of_new_streams
 %type <byte_list> opt_val opt_info byte_list chunk_types_list
 %type <byte_list_item> byte 
 %type <u16_list> u16_list
@@ -1748,6 +1748,7 @@ sctp_reconfig_parameter_spec
 | incoming_ssn_reset_request	{ $$ = $1; }
 | ssn_tsn_reset_request		{ $$ = $1; }
 | reconfig_response		{ $$ = $1; }
+| add_incoming_streams_request  { $$ = $1; }
 ;
  
 opt_sender_next_tsn
@@ -1768,6 +1769,16 @@ opt_receiver_next_tsn
 	$$ = $3;
 }
 | RECEIVER_NEXT_TSN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_number_of_new_streams
+: NUMBER_OF_NEW_STREAMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("number_of_new_streams out of range");
+	}
+	$$ = $3;
+}
+| NUMBER_OF_NEW_STREAMS '=' ELLIPSIS { $$ = -1; }
 ;
 
 outgoing_ssn_reset_request
@@ -1800,6 +1811,12 @@ reconfig_response
 }
 | RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ',' opt_sender_next_tsn ',' opt_receiver_next_tsn']' {
 	$$ = sctp_reconfig_response_parameter_new($3, $5, $7, $9);
+}
+;
+
+add_incoming_streams_request
+: ADD_INCOMING_STREAMS '[' opt_req_sn ',' opt_number_of_new_streams ']' {
+	$$ = sctp_add_incoming_streams_request_parameter_new($3, $5);
 }
 ;
 

@@ -780,6 +780,12 @@ static int map_inbound_sctp_packet(
 						}
 						break;
 					}
+					case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
+						struct sctp_add_incoming_streams_request_parameter *request;
+						request = (struct sctp_add_incoming_streams_request_parameter *)parameter;
+						request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+						break;
+					}
 					default:
 						//do nothing
 						break;
@@ -1021,6 +1027,12 @@ static int map_outbound_live_sctp_packet(
 							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
 							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
 						}
+						break;
+					}
+					case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
+						struct sctp_add_incoming_streams_request_parameter *request;
+						request = (struct sctp_add_incoming_streams_request_parameter *)parameter;
+						request->reqsn = htonl(htonl(request->reqsn) + local_diff);
 						break;
 					}
 					default:

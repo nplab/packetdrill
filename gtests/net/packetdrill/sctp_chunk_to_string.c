@@ -421,6 +421,27 @@ static int sctp_reconfig_response_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_add_incoming_streams_request_parameter_to_string(
+	FILE *s,
+	struct sctp_add_incoming_streams_request_parameter *parameter,
+	char **error)
+{
+	u16 length;
+	u32 reqsn;
+	u16 number_of_new_streams;
+
+	length = ntohs(parameter->length);
+	reqsn = ntohl(parameter->reqsn);
+	number_of_new_streams = ntohs(parameter->number_of_new_streams);
+
+	fputs("ADD_INCOMING_STREAMS[", s);
+	fprintf(s, "len=%hu, ", length);
+	fprintf(s, "req_sn=%u, ", reqsn);
+	fprintf(s, "number_of_new_streams=%hu", number_of_new_streams);
+	fputs("]", s);
+	return STATUS_OK;
+}
+
 static int sctp_unknown_parameter_to_string(
 	FILE *s,
 	struct sctp_parameter *parameter,
@@ -542,6 +563,10 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE:
 		result = sctp_reconfig_response_parameter_to_string(s,
 			(struct sctp_reconfig_response_parameter *)parameter, error);
+		break;
+	case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE:
+		result = sctp_add_incoming_streams_request_parameter_to_string(s,
+			(struct sctp_add_incoming_streams_request_parameter *)parameter, error);
 		break;
 	default:
 		result = sctp_unknown_parameter_to_string(s, parameter, error);

@@ -392,8 +392,14 @@ sctp_ssn_tsn_reset_request_parameter_new(s64 reqsn);
 #define FLAG_RECONFIG_RESULT_NOCHECK                            0x00000010
 #define FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK                   0x00000040
 #define FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK                 0x00000080
+
 struct sctp_parameter_list_item *
 sctp_reconfig_response_parameter_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn);
+
+#define FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK		0x00000080
+
+struct sctp_parameter_list_item *
+sctp_add_incoming_streams_request_parameter_new(s64 reqsn, s32 number_of_new_streams);
 
 struct sctp_parameter_list *
 sctp_parameter_list_new(void);
