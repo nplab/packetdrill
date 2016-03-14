@@ -348,6 +348,32 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_incoming_ssn_reset_request_parameter_to_string(
+	FILE *s,
+	struct sctp_incoming_ssn_reset_request_parameter *parameter,
+	char **error)
+{
+	u16 length;
+	u32 reqsn;
+	int len;
+
+	length = ntohs(parameter->length);
+	reqsn = ntohl(parameter->reqsn);
+	fputs("INCOMING_SSN_RESET[", s);
+	fprintf(s, "len=%hu, ", length);
+	fprintf(s, "req_sn=%u ,", reqsn);
+	fputs("sids=[", s);
+	for(len = 0; len < ((length-8)/sizeof(u16)); len++) {
+		u16 sid;
+		sid = ntohs(parameter->sids[len]);
+		if (len > 0)
+			fprintf(s, ", ");
+		fprintf(s, "%hu", sid);	
+	}
+	fputs("]", s);
+	return STATUS_OK;
+}
+
 static int sctp_ssn_tsn_reset_request_parameter_to_string(
 	FILE *s,
 	struct sctp_ssn_tsn_reset_request_parameter *parameter,
@@ -504,6 +530,10 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE:
 		result = sctp_outgoing_ssn_reset_request_parameter_to_string(s,
 			(struct sctp_outgoing_ssn_reset_request_parameter *)parameter, error);
+		break;
+	case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE:
+		result = sctp_incoming_ssn_reset_request_parameter_to_string(s,
+			(struct sctp_incoming_ssn_reset_request_parameter *)parameter, error);
 		break;
 	case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE:
 		result = sctp_ssn_tsn_reset_request_parameter_to_string(s,

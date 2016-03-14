@@ -758,10 +758,16 @@ static int map_inbound_sctp_packet(
 						reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
 						break;
 					}
+					case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_incoming_ssn_reset_request_parameter *reset;
+						reset = (struct sctp_incoming_ssn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						break;
+					}
 					case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_ssn_tsn_reset_request_parameter *reset;
 						reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
-						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);						
+						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
 						break;
 					}
 					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
@@ -995,10 +1001,16 @@ static int map_outbound_live_sctp_packet(
 						reset->last_tsn = htonl(ntohl(reset->last_tsn) + local_diff);
 						break;
 					}
+					case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_incoming_ssn_reset_request_parameter *reset;
+						reset = (struct sctp_incoming_ssn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);
+						break;
+					}
 					case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_ssn_tsn_reset_request_parameter *reset;
 						reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
-						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);						
+						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);				
 						break;
 					}
 					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {

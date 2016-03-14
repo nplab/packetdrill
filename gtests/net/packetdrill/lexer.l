@@ -567,6 +567,7 @@ gaps				return GAPS;
 dups				return DUPS;
 adaptation_code_point		return ADAPTATION_CODE_POINT;
 OUTGOING_SSN_RESET		return OUTGOING_SSN_RESET;
+INCOMING_SSN_RESET		return INCOMING_SSN_RESET;
 SSN_TSN_RESET			return SSN_TSN_RESET;
 RECONFIG_RESPONSE		return RECONFIG_RESPONSE;
 req_sn				return REQ_SN;

@@ -384,6 +384,9 @@ struct sctp_parameter_list_item *
 sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_tsn, struct sctp_u16_list *sids);
 
 struct sctp_parameter_list_item *
+sctp_incoming_ssn_reset_request_parameter_new(s64 reqsn, struct sctp_u16_list *sids);
+
+struct sctp_parameter_list_item *
 sctp_ssn_tsn_reset_request_parameter_new(s64 reqsn);
 
 #define FLAG_RECONFIG_RESULT_NOCHECK                            0x00000010
