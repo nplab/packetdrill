@@ -528,6 +528,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS INCOMING_SSN_RESET
 %token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
 %token <reserved> SSN_TSN_RESET ADD_INCOMING_STREAMS NUMBER_OF_NEW_STREAMS
+%token <reserved> ADD_OUTGOING_STREAMS
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -689,7 +690,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_adaptation_indication_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec sctp_reconfig_parameter_spec
 %type <parameter_list_item> outgoing_ssn_reset_request incoming_ssn_reset_request
-%type <parameter_list_item> reconfig_response ssn_tsn_reset_request add_incoming_streams_request
+%type <parameter_list_item> reconfig_response ssn_tsn_reset_request
+%type <parameter_list_item> add_outgoing_streams_request add_incoming_streams_request
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
 %type <cause_list_item> sctp_generic_cause_spec
@@ -1748,6 +1750,7 @@ sctp_reconfig_parameter_spec
 | incoming_ssn_reset_request	{ $$ = $1; }
 | ssn_tsn_reset_request		{ $$ = $1; }
 | reconfig_response		{ $$ = $1; }
+| add_outgoing_streams_request  { $$ = $1; }
 | add_incoming_streams_request  { $$ = $1; }
 ;
  
@@ -1811,6 +1814,12 @@ reconfig_response
 }
 | RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ',' opt_sender_next_tsn ',' opt_receiver_next_tsn']' {
 	$$ = sctp_reconfig_response_parameter_new($3, $5, $7, $9);
+}
+;
+
+add_outgoing_streams_request
+: ADD_OUTGOING_STREAMS '[' opt_req_sn ',' opt_number_of_new_streams ']' {
+	$$ = sctp_add_outgoing_streams_request_parameter_new($3, $5);
 }
 ;
 

@@ -1952,6 +1952,39 @@ sctp_ssn_tsn_reset_request_parameter_new(s64 reqsn)
 }
 
 struct sctp_parameter_list_item *
+sctp_add_outgoing_streams_request_parameter_new(s64 reqsn, s32 number_of_new_streams)
+{
+	struct sctp_add_outgoing_streams_request_parameter *parameter;
+	u32 flags = 0;
+	u16 parameter_length;
+
+	parameter_length = sizeof(struct sctp_add_outgoing_streams_request_parameter);
+
+	parameter = malloc(parameter_length);
+	assert(parameter != NULL);
+
+	parameter->type = htons(SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE);
+	parameter->length = htons(parameter_length);
+	parameter->reserved = 0;
+
+	if (reqsn == -1) {
+		flags |= FLAG_RECONFIG_REQ_SN_NOCHECK;
+		parameter->reqsn = 0;
+	} else {
+		parameter->reqsn = htonl((u32)reqsn);
+	}
+	if (reqsn == -1) {
+		flags |= FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK;
+		parameter->number_of_new_streams = 0;
+	} else {
+		parameter->number_of_new_streams = htons((u16)number_of_new_streams);
+	}
+
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+					    parameter_length, flags);
+}
+
+struct sctp_parameter_list_item *
 sctp_add_incoming_streams_request_parameter_new(s64 reqsn, s32 number_of_new_streams)
 {
 	struct sctp_add_incoming_streams_request_parameter *parameter;
@@ -2669,6 +2702,17 @@ new_sctp_packet(int address_family,
 						return NULL;
 					}
 					break;
+				case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE:
+					if (parameter_item->flags & FLAG_RECONFIG_REQ_SN_NOCHECK) {
+						asprintf(error,
+							 "reqsn value must be specified for inbound packets");
+						return NULL;
+					}
+					if (parameter_item->flags & FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK) {
+						asprintf(error,
+							 "number_of_new_streams value must be specified for inbound packets");
+						return NULL;
+					}
 				case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE:
 					if (parameter_item->flags & FLAG_RECONFIG_REQ_SN_NOCHECK) {
 						asprintf(error,

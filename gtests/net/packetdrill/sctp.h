@@ -252,6 +252,7 @@ struct sctp_reconfig_chunk {
 #define SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE  0x000e
 #define SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE       0x000f
 #define SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE           0x0010
+#define SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE 0x0011
 #define SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE 0x0012
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
 #define SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE	0x8008
@@ -366,6 +367,14 @@ struct sctp_reconfig_response_parameter {
 	__be32 result;
 	__be32 sender_next_tsn;
 	__be32 receiver_next_tsn;
+} __packed;
+
+struct sctp_add_outgoing_streams_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+	__be16 number_of_new_streams;
+	__be16 reserved;
 } __packed;
 
 struct sctp_add_incoming_streams_request_parameter {
