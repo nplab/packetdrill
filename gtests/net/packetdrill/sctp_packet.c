@@ -1862,7 +1862,7 @@ sctp_reconfig_response_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 rece
 
 	if (respsn == -1) {
 		flags |= FLAG_RECONFIG_RESP_SN_NOCHECK;
-		parameter->respsn = 0;	
+		parameter->respsn = 0;
 	} else {
 		parameter->respsn = htonl((u32)respsn);
 	}
@@ -1872,7 +1872,7 @@ sctp_reconfig_response_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 rece
 	} else {
 		parameter->result = htonl((u32)result);
 	}
-	if (receiver_next_tsn != -2 && sender_next_tsn != -2) { 
+	if (receiver_next_tsn != -2 && sender_next_tsn != -2) {
 		if (sender_next_tsn == -1) {
 			flags |= FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK;
 			parameter->sender_next_tsn = 0;
@@ -2524,9 +2524,45 @@ new_sctp_packet(int address_family,
 			for (parameter_item = chunk_item->parameter_list->first;
 			     parameter_item != NULL;
 			     parameter_item = parameter_item->next) {
-				if (ntohs(parameter_item->parameter->type) ==
-				    SCTP_STATE_COOKIE_PARAMETER_TYPE) {
+				switch(ntohs(parameter_item->parameter->type)) {
+				case SCTP_STATE_COOKIE_PARAMETER_TYPE:
 					continue;
+				case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE:
+					if (parameter_item->flags & FLAG_RECONFIG_REQ_SN_NOCHECK) {
+						asprintf(error,
+							 "reqsn value must be specified for inbound packets");
+						return NULL;
+					}
+					if (parameter_item->flags & FLAG_RECONFIG_RESP_SN_NOCHECK) {
+						asprintf(error,
+							 "respsn value must be specified for inbound packets");
+						return NULL;
+					}
+					if (parameter_item->flags & FLAG_RECONFIG_LAST_TSN_NOCHECK) {
+						asprintf(error,
+							 "last_tsn value must be specified for inbound packets");
+						return NULL;
+					}
+					break;
+				case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE:
+					if (parameter_item->flags & FLAG_RECONFIG_RESULT_NOCHECK) {
+						asprintf(error,
+							 "result value must be specified for inbound packets");
+						return NULL;
+					}
+					if (parameter_item->flags & FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK) {
+						asprintf(error,
+							 "sender_next_tsn value must be specified for inbound packets");
+						return NULL;
+					}
+					if (parameter_item->flags & FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK) {
+						asprintf(error,
+							 "receiver_next_tsn value must be specified for inbound packets");
+						return NULL;
+					}
+					break;
+				default:
+					break;
 				}
 				if (parameter_item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
 					asprintf(error,

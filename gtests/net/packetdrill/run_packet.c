@@ -1800,6 +1800,7 @@ static int verify_reconfig_chunk(struct sctp_reconfig_chunk *actual_chunk,
 		        error))) {
 		return STATUS_ERR;
 	}
+	//TODO: check Parameter
 	return verify_sctp_parameters(actual_chunk->parameter,
 				      parameter_length,
 				      script_chunk_item,
