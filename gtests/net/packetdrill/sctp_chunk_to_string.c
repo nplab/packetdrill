@@ -348,6 +348,24 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_ssn_tsn_reset_request_parameter_to_string(
+	FILE *s,
+	struct sctp_ssn_tsn_reset_request_parameter *parameter,
+	char **error)
+{
+	u16 length;
+	u32 reqsn;
+
+	length = ntohs(parameter->length);
+	reqsn = ntohl(parameter->reqsn);
+
+	fputs("SSN_TSN_RESET[", s);
+	fprintf(s, "len=%hu, ", length);
+	fprintf(s, "req_sn=%u", reqsn);
+	fputs("]", s);
+	return STATUS_OK;
+}
+
 static int sctp_reconfig_response_parameter_to_string(
 	FILE *s,
 	struct sctp_reconfig_response_parameter *parameter,
@@ -355,14 +373,18 @@ static int sctp_reconfig_response_parameter_to_string(
 {
 	u16 length;
 	u32 respsn;
+	u32 result;
 	u32 sender_next_tsn;
 	u32 receiver_next_tsn;
 
 	length = ntohs(parameter->length);
 	respsn = ntohl(parameter->respsn);
+	result = ntohl(parameter->result);
+
 	fputs("RECONFIG_RESPONSE[", s);
 	fprintf(s, "len=%hu, ", length);
-	fprintf(s, "resp_sn=%u", respsn);
+	fprintf(s, "resp_sn=%u, ", respsn);
+	fprintf(s, "result=%u", result);
 	if (length == sizeof(struct sctp_reconfig_response_parameter)){
 		sender_next_tsn = ntohl(parameter->sender_next_tsn);
 		receiver_next_tsn = ntohl(parameter->receiver_next_tsn);
@@ -482,6 +504,10 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE:
 		result = sctp_outgoing_ssn_reset_request_parameter_to_string(s,
 			(struct sctp_outgoing_ssn_reset_request_parameter *)parameter, error);
+		break;
+	case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE:
+		result = sctp_ssn_tsn_reset_request_parameter_to_string(s,
+			(struct sctp_ssn_tsn_reset_request_parameter *)parameter, error);
 		break;
 	case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE:
 		result = sctp_reconfig_response_parameter_to_string(s,

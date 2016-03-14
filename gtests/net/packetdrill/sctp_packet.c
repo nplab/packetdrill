@@ -1843,7 +1843,7 @@ sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_ts
 }
 
 struct sctp_parameter_list_item *
-sctp_reconfig_response_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn)
+sctp_reconfig_response_parameter_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn)
 {
 	struct sctp_reconfig_response_parameter *parameter;
 	u32 flags = 0;
@@ -1886,6 +1886,32 @@ sctp_reconfig_response_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 rece
 			parameter->receiver_next_tsn = htonl((u32)receiver_next_tsn);
 		}
 	}
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+					    parameter_length, flags);
+}
+
+struct sctp_parameter_list_item *
+sctp_ssn_tsn_reset_request_parameter_new(s64 reqsn)
+{
+	struct sctp_ssn_tsn_reset_request_parameter *parameter;
+	u32 flags = 0;
+	u16 parameter_length;
+
+	parameter_length = sizeof(struct sctp_ssn_tsn_reset_request_parameter);
+
+	parameter = malloc(parameter_length);
+	assert(parameter != NULL);
+
+	parameter->type = htons(SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE);
+	parameter->length = htons(parameter_length);
+
+	if (reqsn == -1) {
+		flags |= FLAG_RECONFIG_REQ_SN_NOCHECK;
+		parameter->reqsn = 0;
+	} else {
+		parameter->reqsn = htonl((u32)reqsn);
+	}
+
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 					    parameter_length, flags);
 }
@@ -2541,6 +2567,13 @@ new_sctp_packet(int address_family,
 					if (parameter_item->flags & FLAG_RECONFIG_LAST_TSN_NOCHECK) {
 						asprintf(error,
 							 "last_tsn value must be specified for inbound packets");
+						return NULL;
+					}
+					break;
+				case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE:
+					if (parameter_item->flags & FLAG_RECONFIG_REQ_SN_NOCHECK) {
+						asprintf(error,
+							 "reqsn value must be specified for inbound packets");
 						return NULL;
 					}
 					break;

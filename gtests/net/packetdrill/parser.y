@@ -527,6 +527,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
 %token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS 
 %token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
+%token <reserved> SSN_TSN_RESET
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -687,7 +688,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_supported_extensions_parameter_spec
 %type <parameter_list_item> sctp_adaptation_indication_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec sctp_reconfig_parameter_spec
-%type <parameter_list_item> outgoing_ssn_reset_request reconfig_response
+%type <parameter_list_item> outgoing_ssn_reset_request reconfig_response ssn_tsn_reset_request
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
 %type <cause_list_item> sctp_generic_cause_spec
@@ -1743,8 +1744,10 @@ sctp_reconfig_parameter_list_spec
 
 sctp_reconfig_parameter_spec
 :outgoing_ssn_reset_request { $$ = $1; }
+|ssn_tsn_reset_request      { $$ = $1; }
 |reconfig_response          { $$ = $1; }
-; 
+;
+ 
 opt_sender_next_tsn
 : SENDER_NEXT_TSN '=' INTEGER {
 	if (!is_valid_u32($3)) {
@@ -1774,12 +1777,18 @@ outgoing_ssn_reset_request
 }
 ;
 
+ssn_tsn_reset_request
+:SSN_TSN_RESET '[' opt_req_sn ']' {
+	$$ = sctp_ssn_tsn_reset_request_parameter_new($3);
+}
+;
+
 reconfig_response
 :RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ']' {
-	$$ = sctp_reconfig_response_new($3, $5, -2, -2);
+	$$ = sctp_reconfig_response_parameter_new($3, $5, -2, -2);
 }
 |RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ',' opt_sender_next_tsn ',' opt_receiver_next_tsn']' {
-	$$ = sctp_reconfig_response_new($3, $5, $7, $9);
+	$$ = sctp_reconfig_response_parameter_new($3, $5, $7, $9);
 }
 ;
 

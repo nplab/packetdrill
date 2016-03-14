@@ -383,11 +383,14 @@ sctp_pad_parameter_new(s64 len, u8 *padding);
 struct sctp_parameter_list_item *
 sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_tsn, struct sctp_u16_list *sids);
 
+struct sctp_parameter_list_item *
+sctp_ssn_tsn_reset_request_parameter_new(s64 reqsn);
+
 #define FLAG_RECONFIG_RESULT_NOCHECK                            0x00000010
 #define FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK                   0x00000040
 #define FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK                 0x00000080
 struct sctp_parameter_list_item *
-sctp_reconfig_response_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn);
+sctp_reconfig_response_parameter_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn);
 
 struct sctp_parameter_list *
 sctp_parameter_list_new(void);
