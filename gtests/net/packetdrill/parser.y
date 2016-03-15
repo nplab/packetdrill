@@ -716,7 +716,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <integer> opt_cum_tsn opt_ppid opt_sender_next_tsn opt_receiver_next_tsn
 %type <integer> opt_req_sn opt_resp_sn opt_last_tsn opt_result opt_number_of_new_streams
 %type <byte_list> opt_val opt_info byte_list chunk_types_list
-%type <byte_list_item> byte 
+%type <byte_list_item> byte
 %type <u16_list> u16_list
 %type <u16_item> u16_item
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
@@ -1753,7 +1753,7 @@ sctp_reconfig_parameter_spec
 | add_outgoing_streams_request  { $$ = $1; }
 | add_incoming_streams_request  { $$ = $1; }
 ;
- 
+
 opt_sender_next_tsn
 : SENDER_NEXT_TSN '=' INTEGER {
 	if (!is_valid_u32($3)) {
