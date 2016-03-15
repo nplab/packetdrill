@@ -342,7 +342,7 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 		sid = ntohs(parameter->sids[len]);
 		if (len > 0)
 			fprintf(s, ", ");
-		fprintf(s, "%hu", sid);	
+		fprintf(s, "%hu", sid);
 	}
 	fputs("]", s);
 	return STATUS_OK;
@@ -368,7 +368,7 @@ static int sctp_incoming_ssn_reset_request_parameter_to_string(
 		sid = ntohs(parameter->sids[len]);
 		if (len > 0)
 			fprintf(s, ", ");
-		fprintf(s, "%hu", sid);	
+		fprintf(s, "%hu", sid);
 	}
 	fputs("]", s);
 	return STATUS_OK;

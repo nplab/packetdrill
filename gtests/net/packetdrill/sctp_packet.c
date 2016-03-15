@@ -1821,7 +1821,7 @@ sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_ts
 	}
 	if (respsn == -1) {
 		flags |= FLAG_RECONFIG_RESP_SN_NOCHECK;
-		parameter->respsn = 0;	
+		parameter->respsn = 0;
 	} else {
 		parameter->respsn = htonl((u32)respsn);
 	}

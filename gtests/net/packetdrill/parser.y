@@ -39,7 +39,7 @@
  *
  * The semantic action code for a rule produces an output, which it
  * can reference using the $$ token. The set of possible types
-* returned in output expressions is given in the %union section of
+ * returned in output expressions is given in the %union section of
  * the .y file. The specific type of the output for a terminal or
  * nonterminal symbol (corresponding to a field in the %union) is
  * given by the %type directive in the .y file. The action code can

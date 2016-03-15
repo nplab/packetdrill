@@ -1022,7 +1022,7 @@ static int map_outbound_live_sctp_packet(
 					case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_ssn_tsn_reset_request_parameter *reset;
 						reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
-						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);				
+						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);
 						break;
 					}
 					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {

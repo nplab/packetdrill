@@ -55,6 +55,7 @@ struct sctp_common_header {
 #define SCTP_I_DATA_CHUNK_TYPE				0x40
 #define SCTP_RECONFIG_CHUNK_TYPE			0x82
 #define SCTP_PAD_CHUNK_TYPE				0x84
+
 #define MAX_SCTP_CHUNK_BYTES	0xffff
 
 struct sctp_chunk {
@@ -259,6 +260,7 @@ struct sctp_reconfig_chunk {
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
 #define SCTP_Set_Primary_Address			0xc004
 #define SCTP_ADAPTATION_INDICATION_PARAMETER_TYPE	0xc006
+
 #define MAX_SCTP_PARAMETER_BYTES			0xffff
 
 struct sctp_parameter {
@@ -483,4 +485,5 @@ struct sctp_protocol_violation_cause {
 	__be16 length;
 	__u8 information[];
 } __packed;
+
 #endif /* __SCTP_HEADERS_H__ */
