@@ -1885,7 +1885,7 @@ sctp_reconfig_response_parameter_new(s64 respsn, s64 result, s64 sender_next_tsn
 	u16 parameter_length;
 
 	parameter_length = sizeof(struct sctp_reconfig_response_parameter);
-	if (receiver_next_tsn == -2 && sender_next_tsn == -2) { 
+	if (receiver_next_tsn == -2 && sender_next_tsn == -2) {
 		parameter_length -=sizeof(u32);
 		parameter_length -=sizeof(u32);
 	}
