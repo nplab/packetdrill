@@ -1181,6 +1181,24 @@ static int check_field(
 	return STATUS_OK;
 }
 
+/* Check whether the given field of a packet matches the expected
+ * value, and emit a human-readable error message if not.
+ */
+static int check_field_u16(
+	const char *name,	/* human-readable name of the header field */
+	u16 expected,		/* value script hopes to see */
+	u16 actual,		/* actual value seen during test */
+	char **error)		/* human-readable error string on failure */
+{
+	if (actual != expected) {
+		asprintf(error, "live packet field %s: "
+			 "expected: %hu (0x%x) vs actual: %hu (0x%x)",
+			 name, expected, expected, actual, actual);
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
 /* Verify that the actual ECN bits are as the script expected. */
 static int verify_outbound_live_ecn(enum ip_ecn_t ecn,
 				    u8 actual_ecn_bits,
@@ -1352,13 +1370,159 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 		                    error))) {
 			return STATUS_ERR;
 		}
-		if ((flags & FLAG_PARAMETER_VALUE_NOCHECK) == 0) {
-			assert((flags & FLAG_PARAMETER_LENGTH_NOCHECK) == 0);
-			if (memcmp(script_parameter->value,
-			           actual_parameter->value,
-			           ntohs(actual_parameter->length) - sizeof(struct sctp_parameter))) {
-				asprintf(error, "live packet parameter value not as expected");
+		switch (ntohs(actual_parameter->type)) {
+		case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+			struct sctp_outgoing_ssn_reset_request_parameter *live_reset, *script_reset;
+			int sids_len = 0, i = 0;
+
+			live_reset = (struct sctp_outgoing_ssn_reset_request_parameter *)actual_parameter;
+			script_reset = (struct sctp_outgoing_ssn_reset_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("outgoing_ssn_reset_request_parameter.req_sn",
+			                ntohl(script_reset->reqsn),
+			                ntohl(live_reset->reqsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_RESP_SN_NOCHECK ? STATUS_OK :
+			    check_field("outgoing_ssn_reset_request_parameter.resp_sn",
+			                ntohl(script_reset->respsn),
+		                        ntohl(live_reset->respsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_LAST_TSN_NOCHECK ? STATUS_OK :
+			    check_field("outgoing_ssn_reset_request_parameter.last_tsn",
+			                ntohl(script_reset->last_tsn),
+			 	        ntohl(live_reset->last_tsn),
+				        error))) {
 				return STATUS_ERR;
+			}
+			sids_len = ntohs(script_reset->length) - sizeof(struct sctp_outgoing_ssn_reset_request_parameter);
+			for (i = 0; i<(sids_len / sizeof(u16)); i++) {
+				if (check_field_u16("outgoing_ssn_reset_request_parameter.sids",
+						    ntohs(script_reset->sids[i]),
+						    ntohs(live_reset->sids[i]),
+						    error)) {
+					return STATUS_ERR;
+                        	}
+			}
+			break;
+		}
+		case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+			struct sctp_incoming_ssn_reset_request_parameter *live_reset, *script_reset;
+			int sids_len = 0, i = 0;
+
+			live_reset = (struct sctp_incoming_ssn_reset_request_parameter *)actual_parameter;
+			script_reset = (struct sctp_incoming_ssn_reset_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("incoming_ssn_reset_request_parameter.req_sn",
+			                ntohl(script_reset->reqsn),
+			                ntohl(live_reset->reqsn),
+			                error))) {
+				return STATUS_ERR;
+			}
+			sids_len = ntohs(script_reset->length) - sizeof(struct sctp_incoming_ssn_reset_request_parameter);
+			for (i = 0; i<(sids_len / sizeof(u16)); i++) {
+				if (check_field_u16("incoming_ssn_reset_request_parameter.sids",
+						    ntohs(script_reset->sids[i]),
+						    ntohs(live_reset->sids[i]),
+						    error)) {
+					return STATUS_ERR;
+                        	}
+			}
+			break;
+		}
+		case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
+			struct sctp_ssn_tsn_reset_request_parameter *live_reset, *script_reset;
+
+			live_reset = (struct sctp_ssn_tsn_reset_request_parameter *)actual_parameter;
+			script_reset = (struct sctp_ssn_tsn_reset_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("ssn_tsn_reset_request_parameter.req_sn",
+			                ntohl(script_reset->reqsn),
+			                ntohl(live_reset->reqsn),
+			                error))) {
+				return STATUS_ERR;
+			}
+			break;
+		}
+		case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
+			struct sctp_reconfig_response_parameter *live_resp, *script_resp;
+
+			live_resp = (struct sctp_reconfig_response_parameter *)actual_parameter;
+			script_resp = (struct sctp_reconfig_response_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_RESP_SN_NOCHECK ? STATUS_OK :
+			    check_field("reconfig_response_parameter.resp_sn",
+			                ntohl(script_resp->respsn),
+			                ntohl(live_resp->respsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_RESULT_NOCHECK ? STATUS_OK :
+			    check_field("reconfig_response_parameter.result",
+			                ntohl(script_resp->result),
+			 	        ntohl(live_resp->result),
+				        error))) {
+				return STATUS_ERR;
+			}
+			if (live_resp->length == sizeof(struct sctp_reconfig_response_parameter)) {
+				if ((flags & FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK ? STATUS_OK :
+				    check_field("ssn_tsn_reset_request_parameter.sender_next_tsn",
+				                ntohl(script_resp->sender_next_tsn),
+				                ntohl(live_resp->sender_next_tsn),
+				                error)) ||
+				    (flags & FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK ? STATUS_OK :
+				    check_field("sctp_reconfig_response_parameter.receiver_next_tsn",
+				                ntohl(script_resp->receiver_next_tsn),
+				 	        ntohl(live_resp->receiver_next_tsn),
+					        error))) {
+					return STATUS_ERR;
+				}
+			}
+			break;
+		}
+		case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE: {
+			struct sctp_add_outgoing_streams_request_parameter *live_add, *script_add;
+
+			live_add = (struct sctp_add_outgoing_streams_request_parameter *)actual_parameter;
+			script_add = (struct sctp_add_outgoing_streams_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("add_outgoing_streams_request_parameter_parameter.req_sn",
+			                ntohl(script_add->reqsn),
+			                ntohl(live_add->reqsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK ? STATUS_OK :
+			    check_field_u16("add_outgoing_streams_request_parameter.number_of_new_streams",
+			                ntohs(script_add->number_of_new_streams),
+			 	        ntohs(live_add->number_of_new_streams),
+				        error))) {
+				return STATUS_ERR;
+			}
+			break;
+		}
+		case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
+			struct sctp_add_incoming_streams_request_parameter *live_add, *script_add;
+
+			live_add = (struct sctp_add_incoming_streams_request_parameter *)actual_parameter;
+			script_add = (struct sctp_add_incoming_streams_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("add_incoming_streams_request_parameter.req_sn",
+			                ntohl(script_add->reqsn),
+			                ntohl(live_add->reqsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK ? STATUS_OK :
+			    check_field_u16("add_incoming_streams_request_parameter.number_of_new_streams",
+			                ntohs(script_add->number_of_new_streams),
+			 	        ntohs(live_add->number_of_new_streams),
+				        error))) {
+				return STATUS_ERR;
+			}
+			break;
+		}
+		default:
+			if ((flags & FLAG_PARAMETER_VALUE_NOCHECK) == 0) {
+				assert((flags & FLAG_PARAMETER_LENGTH_NOCHECK) == 0);
+				if (memcmp(script_parameter->value,
+				           actual_parameter->value,
+				           ntohs(actual_parameter->length) - sizeof(struct sctp_parameter))) {
+					asprintf(error, "live packet parameter value not as expected");
+					return STATUS_ERR;
+				}
 			}
 		}
 	}
