@@ -53,6 +53,30 @@ sctp_byte_list_free(struct sctp_byte_list *list);
 struct sctp_byte_list_item *
 sctp_byte_list_item_new(u8 byte);
 
+struct sctp_u16_list_item {
+	struct sctp_u16_list_item *next;
+	u16 value;
+};
+
+struct sctp_u16_list {
+	struct sctp_u16_list_item *first;
+	struct sctp_u16_list_item *last;
+	u16 nr_entries;
+};
+
+struct sctp_u16_list *
+sctp_u16_list_new(void);
+
+void
+sctp_u16_list_append(struct sctp_u16_list *list,
+		     struct sctp_u16_list_item *item);
+
+void
+sctp_u16_list_free(struct sctp_u16_list *list);
+
+struct sctp_u16_list_item *
+sctp_u16_list_item_new(u16 val);
+
 struct sctp_sack_block_list_item {
 	struct sctp_sack_block_list_item *next;
 	union sctp_sack_block block;
@@ -289,6 +313,9 @@ sctp_i_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 res, s64 mid,
 struct sctp_chunk_list_item *
 sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding);
 
+struct sctp_chunk_list_item *
+sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters);
+
 struct sctp_chunk_list *
 sctp_chunk_list_new(void);
 
@@ -348,6 +375,34 @@ sctp_supported_extensions_parameter_new(struct sctp_byte_list *list);
 
 struct sctp_parameter_list_item *
 sctp_pad_parameter_new(s64 len, u8 *padding);
+
+#define FLAG_RECONFIG_REQ_SN_NOCHECK                            0x00000010
+#define FLAG_RECONFIG_RESP_SN_NOCHECK                           0x00000020
+#define FLAG_RECONFIG_LAST_TSN_NOCHECK                          0x00000040
+
+struct sctp_parameter_list_item *
+sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_tsn, struct sctp_u16_list *sids);
+
+struct sctp_parameter_list_item *
+sctp_incoming_ssn_reset_request_parameter_new(s64 reqsn, struct sctp_u16_list *sids);
+
+struct sctp_parameter_list_item *
+sctp_ssn_tsn_reset_request_parameter_new(s64 reqsn);
+
+#define FLAG_RECONFIG_RESULT_NOCHECK                            0x00000010
+#define FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK                   0x00000040
+#define FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK                 0x00000080
+
+struct sctp_parameter_list_item *
+sctp_reconfig_response_parameter_new(s64 respsn, s64 result, s64 sender_next_tsn, s64 receiver_next_tsn);
+
+#define FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK		0x00000080
+
+struct sctp_parameter_list_item *
+sctp_add_outgoing_streams_request_parameter_new(s64 reqsn, s32 number_of_new_streams);
+
+struct sctp_parameter_list_item *
+sctp_add_incoming_streams_request_parameter_new(s64 reqsn, s32 number_of_new_streams);
 
 struct sctp_parameter_list *
 sctp_parameter_list_new(void);

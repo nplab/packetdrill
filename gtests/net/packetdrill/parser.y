@@ -468,6 +468,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct sctp_chunk_list *chunk_list;
 	struct sctp_byte_list_item *byte_list_item;
 	struct sctp_byte_list *byte_list;
+	struct sctp_u16_list *u16_list;
+	struct sctp_u16_list_item *u16_item;
 	struct sctp_sack_block_list_item *sack_block_list_item;
 	struct sctp_sack_block_list *sack_block_list;
 	struct sctp_address_type_list_item *address_type_list_item;
@@ -516,13 +518,17 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPINFO_MTU GAUTH_ASSOC_ID GAUTH_NUMBER_OF_CHUNKS GAUTH_CHUNKS
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
-%token <reserved> SHUTDOWN_COMPLETE I_DATA PAD
+%token <reserved> SHUTDOWN_COMPLETE I_DATA PAD RECONFIG
 %token <reserved> TYPE FLAGS LEN
 %token <reserved> TAG A_RWND OS IS TSN SID SSN MID PPID FSN CUM_TSN GAPS DUPS
 %token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
+%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS INCOMING_SSN_RESET
+%token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
+%token <reserved> SSN_TSN_RESET ADD_INCOMING_STREAMS NUMBER_OF_NEW_STREAMS
+%token <reserved> ADD_OUTGOING_STREAMS
 %token <reserved> ADDR INCR TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
@@ -667,8 +673,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_ecne_chunk_spec sctp_cwr_chunk_spec
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
 %type <chunk_list_item> sctp_i_data_chunk_spec
-%type <chunk_list_item> sctp_pad_chunk_spec
-%type <parameter_list> opt_parameter_list_spec sctp_parameter_list_spec
+%type <chunk_list_item> sctp_pad_chunk_spec sctp_reconfig_chunk_spec
+%type <parameter_list> opt_parameter_list_spec sctp_parameter_list_spec sctp_reconfig_parameter_list_spec
 %type <parameter_list_item> sctp_parameter_spec
 %type <parameter_list_item> sctp_generic_parameter_spec
 %type <parameter_list_item> sctp_heartbeat_information_parameter_spec
@@ -682,7 +688,10 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
 %type <parameter_list_item> sctp_supported_extensions_parameter_spec
 %type <parameter_list_item> sctp_adaptation_indication_parameter_spec
-%type <parameter_list_item> sctp_pad_parameter_spec
+%type <parameter_list_item> sctp_pad_parameter_spec sctp_reconfig_parameter_spec
+%type <parameter_list_item> outgoing_ssn_reset_request incoming_ssn_reset_request
+%type <parameter_list_item> reconfig_response ssn_tsn_reset_request
+%type <parameter_list_item> add_outgoing_streams_request add_incoming_streams_request
 %type <cause_list> opt_cause_list_spec sctp_cause_list_spec
 %type <cause_list_item> sctp_cause_spec
 %type <cause_list_item> sctp_generic_cause_spec
@@ -704,9 +713,12 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <integer> opt_shutdown_complete_flags opt_i_data_flags opt_len
 %type <integer> opt_tag opt_a_rwnd opt_os opt_is opt_tsn opt_sid opt_ssn
 %type <integer> opt_mid opt_fsn
-%type <integer> opt_cum_tsn opt_ppid
+%type <integer> opt_cum_tsn opt_ppid opt_sender_next_tsn opt_receiver_next_tsn
+%type <integer> opt_req_sn opt_resp_sn opt_last_tsn opt_result opt_number_of_new_streams
 %type <byte_list> opt_val opt_info byte_list chunk_types_list
 %type <byte_list_item> byte
+%type <u16_list> u16_list
+%type <u16_item> u16_item
 %type <sack_block_list> opt_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
 %type <address_type_list> address_types_list
@@ -1039,6 +1051,7 @@ sctp_chunk_spec
 | sctp_shutdown_complete_chunk_spec { $$ = $1; }
 | sctp_i_data_chunk_spec            { $$ = $1; }
 | sctp_pad_chunk_spec               { $$ = $1; }
+| sctp_reconfig_chunk_spec          { $$ = $1; }
 ;
 
 chunk_type
@@ -1104,6 +1117,9 @@ chunk_type
 }
 | PAD {
 	$$ = SCTP_PAD_CHUNK_TYPE;
+} 
+| RECONFIG {
+	$$ = SCTP_RECONFIG_CHUNK_TYPE;
 }
 ;
 
@@ -1172,6 +1188,23 @@ byte
 		semantic_error("byte value out of range");
 	}
 	$$ = sctp_byte_list_item_new($1);
+}
+;
+
+u16_list
+:                       { $$ = sctp_u16_list_new(); }
+| u16_item              { $$ = sctp_u16_list_new();
+                          sctp_u16_list_append($$, $1); }
+| u16_list ',' u16_item { $$ = $1;
+                          sctp_u16_list_append($1, $3); }
+;
+
+u16_item
+: INTEGER {
+	if (!is_valid_u16($1)) {
+		semantic_error("Integer value out of range");
+	}
+	$$ = sctp_u16_list_item_new($1);
 }
 ;
 
@@ -1660,6 +1693,147 @@ sctp_pad_chunk_spec
 	}
 	$$ = sctp_pad_chunk_new($3, $5, NULL);
 }
+
+opt_req_sn
+: REQ_SN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("req_sn out of range");
+	}
+	$$ = $3;
+}
+| REQ_SN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_resp_sn
+: RESP_SN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("resp_sn out of range");
+	}
+	$$ = $3;
+}
+| RESP_SN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_last_tsn
+: LAST_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("last_tsn out of range");
+	}
+	$$ = $3;
+}
+| LAST_TSN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_result
+: RESULT '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("result out of range");
+	}
+	$$ = $3;
+}
+| RESULT '=' ELLIPSIS { $$ = -1; }
+;
+
+sctp_reconfig_parameter_list_spec
+: sctp_reconfig_parameter_spec   {
+	$$ = sctp_parameter_list_new();
+	sctp_parameter_list_append($$, $1);
+}
+| sctp_reconfig_parameter_list_spec ',' sctp_reconfig_parameter_spec {
+	$$ = $1;
+	sctp_parameter_list_append($1, $3);
+}
+;
+
+sctp_reconfig_parameter_spec
+: outgoing_ssn_reset_request	{ $$ = $1; }
+| incoming_ssn_reset_request	{ $$ = $1; }
+| ssn_tsn_reset_request		{ $$ = $1; }
+| reconfig_response		{ $$ = $1; }
+| add_outgoing_streams_request  { $$ = $1; }
+| add_incoming_streams_request  { $$ = $1; }
+;
+
+opt_sender_next_tsn
+: SENDER_NEXT_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("sender_next_tsn out of range");
+	}
+	$$ = $3;
+}
+| SENDER_NEXT_TSN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_receiver_next_tsn
+: RECEIVER_NEXT_TSN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("receiver_next_tsn out of range");
+	}
+	$$ = $3;
+}
+| RECEIVER_NEXT_TSN '=' ELLIPSIS { $$ = -1; }
+;
+
+opt_number_of_new_streams
+: NUMBER_OF_NEW_STREAMS '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("number_of_new_streams out of range");
+	}
+	$$ = $3;
+}
+| NUMBER_OF_NEW_STREAMS '=' ELLIPSIS { $$ = -1; }
+;
+
+outgoing_ssn_reset_request
+: OUTGOING_SSN_RESET '[' opt_req_sn ',' opt_resp_sn ',' opt_last_tsn ']' {
+	$$ = sctp_outgoing_ssn_reset_request_parameter_new($3, $5, $7, NULL);
+}
+| OUTGOING_SSN_RESET '[' opt_req_sn ',' opt_resp_sn ',' opt_last_tsn ',' SIDS '=' '[' u16_list ']' ']' {
+	$$ = sctp_outgoing_ssn_reset_request_parameter_new($3, $5, $7, $12);
+}
+;
+
+incoming_ssn_reset_request
+: INCOMING_SSN_RESET '[' opt_req_sn ']' {
+	$$ = sctp_incoming_ssn_reset_request_parameter_new($3, NULL);
+}
+| INCOMING_SSN_RESET '[' opt_req_sn ',' SIDS '=' '[' u16_list ']' ']' {
+	$$ = sctp_incoming_ssn_reset_request_parameter_new($3, $8);
+}
+;
+
+ssn_tsn_reset_request
+: SSN_TSN_RESET '[' opt_req_sn ']' {
+	$$ = sctp_ssn_tsn_reset_request_parameter_new($3);
+}
+;
+
+reconfig_response
+: RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ']' {
+	$$ = sctp_reconfig_response_parameter_new($3, $5, -2, -2);
+}
+| RECONFIG_RESPONSE '[' opt_resp_sn ',' opt_result ',' opt_sender_next_tsn ',' opt_receiver_next_tsn']' {
+	$$ = sctp_reconfig_response_parameter_new($3, $5, $7, $9);
+}
+;
+
+add_outgoing_streams_request
+: ADD_OUTGOING_STREAMS '[' opt_req_sn ',' opt_number_of_new_streams ']' {
+	$$ = sctp_add_outgoing_streams_request_parameter_new($3, $5);
+}
+;
+
+add_incoming_streams_request
+: ADD_INCOMING_STREAMS '[' opt_req_sn ',' opt_number_of_new_streams ']' {
+	$$ = sctp_add_incoming_streams_request_parameter_new($3, $5);
+}
+;
+
+sctp_reconfig_chunk_spec
+: RECONFIG '[' opt_flags ',' sctp_reconfig_parameter_list_spec ']' {
+	$$ = sctp_reconfig_chunk_new($3, $5);
+}
+;
 
 opt_parameter_list_spec
 : ',' ELLIPSIS                 { $$ = NULL; }

@@ -53,6 +53,7 @@ struct sctp_common_header {
 #define SCTP_CWR_CHUNK_TYPE				0x0d
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE		0x0e
 #define SCTP_I_DATA_CHUNK_TYPE				0x40
+#define SCTP_RECONFIG_CHUNK_TYPE			0x82
 #define SCTP_PAD_CHUNK_TYPE				0x84
 
 #define MAX_SCTP_CHUNK_BYTES	0xffff
@@ -233,6 +234,13 @@ struct sctp_pad_chunk {
 	__u8 padding_data[];
 } __packed;
 
+struct sctp_reconfig_chunk {
+	__u8 type;
+	__u8 flags;
+	__be16 length;
+	__u8 parameter[];
+} __packed;
+
 #define SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE	0x0001
 #define SCTP_IPV4_ADDRESS_PARAMETER_TYPE		0x0005
 #define SCTP_IPV6_ADDRESS_PARAMETER_TYPE		0x0006
@@ -241,6 +249,12 @@ struct sctp_pad_chunk {
 #define SCTP_COOKIE_PRESERVATIVE_PARAMETER_TYPE		0x0009
 #define SCTP_HOSTNAME_ADDRESS_PARAMETER_TYPE		0x000b
 #define SCTP_SUPPORTED_ADDRESS_TYPES_PARAMETER_TYPE	0x000c
+#define SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE  0x000d
+#define SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE  0x000e
+#define SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE       0x000f
+#define SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE           0x0010
+#define SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE 0x0011
+#define SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE 0x0012
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE			0x8000
 #define SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE	0x8008
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
@@ -324,6 +338,53 @@ struct sctp_adaptation_indication_parameter {
 	__be16 type;
 	__be16 length;
 	__be32 adaptation_code_point;
+} __packed;
+
+struct sctp_outgoing_ssn_reset_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+	__be32 respsn;
+	__be32 last_tsn;
+	__be16 sids[];
+} __packed;
+
+struct sctp_incoming_ssn_reset_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+	__be16 sids[];
+} __packed;
+
+struct sctp_ssn_tsn_reset_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+} __packed;
+
+struct sctp_reconfig_response_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 respsn;
+	__be32 result;
+	__be32 sender_next_tsn;
+	__be32 receiver_next_tsn;
+} __packed;
+
+struct sctp_add_outgoing_streams_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+	__be16 number_of_new_streams;
+	__be16 reserved;
+} __packed;
+
+struct sctp_add_incoming_streams_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+	__be16 number_of_new_streams;
+	__be16 reserved;
 } __packed;
 
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001

@@ -652,6 +652,7 @@ static int map_inbound_sctp_packet(
 	struct sctp_cwr_chunk *cwr;
 	struct sctp_shutdown_complete_chunk *shutdown_complete;
 	struct sctp_i_data_chunk *i_data;
+	struct sctp_reconfig_chunk *reconfig;
 	u32 local_diff, remote_diff;
 	u32 v_tag;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
@@ -737,6 +738,66 @@ static int map_inbound_sctp_packet(
 		case SCTP_I_DATA_CHUNK_TYPE:
 			i_data = (struct sctp_i_data_chunk *)chunk;
 			i_data->tsn = htonl(ntohl(i_data->tsn) + remote_diff);
+			break;
+		case SCTP_RECONFIG_CHUNK_TYPE:
+			reconfig = (struct sctp_reconfig_chunk *)chunk;
+			if (reconfig->length > sizeof(struct sctp_reconfig_chunk)) {
+				struct sctp_parameter *parameter;
+				struct sctp_parameters_iterator iter;
+				int parameters_length = ntohs(reconfig->length) - sizeof(struct sctp_reconfig_chunk);
+				for (parameter = sctp_parameters_begin(reconfig->parameter, parameters_length,
+								       &iter, error);
+				     parameter != NULL;
+				     parameter = sctp_parameters_next(&iter, error)) {
+					switch (htons(parameter->type)) {
+					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_outgoing_ssn_reset_request_parameter *reset;
+						reset = (struct sctp_outgoing_ssn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						reset->respsn = htonl(ntohl(reset->respsn) + local_diff);
+						reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
+						break;
+					}
+					case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_incoming_ssn_reset_request_parameter *reset;
+						reset = (struct sctp_incoming_ssn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						break;
+					}
+					case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_ssn_tsn_reset_request_parameter *reset;
+						reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						break;
+					}
+					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
+						struct sctp_reconfig_response_parameter *response;
+						response = (struct sctp_reconfig_response_parameter *)parameter;
+						response->respsn = htonl(htonl(response->respsn) + local_diff);
+						if (response->length == sizeof(struct sctp_reconfig_response_parameter)) {
+							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
+							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
+						}
+						break;
+					}
+					case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE: {
+						struct sctp_add_outgoing_streams_request_parameter *request;
+						request = (struct sctp_add_outgoing_streams_request_parameter *)parameter;
+						request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+						break;
+					}
+					case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
+						struct sctp_add_incoming_streams_request_parameter *request;
+						request = (struct sctp_add_incoming_streams_request_parameter *)parameter;
+						request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+						break;
+					}
+					default:
+						//do nothing
+						break;
+					}
+				}
+			}
 			break;
 		default:
 			break;
@@ -871,6 +932,7 @@ static int map_outbound_live_sctp_packet(
 	struct sctp_ecne_chunk *ecne;
 	struct sctp_cwr_chunk *cwr;
 	struct sctp_i_data_chunk *i_data;
+	struct sctp_reconfig_chunk *reconfig;
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
 
@@ -930,6 +992,67 @@ static int map_outbound_live_sctp_packet(
 		case SCTP_I_DATA_CHUNK_TYPE:
 			i_data = (struct sctp_i_data_chunk *)chunk;
 			i_data->tsn = htonl(ntohl(i_data->tsn) + local_diff);
+			break;
+		case SCTP_RECONFIG_CHUNK_TYPE:
+			reconfig = (struct sctp_reconfig_chunk *)chunk;
+			if (reconfig->length > sizeof(struct sctp_reconfig_chunk)) {
+				struct sctp_parameter *parameter;
+				struct sctp_parameters_iterator iter;
+				int parameters_length = ntohs(reconfig->length) - sizeof(struct sctp_reconfig_chunk);
+				for (parameter = sctp_parameters_begin(reconfig->parameter,
+						parameters_length,
+						&iter, error);
+					parameter != NULL;
+					parameter = sctp_parameters_next(&iter, error)) {
+					switch (htons(parameter->type)) {
+					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_outgoing_ssn_reset_request_parameter *reset;
+						reset = (struct sctp_outgoing_ssn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);
+						reset->respsn = htonl(ntohl(reset->respsn) + remote_diff);
+						reset->last_tsn = htonl(ntohl(reset->last_tsn) + local_diff);
+						break;
+					}
+					case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_incoming_ssn_reset_request_parameter *reset;
+						reset = (struct sctp_incoming_ssn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);
+						break;
+					}
+					case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
+						struct sctp_ssn_tsn_reset_request_parameter *reset;
+						reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
+						reset->reqsn = htonl(ntohl(reset->reqsn) + local_diff);
+						break;
+					}
+					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
+						struct sctp_reconfig_response_parameter *response;
+						response = (struct sctp_reconfig_response_parameter *)parameter;
+						response->respsn = htonl(htonl(response->respsn) + remote_diff);
+						if (response->length == sizeof(struct sctp_reconfig_response_parameter)) {
+							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
+							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
+						}
+						break;
+					}
+					case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE: {
+						struct sctp_add_outgoing_streams_request_parameter *request;
+						request = (struct sctp_add_outgoing_streams_request_parameter *)parameter;
+						request->reqsn = htonl(htonl(request->reqsn) + local_diff);
+						break;
+					}
+					case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
+						struct sctp_add_incoming_streams_request_parameter *request;
+						request = (struct sctp_add_incoming_streams_request_parameter *)parameter;
+						request->reqsn = htonl(htonl(request->reqsn) + local_diff);
+						break;
+					}
+					default:
+						//do nothing
+						break;
+					}
+				}
+			}
 			break;
 		default:
 			break;
@@ -1052,6 +1175,24 @@ static int check_field(
 	if (actual != expected) {
 		asprintf(error, "live packet field %s: "
 			 "expected: %u (0x%x) vs actual: %u (0x%x)",
+			 name, expected, expected, actual, actual);
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+/* Check whether the given field of a packet matches the expected
+ * value, and emit a human-readable error message if not.
+ */
+static int check_field_u16(
+	const char *name,	/* human-readable name of the header field */
+	u16 expected,		/* value script hopes to see */
+	u16 actual,		/* actual value seen during test */
+	char **error)		/* human-readable error string on failure */
+{
+	if (actual != expected) {
+		asprintf(error, "live packet field %s: "
+			 "expected: %hu (0x%x) vs actual: %hu (0x%x)",
 			 name, expected, expected, actual, actual);
 		return STATUS_ERR;
 	}
@@ -1198,7 +1339,6 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 	struct sctp_parameter *script_parameter;
 	struct sctp_parameter_list_item *script_parameter_item;
 	u32 flags;
-
 	for (actual_parameter = sctp_parameters_begin(begin, length, &iter, error),
 	     script_parameter_item = script_chunk_item->parameter_list->first;
 	     actual_parameter != NULL && script_parameter_item != NULL;
@@ -1230,13 +1370,159 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 		                    error))) {
 			return STATUS_ERR;
 		}
-		if ((flags & FLAG_PARAMETER_VALUE_NOCHECK) == 0) {
-			assert((flags & FLAG_PARAMETER_LENGTH_NOCHECK) == 0);
-			if (memcmp(script_parameter->value,
-			           actual_parameter->value,
-			           ntohs(actual_parameter->length) - sizeof(struct sctp_parameter))) {
-				asprintf(error, "live packet parameter value not as expected");
+		switch (ntohs(actual_parameter->type)) {
+		case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+			struct sctp_outgoing_ssn_reset_request_parameter *live_reset, *script_reset;
+			int sids_len = 0, i = 0;
+
+			live_reset = (struct sctp_outgoing_ssn_reset_request_parameter *)actual_parameter;
+			script_reset = (struct sctp_outgoing_ssn_reset_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("outgoing_ssn_reset_request_parameter.req_sn",
+			                ntohl(script_reset->reqsn),
+			                ntohl(live_reset->reqsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_RESP_SN_NOCHECK ? STATUS_OK :
+			    check_field("outgoing_ssn_reset_request_parameter.resp_sn",
+			                ntohl(script_reset->respsn),
+		                        ntohl(live_reset->respsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_LAST_TSN_NOCHECK ? STATUS_OK :
+			    check_field("outgoing_ssn_reset_request_parameter.last_tsn",
+			                ntohl(script_reset->last_tsn),
+			 	        ntohl(live_reset->last_tsn),
+				        error))) {
 				return STATUS_ERR;
+			}
+			sids_len = ntohs(script_reset->length) - sizeof(struct sctp_outgoing_ssn_reset_request_parameter);
+			for (i = 0; i<(sids_len / sizeof(u16)); i++) {
+				if (check_field_u16("outgoing_ssn_reset_request_parameter.sids",
+						    ntohs(script_reset->sids[i]),
+						    ntohs(live_reset->sids[i]),
+						    error)) {
+					return STATUS_ERR;
+                        	}
+			}
+			break;
+		}
+		case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+			struct sctp_incoming_ssn_reset_request_parameter *live_reset, *script_reset;
+			int sids_len = 0, i = 0;
+
+			live_reset = (struct sctp_incoming_ssn_reset_request_parameter *)actual_parameter;
+			script_reset = (struct sctp_incoming_ssn_reset_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("incoming_ssn_reset_request_parameter.req_sn",
+			                ntohl(script_reset->reqsn),
+			                ntohl(live_reset->reqsn),
+			                error))) {
+				return STATUS_ERR;
+			}
+			sids_len = ntohs(script_reset->length) - sizeof(struct sctp_incoming_ssn_reset_request_parameter);
+			for (i = 0; i<(sids_len / sizeof(u16)); i++) {
+				if (check_field_u16("incoming_ssn_reset_request_parameter.sids",
+						    ntohs(script_reset->sids[i]),
+						    ntohs(live_reset->sids[i]),
+						    error)) {
+					return STATUS_ERR;
+                        	}
+			}
+			break;
+		}
+		case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
+			struct sctp_ssn_tsn_reset_request_parameter *live_reset, *script_reset;
+
+			live_reset = (struct sctp_ssn_tsn_reset_request_parameter *)actual_parameter;
+			script_reset = (struct sctp_ssn_tsn_reset_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("ssn_tsn_reset_request_parameter.req_sn",
+			                ntohl(script_reset->reqsn),
+			                ntohl(live_reset->reqsn),
+			                error))) {
+				return STATUS_ERR;
+			}
+			break;
+		}
+		case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
+			struct sctp_reconfig_response_parameter *live_resp, *script_resp;
+
+			live_resp = (struct sctp_reconfig_response_parameter *)actual_parameter;
+			script_resp = (struct sctp_reconfig_response_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_RESP_SN_NOCHECK ? STATUS_OK :
+			    check_field("reconfig_response_parameter.resp_sn",
+			                ntohl(script_resp->respsn),
+			                ntohl(live_resp->respsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_RESULT_NOCHECK ? STATUS_OK :
+			    check_field("reconfig_response_parameter.result",
+			                ntohl(script_resp->result),
+			 	        ntohl(live_resp->result),
+				        error))) {
+				return STATUS_ERR;
+			}
+			if (live_resp->length == sizeof(struct sctp_reconfig_response_parameter)) {
+				if ((flags & FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK ? STATUS_OK :
+				    check_field("ssn_tsn_reset_request_parameter.sender_next_tsn",
+				                ntohl(script_resp->sender_next_tsn),
+				                ntohl(live_resp->sender_next_tsn),
+				                error)) ||
+				    (flags & FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK ? STATUS_OK :
+				    check_field("sctp_reconfig_response_parameter.receiver_next_tsn",
+				                ntohl(script_resp->receiver_next_tsn),
+				 	        ntohl(live_resp->receiver_next_tsn),
+					        error))) {
+					return STATUS_ERR;
+				}
+			}
+			break;
+		}
+		case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE: {
+			struct sctp_add_outgoing_streams_request_parameter *live_add, *script_add;
+
+			live_add = (struct sctp_add_outgoing_streams_request_parameter *)actual_parameter;
+			script_add = (struct sctp_add_outgoing_streams_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("add_outgoing_streams_request_parameter_parameter.req_sn",
+			                ntohl(script_add->reqsn),
+			                ntohl(live_add->reqsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK ? STATUS_OK :
+			    check_field_u16("add_outgoing_streams_request_parameter.number_of_new_streams",
+			                ntohs(script_add->number_of_new_streams),
+			 	        ntohs(live_add->number_of_new_streams),
+				        error))) {
+				return STATUS_ERR;
+			}
+			break;
+		}
+		case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
+			struct sctp_add_incoming_streams_request_parameter *live_add, *script_add;
+
+			live_add = (struct sctp_add_incoming_streams_request_parameter *)actual_parameter;
+			script_add = (struct sctp_add_incoming_streams_request_parameter *)script_parameter;
+			if ((flags & FLAG_RECONFIG_REQ_SN_NOCHECK ? STATUS_OK :
+			    check_field("add_incoming_streams_request_parameter.req_sn",
+			                ntohl(script_add->reqsn),
+			                ntohl(live_add->reqsn),
+			                error)) ||
+			    (flags & FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK ? STATUS_OK :
+			    check_field_u16("add_incoming_streams_request_parameter.number_of_new_streams",
+			                ntohs(script_add->number_of_new_streams),
+			 	        ntohs(live_add->number_of_new_streams),
+				        error))) {
+				return STATUS_ERR;
+			}
+			break;
+		}
+		default:
+			if ((flags & FLAG_PARAMETER_VALUE_NOCHECK) == 0) {
+				assert((flags & FLAG_PARAMETER_LENGTH_NOCHECK) == 0);
+				if (memcmp(script_parameter->value,
+				           actual_parameter->value,
+				           ntohs(actual_parameter->length) - sizeof(struct sctp_parameter))) {
+					asprintf(error, "live packet parameter value not as expected");
+					return STATUS_ERR;
+				}
 			}
 		}
 	}
@@ -1246,6 +1532,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 	if (script_parameter_item != NULL) {
 		DEBUGP("script chunk contains more parameters than actual chunk\n");
 	}
+
 	if ((actual_parameter != NULL) || (script_parameter_item != NULL)) {
 		asprintf(error,
 		         "live chunk and expected chunk have not the same number of parameters");
@@ -1709,6 +1996,29 @@ static int verify_pad_chunk(struct sctp_pad_chunk *actual_chunk,
 	return STATUS_OK;
 }
 
+static int verify_reconfig_chunk(struct sctp_reconfig_chunk *actual_chunk,
+				 struct sctp_chunk_list_item *script_chunk_item,
+				 u32 flags, char **error)
+{
+	struct sctp_init_chunk *script_chunk;
+        int parameter_length;
+	
+	script_chunk = (struct sctp_init_chunk *)script_chunk_item->chunk;
+	parameter_length = ntohs(actual_chunk->length) - sizeof(struct sctp_reconfig_chunk);
+	if ((flags & FLAG_CHUNK_FLAGS_NOCHECK ? STATUS_OK :
+			check_field("sctp_reconfig_flags",
+		        ntohl(script_chunk->flags),
+		        ntohl(actual_chunk->flags),
+		        error))) {
+		return STATUS_ERR;
+	}
+	//TODO: check Parameter
+	return verify_sctp_parameters(actual_chunk->parameter,
+				      parameter_length,
+				      script_chunk_item,
+				      error);
+}
+
 /* Verify that required actual SCTP packet fields are as the script expected. */
 static int verify_sctp(
 	const struct packet *actual_packet,
@@ -1848,6 +2158,11 @@ static int verify_sctp(
 			result = verify_pad_chunk((struct sctp_pad_chunk *)actual_chunk,
 			                          (struct sctp_pad_chunk *)script_chunk,
 			                          flags, error);
+			break;
+		case SCTP_RECONFIG_CHUNK_TYPE:
+			result = verify_reconfig_chunk((struct sctp_reconfig_chunk *)actual_chunk,
+			                               script_chunk_item,
+			                               flags, error);
 			break;
 		default:
 			result = STATUS_ERR;
