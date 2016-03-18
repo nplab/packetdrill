@@ -1,0 +1,44 @@
+// Make sure fast-retransmit is triggered based on 3 dupacks
+
+// Create a listening TCP socket.
+ 0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
++0.005 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
++0.005 bind(3, ..., ...) = 0
++0.005 listen(3, 1) = 0
+// Establish a TCP connection.
++0.035 < S  0:0(0) win 65535 <mss 1000, sackOK, eol, eol>
++0.000 > S. 0:0(0) ack 1 win 65535 <...>
++0.000 <  . 1:1(0) ack 1 win 65535
++0.000 accept(3, ..., ...) = 4
++0.000 close(3) = 0
+// check that the cwnd is 10 MSS. If not you might want to set
+// net.inet.tcp.experimental.initcwnd10 to 1.
++0.000 %{ assert tcpi_snd_cwnd == 11000 }%
+// send 7 packets. It could be up to 10 without cwnd getting into the game.
++0.000 write(4, ..., 7000) = 7000
++0.000 >  .    1:1001(1000) ack 1
++0.000 >  . 1001:2001(1000) ack 1
++0.000 >  . 2001:3001(1000) ack 1
++0.000 >  . 3001:4001(1000) ack 1
++0.000 >  . 4001:5001(1000) ack 1
++0.000 >  . 5001:6001(1000) ack 1
++0.000 > P. 6001:7001(1000) ack 1
+// assume the second, third and fifth packet is lost. 
++0.000 <  . 1:1(0) ack 1001 win 65535
++0.000 <  . 1:1(0) ack 1001 win 65535 <sack 3001:4001, nop, nop>
++0.000 <  . 1:1(0) ack 1001 win 65535 <sack 3001:4001 5001:6001, nop, nop>
++0.000 <  . 1:1(0) ack 1001 win 65535 <sack 3001:4001 5001:7001, nop, nop>
+// fast retransmit the seond packet.
++0.000 >  . 1001:2001(1000) ack 1
++0.000 <  . 1:1(0) ack 2001 win 65535 <sack 3001:4001 5001:7001, nop, nop>
+// fast retransmit the third packet.
++0.000 >  . 2001:3001(1000) ack 1
++0.000 <  . 1:1(0) ack 4001 win 65535 <sack 5001:7001, nop, nop>
+// fast retransmit the fifth packet.
++0.000 >  . 4001:5001(1000) ack 1 
++0.000 <  . 1:1(0) ack 7001 win 65535 
+// Teardown the TCP connection.
++1.000 close(4) = 0 
++0.000 > F. 7001:7001(0) ack 1
++0.100 < F. 1:1(0) ack 7002 win 65535 
++0.000 >  . 7002:7002(0) ack 2
