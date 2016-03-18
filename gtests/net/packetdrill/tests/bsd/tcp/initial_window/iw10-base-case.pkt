@@ -1,0 +1,30 @@
+// A simple server-side test that sends exactly an initial window (IW10)
+// worth of packets.
+
+// Create a listening TCP socket.
+ 0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
++0.005 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
++0.005 bind(3, ..., ...) = 0
++0.005 listen(3, 1) = 0
+// Establish a TCP connection.
++0.035 < S  0:0(0) win 65535 <mss 1460, sackOK, eol, eol>
++0.000 > S. 0:0(0) ack 1 win 65535 <...>
++0.000 <  . 1:1(0) ack 1 win 65535
++0.000 accept(3, ..., ...) = 4
+0.200 write(4, ..., 14600) = 14600
++0 > .       1:1461(1460) ack 1
++0 > .    1461:2921(1460) ack 1
++0 > .    2921:4381(1460) ack 1
++0 > .    4381:5841(1460) ack 1
++0 > .    5841:7301(1460) ack 1
++0 > .    7301:8761(1460) ack 1
++0 > .   8761:10221(1460) ack 1
++0 > .  10221:11681(1460) ack 1
++0 > .  11681:13141(1460) ack 1
++0 > P. 13141:14601(1460) ack 1
+0.300 < . 1:1(0) ack 14601 win 65535
+0.400 close(4) = 0
+0.401 > F. 14601:14601(0) ack 1
+0.501 < F. 1:1(0) ack 14602 win 65535
+0.502 > . 14602:14602(0) ack 2
+
