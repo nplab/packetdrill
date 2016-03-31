@@ -1,5 +1,9 @@
-// Test behavior when a listener gets an incoming packet that has
+// Test behavior when a listener gets an incoming packet 
+// from a new sender on a non-established session that has
 // the RST bit set but not the SYN bit set.
+// Listener should send a RESET.
+// Checking if we can establish a connection with the 
+// system after a connection reset.
 
 0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
 0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
