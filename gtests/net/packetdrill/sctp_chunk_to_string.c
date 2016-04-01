@@ -758,7 +758,7 @@ static int sctp_unrecognized_chunk_type_cause_to_string(
 	cause_length = ntohs(cause->length);
 	if (cause_length < sizeof(struct sctp_unrecognized_chunk_type_cause) +
 			   sizeof(struct sctp_chunk)) {
-		asprintf(error, "UNRECOGNIZED_CHUNK cause too short");
+		asprintf(error, "UNRECOGNIZED_CHUNK_TYPE cause too short");
 		return STATUS_ERR;
 	}
 	cause_padding = cause_length & 0x0003;
@@ -773,10 +773,10 @@ static int sctp_unrecognized_chunk_type_cause_to_string(
 	if (cause_length + cause_padding !=
 	    sizeof(struct sctp_unrecognized_chunk_type_cause) +
 	    chunk_length + chunk_padding) {
-		asprintf(error, "UNRECOGNIZED_CHUNK cause inconsistent");
+		asprintf(error, "UNRECOGNIZED_CHUNK_TYPE cause inconsistent");
 		return STATUS_ERR;
 	}
-	fputs("UNRECOGNIZED_CHUNK[chk=", s);
+	fputs("UNRECOGNIZED_CHUNK_TYPE[chk=", s);
 	result = sctp_chunk_to_string(s, chunk, error);
 	fputc(']', s);
 	return result;
