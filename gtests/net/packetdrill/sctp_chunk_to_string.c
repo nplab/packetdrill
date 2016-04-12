@@ -339,7 +339,7 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 	fputs("sids=[", s);
 	for(len = 0; len < ((length-16)/sizeof(u16)); len++) {
 		u16 sid;
-		sid = ntohs(parameter->sids[len]);
+		sid = ntohs((u16)(parameter->sids)[len]);
 		if (len > 0)
 			fprintf(s, ", ");
 		fprintf(s, "%hu", sid);

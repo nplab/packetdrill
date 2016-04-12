@@ -5,8 +5,8 @@
 +0.0 fcntl(3, F_GETFL) = 0x02 (flags O_RDWR)
 +0.0 fcntl(3, F_SETFL, O_RDWR | O_NONBLOCK) = 0
 
-+0.0 setsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_RESET_STREAM_REQ}, 8) = 0
-+0.0 getsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_RESET_STREAM_REQ}, [8]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_CHANGE_ASSOC_REQ}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_CHANGE_ASSOC_REQ}, [8]) = 0
 
 // Trigger the active associtation setup
 +0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
