@@ -1834,7 +1834,7 @@ sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_ts
 	if (sids != NULL) {
 		struct sctp_u16_list_item *item;
 		for (item = sids->first; item != NULL; item = item->next) {
-			parameter->sids[i] = item->value;
+			parameter->sids[i++] = htons(item->value);
 		}
 	}
 
@@ -1870,7 +1870,7 @@ sctp_incoming_ssn_reset_request_parameter_new(s64 reqsn, struct sctp_u16_list *s
 	if (sids != NULL) {
 		struct sctp_u16_list_item *item;
 		for (item = sids->first; item != NULL; item = item->next) {
-			parameter->sids[i] = item->value;
+			parameter->sids[i++] = htons(item->value);
 		}
 	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
