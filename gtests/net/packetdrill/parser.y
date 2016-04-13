@@ -5151,6 +5151,9 @@ srs_flags
 	$$ = new_expression(EXPR_WORD);
 	$$->value.string = $3;
 }
+| SRS_FLAGS '=' binary_expression {
+	$$ = $3;
+}
 ;
 
 sctp_reset_streams
