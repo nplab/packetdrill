@@ -780,7 +780,7 @@ static int check_u16array_expr(struct expression *expr_list, u16 *data, int data
 						asprintf(error, "%s[%d]: expected: %hu actual: %hu",
 							val_name, i, script_val, data[i]);
 						return STATUS_ERR;
-					}
+					} 
 				}
 			}
 			break;
@@ -5270,7 +5270,7 @@ static int check_sctp_stream_reset_event(struct sctp_stream_reset_event_expr *ex
 			   "sctp_stream_reset_event.strreset_assoc_id", error))
 		return STATUS_ERR;
 	if (check_u16array_expr(expr->strreset_stream_list, sctp_stream_reset_event->strreset_stream_list,
-			       sctp_stream_reset_event->strreset_length - sizeof(u16) - sizeof(u16) - sizeof(u32) - sizeof(sctp_assoc_t),
+			       (sctp_stream_reset_event->strreset_length - sizeof(u16) - sizeof(u16) - sizeof(u32) - sizeof(sctp_assoc_t)) / sizeof(u16),
  			       "sctp_stream_reset_event.strreset_stream_list", error))
 			return STATUS_ERR;
 
