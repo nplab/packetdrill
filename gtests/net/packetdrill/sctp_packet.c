@@ -1295,6 +1295,8 @@ sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters)
 	chunk_length = (u16)sizeof(struct sctp_reconfig_chunk);
 	if (parameters != NULL) {
 		chunk_length += parameters->length;
+	} else {
+		parameters = sctp_parameter_list_new();
 	}
 	padding_length = chunk_length % 4;
 	if (padding_length > 0) {
@@ -1311,25 +1313,26 @@ sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters)
 		 chunk->flags = (u8)flgs;
 	}
 	chunk->length = htons(chunk_length);
-
+	printf("begin\n");
 	offset = 0;
-	if (parameters != NULL) {
-		for (item = parameters->first; item != NULL; item = item->next) {
-			parameter_padding_length = item->length % 4;
-			if (parameter_padding_length > 0) {
-				parameter_padding_length = 4 - parameter_padding_length;
-			}
-			memcpy(chunk->parameter + offset,
-			       item->parameter,
-			       item->length + parameter_padding_length);
-			free(item->parameter);
-			item->parameter = (struct sctp_parameter *)(chunk->parameter + offset);
-			if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
-				flags |= FLAG_CHUNK_LENGTH_NOCHECK;
-			}
-			offset += item->length + parameter_padding_length;
+
+	for (item = parameters->first; item != NULL; item = item->next) {
+		parameter_padding_length = item->length % 4;
+		if (parameter_padding_length > 0) {
+			parameter_padding_length = 4 - parameter_padding_length;
 		}
+		memcpy(chunk->parameter + offset,
+		       item->parameter,
+		       item->length + parameter_padding_length);
+		free(item->parameter);
+		item->parameter = (struct sctp_parameter *)(chunk->parameter + offset);
+		if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
+			flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		}
+		offset += item->length + parameter_padding_length;
 	}
+
+	printf("end\n");
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 					chunk_length + padding_length,
 					flags, parameters,
