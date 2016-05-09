@@ -1313,22 +1313,23 @@ sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters)
 	chunk->length = htons(chunk_length);
 
 	offset = 0;
-	for (item = parameters->first; item != NULL; item = item->next) {
-		parameter_padding_length = item->length % 4;
-		if (parameter_padding_length > 0) {
-			parameter_padding_length = 4 - parameter_padding_length;
+	if (parameters != NULL) {
+		for (item = parameters->first; item != NULL; item = item->next) {
+			parameter_padding_length = item->length % 4;
+			if (parameter_padding_length > 0) {
+				parameter_padding_length = 4 - parameter_padding_length;
+			}
+			memcpy(chunk->parameter + offset,
+			       item->parameter,
+			       item->length + parameter_padding_length);
+			free(item->parameter);
+			item->parameter = (struct sctp_parameter *)(chunk->parameter + offset);
+			if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
+				flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+			}
+			offset += item->length + parameter_padding_length;
 		}
-		memcpy(chunk->parameter + offset,
-		       item->parameter,
-		       item->length + parameter_padding_length);
-		free(item->parameter);
-		item->parameter = (struct sctp_parameter *)(chunk->parameter + offset);
-		if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
-			flags |= FLAG_CHUNK_LENGTH_NOCHECK;
-		}
-		offset += item->length + parameter_padding_length;
 	}
-
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 					chunk_length + padding_length,
 					flags, parameters,
@@ -1921,6 +1922,7 @@ sctp_reconfig_response_parameter_new(s64 respsn, s64 result, s64 sender_next_tsn
 			parameter->receiver_next_tsn = htonl((u32)receiver_next_tsn);
 		}
 	}
+
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 					    parameter_length, flags);
 }
@@ -1973,7 +1975,7 @@ sctp_add_outgoing_streams_request_parameter_new(s64 reqsn, s32 number_of_new_str
 	} else {
 		parameter->reqsn = htonl((u32)reqsn);
 	}
-	if (reqsn == -1) {
+	if (number_of_new_streams == -1) {
 		flags |= FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK;
 		parameter->number_of_new_streams = 0;
 	} else {
@@ -2006,7 +2008,7 @@ sctp_add_incoming_streams_request_parameter_new(s64 reqsn, s32 number_of_new_str
 	} else {
 		parameter->reqsn = htonl((u32)reqsn);
 	}
-	if (reqsn == -1) {
+	if (number_of_new_streams == -1) {
 		flags |= FLAG_RECONFIG_NUMBER_OF_NEW_STREAMS_NOCHECK;
 		parameter->number_of_new_streams = 0;
 	} else {
@@ -2015,6 +2017,50 @@ sctp_add_incoming_streams_request_parameter_new(s64 reqsn, s32 number_of_new_str
 
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 					    parameter_length, flags);
+}
+
+struct sctp_parameter_list_item *
+sctp_generic_reconfig_request_parameter_new(s32 type, s32 len, s64 reqsn, struct sctp_byte_list *payload)
+{
+	struct sctp_reconfig_generic_request_parameter *parameter;
+	struct sctp_byte_list_item *item;
+	u32 flags = 0;
+	u16 parameter_length;
+	u16 payload_len=0;
+
+	if (payload != NULL) {
+		payload_len = payload->nr_entries;
+	}
+	parameter_length = sizeof(struct sctp_reconfig_generic_request_parameter) + payload_len;
+
+	parameter = malloc(parameter_length);
+	assert(parameter != NULL);
+
+	if (type == -1) {
+		parameter->type = 0;
+	} else {
+		parameter->type = htons((u16)type);
+	}
+	if (len == -1) {
+		parameter->length = 0;
+	} else {
+		parameter->length = htons((u16)len);
+	}
+	if (reqsn == -1) {
+		flags |= FLAG_RECONFIG_REQ_SN_NOCHECK;
+		parameter->reqsn = 0;
+	} else {
+		parameter->reqsn = htonl((u32)reqsn);
+	}
+	if (payload != NULL) {
+		int i = 0;
+		for (i = 0, item = payload->first; item != NULL; i++, item = item->next) {
+			parameter->value[i] = item->byte;
+		}
+	}
+
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+					     parameter_length, flags);
 }
 
 struct sctp_parameter_list_item *

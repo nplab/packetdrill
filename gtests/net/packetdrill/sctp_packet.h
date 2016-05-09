@@ -405,6 +405,9 @@ sctp_add_outgoing_streams_request_parameter_new(s64 reqsn, s32 number_of_new_str
 struct sctp_parameter_list_item *
 sctp_add_incoming_streams_request_parameter_new(s64 reqsn, s32 number_of_new_streams);
 
+struct sctp_parameter_list_item *
+sctp_generic_reconfig_request_parameter_new(s32 type, s32 len, s64 reqsn, struct sctp_byte_list *payload);
+
 struct sctp_parameter_list *
 sctp_parameter_list_new(void);
 
