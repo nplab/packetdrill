@@ -1313,7 +1313,6 @@ sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters)
 		 chunk->flags = (u8)flgs;
 	}
 	chunk->length = htons(chunk_length);
-	printf("begin\n");
 	offset = 0;
 
 	for (item = parameters->first; item != NULL; item = item->next) {
@@ -1332,7 +1331,6 @@ sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters)
 		offset += item->length + parameter_padding_length;
 	}
 
-	printf("end\n");
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 					chunk_length + padding_length,
 					flags, parameters,
