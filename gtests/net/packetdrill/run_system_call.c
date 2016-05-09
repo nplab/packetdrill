@@ -780,7 +780,7 @@ static int check_u16array_expr(struct expression *expr_list, u16 *data, int data
 						asprintf(error, "%s[%d]: expected: %hu actual: %hu",
 							val_name, i, script_val, data[i]);
 						return STATUS_ERR;
-					} 
+					}
 				}
 			}
 			break;
