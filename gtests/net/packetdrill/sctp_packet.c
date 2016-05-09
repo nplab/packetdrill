@@ -1909,19 +1909,19 @@ sctp_reconfig_response_parameter_new(s64 respsn, s64 result, s64 sender_next_tsn
 	} else {
 		parameter->result = htonl((u32)result);
 	}
-	if (receiver_next_tsn != -2 && sender_next_tsn != -2) {
-		if (sender_next_tsn == -1) {
-			flags |= FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK;
-			parameter->sender_next_tsn = 0;
-		} else {
-			parameter->sender_next_tsn = htonl((u32)sender_next_tsn);
-		}
-		if (receiver_next_tsn == -1) {
-			flags |= FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK;
-			parameter->receiver_next_tsn = 0;
-		} else {
-			parameter->receiver_next_tsn = htonl((u32)receiver_next_tsn);
-		}
+
+	if (sender_next_tsn == -1) {
+		flags |= FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK;
+		parameter->sender_next_tsn = 0;
+	} else if (sender_next_tsn != -2) {
+		parameter->sender_next_tsn = htonl((u32)sender_next_tsn);
+	}
+
+	if (receiver_next_tsn == -1) {
+		flags |= FLAG_RECONFIG_RECEIVER_NEXT_TSN_NOCHECK;
+		parameter->receiver_next_tsn = 0;
+	} else if (sender_next_tsn != -2) {
+		parameter->receiver_next_tsn = htonl((u32)receiver_next_tsn);
 	}
 
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
