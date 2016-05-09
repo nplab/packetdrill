@@ -1460,7 +1460,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 				        error))) {
 				return STATUS_ERR;
 			}
-			if (live_resp->length == sizeof(struct sctp_reconfig_response_parameter)) {
+			if (ntohs(live_resp->length) == sizeof(struct sctp_reconfig_response_parameter)) {
 				if ((flags & FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK ? STATUS_OK :
 				    check_field("ssn_tsn_reset_request_parameter.sender_next_tsn",
 				                ntohl(script_resp->sender_next_tsn),
