@@ -3308,6 +3308,18 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 	}
 #endif
+#ifdef SCTP_RESET_STREAMS
+	case EXPR_SCTP_RESET_STREAMS:
+		live_optval = malloc(sizeof(struct sctp_reset_streams));
+		live_optlen = (socklen_t)sizeof(struct sctp_reset_streams);
+		if (get_sctp_assoc_t(val_expression->value.sctp_reset_streams->srs_assoc_id,
+				     &((struct sctp_reset_streams *)live_optval)->srs_assoc_id,
+				     error)) {
+			free(live_optval);
+			return STATUS_ERR;
+		}
+		break;
+#endif
 	case EXPR_LIST:
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -3437,6 +3449,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #if defined(SCTP_PEER_AUTH_CHUNKS) || defined(SCTP_LOCAL_AUTH_CHUNKS)
 	case EXPR_SCTP_AUTHCHUNKS:
 		result = check_sctp_authchunks(val_expression->value.sctp_authchunks, live_optval, error);
+		break;
+#endif
+#ifdef SCTP_RESET_STREAMS
+	case EXPR_SCTP_RESET_STREAMS:
+		// SCTP_RESET_STREAMS should not be a successfull option
 		break;
 #endif
 	case EXPR_LIST:
