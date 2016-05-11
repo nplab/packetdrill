@@ -56,7 +56,7 @@ struct sctp_tlv {
 };
 #endif
 #if defined(__FreeBSD__) || defined(linux)
-static int check_sctp_notification(struct iovec *iov, struct expression *iovec_expr,
+static int check_sctp_notification(struct socket *socket, struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
 static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init,
 				            char **error);
@@ -2217,7 +2217,8 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 	}
 #if defined(__FreeBSD__) || defined(linux)
 	if (msg->msg_flags & MSG_NOTIFICATION) {
-		if (check_sctp_notification(msg->msg_iov, msg_expression->value.msghdr->msg_iov, error))
+		struct socket *socket = find_socket_by_script_fd(state, script_fd);
+		if (check_sctp_notification(socket, msg->msg_iov, msg_expression->value.msghdr->msg_iov, error))
 			goto error_out;
 	}
 #endif
@@ -5270,7 +5271,7 @@ static int check_sctp_stream_reset_event(struct sctp_stream_reset_event_expr *ex
 			   "sctp_stream_reset_event.strreset_assoc_id", error))
 		return STATUS_ERR;
 	if (check_u16array_expr(expr->strreset_stream_list, sctp_stream_reset_event->strreset_stream_list,
-			       sctp_stream_reset_event->strreset_length - sizeof(u16) - sizeof(u16) - sizeof(u32) - sizeof(sctp_assoc_t),
+			       (sctp_stream_reset_event->strreset_length - sizeof(u16) - sizeof(u16) - sizeof(u32) - sizeof(sctp_assoc_t)) / sizeof(u16),
  			       "sctp_stream_reset_event.strreset_stream_list", error))
 			return STATUS_ERR;
 
@@ -5279,9 +5280,16 @@ static int check_sctp_stream_reset_event(struct sctp_stream_reset_event_expr *ex
 #endif
 
 #if defined(__FreeBSD__)
-static int check_sctp_assoc_reset_event(struct sctp_assoc_reset_event_expr *expr,
+static int check_sctp_assoc_reset_event(struct socket *socket, struct sctp_assoc_reset_event_expr *expr,
 					struct sctp_assoc_reset_event *sctp_assoc_reset_event,
 					char **error) {
+	u32 local_diff = 0;
+	u32 remote_diff = 0;
+
+	assert(socket != NULL);
+	local_diff = socket->live.local_initial_tsn - socket->script.local_initial_tsn;
+	remote_diff = socket->live.remote_initial_tsn - socket->script.remote_initial_tsn;
+
 	if (check_u16_expr(expr->assocreset_type, sctp_assoc_reset_event->assocreset_type,
 			   "sctp_assoc_reset_event.assocreset_type", error))
 		return STATUS_ERR;
@@ -5294,10 +5302,10 @@ static int check_sctp_assoc_reset_event(struct sctp_assoc_reset_event_expr *expr
 	if (check_sctp_assoc_t_expr(expr->assocreset_assoc_id, sctp_assoc_reset_event->assocreset_assoc_id,
 			   "sctp_assoc_reset_event.assocreset_assoc_id", error))
 		return STATUS_ERR;
-	if (check_u32_expr(expr->assocreset_local_tsn, sctp_assoc_reset_event->assocreset_local_tsn,
+	if (check_u32_expr(expr->assocreset_local_tsn, sctp_assoc_reset_event->assocreset_local_tsn - local_diff,
 			   "sctp_assoc_reset_event.assocreset_local_tsn", error))
 		return STATUS_ERR;
-	if (check_u32_expr(expr->assocreset_remote_tsn, sctp_assoc_reset_event->assocreset_remote_tsn,
+	if (check_u32_expr(expr->assocreset_remote_tsn, sctp_assoc_reset_event->assocreset_remote_tsn - remote_diff,
 			   "sctp_assoc_reset_event.assocreset_remote_tsn", error))
 		return STATUS_ERR;
 
@@ -5333,7 +5341,8 @@ static int check_sctp_stream_change_event(struct sctp_stream_change_event_expr *
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
-static int check_sctp_notification(struct iovec *iov,
+static int check_sctp_notification(struct socket *socket,
+				   struct iovec *iov,
 				   struct expression *iovec_expr,
 				   char **error) {
 	struct expression_list *iovec_expr_list;
@@ -5428,7 +5437,7 @@ static int check_sctp_notification(struct iovec *iov,
 #endif
 #if defined(__FreeBSD__)
 		case EXPR_SCTP_ASSOC_RESET_EVENT:
-			if (check_sctp_assoc_reset_event(script_iov_base->value.sctp_assoc_reset_event,
+			if (check_sctp_assoc_reset_event(socket, script_iov_base->value.sctp_assoc_reset_event,
 						         (struct sctp_assoc_reset_event *) iov[i].iov_base,
 						         error))
 				return STATUS_ERR;
@@ -5610,7 +5619,8 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 				 script_flags, flags);
 			goto error_out;
 		} else if (flags & MSG_NOTIFICATION) {
-			if (check_sctp_notification(iov, iovec_expr_list, error))
+			 struct socket *socket = find_socket_by_script_fd(state, script_fd);
+			if (check_sctp_notification(socket, iov, iovec_expr_list, error))
 				goto error_out;
 		}
 	}

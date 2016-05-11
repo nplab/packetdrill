@@ -387,6 +387,13 @@ struct sctp_add_incoming_streams_request_parameter {
 	__be16 reserved;
 } __packed;
 
+struct sctp_reconfig_generic_request_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 reqsn;
+	__u8 value[];
+} __packed;
+
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001
 #define SCTP_MISSING_MANDATORY_PARAMETER_CAUSE_CODE	0x0002
 #define SCTP_STALE_COOKIE_ERROR_CAUSE_CODE		0x0003

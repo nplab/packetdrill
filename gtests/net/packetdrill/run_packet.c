@@ -774,7 +774,7 @@ static int map_inbound_sctp_packet(
 						struct sctp_reconfig_response_parameter *response;
 						response = (struct sctp_reconfig_response_parameter *)parameter;
 						response->respsn = htonl(htonl(response->respsn) + local_diff);
-						if (response->length == sizeof(struct sctp_reconfig_response_parameter)) {
+						if (htons(response->length) == sizeof(struct sctp_reconfig_response_parameter)) {
 							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
 							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
 						}
@@ -1029,9 +1029,9 @@ static int map_outbound_live_sctp_packet(
 						struct sctp_reconfig_response_parameter *response;
 						response = (struct sctp_reconfig_response_parameter *)parameter;
 						response->respsn = htonl(htonl(response->respsn) + remote_diff);
-						if (response->length == sizeof(struct sctp_reconfig_response_parameter)) {
-							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
-							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
+						if (htons(response->length) == sizeof(struct sctp_reconfig_response_parameter)) {
+							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + remote_diff);
+							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + local_diff);
 						}
 						break;
 					}
@@ -1460,7 +1460,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 				        error))) {
 				return STATUS_ERR;
 			}
-			if (live_resp->length == sizeof(struct sctp_reconfig_response_parameter)) {
+			if (ntohs(live_resp->length) == sizeof(struct sctp_reconfig_response_parameter)) {
 				if ((flags & FLAG_RECONFIG_SENDER_NEXT_TSN_NOCHECK ? STATUS_OK :
 				    check_field("ssn_tsn_reset_request_parameter.sender_next_tsn",
 				                ntohl(script_resp->sender_next_tsn),
