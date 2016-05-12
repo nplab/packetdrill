@@ -328,6 +328,12 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 	int len;
 
 	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_outgoing_ssn_reset_request_parameter)) {
+		fputs("invalid OUTGOING_SSN_RESET_REQUEST parameter", s);
+		asprintf(error, "OUTGOING_SSN_RESET_REQUEST parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
 	reqsn = ntohl(parameter->reqsn);
 	respsn = ntohl(parameter->respsn);
 	last_tsn = ntohl(parameter->last_tsn);
@@ -358,6 +364,12 @@ static int sctp_incoming_ssn_reset_request_parameter_to_string(
 	int len;
 
 	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_incoming_ssn_reset_request_parameter)) {
+		fputs("invalid INCOMING_SSN_RESET_REQUEST parameter", s);
+		asprintf(error, "INCOMING_SSN_RESET_REQUEST parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
 	reqsn = ntohl(parameter->reqsn);
 	fputs("INCOMING_SSN_RESET[", s);
 	fprintf(s, "len=%hu, ", length);
@@ -383,6 +395,12 @@ static int sctp_ssn_tsn_reset_request_parameter_to_string(
 	u32 reqsn;
 
 	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_ssn_tsn_reset_request_parameter)) {
+		fputs("invalid SSN_TSN_RESET_REQUEST parameter", s);
+		asprintf(error, "SSN_TSN_RESET_REQUEST parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
 	reqsn = ntohl(parameter->reqsn);
 
 	fputs("SSN_TSN_RESET[", s);
@@ -404,6 +422,12 @@ static int sctp_reconfig_response_parameter_to_string(
 	u32 receiver_next_tsn;
 
 	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_reconfig_response_parameter)) {
+		fputs("invalid RECONFIG_RESPONSE parameter", s);
+		asprintf(error, "RECONFIG_RESPONSE parameter illegal (length=%u)",
+		         length);
+		return STATUS_ERR;
+	}
 	respsn = ntohl(parameter->respsn);
 	result = ntohl(parameter->result);
 
@@ -431,6 +455,12 @@ static int sctp_add_outgoing_streams_request_parameter_to_string(
 	u16 number_of_new_streams;
 
 	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_add_outgoing_streams_request_parameter)) {
+		fputs("invalid ADD_OUTGOING_STREAMS_REQUEST parameter", s);
+		asprintf(error, "ADD_OUTGOING_STREAMS_REQUEST parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
 	reqsn = ntohl(parameter->reqsn);
 	number_of_new_streams = ntohs(parameter->number_of_new_streams);
 
@@ -452,6 +482,12 @@ static int sctp_add_incoming_streams_request_parameter_to_string(
 	u16 number_of_new_streams;
 
 	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_add_incoming_streams_request_parameter)) {
+		fputs("invalid ADD_INCOMING_STREAMS_REQUEST parameter", s);
+		asprintf(error, "ADD_INCOMING_STREAMS_REQUEST parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
 	reqsn = ntohl(parameter->reqsn);
 	number_of_new_streams = ntohs(parameter->number_of_new_streams);
 
@@ -1554,12 +1590,15 @@ static int sctp_reconfig_chunk_to_string(
 	char **error)
 {
 	u16 length;
-	int result, parameters_length;
+	int result = STATUS_OK;
+	int parameters_length;
 	struct sctp_parameter *parameter;
 	struct sctp_parameters_iterator iter;
 	
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_reconfig_chunk)) {
+	if (length < sizeof(struct sctp_reconfig_chunk) || 
+	    (length > sizeof(struct sctp_reconfig_chunk) && 
+	     length < sizeof(struct sctp_reconfig_chunk) + 4)) {
 		asprintf(error, "RECONFIG chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1567,21 +1606,23 @@ static int sctp_reconfig_chunk_to_string(
 	fputs("RECONFIG[", s);
 	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "len=%u", length);
-
-	for (parameter = sctp_parameters_begin(chunk->parameter,
-					       parameters_length,
-					       &iter, error);
-	     parameter != NULL;
-	     parameter = sctp_parameters_next(&iter, error)) {
-		fputs(", ", s);
-		if (*error != NULL)
-			break;
-		result = sctp_parameter_to_string(s, parameter, error);
-		if (result != STATUS_OK)
-			break;
+	
+	if (length >= sizeof(struct sctp_reconfig_chunk) + 4) {
+		for (parameter = sctp_parameters_begin(chunk->parameter,
+						       parameters_length,
+						       &iter, error);
+		     parameter != NULL;
+		     parameter = sctp_parameters_next(&iter, error)) {
+			fputs(", ", s);
+			if (*error != NULL)
+				break;
+			result = sctp_parameter_to_string(s, parameter, error);
+			if (result != STATUS_OK)
+				break;
+		}
 	}
 	fputs("]", s);
-	return STATUS_OK;
+	return result;
 }
 
 static int sctp_unknown_chunk_to_string(FILE *s,

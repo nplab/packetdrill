@@ -661,7 +661,6 @@ static int map_inbound_sctp_packet(
 
 	reflect_v_tag = false;
 	contains_init_chunk = false;
-
 	/* Map the TSNs and the initiate tags in the INIT and INIT-ACK chunk */
 	for (chunk = sctp_chunks_begin(live_packet, &iter, error);
 	     chunk != NULL;
@@ -741,7 +740,7 @@ static int map_inbound_sctp_packet(
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			reconfig = (struct sctp_reconfig_chunk *)chunk;
-			if (reconfig->length > sizeof(struct sctp_reconfig_chunk)) {
+			if (htons(reconfig->length) >= sizeof(struct sctp_reconfig_chunk) + 4) {
 				struct sctp_parameter *parameter;
 				struct sctp_parameters_iterator iter;
 				int parameters_length = ntohs(reconfig->length) - sizeof(struct sctp_reconfig_chunk);
@@ -753,29 +752,41 @@ static int map_inbound_sctp_packet(
 					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_outgoing_ssn_reset_request_parameter *reset;
 						reset = (struct sctp_outgoing_ssn_reset_request_parameter *)parameter;
-						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
-						reset->respsn = htonl(ntohl(reset->respsn) + local_diff);
-						reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
+						if (htons(reset->length) >= 8) {
+							reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						}
+						if (htons(reset->length) >= 12) {
+							reset->respsn = htonl(ntohl(reset->respsn) + local_diff);
+						}
+						if (htons(reset->length) >= 16) {
+							reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
+						}
 						break;
 					}
 					case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_incoming_ssn_reset_request_parameter *reset;
 						reset = (struct sctp_incoming_ssn_reset_request_parameter *)parameter;
-						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						if (htons(reset->length) >= 8) {
+							reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						}
 						break;
 					}
 					case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_ssn_tsn_reset_request_parameter *reset;
 						reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
-						reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						if (htons(reset->length) >= 8) {
+							reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+						}
 						break;
 					}
 					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
 						struct sctp_reconfig_response_parameter *response;
 						response = (struct sctp_reconfig_response_parameter *)parameter;
 						response->respsn = htonl(htonl(response->respsn) + local_diff);
-						if (htons(response->length) == sizeof(struct sctp_reconfig_response_parameter)) {
+						if (htons(response->length) >= 12) {
 							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
+						}
+						if (htons(response->length) >= 16) {
 							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
 						}
 						break;
@@ -783,13 +794,17 @@ static int map_inbound_sctp_packet(
 					case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE: {
 						struct sctp_add_outgoing_streams_request_parameter *request;
 						request = (struct sctp_add_outgoing_streams_request_parameter *)parameter;
-						request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+						if (htons(request->length) >= 8) {
+							request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+						}
 						break;
 					}
 					case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
 						struct sctp_add_incoming_streams_request_parameter *request;
 						request = (struct sctp_add_incoming_streams_request_parameter *)parameter;
-						request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+						if (htons(request->length) >= 8) {
+							request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+						}
 						break;
 					}
 					default:

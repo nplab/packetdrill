@@ -1828,11 +1828,8 @@ generic_reconfig_request
 ;
 
 sctp_reconfig_chunk_spec
-: RECONFIG '[' opt_flags ',' sctp_parameter_list_spec ']' {
-	$$ = sctp_reconfig_chunk_new($3, $5);
-}
-| RECONFIG '[' opt_flags ']' {
-	$$ = sctp_reconfig_chunk_new($3, NULL);
+: RECONFIG '[' opt_flags  opt_parameter_list_spec ']' {
+	$$ = sctp_reconfig_chunk_new($3, $4);
 }
 ;
 
