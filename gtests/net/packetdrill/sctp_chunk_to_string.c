@@ -422,7 +422,9 @@ static int sctp_reconfig_response_parameter_to_string(
 	u32 receiver_next_tsn;
 
 	length = ntohs(parameter->length);
-	if (length != sizeof(struct sctp_reconfig_response_parameter)) {
+	// filter correct length
+	if (!(length == sizeof(struct sctp_reconfig_response_parameter)) &&
+	    !(length != sizeof(struct sctp_reconfig_response_parameter) - 8)) {
 		fputs("invalid RECONFIG_RESPONSE parameter", s);
 		asprintf(error, "RECONFIG_RESPONSE parameter illegal (length=%u)",
 		         length);
