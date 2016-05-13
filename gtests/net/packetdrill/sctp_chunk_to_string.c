@@ -328,7 +328,7 @@ static int sctp_outgoing_ssn_reset_request_parameter_to_string(
 	int len;
 
 	length = ntohs(parameter->length);
-	if (length != sizeof(struct sctp_outgoing_ssn_reset_request_parameter)) {
+	if (length < sizeof(struct sctp_outgoing_ssn_reset_request_parameter)) {
 		fputs("invalid OUTGOING_SSN_RESET_REQUEST parameter", s);
 		asprintf(error, "OUTGOING_SSN_RESET_REQUEST parameter illegal (length=%u)",
 			 length);
@@ -364,7 +364,7 @@ static int sctp_incoming_ssn_reset_request_parameter_to_string(
 	int len;
 
 	length = ntohs(parameter->length);
-	if (length != sizeof(struct sctp_incoming_ssn_reset_request_parameter)) {
+	if (length < sizeof(struct sctp_incoming_ssn_reset_request_parameter)) {
 		fputs("invalid INCOMING_SSN_RESET_REQUEST parameter", s);
 		asprintf(error, "INCOMING_SSN_RESET_REQUEST parameter illegal (length=%u)",
 			 length);
@@ -424,7 +424,7 @@ static int sctp_reconfig_response_parameter_to_string(
 	length = ntohs(parameter->length);
 	// filter correct length
 	if (!(length == sizeof(struct sctp_reconfig_response_parameter)) &&
-	    !(length != sizeof(struct sctp_reconfig_response_parameter) - 8)) {
+	    !(length == sizeof(struct sctp_reconfig_response_parameter) - 8)) {
 		fputs("invalid RECONFIG_RESPONSE parameter", s);
 		asprintf(error, "RECONFIG_RESPONSE parameter illegal (length=%u)",
 		         length);
