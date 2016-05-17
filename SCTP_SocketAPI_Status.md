@@ -77,10 +77,10 @@ For Linux the following tables are based on [sctp.h](https://github.com/sctp/lks
 |`SCTP_AUTH_KEY`               | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.3)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported           | supported |
 |`SCTP_AUTH_DEACTIVATE_KEY`    | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.4)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | unsupported         | supported |
 |`SCTP_AUTH_DELETE_KEY`        | [RFC6458](https://tools.ietf.org/html/rfc6458#section-8.3.5)  | [RFC4895](https://tools.ietf.org/html/rfc4895) | unsupported | supported           | supported |
-|`SCTP_ENABLE_STREAM_RESET`    | [RFC6525](https://tools.ietf.org/html/rfc6525#page-28)        | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | supported           | supported |
-|`SCTP_RESET_STREAMS`          | [RFC6525](https://tools.ietf.org/html/rfc6525#page-29)        | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | supported           | supported |
-|`SCTP_RESET_ASSOC`            | [RFC6525](https://tools.ietf.org/html/rfc6525#section-6.3.2)  | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | supported           | supported |
-|`SCTP_ADD_STREAMS`            | [RFC6525](https://tools.ietf.org/html/rfc6525#page-30)        | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | supported           | supported |
+|`SCTP_ENABLE_STREAM_RESET`    | [RFC6525](https://tools.ietf.org/html/rfc6525#page-28)        | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | unsupported         | supported |
+|`SCTP_RESET_STREAMS`          | [RFC6525](https://tools.ietf.org/html/rfc6525#page-29)        | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | unsupported         | supported |
+|`SCTP_RESET_ASSOC`            | [RFC6525](https://tools.ietf.org/html/rfc6525#section-6.3.2)  | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | unsupported         | supported |
+|`SCTP_ADD_STREAMS`            | [RFC6525](https://tools.ietf.org/html/rfc6525#page-30)        | [RFC6525](https://tools.ietf.org/html/rfc6525) | supported   | unsupported         | supported |
 
 
 ## SCTP Functions
