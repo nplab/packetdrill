@@ -373,7 +373,7 @@ static int sctp_incoming_ssn_reset_request_parameter_to_string(
 	reqsn = ntohl(parameter->reqsn);
 	fputs("INCOMING_SSN_RESET[", s);
 	fprintf(s, "len=%hu, ", length);
-	fprintf(s, "req_sn=%u ,", reqsn);
+	fprintf(s, "req_sn=%u, ", reqsn);
 	fputs("sids=[", s);
 	for(len = 0; len < ((length-8)/sizeof(u16)); len++) {
 		u16 sid;
@@ -423,8 +423,8 @@ static int sctp_reconfig_response_parameter_to_string(
 
 	length = ntohs(parameter->length);
 	// filter correct length
-	if (!(length == sizeof(struct sctp_reconfig_response_parameter)) &&
-	    !(length == sizeof(struct sctp_reconfig_response_parameter) - 8)) {
+	if ((length != sizeof(struct sctp_reconfig_response_parameter)) &&
+	    (length != sizeof(struct sctp_reconfig_response_parameter) - 8)) {
 		fputs("invalid RECONFIG_RESPONSE parameter", s);
 		asprintf(error, "RECONFIG_RESPONSE parameter illegal (length=%u)",
 		         length);
