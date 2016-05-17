@@ -455,6 +455,7 @@ static int sctp_add_outgoing_streams_request_parameter_to_string(
 	u16 length;
 	u32 reqsn;
 	u16 number_of_new_streams;
+	u16 reserved;
 
 	length = ntohs(parameter->length);
 	if (length != sizeof(struct sctp_add_outgoing_streams_request_parameter)) {
@@ -465,11 +466,13 @@ static int sctp_add_outgoing_streams_request_parameter_to_string(
 	}
 	reqsn = ntohl(parameter->reqsn);
 	number_of_new_streams = ntohs(parameter->number_of_new_streams);
+	reserved = ntohs(parameter->reserved);
 
 	fputs("ADD_OUTGOING_STREAMS[", s);
 	fprintf(s, "len=%hu, ", length);
 	fprintf(s, "req_sn=%u, ", reqsn);
-	fprintf(s, "number_of_new_streams=%hu", number_of_new_streams);
+	fprintf(s, "number_of_new_streams=%hu, ", number_of_new_streams);
+	fprintf(s, "reserved=%hu", reserved);
 	fputs("]", s);
 	return STATUS_OK;
 }
@@ -482,6 +485,7 @@ static int sctp_add_incoming_streams_request_parameter_to_string(
 	u16 length;
 	u32 reqsn;
 	u16 number_of_new_streams;
+	u16 reserved;
 
 	length = ntohs(parameter->length);
 	if (length != sizeof(struct sctp_add_incoming_streams_request_parameter)) {
@@ -492,11 +496,13 @@ static int sctp_add_incoming_streams_request_parameter_to_string(
 	}
 	reqsn = ntohl(parameter->reqsn);
 	number_of_new_streams = ntohs(parameter->number_of_new_streams);
+	reserved = ntohs(parameter->reserved);
 
 	fputs("ADD_INCOMING_STREAMS[", s);
 	fprintf(s, "len=%hu, ", length);
 	fprintf(s, "req_sn=%u, ", reqsn);
-	fprintf(s, "number_of_new_streams=%hu", number_of_new_streams);
+	fprintf(s, "number_of_new_streams=%hu, ", number_of_new_streams);
+	fprintf(s, "reserved=%hu", reserved);
 	fputs("]", s);
 	return STATUS_OK;
 }
