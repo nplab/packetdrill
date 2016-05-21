@@ -783,10 +783,10 @@ static int map_inbound_sctp_packet(
 						struct sctp_reconfig_response_parameter *response;
 						response = (struct sctp_reconfig_response_parameter *)parameter;
 						response->respsn = htonl(htonl(response->respsn) + local_diff);
-						if (htons(response->length) >= 12) {
+						if (htons(response->length) >= 16) {
 							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
 						}
-						if (htons(response->length) >= 16) {
+						if (htons(response->length) >= 20) {
 							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
 						}
 						break;
