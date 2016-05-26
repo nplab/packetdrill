@@ -34,9 +34,9 @@
 0.460 > . 1001:1001(0) ack 1002 win 1026
 
 // We close the connection with a delay, in case there
-// is still data left to send
+// is still data left to read
 0.470 close(4) = 0
-0.480 > F. 1001:1001(0) ack 1002 win 1026
+0.470 > F. 1001:1001(0) ack 1002 win 1026
 
 // The success of the tests depends on the correctness
-// of the inbound sniffed packet on line 36.
+// of the outbound sniffed packet on line 39.
