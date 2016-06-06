@@ -51,7 +51,13 @@ struct syscalls {
 
 	/* Handles for the syscall thread, for blocking system calls. */
 	pthread_t thread;		/* pthread thread handle */
+#if defined(linux)
 	pid_t thread_id;		/* kernel thread ID  */
+#elif defined(__FreeBSD__)
+	int thread_id;
+#else
+	int thread_id;			/* FIXME */
+#endif
 
 	/* The main thread waits on this condition variable. The
 	 * system call thread signals this when it has finished
