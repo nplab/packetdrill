@@ -27,6 +27,10 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <getopt.h>
+#include <pthread.h>
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -64,9 +68,19 @@ static void run_init_scripts(struct config *config)
 int main(int argc, char *argv[])
 {
 	struct config config;
+	char **arg;
+
+#if defined(__APPLE__)
+	pthread_setname_np("main thread");
+#elif defined(linux)
+	prctl(PR_SET_NAME, "main thread");
+#elif defined(__FreeBSD__)
+	pthread_set_name_np(pthread_self(), "main thread");
+#endif
+
 	set_default_config(&config);
 	/* Get command line options and list of test scripts. */
-	char **arg = parse_command_line_options(argc, argv, &config);
+	arg = parse_command_line_options(argc, argv, &config);
 
 	/* If we're running as a server, just listen for connections forever. */
 	if (config.is_wire_server) {

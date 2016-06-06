@@ -32,6 +32,9 @@
 #include <netinet/in.h>
 #include <poll.h>
 #include <pthread.h>
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6174,6 +6177,13 @@ static void *system_call_thread(void *arg)
 	struct syscall_spec *syscall = NULL;
 	bool done = false;
 
+#if defined(__APPLE__)
+	pthread_setname_np("syscall thread");
+#elif defined(linux)
+	prctl(PR_SET_NAME, "syscall thread");
+#elif defined(__FreeBSD__)
+	pthread_set_name_np(pthread_self(), "syscall thread");
+#endif
 	DEBUGP("syscall thread: starting and locking\n");
 	run_lock(state);
 
