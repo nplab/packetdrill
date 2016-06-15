@@ -33,9 +33,6 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
-#if defined(linux)
-#include <sys/prctl.h>
-#endif
 #include <unistd.h>
 #include "config.h"
 #include "parse.h"

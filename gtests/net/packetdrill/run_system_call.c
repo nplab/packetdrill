@@ -39,9 +39,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#if defined(linux)
-#include <sys/prctl.h>
-#endif
 #if defined(__FreeBSD__)
 #include <kvm.h>
 #include <sys/sysctl.h>
