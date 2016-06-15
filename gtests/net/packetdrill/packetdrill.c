@@ -73,11 +73,7 @@ int main(int argc, char *argv[])
 	struct config config;
 	char **arg;
 
-#if defined(__APPLE__)
-	pthread_setname_np("main thread");
-#elif defined(linux)
-	prctl(PR_SET_NAME, "main thread");
-#elif defined(__FreeBSD__)
+#if defined(__FreeBSD__)
 	pthread_set_name_np(pthread_self(), "main thread");
 #endif
 
