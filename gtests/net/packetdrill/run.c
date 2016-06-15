@@ -328,7 +328,7 @@ void wait_for_event(struct state *state)
 		 * that we know has a fine-grained usleep(), then
 		 * usleep() instead of spinning on the CPU.
 		 */
-#ifdef linux
+#if defined(linux) || defined(__FreeBSD__)
 		/* Since the scheduler may not wake us up precisely
 		 * when we tell it to, sleep until just before the
 		 * event we're waiting for and then spin.
