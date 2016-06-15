@@ -318,6 +318,7 @@ void wait_for_event(struct state *state)
 			state, state->event->time_usecs);
 	DEBUGP("waiting until %lld -- now is %lld\n",
 	       event_usecs, now_usecs());
+	run_unlock(state);
 	while (1) {
 		const s64 wait_usecs = event_usecs - now_usecs();
 		if (wait_usecs <= 0)
@@ -333,9 +334,7 @@ void wait_for_event(struct state *state)
 		 * event we're waiting for and then spin.
 		 */
 		if (wait_usecs > MAX_SPIN_USECS) {
-			run_unlock(state);
 			usleep(wait_usecs - MAX_SPIN_USECS);
-			run_lock(state);
 		}
 #endif
 
@@ -343,7 +342,7 @@ void wait_for_event(struct state *state)
 		 * two to wait, so we spin.
 		 */
 	}
-
+	run_lock(state);
 	check_event_time(state, now_usecs());
 }
 
