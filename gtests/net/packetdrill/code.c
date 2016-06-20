@@ -619,7 +619,7 @@ void run_code_event(struct state *state, struct event *event,
 
 error_out:
 	script_path = strdup(state->config->script_path);
-	state_free(state);
+	state_free(state, 1);
 	die("%s:%d: runtime error in code: %s\n",
 	    script_path, event->line_number, error);
 	free(script_path);

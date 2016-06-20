@@ -110,7 +110,7 @@ extern struct state *state_new(struct config *config,
 			       struct netdev *netdev);
 
 /* Free all run-time state for a test. */
-void state_free(struct state *state);
+void state_free(struct state *state, int about_to_die);
 
 /* Grab the global lock for all global state. */
 static inline void run_lock(struct state *state)

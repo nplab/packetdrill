@@ -128,12 +128,12 @@ static void close_all_sockets(struct state *state)
 	}
 }
 
-void state_free(struct state *state)
+void state_free(struct state *state, int about_to_die)
 {
 	/* We have to stop the system call thread first, since it's using
 	 * sockets that we want to close and reset.
 	 */
-	syscalls_free(state, state->syscalls);
+	syscalls_free(state, state->syscalls, about_to_die);
 
 	/* Then we close the sockets and reset the connections, while
 	 * we still have a netdev for injecting reset packets to free
@@ -402,7 +402,7 @@ static void run_local_packet_event(struct state *state, struct event *event,
 		fprintf(stderr, "%s", error);
 		free(error);
 	} else if (result == STATUS_ERR) {
-		state_free(state);
+		state_free(state, 1);
 		die("%s\n", error);
 	}
 }
@@ -553,7 +553,7 @@ void run_script(struct config *config, struct script *script)
 
 	while (1) {
 		if (get_next_event(state, &error)) {
-			state_free(state);
+			state_free(state, 1);
 			die("%s\n", error);
 		}
 		event = state->event;
@@ -603,14 +603,14 @@ void run_script(struct config *config, struct script *script)
 
 	if (code_execute(state->code, &error)) {
 		char *script_path = strdup(state->config->script_path);
-		state_free(state);
+		state_free(state, 1);
 		die("%s: error executing code: %s\n",
 		    script_path, error);
 		free(script_path);
 		free(error);
 	}
 
-	state_free(state);
+	state_free(state, 0);
 
 	DEBUGP("run_script: done running\n");
 }

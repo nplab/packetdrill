@@ -6125,7 +6125,7 @@ static void invoke_system_call(
 
 error_out:
 	script_path = strdup(state->config->script_path);
-	state_free(state);
+	state_free(state, 1);
 	die("%s:%d: runtime error in %s call: %s\n",
 	    script_path, event->line_number,
 	    syscall->name, error);
@@ -6236,7 +6236,7 @@ static void enqueue_system_call(
 
 error_out:
 	script_path = strdup(state->config->script_path);
-	state_free(state);
+	state_free(state, 1);
 	die("%s:%d: runtime error in %s call: %s\n",
 	    script_path, event->line_number,
 	    syscall->name, error);
@@ -6378,31 +6378,35 @@ struct syscalls *syscalls_new(struct state *state)
 	return syscalls;
 }
 
-void syscalls_free(struct state *state, struct syscalls *syscalls)
+void syscalls_free(struct state *state, struct syscalls *syscalls, int about_to_die)
 {
+	int status;
+
 	/* Wait a bit for the thread to go idle. */
-	if (await_idle_thread(state)) {
+	status = await_idle_thread(state);
+	if ((status == STATUS_ERR) && (about_to_die == 0)) {
 		die("%s:%d: runtime error: exiting while "
 		    "a blocking system call is in progress\n",
 		    state->config->script_path,
 		    syscalls->event->line_number);
 	}
 
-	/* Send a request to terminate the thread. */
-	DEBUGP("main thread: signaling syscall thread to exit\n");
-	syscalls->state = SYSCALL_EXITING;
-	if (pthread_cond_signal(&syscalls->enqueued) != 0)
-		die_perror("pthread_cond_signal");
+	if (status == STATUS_OK) {
+		/* Send a request to terminate the thread. */
+		DEBUGP("main thread: signaling syscall thread to exit\n");
+		syscalls->state = SYSCALL_EXITING;
+		if (pthread_cond_signal(&syscalls->enqueued) != 0)
+			die_perror("pthread_cond_signal");
 
-	/* Release the lock briefly and wait for syscall thread to finish. */
-	run_unlock(state);
-	DEBUGP("main thread: unlocking, waiting for syscall thread exit\n");
-	void *thread_result = NULL;
-	if (pthread_join(syscalls->thread, &thread_result) != 0)
-		die_perror("pthread_cancel");
-	DEBUGP("main thread: joined syscall thread; relocking\n");
-	run_lock(state);
-
+		/* Release the lock briefly and wait for syscall thread to finish. */
+		run_unlock(state);
+		DEBUGP("main thread: unlocking, waiting for syscall thread exit\n");
+		void *thread_result = NULL;
+		if (pthread_join(syscalls->thread, &thread_result) != 0)
+			die_perror("pthread_cancel");
+		DEBUGP("main thread: joined syscall thread; relocking\n");
+		run_lock(state);
+	}
 	if ((pthread_cond_destroy(&syscalls->idle) != 0) ||
 	    (pthread_cond_destroy(&syscalls->enqueued) != 0) ||
 	    (pthread_cond_destroy(&syscalls->dequeued) != 0)) {
