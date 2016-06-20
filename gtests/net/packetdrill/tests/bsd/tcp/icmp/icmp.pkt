@@ -1,5 +1,8 @@
 // Test for handling of incoming ICMP packets.
+// This test tests all known ICMP types, and a
+// few unknown types.
 
+// Establish a connection
 0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
 0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
 0.000 bind(3, ..., ...) = 0
@@ -53,7 +56,7 @@
 
 0.470 < . 1:1(0) ack 1 win 65535
 
-// Clean up
+// We close the connection
 0.500 close(4) = 0
 0.500 > F. 1:1(0) ack 1 win 1026
 0.510 < F. 1:1(0) ack 2 win 65535
