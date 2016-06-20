@@ -28,7 +28,7 @@
 #include "types.h"
 
 /* Enable this to get debug logging. */
-#define DEBUG_LOGGING 1
+#define DEBUG_LOGGING 0
 
 /* Use a gcc variadic macro to conditionally compile debug printing. */
 #define DEBUGP(...)				\
