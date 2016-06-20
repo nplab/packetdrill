@@ -330,11 +330,6 @@ void finalize_config(struct config *config)
 			die("wire_server_ip not specified\n");
 		}
 	}
-	if (config->is_wire_server) {
-		if (config->wire_server_device == NULL) {
-			die("%s: wire_server_dev not specified\n");
-		}
-	}
 }
 
 /* Expect that arg is comma-delimited, allowing for spaces. */

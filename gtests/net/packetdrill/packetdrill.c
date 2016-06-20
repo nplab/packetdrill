@@ -87,7 +87,14 @@ int main(int argc, char *argv[])
 			show_usage();
 			exit(EXIT_FAILURE);
 		}
-
+		if (config.is_wire_server) {
+			if (config.wire_server_device == NULL) {
+				fprintf(stderr,
+					"error: wire_server_dev must be specified\n");
+				show_usage();
+				exit(EXIT_FAILURE);
+			}
+		}
 		run_wire_server(&config);
 		return 0;
 	}
