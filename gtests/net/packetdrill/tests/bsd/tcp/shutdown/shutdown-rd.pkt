@@ -1,5 +1,5 @@
-// This test checks for the behavior of
-// shutdown(SHUT_RD)
+// This test checks for the behavior of sequence
+// shutdown(SHUT_RD), read, write
 
 // Establish the connection
 0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
