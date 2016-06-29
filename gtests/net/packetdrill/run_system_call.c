@@ -6279,7 +6279,7 @@ static void *system_call_thread(void *arg)
 #elif defined(__FreeBSD__)
 	state->syscalls->thread_id = pthread_getthreadid_np();
 #else
-	state->syscalls->thread_id = 0		/* FIXME */
+	state->syscalls->thread_id = 0;		/* FIXME */
 #endif
 
 	while (!done) {
