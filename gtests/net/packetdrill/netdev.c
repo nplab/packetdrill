@@ -267,11 +267,7 @@ static void route_traffic_to_device(struct config *config,
 	} else if (config->wire_protocol == AF_INET6) {
 		asprintf(&route_command,
 			 "route delete -inet6 %s > /dev/null 2>&1 ; "
-#if defined(__FreeBSD__)
-			 "route add -inet6 %s -interface tun0 %s > /dev/null",
-#elif defined(__OpenBSD__) || defined(__NetBSD__)
 			 "route add -inet6 %s %s > /dev/null",
-#endif
 			 config->live_remote_prefix_string,
 			 config->live_remote_prefix_string,
 			 config->live_gateway_ip_string);
