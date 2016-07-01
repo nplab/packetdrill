@@ -47,3 +47,6 @@
                  msg_flags=MSG_NOTIFICATION|MSG_EOR}, 0) = 12
 
 +1.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]
++0.0 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]

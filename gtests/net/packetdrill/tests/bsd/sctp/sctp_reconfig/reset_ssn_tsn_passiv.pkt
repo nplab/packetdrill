@@ -2,7 +2,7 @@
 +0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
 // Check the handshake with en empty(!) cookie
 
-+0.0 setsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=0, assoc_value=SCTP_ENABLE_RESET_ASSOC_REQ}, 8) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=0, assoc_value=SCTP_ENABLE_RESET_STREAM_REQ|SCTP_ENABLE_RESET_ASSOC_REQ|SCTP_ENABLE_CHANGE_ASSOC_REQ}, 8) = 0
 
 +0.0 bind(3, ..., ...) = 0
 +0.0 listen(3, 1) = 0
@@ -35,4 +35,10 @@
 +0.0 read(4, ..., 1000) = 1000
 
 +0.0 < sctp: RECONFIG[flgs=0, SSN_TSN_RESET[req_sn=0]]
-+0.0 > sctp: RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=0, result=0, sender_next_tsn=0, receiver_next_tsn=0]]
++0.0 > sctp: RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=0, result=0, sender_next_tsn=..., receiver_next_tsn=...]]
+
++0.0 close(3) = 0
++0.0 close(4) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=...]
++0.0 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
