@@ -266,7 +266,7 @@ char *flags_to_string(struct flag_name *flags_array, u64 flags)
 static int unescape_cstring_expression(const char *input_string,
 				       struct expression *out, char **error)
 {
-	int bytes = strlen(input_string);
+	int bytes = strlen(input_string) + 1;
 	out->type = EXPR_STRING;
 	out->value.string = (char *)malloc(bytes);
 	const char *c_in = input_string;
@@ -305,6 +305,7 @@ static int unescape_cstring_expression(const char *input_string,
 		++c_in;
 		++c_out;
 	}
+	*c_out = *c_in;
 	return STATUS_OK;
 }
 

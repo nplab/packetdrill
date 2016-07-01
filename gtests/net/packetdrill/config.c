@@ -220,8 +220,10 @@ void set_default_config(struct config *config)
 	config->init_scripts = NULL;
 
 	config->wire_server_port	= 8081;
+#ifdef linux
 	config->wire_client_device	= "eth0";
 	config->wire_server_device	= "eth0";
+#endif
 }
 
 static void set_remote_ip_and_prefix(struct config *config)
@@ -319,6 +321,14 @@ void finalize_config(struct config *config)
 		finalize_ipv6_config(config);
 		break;
 		/* omitting default so compiler will catch missing cases */
+	}
+	if (config->is_wire_client) {
+		if (config->wire_client_device == NULL) {
+			die("wire_client_dev not specified\n");
+		}
+		if (config->wire_server_ip_string == NULL) {
+			die("wire_server_ip not specified\n");
+		}
 	}
 }
 

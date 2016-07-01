@@ -50,7 +50,7 @@ void run_command_event(
 
 error_out:
 	script_path = strdup(state->config->script_path);
-	state_free(state);
+	state_free(state, 1);
 	die("%s:%d: error executing `%s` command: %s\n",
 	    script_path, event->line_number,
 	    command->command_line, error);

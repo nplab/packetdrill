@@ -1,0 +1,19 @@
+// Create a non-blocking socket.
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+// Check the handshake with an empty(!) cookie.
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=0, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=4500, os=1, is =1, tsn=3, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+//+0.5 shutdown(3, SHUT_WR) = 0
++0.5 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=2]
+// Protocol stack goes away at the peer
++0.0 < [sctp(2)] icmp unreachable protocol_unreachable
+// Test if the association is gone
++0.5 < sctp: HEARTBEAT[flgs=0, HEARTBEAT_INFORMATION[len=9, val=...]]
++0.0 > sctp: ABORT[flgs=T]

@@ -51,7 +51,13 @@ struct syscalls {
 
 	/* Handles for the syscall thread, for blocking system calls. */
 	pthread_t thread;		/* pthread thread handle */
+#if defined(linux)
 	pid_t thread_id;		/* kernel thread ID  */
+#elif defined(__FreeBSD__)
+	int thread_id;
+#else
+	int thread_id;			/* FIXME */
+#endif
 
 	/* The main thread waits on this condition variable. The
 	 * system call thread signals this when it has finished
@@ -82,7 +88,8 @@ extern struct syscalls *syscalls_new(struct state *state);
 
 /* Tear down a syscalls and free up the resources it has allocated. */
 extern void syscalls_free(struct state *state,
-			  struct syscalls *syscalls);
+			  struct syscalls *syscalls,
+			  int about_to_die);
 
 /* Execute the given system call event. The system call may be
  * expected to block for a while, or it may be expected to return

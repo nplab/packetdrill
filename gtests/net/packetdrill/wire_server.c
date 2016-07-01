@@ -491,7 +491,7 @@ error_done:
 		fprintf(stderr, "%s\n", error);
 
 	if (wire_server->state != NULL)
-		state_free(wire_server->state);
+		state_free(wire_server->state, 0);
 
 	DEBUGP("wire_server_thread: connection is done\n");
 	wire_server_free(wire_server);

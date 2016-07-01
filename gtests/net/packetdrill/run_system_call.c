@@ -32,10 +32,21 @@
 #include <netinet/in.h>
 #include <poll.h>
 #include <pthread.h>
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#if defined(__FreeBSD__)
+#include <kvm.h>
+#include <sys/sysctl.h>
+#include <sys/user.h>
+#include <sys/param.h>
+#include <sys/queue.h>
+#include <libprocstat.h>
+#endif
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -97,16 +108,11 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 char** error);
 #endif
 
+#if defined(linux)
 /* Provide a wrapper for the Linux gettid() system call (glibc does not). */
 static pid_t gettid(void)
 {
-#ifdef linux
 	return syscall(__NR_gettid);
-#endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-	/* TODO(ncardwell): Implement me. XXX */
-	return 0;
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)*/
 }
 
 /* Read a whole file into the given buffer of the given length. */
@@ -154,6 +160,50 @@ static bool is_thread_sleeping(pid_t process_id, pid_t thread_id)
 
 	return is_sleeping;
 }
+#elif defined(__FreeBSD__)
+static bool is_thread_sleeping(pid_t process_id, int thread_id)
+{
+	struct procstat *procstat;
+	struct kinfo_proc *kinfo_proc;
+	unsigned int i, count;
+	bool is_sleeping;
+
+	procstat = procstat_open_sysctl();
+	if (procstat == NULL) {
+		die("procstat_open_sysctl() failed\n");
+	}
+	/* Get the information for all threads belonging to the given process.
+	 * The number of entries (one for each thread) is returned in count.
+	 */
+	kinfo_proc = procstat_getprocs(procstat,
+	                               KERN_PROC_PID | KERN_PROC_INC_THREAD,
+	                               process_id, &count);
+	if (kinfo_proc == NULL) {
+		die("procstat_getprocs() failed\n");
+	}
+	/* Do a linear search to the entry for the requested thread.
+	 * Since we have only two threads, that's OK performance-wise.
+	 */
+	for (i = 0; i < count; i++) {
+		if (kinfo_proc[i].ki_tid == thread_id)
+			break;
+	}
+	/* Die, if we can't find the entry for the requested thread. */
+	if (i == count)
+		die("unable to get state of thread %d\n", thread_id);
+	is_sleeping = (kinfo_proc[i].ki_stat == SSLEEP);
+	/* Cleanup the allocated data structures. */
+	procstat_freeprocs(procstat, kinfo_proc);
+	procstat_close(procstat);
+	return is_sleeping;
+}
+#else
+static bool is_thread_sleeping(pid_t process_id, int thread_id)
+{
+	die("is_thread_sleeping not implemented on this platform\n");
+	return true;
+}
+#endif
 
 /* Returns number of expressions in the list. */
 static int expression_list_length(struct expression_list *list)
@@ -6075,7 +6125,7 @@ static void invoke_system_call(
 
 error_out:
 	script_path = strdup(state->config->script_path);
-	state_free(state);
+	state_free(state, 1);
 	die("%s:%d: runtime error in %s call: %s\n",
 	    script_path, event->line_number,
 	    syscall->name, error);
@@ -6154,11 +6204,19 @@ static void enqueue_system_call(
 
 	/* Wait for the syscall thread to block or finish the call. */
 	while (!done) {
+#if defined(linux)
+		pid_t thread_id;
+#elif defined(__FreeBSD__)
+		int thread_id;
+#else
+		int thread_id; /* FIXME */
+#endif
+
 		/* Unlock and yield so the system call thread can make
 		 * the system call in a timely fashion.
 		 */
 		DEBUGP("main thread: unlocking and yielding\n");
-		pid_t thread_id = state->syscalls->thread_id;
+		thread_id = state->syscalls->thread_id;
 		run_unlock(state);
 		if (yield() != 0)
 			die_perror("yield");
@@ -6178,7 +6236,7 @@ static void enqueue_system_call(
 
 error_out:
 	script_path = strdup(state->config->script_path);
-	state_free(state);
+	state_free(state, 1);
 	die("%s:%d: runtime error in %s call: %s\n",
 	    script_path, event->line_number,
 	    syscall->name, error);
@@ -6208,12 +6266,21 @@ static void *system_call_thread(void *arg)
 	struct syscall_spec *syscall = NULL;
 	bool done = false;
 
+#if defined(__FreeBSD__)
+	pthread_set_name_np(pthread_self(), "syscall thread");
+#endif
 	DEBUGP("syscall thread: starting and locking\n");
 	run_lock(state);
 
+#if defined(linux)
 	state->syscalls->thread_id = gettid();
 	if (state->syscalls->thread_id < 0)
 		die_perror("gettid");
+#elif defined(__FreeBSD__)
+	state->syscalls->thread_id = pthread_getthreadid_np();
+#else
+	state->syscalls->thread_id = 0;		/* FIXME */
+#endif
 
 	while (!done) {
 		DEBUGP("syscall thread: in state %d\n",
@@ -6311,31 +6378,35 @@ struct syscalls *syscalls_new(struct state *state)
 	return syscalls;
 }
 
-void syscalls_free(struct state *state, struct syscalls *syscalls)
+void syscalls_free(struct state *state, struct syscalls *syscalls, int about_to_die)
 {
+	int status;
+
 	/* Wait a bit for the thread to go idle. */
-	if (await_idle_thread(state)) {
+	status = await_idle_thread(state);
+	if ((status == STATUS_ERR) && (about_to_die == 0)) {
 		die("%s:%d: runtime error: exiting while "
 		    "a blocking system call is in progress\n",
 		    state->config->script_path,
 		    syscalls->event->line_number);
 	}
 
-	/* Send a request to terminate the thread. */
-	DEBUGP("main thread: signaling syscall thread to exit\n");
-	syscalls->state = SYSCALL_EXITING;
-	if (pthread_cond_signal(&syscalls->enqueued) != 0)
-		die_perror("pthread_cond_signal");
+	if (status == STATUS_OK) {
+		/* Send a request to terminate the thread. */
+		DEBUGP("main thread: signaling syscall thread to exit\n");
+		syscalls->state = SYSCALL_EXITING;
+		if (pthread_cond_signal(&syscalls->enqueued) != 0)
+			die_perror("pthread_cond_signal");
 
-	/* Release the lock briefly and wait for syscall thread to finish. */
-	run_unlock(state);
-	DEBUGP("main thread: unlocking, waiting for syscall thread exit\n");
-	void *thread_result = NULL;
-	if (pthread_join(syscalls->thread, &thread_result) != 0)
-		die_perror("pthread_cancel");
-	DEBUGP("main thread: joined syscall thread; relocking\n");
-	run_lock(state);
-
+		/* Release the lock briefly and wait for syscall thread to finish. */
+		run_unlock(state);
+		DEBUGP("main thread: unlocking, waiting for syscall thread exit\n");
+		void *thread_result = NULL;
+		if (pthread_join(syscalls->thread, &thread_result) != 0)
+			die_perror("pthread_cancel");
+		DEBUGP("main thread: joined syscall thread; relocking\n");
+		run_lock(state);
+	}
 	if ((pthread_cond_destroy(&syscalls->idle) != 0) ||
 	    (pthread_cond_destroy(&syscalls->enqueued) != 0) ||
 	    (pthread_cond_destroy(&syscalls->dequeued) != 0)) {
