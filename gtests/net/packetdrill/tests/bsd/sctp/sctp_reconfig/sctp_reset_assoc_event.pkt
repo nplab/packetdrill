@@ -5,8 +5,10 @@
 +0.0 fcntl(3, F_GETFL) = 0x02 (flags O_RDWR)
 +0.0 fcntl(3, F_SETFL, O_RDWR | O_NONBLOCK) = 0
 
-+0.0 setsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_RESET_ASSOC_REQ}, 8) = 0
-+0.0 getsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_RESET_ASSOC_REQ}, [8]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_RESET_STREAM_REQ|SCTP_ENABLE_RESET_ASSOC_REQ|SCTP_ENABLE_CHANGE_ASSOC_REQ}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, {assoc_id=3, assoc_value=SCTP_ENABLE_RESET_STREAM_REQ|SCTP_ENABLE_RESET_ASSOC_REQ|SCTP_ENABLE_CHANGE_ASSOC_REQ}, [8]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_ASSOC_RESET_EVENT, se_on=1}, 8) = 0
++0.0 getsockopt(3, IPPROTO_SCTP, SCTP_EVENT, {se_type=SCTP_ASSOC_RESET_EVENT, se_on=1}, [8]) = 0
 
 // Trigger the active associtation setup
 +0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
@@ -30,6 +32,17 @@
 +0.0 setsockopt(3, IPPROTO_SCTP, SCTP_RESET_ASSOC, [3], 4) = 0
 +0.0 > sctp: RECONFIG[flgs=0, SSN_TSN_RESET[req_sn=1]]
 +0.0 < sctp: RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=1, result=1, sender_next_tsn=1, receiver_next_tsn=1]]
+
++0.2 recvmsg(3, {msg_name(...)=...,
+                 msg_iov(1)=[{iov_base={assocreset_type=SCTP_ASSOC_RESET_EVENT,
+                                        assocreset_flags=0,
+                                        assocreset_length=20,
+                                        assocreset_assoc_id=3,
+                                        assocreset_local_tsn=1,
+                                        assocreset_remote_tsn=2},
+                              iov_len=1000}],
+                 msg_control(0)=[],
+                 msg_flags=MSG_NOTIFICATION|MSG_EOR}, 0) = 20
 
 +1.0 close(3) = 0
 +0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=0]

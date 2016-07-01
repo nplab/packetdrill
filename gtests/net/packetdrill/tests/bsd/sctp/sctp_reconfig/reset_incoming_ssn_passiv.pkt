@@ -41,3 +41,9 @@
 +0.0 < sctp: RECONFIG[flgs=0, INCOMING_SSN_RESET[req_sn=1, sids=[0]]]
 +0.0 > sctp: RECONFIG[flgs=0, OUTGOING_SSN_RESET[req_sn=..., resp_sn=..., last_tsn=..., sids=[]]]; RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=1, result=1]]
 +0.0 < sctp: RECONFIG[flgs=0, RECONFIG_RESPONSE[resp_sn=10, result=1]]
+
++0.0 close(3) = 0
++0.0 close(4) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=3]
++0.0 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
