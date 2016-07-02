@@ -18,12 +18,11 @@
 0.210 read(4, ..., 1000) = 0
 
 0.250 shutdown(4, SHUT_WR) = 0
+0.250 > F. 1:1(0) ack 1
+0.250 < . 1:1(0) ack 2 win 65535
 
 // Verify if write works (It should not work)
 0.260 write(4, ..., 1000) = -1 EPIPE (Broken pipe)
-
-0.260 > F. 1:1(0) ack 1
-0.260 < . 1:1(0) ack 2 win 65535
 
 0.270 close(4) = 0
 
