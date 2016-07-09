@@ -25,6 +25,7 @@
 #include "script.h"
 
 #include <assert.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <stdlib.h>
 
@@ -149,6 +150,13 @@ struct int_symbol cross_platform_symbols[] = {
 	{ SHUT_WR,                          "SHUT_WR"                         },
 	{ SHUT_RDWR,                        "SHUT_RDWR"                       },
 
+	{ O_RDONLY,                         "O_RDONLY"                        },
+	{ O_WRONLY,                         "O_WRONLY"                        },
+	{ O_RDWR,                           "O_RDWR"                          },
+	{ O_APPEND,                         "O_APPEND"                        },
+	{ O_CREAT,                          "O_CREAT"                         },
+	{ O_EXCL,                           "O_EXCL"                          },
+	{ O_TRUNC,                          "O_TRUNC"                         },
 	{ SOL_SOCKET,                       "SOL_SOCKET"                      },
 
 	/* Sentinel marking the end of the table. */
