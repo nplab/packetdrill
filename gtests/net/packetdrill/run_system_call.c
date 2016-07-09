@@ -1662,30 +1662,31 @@ static int to_live_fd(struct state *state, int script_fd, int *live_fd,
  * Returns STATUS_OK on success; on failure returns STATUS_ERR and
  * sets error message.
  */
-static int run_syscall_socket(struct state *state, int address_family,
-			      int protocol, int script_fd, int live_fd,
-			      char **error)
+static struct socket *insert_new_socket(
+       struct state *state, int address_family, int protocol,
+       int script_fd, int live_fd, char **error)
 {
 	/* Validate fd values. */
 	if (script_fd < 0) {
 		asprintf(error, "invalid socket fd %d in script", script_fd);
-		return STATUS_ERR;
+		return NULL;
 	}
 	if (live_fd < 0) {
 		asprintf(error, "invalid live socket fd %d", live_fd);
-		return STATUS_ERR;
+		return NULL;
 	}
 
 	/* Look for sockets with conflicting fds. Should not happen if
-	   the script is valid and this program is bug-free. */
+	 * the script is valid and this program is bug-free.
+	 */
 	if (find_socket_by_script_fd(state, script_fd)) {
 		asprintf(error, "duplicate socket fd %d in script",
 			 script_fd);
-		return STATUS_ERR;
+		return NULL;
 	}
 	if (find_socket_by_live_fd(state, live_fd)) {
 		asprintf(error, "duplicate live socket fd %d", live_fd);
-		return STATUS_ERR;
+		return NULL;
 	}
 
 	/* These fd values are kosher, so store them. */
@@ -1695,6 +1696,18 @@ static int run_syscall_socket(struct state *state, int address_family,
 	socket->protocol	= protocol;
 	socket->script.fd	= script_fd;
 	socket->live.fd		= live_fd;
+	return socket;
+}
+
+static int run_syscall_socket(struct state *state, int address_family,
+			      int protocol, int script_fd, int live_fd,
+			      char **error)
+{
+	struct socket *socket = insert_new_socket(state, address_family,
+						  protocol, script_fd, live_fd,
+						  error);
+	if (socket == NULL)
+		return STATUS_ERR;
 
 	/* Any later packets in the test script will now be mapped here. */
 	state->socket_under_test = socket;
@@ -4204,6 +4217,42 @@ error_out:
 	return status;
 }
 
+static int syscall_open(struct state *state, struct syscall_spec *syscall,
+			struct expression_list *args, char **error)
+{
+	int script_fd, live_fd, result;
+	struct expression *name_expression;
+	char *name;
+	int flags;
+
+	if (check_arg_count(args, 2, error))
+		return STATUS_ERR;
+	name_expression = get_arg(args, 0, error);
+	if (check_type(name_expression, EXPR_STRING, error))
+		return STATUS_ERR;
+	name = name_expression->value.string;
+	if (s32_arg(args, 1, &flags, error))
+		return STATUS_ERR;
+
+	begin_syscall(state, syscall);
+
+	result = open(name, flags);
+
+	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
+		return STATUS_ERR;
+
+	if (result >= 0) {
+		live_fd = result;
+		if (get_s32(syscall->result, &script_fd, error))
+			return STATUS_ERR;
+		if (!insert_new_socket(state, 0, 0,
+				       script_fd, live_fd, error))
+			return STATUS_ERR;
+	}
+
+	return STATUS_OK;
+}
+
 static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
@@ -6047,41 +6096,42 @@ struct system_call_entry {
 };
 
 struct system_call_entry system_call_table[] = {
-	{"socket",     syscall_socket},
-	{"bind",       syscall_bind},
-	{"listen",     syscall_listen},
-	{"accept",     syscall_accept},
-	{"connect",    syscall_connect},
-	{"read",       syscall_read},
-	{"readv",      syscall_readv},
-	{"recv",       syscall_recv},
-	{"recvfrom",   syscall_recvfrom},
-	{"recvmsg",    syscall_recvmsg},
-	{"write",      syscall_write},
-	{"writev",     syscall_writev},
-	{"send",       syscall_send},
-	{"sendto",     syscall_sendto},
-	{"sendmsg",    syscall_sendmsg},
-	{"fcntl",      syscall_fcntl},
-	{"ioctl",      syscall_ioctl},
-	{"close",      syscall_close},
-	{"shutdown",   syscall_shutdown},
-	{"getsockopt", syscall_getsockopt},
-	{"setsockopt", syscall_setsockopt},
-	{"poll",       syscall_poll},
-	{"sctp_bindx",     syscall_sctp_bindx},
-	{"sctp_peeloff",   syscall_sctp_peeloff},
-	{"sctp_getpaddrs", syscall_sctp_getpaddrs},
-	{"sctp_freepaddrs",syscall_sctp_freepaddrs},
-	{"sctp_getladdrs", syscall_sctp_getladdrs},
-	{"sctp_freeladdrs",syscall_sctp_freeladdrs},
-	{"sctp_sendmsg",   syscall_sctp_sendmsg},
-	{"sctp_recvmsg",   syscall_sctp_recvmsg},
-	{"sctp_connectx",  syscall_sctp_connectx},
-	{"sctp_send",      syscall_sctp_send},
-	{"sctp_sendx",     syscall_sctp_sendx},
-	{"sctp_sendv",     syscall_sctp_sendv},
-	{"sctp_recvv",     syscall_sctp_recvv}
+	{"socket",          syscall_socket},
+	{"bind",            syscall_bind},
+	{"listen",          syscall_listen},
+	{"accept",          syscall_accept},
+	{"connect",         syscall_connect},
+	{"read",            syscall_read},
+	{"readv",           syscall_readv},
+	{"recv",            syscall_recv},
+	{"recvfrom",        syscall_recvfrom},
+	{"recvmsg",         syscall_recvmsg},
+	{"write",           syscall_write},
+	{"writev",          syscall_writev},
+	{"send",            syscall_send},
+	{"sendto",          syscall_sendto},
+	{"sendmsg",         syscall_sendmsg},
+	{"fcntl",           syscall_fcntl},
+	{"ioctl",           syscall_ioctl},
+	{"close",           syscall_close},
+	{"shutdown",        syscall_shutdown},
+	{"getsockopt",      syscall_getsockopt},
+	{"setsockopt",      syscall_setsockopt},
+	{"poll",            syscall_poll},
+	{"open",            syscall_open},
+	{"sctp_bindx",      syscall_sctp_bindx},
+	{"sctp_peeloff",    syscall_sctp_peeloff},
+	{"sctp_getpaddrs",  syscall_sctp_getpaddrs},
+	{"sctp_freepaddrs", syscall_sctp_freepaddrs},
+	{"sctp_getladdrs",  syscall_sctp_getladdrs},
+	{"sctp_freeladdrs", syscall_sctp_freeladdrs},
+	{"sctp_sendmsg",    syscall_sctp_sendmsg},
+	{"sctp_recvmsg",    syscall_sctp_recvmsg},
+	{"sctp_connectx",   syscall_sctp_connectx},
+	{"sctp_send",       syscall_sctp_send},
+	{"sctp_sendx",      syscall_sctp_sendx},
+	{"sctp_sendv",      syscall_sctp_sendv},
+	{"sctp_recvv",      syscall_sctp_recvv}
 };
 
 /* Evaluate the system call arguments and invoke the system call. */

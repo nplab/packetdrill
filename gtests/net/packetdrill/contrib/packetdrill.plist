@@ -100,6 +100,7 @@
 		<string>ioctl</string>
 		<string>listen</string>
 		<string>poll</string>
+		<string>open</string>
 		<string>read</string>
 		<string>readv</string>
 		<string>recv</string>
