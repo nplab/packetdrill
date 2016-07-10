@@ -68,6 +68,9 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_MSGHDR,               "msghdr" },
 	{ EXPR_CMSGHDR,              "cmsghdr"},
 	{ EXPR_POLLFD,               "pollfd" },
+#if defined(__FreeBSD__)
+	{ EXPR_SF_HDTR,              "sf_hdtr" },
+#endif
 	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
 	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
 	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
@@ -424,7 +427,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_event_subscribe->sctp_adaptation_layer_event);
 		free_expression(expression->value.sctp_event_subscribe->sctp_authentication_event);
 		free_expression(expression->value.sctp_event_subscribe->sctp_sender_dry_event);
-		break;		
+		break;
 	case EXPR_SCTP_SNDINFO:
 		free_expression(expression->value.sctp_sndinfo->snd_sid);
 		free_expression(expression->value.sctp_sndinfo->snd_flags);
@@ -435,7 +438,7 @@ void free_expression(struct expression *expression)
 	case EXPR_SCTP_SETPRIM:
 		free_expression(expression->value.sctp_setprim->ssp_assoc_id);
 		free_expression(expression->value.sctp_setprim->ssp_addr);
-		break;		
+		break;
 	case EXPR_SCTP_SETADAPTATION:
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
 		break;
@@ -458,7 +461,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_default_prinfo->pr_policy);
 		free_expression(expression->value.sctp_default_prinfo->pr_value);
 		free_expression(expression->value.sctp_default_prinfo->pr_assoc_id);
-		break;		
+		break;
 	case EXPR_SCTP_AUTHINFO:
 		free_expression(expression->value.sctp_authinfo->auth_keynumber);
 		break;
@@ -701,6 +704,15 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.pollfd->events);
 		free_expression(expression->value.pollfd->revents);
 		break;
+#if defined(__FreeBSD__)
+	case EXPR_SF_HDTR:
+		assert(expression->value.sf_hdtr);
+		free_expression(expression->value.sf_hdtr->headers);
+		free_expression(expression->value.sf_hdtr->hdr_cnt);
+		free_expression(expression->value.sf_hdtr->trailers);
+		free_expression(expression->value.sf_hdtr->trl_cnt);
+		break;
+#endif
 	case EXPR_NONE:
 	case NUM_EXPR_TYPES:
 		break;
@@ -871,6 +883,34 @@ static int evaluate_pollfd_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+#if defined(__FreeBSD__)
+static int evaluate_sf_hdtr_expression(struct expression *in,
+				       struct expression *out, char **error)
+{
+	struct sf_hdtr_expr *in_sf_hdtr;
+	struct sf_hdtr_expr *out_sf_hdtr;
+
+	assert(in->type == EXPR_SF_HDTR);
+	assert(in->value.sf_hdtr);
+	assert(out->type == EXPR_SF_HDTR);
+
+	out->value.sf_hdtr = calloc(1, sizeof(struct sf_hdtr_expr));
+
+	in_sf_hdtr = in->value.sf_hdtr;
+	out_sf_hdtr = out->value.sf_hdtr;
+
+	if (evaluate(in_sf_hdtr->headers,	&out_sf_hdtr->headers,	error))
+		return STATUS_ERR;
+	if (evaluate(in_sf_hdtr->hdr_cnt,	&out_sf_hdtr->hdr_cnt,	error))
+		return STATUS_ERR;
+	if (evaluate(in_sf_hdtr->trailers,	&out_sf_hdtr->trailers,	error))
+		return STATUS_ERR;
+	if (evaluate(in_sf_hdtr->trl_cnt,	&out_sf_hdtr->trl_cnt,	error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
 static int evaluate_sctp_rtoinfo_expression(struct expression *in,
 					    struct expression *out,
 					    char **error)
@@ -2860,6 +2900,11 @@ static int evaluate(struct expression *in,
 	case EXPR_POLLFD:
 		result = evaluate_pollfd_expression(in, out, error);
 		break;
+#if defined(__FreeBSD__)
+	case EXPR_SF_HDTR:
+		result = evaluate_sf_hdtr_expression(in, out, error);
+		break;
+#endif
 	case EXPR_NONE:
 	case NUM_EXPR_TYPES:
 		break;

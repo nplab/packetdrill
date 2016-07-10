@@ -497,6 +497,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token ELLIPSIS
 %token <reserved> SA_FAMILY SIN_PORT SIN_ADDR _HTONS_ _HTONL_ INET_ADDR
 %token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL CMSG_LEN CMSG_LEVEL CMSG_TYPE CMSG_DATA
+%token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> FAST_OPEN
@@ -614,7 +615,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer data
 %type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data
-%type <expression> iovec pollfd opt_revents
+%type <expression> sf_hdtr iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger sctp_assoc_id
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
@@ -2735,6 +2736,9 @@ expression
 | linger            {
 	$$ = $1;
 }
+| sf_hdtr           {
+	$$ = $1;
+}
 | sctp_rtoinfo      {
 	$$ = $1;
 }
@@ -3061,6 +3065,23 @@ linger
 	$$->value.linger = calloc(1, sizeof(struct linger_expr));
 	$$->value.linger->l_onoff  = $2;
 	$$->value.linger->l_linger = $4;
+}
+;
+
+sf_hdtr
+: '{' SF_HDTR_HEADERS '(' decimal_integer ')' '=' array ','
+      SF_HDTR_TRAILERS '('decimal_integer ')' '=' array '}' {
+#if defined(__FreeBSD__)
+	struct sf_hdtr_expr *sf_hdtr_expr = calloc(1, sizeof(struct sf_hdtr_expr));
+	$$ = new_expression(EXPR_SF_HDTR);
+	$$->value.sf_hdtr = sf_hdtr_expr;
+	sf_hdtr_expr->headers	= $7;
+	sf_hdtr_expr->hdr_cnt	= $4;
+	sf_hdtr_expr->trailers	= $14;
+	sf_hdtr_expr->trl_cnt	= $11;
+#else
+	$$ = NULL;
+#endif
 }
 ;
 

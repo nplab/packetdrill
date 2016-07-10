@@ -47,6 +47,9 @@ enum expression_t {
 	EXPR_MSGHDR,		  /* expression tree for a msghdr struct */
 	EXPR_CMSGHDR,             /* expression tree for a cmsghdr struct */
 	EXPR_POLLFD,		  /* expression tree for a pollfd struct */
+#if defined(__FreeBSD__)
+	EXPR_SF_HDTR,		  /* struct sf_hdtr for sendfile */
+#endif
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
@@ -113,6 +116,9 @@ struct expression {
 		struct msghdr_expr *msghdr;
 		struct cmsghdr_expr *cmsghdr;
 		struct pollfd_expr *pollfd;
+#if defined(__FreeBSD__)
+		struct sf_hdtr_expr *sf_hdtr;
+#endif
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 		struct sctp_initmsg_expr *sctp_initmsg;
 		struct sctp_hmacalgo_expr *sctp_hmacalgo;
@@ -215,6 +221,16 @@ struct linger_expr {
 	struct expression *l_onoff;
 	struct expression *l_linger;
 };
+
+#if defined(__FreeBSD__)
+/* Parse tree for a sf_hdtr struct in a sendfile syscall. */
+struct sf_hdtr_expr {
+	struct expression *headers;
+	struct expression *hdr_cnt;
+	struct expression *trailers;
+	struct expression *trl_cnt;
+};
+#endif
 
 /* Parse tree for a sctp_rtoinfo struct in a [gs]etsockopt syscall. */
 struct sctp_rtoinfo_expr {

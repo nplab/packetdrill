@@ -101,6 +101,7 @@
 		<string>listen</string>
 		<string>poll</string>
 		<string>open</string>
+		<string>sendfile</string>
 		<string>read</string>
 		<string>readv</string>
 		<string>recv</string>

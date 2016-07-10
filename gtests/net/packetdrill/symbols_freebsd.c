@@ -362,6 +362,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ LOCK_EX,                          "LOCK_EX"                         },
 	{ LOCK_NB,                          "LOCK_NB"                         },
 	{ LOCK_UN,                          "LOCK_UN"                         },
+	{ SF_NODISKIO,                      "SF_NODISKIO"                     },
+	{ SF_NOCACHE,                       "SF_NOCACHE"                      },
+	{ SF_SYNC,                          "SF_SYNC"                         },
 
 	/* /usr/include/sys/unistd.h */
 	{ SEEK_SET,                         "SEEK_SET"                        },

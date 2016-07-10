@@ -51,6 +51,9 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#if defined(linux)
+#include <sys/sendfile.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 #include "logging.h"
@@ -319,6 +322,27 @@ static int get_size_t(struct expression *expression,
 }
 #endif
 
+#if defined(__FreeBSD__)
+/* Sets the value from the expression argument, checking that it is a
+ * valid off_t, and matches the expected type. Returns STATUS_OK on
+ * success; on failure returns STATUS_ERR and sets error message.
+ */
+static int get_off_t(struct expression *expression,
+		     off_t *value, char **error)
+{
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if (expression->value.num < 0) {
+		asprintf(error,
+			 "Value out of range for off_t: %lld",
+			 expression->value.num);
+		return STATUS_ERR;
+	}
+	*value = expression->value.num;
+	return STATUS_OK;
+}
+#endif
+
 #if defined(linux) || defined(__FreeBSD__)
 /* Sets the value from the expression argument, checking that it is a
  * valid sctp_assoc_t, and matches the expected type. Returns STATUS_OK on
@@ -529,6 +553,26 @@ static int u32_bracketed_arg(struct expression_list *args,
 		return STATUS_ERR;
 	}
 	return get_u32(list->expression, value, error);
+}
+
+static int off_t_bracketed_arg(struct expression_list *args,
+			       int index, off_t *value, char **error)
+{
+	struct expression_list *list;
+	struct expression *expression;
+
+	expression = get_arg(args, index, error);
+	if (expression == NULL)
+		return STATUS_ERR;
+	if (check_type(expression, EXPR_LIST, error))
+		return STATUS_ERR;
+	list = expression->value.list;
+	if (expression_list_length(list) != 1) {
+		asprintf(error,
+			 "Expected [<integer>] but got multiple elements");
+		return STATUS_ERR;
+	}
+	return get_off_t(list->expression, value, error);
 }
 #endif
 
@@ -4253,6 +4297,171 @@ static int syscall_open(struct state *state, struct syscall_spec *syscall,
 	return STATUS_OK;
 }
 
+#if defined(linux)
+static int syscall_sendfile(struct state *state, struct syscall_spec *syscall,
+			    struct expression_list *args, char **error)
+{
+	int live_outfd, script_outfd;
+	int live_infd, script_infd;
+	int script_offset = 0;
+	off_t live_offset;
+	int count, result;
+	int status = STATUS_ERR;
+
+	if (check_arg_count(args, 4, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 0, &script_outfd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_outfd, &live_outfd, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 1, &script_infd, error))
+		return STATUS_ERR;
+	if (to_live_fd(state, script_infd, &live_infd, error))
+		return STATUS_ERR;
+	if (s32_bracketed_arg(args, 2, &script_offset, error))
+		return STATUS_ERR;
+	if (s32_arg(args, 3, &count, error))
+		return STATUS_ERR;
+
+	live_offset = script_offset;
+
+	begin_syscall(state, syscall);
+
+	result = sendfile(live_outfd, live_infd, &live_offset, count);
+
+	status = end_syscall(state, syscall, CHECK_EXACT, result, error);
+
+	return status;
+}
+#endif
+
+#if defined(__FreeBSD__)
+
+/* Free all the space used by the given sf_hdtr. */
+static void sf_hdtr_free(struct sf_hdtr *sf_hdtr)
+{
+	if (sf_hdtr == NULL)
+		return;
+
+	iovec_free(sf_hdtr->headers, sf_hdtr->hdr_cnt);
+	iovec_free(sf_hdtr->trailers, sf_hdtr->trl_cnt);
+	free(sf_hdtr); /* XXX */
+}
+
+/* Allocate and fill in a sf_hdtr described by the given expression. */
+static int sf_hdtr_new(struct expression *expression,
+		       struct sf_hdtr **sf_hdtr_ptr,
+		       char **error)
+{
+	int status = STATUS_ERR;
+	s32 s32_val = 0;
+	struct sf_hdtr_expr *sf_hdtr_expr;	/* input expression from script */
+	struct sf_hdtr *sf_hdtr = NULL;	/* live output */
+	size_t iov_len;
+
+	if (check_type(expression, EXPR_SF_HDTR, error))
+		goto error_out;
+	sf_hdtr_expr = expression->value.sf_hdtr;
+	sf_hdtr = calloc(1, sizeof(struct sf_hdtr));
+
+	if (sf_hdtr_expr->headers != NULL) {
+		if (iovec_new(sf_hdtr_expr->headers, &sf_hdtr->headers, &iov_len, error))
+			goto error_out;
+	}
+	if (sf_hdtr_expr->hdr_cnt != NULL) {
+		if (get_s32(sf_hdtr_expr->hdr_cnt, &s32_val, error))
+			goto error_out;
+		sf_hdtr->hdr_cnt = s32_val;
+	}
+	if (sf_hdtr->hdr_cnt != iov_len) {
+		asprintf(error,
+			 "msg_iovlen %d does not match %d-element headers array",
+			 sf_hdtr->hdr_cnt, (int)iov_len);
+		goto error_out;
+	}
+
+	if (sf_hdtr_expr->trailers != NULL) {
+		if (iovec_new(sf_hdtr_expr->trailers, &sf_hdtr->trailers, &iov_len, error))
+			goto error_out;
+	}
+	if (sf_hdtr_expr->trl_cnt != NULL) {
+		if (get_s32(sf_hdtr_expr->trl_cnt, &s32_val, error))
+			goto error_out;
+		sf_hdtr->trl_cnt = s32_val;
+	}
+	if (sf_hdtr->trl_cnt != iov_len) {
+		asprintf(error,
+			 "msg_iovlen %d does not match %d-element trailers array",
+			 sf_hdtr->trl_cnt, (int)iov_len);
+		goto error_out;
+	}
+	status = STATUS_OK;
+error_out:
+	*sf_hdtr_ptr = sf_hdtr;
+	return status;
+}
+
+static int syscall_sendfile(struct state *state, struct syscall_spec *syscall,
+			    struct expression_list *args, char **error)
+{
+	int live_fd, script_fd;
+	int live_s, script_s;
+	off_t offset;
+	size_t nbytes;
+	off_t script_sbytes, live_sbytes;
+	int flags;
+	int result;
+	int status = STATUS_ERR;
+	struct expression *expression;
+	struct sf_hdtr *sf_hdtr = NULL;
+
+	if (check_arg_count(args, 7, error))
+		goto error_out;
+	if (s32_arg(args, 0, &script_fd, error))
+		goto error_out;
+	if (to_live_fd(state, script_fd, &live_fd, error))
+		goto error_out;
+	if (s32_arg(args, 1, &script_s, error))
+		goto error_out;
+	if (to_live_fd(state, script_s, &live_s, error))
+		goto error_out;
+	if ((expression = get_arg(args, 2, error)) == NULL)
+		goto error_out;
+	if (get_off_t(expression, &offset, error))
+		goto error_out;
+	if ((expression = get_arg(args, 3, error)) == NULL)
+		goto error_out;
+	if (get_size_t(expression, &nbytes, error))
+		goto error_out;
+	if ((expression = get_arg(args, 4, error)) == NULL)
+		goto error_out;
+	if (sf_hdtr_new(expression, &sf_hdtr, error))
+		goto error_out;
+	if (off_t_bracketed_arg(args, 5, &script_sbytes, error))
+		goto error_out;
+	if (s32_arg(args, 6, &flags, error))
+		goto error_out;
+
+	begin_syscall(state, syscall);
+
+	result = sendfile(live_fd, live_s, offset, nbytes, sf_hdtr, &live_sbytes, flags);
+
+	status = end_syscall(state, syscall, CHECK_EXACT, result, error);
+	if ((status == STATUS_OK) &&
+	    (script_sbytes != live_sbytes)) {
+		asprintf(error,
+			 "Expected sbytes %lu but got %lu",
+			 script_sbytes, live_sbytes);
+		goto error_out;
+	}
+
+	status = STATUS_OK;
+error_out:
+	sf_hdtr_free(sf_hdtr);
+	return status;
+}
+#endif
+
 static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
@@ -6119,6 +6328,9 @@ struct system_call_entry system_call_table[] = {
 	{"setsockopt",      syscall_setsockopt},
 	{"poll",            syscall_poll},
 	{"open",            syscall_open},
+#if defined(linux) || defined(__FreeBSD__)
+	{"sendfile",        syscall_sendfile},
+#endif
 	{"sctp_bindx",      syscall_sctp_bindx},
 	{"sctp_peeloff",    syscall_sctp_peeloff},
 	{"sctp_getpaddrs",  syscall_sctp_getpaddrs},

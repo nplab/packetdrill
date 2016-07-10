@@ -325,6 +325,8 @@ noecn				return NO_ECN;
 ce				return CE;
 iov_base			return IOV_BASE;
 iov_len				return IOV_LEN;
+headers				return SF_HDTR_HEADERS;
+trailers			return SF_HDTR_TRAILERS;
 [.][.][.]			return ELLIPSIS;
 assoc_id			return ASSOC_ID;
 assoc_value			return ASSOC_VALUE;
