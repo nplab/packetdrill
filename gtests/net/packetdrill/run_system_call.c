@@ -4456,8 +4456,8 @@ static int syscall_sendfile(struct state *state, struct syscall_spec *syscall,
 	if ((status == STATUS_OK) &&
 	    (script_sbytes != live_sbytes)) {
 		asprintf(error,
-			 "Expected sbytes %lu but got %lu",
-			 script_sbytes, live_sbytes);
+			 "Expected sbytes %lld but got %lld",
+			 (long long)script_sbytes, (long long)live_sbytes);
 		goto error_out;
 	}
 
