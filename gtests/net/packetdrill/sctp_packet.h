@@ -104,6 +104,31 @@ sctp_sack_block_list_item_gap_new(u16 start, u16 end);
 struct sctp_sack_block_list_item *
 sctp_sack_block_list_item_dup_new(u32 tsn);
 
+struct sctp_forward_tsn_sids_list_item {
+	struct sctp_forward_tsn_sids_list_item *next;
+	u16 stream_identifier;
+	u16 stream_sequence_number;
+}; 
+
+struct sctp_forward_tsn_sids_list {
+	struct sctp_forward_tsn_sids_list_item *first;
+	struct sctp_forward_tsn_sids_list_item *last;
+	u16 nr_entries;
+};
+
+struct sctp_forward_tsn_sids_list *
+sctp_forward_tsn_sids_list_new ();
+
+void
+sctp_forward_tsn_sids_list_append(struct sctp_forward_tsn_sids_list *list,
+			          struct sctp_forward_tsn_sids_list_item *item);
+
+void sctp_forward_tsn_sids_list_free (struct sctp_forward_tsn_sids_list *list);
+
+struct sctp_forward_tsn_sids_list_item *
+sctp_forward_tsn_sids_list_item_new(u16 stream_identifier, u16 stream_sequence_number);
+
+
 struct sctp_address_type_list_item {
 	struct sctp_address_type_list_item *next;
 	u16 address_type;
@@ -312,6 +337,12 @@ sctp_i_data_chunk_new(s64 flgs, s64 len, s64 tsn, s64 sid, s64 res, s64 mid,
 
 struct sctp_chunk_list_item *
 sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding);
+
+#define FLAG_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK  0x00000100
+#define FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK     0x00000200
+
+struct sctp_chunk_list_item *
+sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_sids_list *sids_list);
 
 struct sctp_chunk_list_item *
 sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters);

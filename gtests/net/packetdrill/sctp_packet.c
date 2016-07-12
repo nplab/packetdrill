@@ -234,6 +234,65 @@ sctp_sack_block_list_item_dup_new(u32 tsn)
 	return item;
 }
 
+struct sctp_forward_tsn_sids_list *
+sctp_forward_tsn_sids_list_new () {
+	struct sctp_forward_tsn_sids_list *list;
+
+	list = malloc(sizeof(struct sctp_forward_tsn_sids_list));
+	assert(list != NULL);
+	list->first = NULL;
+	list->last = NULL;
+	list->nr_entries = 0;
+	return list;
+}
+
+void
+sctp_forward_tsn_sids_list_append(struct sctp_forward_tsn_sids_list *list,
+			          struct sctp_forward_tsn_sids_list_item *item) {
+	assert(item->next == NULL);
+	if (list->last == NULL) {
+		assert(list->first == NULL);
+		assert(list->nr_entries == 0);
+		list->first = item;
+	} else {
+		assert(list->first != NULL);
+		list->last->next = item;
+	}
+	list->last = item;
+	list->nr_entries++;
+}
+
+void sctp_forward_tsn_sids_list_free (struct sctp_forward_tsn_sids_list *list) {
+	struct sctp_forward_tsn_sids_list_item *current_item, *next_item;
+
+	if (list == NULL) {
+		return;
+	}
+	current_item = list->first;
+	while (current_item != NULL) {
+		assert(list->nr_entries > 0);
+		next_item = current_item->next;
+		assert(next_item != NULL || current_item == list->last);
+		free(current_item);
+		current_item = next_item;
+		list->nr_entries--;
+	}
+	assert(list->nr_entries == 0);
+	free(list);
+}
+
+struct sctp_forward_tsn_sids_list_item *
+sctp_forward_tsn_sids_list_item_new(u16 stream_identifier, u16 stream_sequence_number) {
+	struct sctp_forward_tsn_sids_list_item *item;
+
+	item = malloc(sizeof(struct sctp_forward_tsn_sids_list_item));
+	assert(item != NULL);
+	item->next = NULL;
+	item->stream_identifier = stream_identifier;
+	item->stream_sequence_number= stream_sequence_number;
+	return item;
+}
+
 struct sctp_address_type_list *
 sctp_address_type_list_new(void)
 {
@@ -1280,6 +1339,62 @@ sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding)
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                chunk_length + chunk_padding_length,
 	                                flags, sctp_parameter_list_new(),
+	                                sctp_cause_list_new());
+}
+
+struct sctp_chunk_list_item *
+sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_sids_list *sids) {
+	struct sctp_forward_tsn_chunk *chunk;
+	struct sctp_forward_tsn_sids_list_item *item;
+	
+	DEBUGP("sctp_forward_tsn_chunk_new called with cum_tsn = %d and sids_list = %p", cum_tsn, sids);
+	
+	u32 flags;
+	u32 length;
+	u16 i, nr_sids;
+
+	flags = 0;
+	length = sizeof(struct sctp_forward_tsn_chunk);
+	if (sids == NULL) {
+		nr_sids = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK;
+	} else {
+		nr_sids = sids->nr_entries;
+		length += nr_sids * sizeof(struct sctp_stream_identifier_block);
+	}
+	
+	assert(is_valid_u16(length));
+	assert(length % 4 == 0);
+	chunk = malloc(length);
+	assert(chunk != NULL);
+	chunk->type = SCTP_FORWARD_TSN_CHUNK_TYPE;
+	chunk->flags = 0;
+	chunk->length = htons(length);
+	if (cum_tsn == -1) {
+		chunk->cum_tsn = htonl(0);
+		flags |= FLAG_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK;
+	} else {
+		chunk->cum_tsn = htonl((u32)cum_tsn);
+	}
+	
+	if (nr_sids == 0 || sids == NULL) {
+		flags |= FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK;
+	}
+
+	if (sids != NULL) {
+		for (i = 0, item = sids->first;
+		     (i < nr_sids) && (item != NULL);
+		     i++, item = item->next) {
+			chunk->stream_identifier_blocks[i].stream= htons(item->stream_identifier);
+			chunk->stream_identifier_blocks[i].stream_sequence = htons(item->stream_sequence_number);
+		}
+		
+		assert((i == nr_sids) && (item == NULL));
+	}
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	                                length, flags,
+	                                sctp_parameter_list_new(),
 	                                sctp_cause_list_new());
 }
 
@@ -2965,6 +3080,19 @@ new_sctp_packet(int address_family,
 				}
 				break;
 			case SCTP_RECONFIG_CHUNK_TYPE:
+				break;
+			case SCTP_FORWARD_TSN_CHUNK_TYPE:
+				if (chunk_item->flags & FLAG_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK) {
+					asprintf(error,
+						 "cum tsn must be specified for inbound packets");
+					return NULL;
+				}
+				if (chunk_item->flags & FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK) {
+					// TODO: is this true or are FORWARD-TSN-Chunks that only contain the new cum tsn valid?
+					asprintf(error,
+						 "at least one stream number and stream sequence number must be specified for inbound packets");
+					return NULL;
+				}
 				break;
 			default:
 				if (chunk_item->flags & FLAG_CHUNK_TYPE_NOCHECK) {
