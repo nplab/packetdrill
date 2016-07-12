@@ -123,6 +123,7 @@ void
 sctp_forward_tsn_sids_list_append(struct sctp_forward_tsn_sids_list *list,
 			          struct sctp_forward_tsn_sids_list_item *item);
 
+// TODO: where to call this freeing method... sctp_sack_block_list_free and sctp_byte_list_free are unused...?
 void sctp_forward_tsn_sids_list_free (struct sctp_forward_tsn_sids_list *list);
 
 struct sctp_forward_tsn_sids_list_item *
