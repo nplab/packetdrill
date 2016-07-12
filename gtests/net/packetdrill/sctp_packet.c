@@ -3087,12 +3087,6 @@ new_sctp_packet(int address_family,
 						 "cum tsn must be specified for inbound packets");
 					return NULL;
 				}
-				if (chunk_item->flags & FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK) {
-					// TODO: is this true or are FORWARD-TSN-Chunks that only contain the new cum tsn valid?
-					asprintf(error,
-						 "at least one stream number and stream sequence number must be specified for inbound packets");
-					return NULL;
-				}
 				break;
 			default:
 				if (chunk_item->flags & FLAG_CHUNK_TYPE_NOCHECK) {
