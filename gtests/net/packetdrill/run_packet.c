@@ -653,6 +653,8 @@ static int map_inbound_sctp_packet(
 	struct sctp_shutdown_complete_chunk *shutdown_complete;
 	struct sctp_i_data_chunk *i_data;
 	struct sctp_reconfig_chunk *reconfig;
+	struct sctp_forward_tsn_chunk *forward_tsn;
+	
 	u32 local_diff, remote_diff;
 	u32 v_tag;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
@@ -737,6 +739,10 @@ static int map_inbound_sctp_packet(
 		case SCTP_I_DATA_CHUNK_TYPE:
 			i_data = (struct sctp_i_data_chunk *)chunk;
 			i_data->tsn = htonl(ntohl(i_data->tsn) + remote_diff);
+			break;
+		case SCTP_FORWARD_TSN_CHUNK_TYPE: 
+			forward_tsn = (struct sctp_forward_tsn_chunk *) chunk;
+			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + local_diff);
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			reconfig = (struct sctp_reconfig_chunk *)chunk;
@@ -948,6 +954,7 @@ static int map_outbound_live_sctp_packet(
 	struct sctp_cwr_chunk *cwr;
 	struct sctp_i_data_chunk *i_data;
 	struct sctp_reconfig_chunk *reconfig;
+	struct sctp_forward_tsn_chunk *forward_tsn;
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, i;
 
@@ -1007,6 +1014,10 @@ static int map_outbound_live_sctp_packet(
 		case SCTP_I_DATA_CHUNK_TYPE:
 			i_data = (struct sctp_i_data_chunk *)chunk;
 			i_data->tsn = htonl(ntohl(i_data->tsn) + local_diff);
+			break;
+		case SCTP_FORWARD_TSN_CHUNK_TYPE: 
+			forward_tsn = (struct sctp_forward_tsn_chunk *) chunk;
+			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + local_diff);
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			reconfig = (struct sctp_reconfig_chunk *)chunk;
@@ -2034,6 +2045,53 @@ static int verify_reconfig_chunk(struct sctp_reconfig_chunk *actual_chunk,
 				      error);
 }
 
+static u16 get_num_sid_blocks (u16 packet_length) {
+	return (packet_length - sizeof(struct sctp_forward_tsn_chunk)) / sizeof(struct sctp_stream_identifier_block);
+}
+
+static int verify_forward_tsn_chunk(struct sctp_forward_tsn_chunk *actual_chunk,
+				 struct sctp_forward_tsn_chunk *script_chunk,
+				 u32 flags, char **error) {
+	u16 actual_packet_length = ntohs(script_chunk->length);
+	u16 script_packet_length = ntohs(script_chunk->length);
+	u16 actual_nr_sid_blocks = get_num_sid_blocks(actual_packet_length);
+	u16 script_nr_sid_blocks = get_num_sid_blocks(script_packet_length);
+	u16 i;
+	
+	if ((flags & FLAG_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK) == 0) {
+		if (check_field("sctp_forward_tsn_cum_tsn",
+				 ntohl(script_chunk->cum_tsn),
+				 ntohl(actual_chunk->cum_tsn),
+				 error) == STATUS_ERR) {
+			return STATUS_ERR;
+		}
+	}
+	
+	if ((flags & FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK) == 0) {
+		if (check_field("nr_sid_blocks",
+				 actual_nr_sid_blocks,
+				 script_nr_sid_blocks,
+				 error) == STATUS_ERR) {
+			return STATUS_ERR;
+		}
+		
+		for (i = 0; i < script_nr_sid_blocks; i++) {
+			if (check_field("sctp_forward_tsn_stream_identifier",
+		                        ntohs(script_chunk->stream_identifier_blocks[i].stream),
+		                        ntohs(actual_chunk->stream_identifier_blocks[i].stream),
+		                        error) == STATUS_ERR ||
+		            check_field("sctp_forward_tsn_stream_sequence_number",
+		                        ntohs(script_chunk->stream_identifier_blocks[i].stream_sequence),
+		                        ntohs(actual_chunk->stream_identifier_blocks[i].stream_sequence),
+		                        error) == STATUS_ERR) {
+				return STATUS_ERR;
+			}
+		}
+	}
+	
+	return STATUS_OK;
+}
+
 /* Verify that required actual SCTP packet fields are as the script expected. */
 static int verify_sctp(
 	const struct packet *actual_packet,
@@ -2177,6 +2235,11 @@ static int verify_sctp(
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			result = verify_reconfig_chunk((struct sctp_reconfig_chunk *)actual_chunk,
 			                               script_chunk_item,
+			                               flags, error);
+			break;
+		case SCTP_FORWARD_TSN_CHUNK_TYPE:
+			result = verify_forward_tsn_chunk((struct sctp_forward_tsn_chunk *)actual_chunk,
+			                               (struct sctp_forward_tsn_chunk *)script_chunk,
 			                               flags, error);
 			break;
 		default:
