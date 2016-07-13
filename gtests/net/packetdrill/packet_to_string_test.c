@@ -138,6 +138,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0x00, 0x05, 0x00, 0x06,
 		0x00, 0x0b, 0x00, 0x00,
 		0x80, 0x00, 0x00, 0x04,
+		0xc0, 0x00, 0x00, 0x04,
 		0x80, 0x08, 0x00, 0x05,
 		0x40, 0x00, 0x00, 0x00,
 		0x80, 0x05, 0x00, 0x10,
@@ -275,6 +276,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		     "HOSTNAME_ADDRESS[addr=\"@A\"], "
 		     "SUPPORTED_ADDRESS_TYPES[types=[IPv4, IPv6, HOSTNAME]], "
 		     "ECN_CAPABLE[], "
+		     "FORWARD_TSN_SUPPORTED[], "
 		     "SUPPORTED_EXTENSIONS[types=[I-DATA]], "
 		     "PAD[len=16, val=...]]; "
 		"INIT_ACK[flgs=0x00, tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "

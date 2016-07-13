@@ -526,7 +526,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> TAG A_RWND OS IS TSN SID SSN MID PPID FSN CUM_TSN GAPS DUPS
 %token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
-%token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE
+%token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE FORWARD_TSN_SUPPORTED
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
 %token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS INCOMING_SSN_RESET
 %token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
@@ -690,6 +690,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <parameter_list_item> sctp_hostname_address_parameter_spec
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
+%type <parameter_list_item> sctp_fornward_tsn_supported_spec
 %type <parameter_list_item> sctp_supported_extensions_parameter_spec
 %type <parameter_list_item> sctp_adaptation_indication_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
@@ -1897,6 +1898,7 @@ sctp_parameter_spec
 | sctp_hostname_address_parameter_spec        { $$ = $1; }
 | sctp_supported_address_types_parameter_spec { $$ = $1; }
 | sctp_ecn_capable_parameter_spec             { $$ = $1; }
+| sctp_fornward_tsn_supported_spec            { $$ = $1; }
 | sctp_supported_extensions_parameter_spec    { $$ = $1; }
 | sctp_adaptation_indication_parameter_spec   { $$ = $1; }
 | sctp_pad_parameter_spec                     { $$ = $1; }
@@ -2058,6 +2060,11 @@ sctp_supported_address_types_parameter_spec
 sctp_ecn_capable_parameter_spec
 : ECN_CAPABLE '[' ']' {
 	$$ = sctp_ecn_capable_parameter_new();
+}
+
+sctp_fornward_tsn_supported_spec
+: FORWARD_TSN_SUPPORTED '[' ']' {
+	$$ = sctp_forward_tsn_supported_parameter_new();
 }
 
 chunk_types_list
