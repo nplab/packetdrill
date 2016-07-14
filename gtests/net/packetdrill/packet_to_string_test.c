@@ -110,7 +110,8 @@ static void test_sctp_ipv6_packet_to_string(void)
 		/* SCTP Common Header: */
 		0x04, 0xd2, 0x1f, 0x90,
 		0x01, 0x02, 0x03, 0x04,
-		0x24, 0x25, 0x51, 0x31,
+		0x6b, 0x44, 0x25, 0xe5,
+		/*0x24, 0x25, 0x51, 0x31,*/
 		/* SCTP DATA Chunk */
 		0x00, 0x0f, 0x00, 0x13,
 		0x01, 0x02, 0x03, 0x04,
@@ -141,8 +142,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0xc0, 0x00, 0x00, 0x04,
 		0x80, 0x08, 0x00, 0x05,
 		0x40, 0x00, 0x00, 0x00,
-		0x80, 0x05, 0x00, 0x10,
-		0x50, 0x50, 0x50, 0x50,
+		0x80, 0x05, 0x00, 0x0c,
 		0x50, 0x50, 0x50, 0x50,
 		0x50, 0x50, 0x50, 0x50,
 		/* SCTP INIT_ACK Chunk */
@@ -255,6 +255,9 @@ static void test_sctp_ipv6_packet_to_string(void)
 	char *error = NULL;
 	enum packet_parse_result_t result =
 		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+	if (result != PACKET_OK) {
+		printf("error was %s\n", error);
+	}
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -263,6 +266,9 @@ static void test_sctp_ipv6_packet_to_string(void)
 
 	/* Test a DUMP_SHORT dump */
 	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+	if (status != STATUS_OK) {
+		printf("error was %s\n", error);
+	}
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -278,7 +284,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		     "ECN_CAPABLE[], "
 		     "FORWARD_TSN_SUPPORTED[], "
 		     "SUPPORTED_EXTENSIONS[types=[I-DATA]], "
-		     "PAD[len=16, val=...]]; "
+		     "PAD[len=12, val=...]]; "
 		"INIT_ACK[flgs=0x00, tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
 			 "STATE_COOKIE[len=7, val=...], "
 			 "UNRECOGNIZED_PARAMETER[params=["
@@ -335,8 +341,9 @@ static void test_sctp_ipv6_packet_to_string(void)
 		     "HOSTNAME_ADDRESS[addr=\"@A\"], "
 		     "SUPPORTED_ADDRESS_TYPES[types=[IPv4, IPv6, HOSTNAME]], "
 		     "ECN_CAPABLE[], "
+		     "FORWARD_TSN_SUPPORTED[], "
 		     "SUPPORTED_EXTENSIONS[types=[I-DATA]], "
-		     "PAD[len=16, val=...]]; "
+		     "PAD[len=12, val=...]]; "
 		"INIT_ACK[flgs=0x00, tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
 			 "STATE_COOKIE[len=7, val=...], "
 			 "UNRECOGNIZED_PARAMETER[params=["
@@ -393,8 +400,9 @@ static void test_sctp_ipv6_packet_to_string(void)
 		     "HOSTNAME_ADDRESS[addr=\"@A\"], "
 		     "SUPPORTED_ADDRESS_TYPES[types=[IPv4, IPv6, HOSTNAME]], "
 		     "ECN_CAPABLE[], "
+		     "FORWARD_TSN_SUPPORTED[], "
 		     "SUPPORTED_EXTENSIONS[types=[I-DATA]], "
-		     "PAD[len=16, val=...]]; "
+		     "PAD[len=12, val=...]]; "
 		"INIT_ACK[flgs=0x00, tag=1, a_rwnd=65536, os=15, is=15, tsn=16909060, "
 			 "STATE_COOKIE[len=7, val=...], "
 			 "UNRECOGNIZED_PARAMETER[params=["
@@ -436,14 +444,14 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"0x0000: 60 00 00 00 01 d8 84 ff 00 02 00 00 00 00 00 00 " "\n"
 		"0x0010: 00 00 00 00 00 00 22 22 00 01 00 00 00 00 00 00 " "\n"
 		"0x0020: 00 00 00 00 00 00 11 11 04 d2 1f 90 01 02 03 04 " "\n"
-		"0x0030: 24 25 51 31 00 0f 00 13 01 02 03 04 00 ff 01 00 " "\n"
+		"0x0030: 6b 44 25 e5 00 0f 00 13 01 02 03 04 00 ff 01 00 " "\n"
 		"0x0040: 00 00 00 00 00 01 02 00 01 00 00 68 00 00 00 01 " "\n"
 		"0x0050: 00 01 00 00 00 0f 00 0f 01 02 03 04 00 05 00 08 " "\n"
 		"0x0060: 01 02 03 04 00 06 00 14 00 00 00 00 00 00 00 00 " "\n"
 		"0x0070: 00 00 00 00 00 00 00 01 00 09 00 08 00 01 00 00 " "\n"
 		"0x0080: 00 0b 00 06 40 41 00 00 00 0c 00 0a 00 05 00 06 " "\n"
-		"0x0090: 00 0b 00 00 80 00 00 04 80 08 00 05 40 00 00 00 " "\n"
-		"0x00a0: 80 05 00 10 50 50 50 50 50 50 50 50 50 50 50 50 " "\n"
+		"0x0090: 00 0b 00 00 80 00 00 04 c0 00 00 04 80 08 00 05 " "\n"
+		"0x00a0: 40 00 00 00 80 05 00 0c 50 50 50 50 50 50 50 50 " "\n"
 		"0x00b0: 02 00 00 24 00 00 00 01 00 01 00 00 00 0f 00 0f " "\n"
 		"0x00c0: 01 02 03 04 00 07 00 07 01 02 03 00 00 08 00 08 " "\n"
 		"0x00d0: 80 01 00 04 03 00 00 20 01 02 03 04 00 01 00 00 " "\n"
