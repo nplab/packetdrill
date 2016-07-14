@@ -1888,11 +1888,11 @@ static int verify_nr_sack_chunk(struct sctp_nr_sack_chunk *actual_chunk,
 
 	if ((flags & FLAG_NR_SACK_CHUNK_GAP_BLOCKS_NOCHECK) == 0) {
 		for (i = 0; i < script_nr_gap_blocks; i++) {
-			if (check_field("sctp_sack_chunk_gap_block_start",
+			if (check_field("sctp_nr_sack_chunk_gap_block_start",
 		                        ntohs(script_chunk->block[i].gap.start),
 		                        ntohs(actual_chunk->block[i].gap.start),
 		                        error) ||
-		            check_field("sctp_sack_chunk_gap_block_end",
+		            check_field("sctp_nr_sack_chunk_gap_block_end",
 		                        ntohs(script_chunk->block[i].gap.end),
 		                        ntohs(actual_chunk->block[i].gap.end),
 		                        error)) {
@@ -1905,11 +1905,11 @@ static int verify_nr_sack_chunk(struct sctp_nr_sack_chunk *actual_chunk,
 	if ((flags & FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK) == 0) {
 		actual_base = actual_nr_gap_blocks;
 		for (i = 0; i < script_nr_of_nr_gap_blocks; i++) {
-			if (check_field("sctp_sack_chunk_nr_gap_block_start",
+			if (check_field("sctp_nr_sack_chunk_nr_gap_block_start",
 		                        ntohs(script_chunk->block[script_base + i].gap.start),
 		                        ntohs(actual_chunk->block[actual_base + i].gap.start),
 		                        error) ||
-		            check_field("sctp_sack_chunk_nr_gap_block_end",
+		            check_field("sctp_nr_sack_chunk_nr_gap_block_end",
 		                        ntohs(script_chunk->block[script_base + i].gap.end),
 		                        ntohs(actual_chunk->block[actual_base + i].gap.end),
 		                        error)) {
@@ -1923,7 +1923,7 @@ static int verify_nr_sack_chunk(struct sctp_nr_sack_chunk *actual_chunk,
 	if ((flags & FLAG_NR_SACK_CHUNK_DUP_TSNS_NOCHECK) == 0) {
 		actual_base = actual_nr_gap_blocks + actual_nr_of_nr_gap_blocks;
 		for (i = 0; i < script_nr_dup_tsns; i++) {
-			if (check_field("sctp_sack_chunk_dup_tsn",
+			if (check_field("sctp_nr_sack_chunk_dup_tsn",
 		                        ntohl(script_chunk->block[script_base + i].tsn),
 		                        ntohl(actual_chunk->block[actual_base + i].tsn),
 		                        error)) {
