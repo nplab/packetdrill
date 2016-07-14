@@ -1081,6 +1081,9 @@ chunk_type
 | SACK {
 	$$ = SCTP_SACK_CHUNK_TYPE;
 }
+| NR_SACK {
+	$$ = SCTP_NR_SACK_CHUNK_TYPE;
+}
 | HEARTBEAT {
 	$$ = SCTP_HEARTBEAT_CHUNK_TYPE;
 }
