@@ -1,0 +1,53 @@
+	--tolerance_usecs=75000
+
+ 0.0 `sysctl -w net.inet.sctp.ecn_enable=0`
++0.0 `sysctl -w net.inet.sctp.pr_enable=0`
++0.0 `sysctl -w net.inet.sctp.asconf_enable=0`
++0.0 `sysctl -w net.inet.sctp.auth_enable=0`
++0.0 `sysctl -w net.inet.sctp.reconfig_enable=0`
++0.0 `sysctl -w net.inet.sctp.nrsack_enable=1`
++0.0 `sysctl -w net.inet.sctp.pktdrop_enable=0`
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
+
+// Check the handshake with an empty(!) cookie
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=0,
+                  SUPPORTED_EXTENSIONS[types=[NR_SACK]],
+                  SUPPORTED_ADDRESS_TYPES[types=...]]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=3,
+                      STATE_COOKIE[len=4, val=...],
+                      SUPPORTED_EXTENSIONS[types=[NR_SACK]],
+                      SUPPORTED_ADDRESS_TYPES[types=[IPv4]],
+                      PARAMETER[type=0xbf11, len=5, val=[0x01]]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
+
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address=..., spp_hbinterval=0, spp_pathmaxrxt=0, spp_pathmtu=0, spp_flags=SPP_HB_DISABLE|SPP_PMTUD_DISABLE, spp_ipv6_flowlabel=0, spp_dscp=0}, 152) = 0
+
++1.0 write(3, ..., 4000) = 4000
++0.0 > sctp: DATA[flgs=B, len=1468, tsn=0, sid=0, ssn=0, ppid=0]
++0.1 < sctp: NR_SACK[flgs=0, cum_tsn=0, a_rwnd=5000, gaps=[], nr_gaps=[], dups=[]]
++0.0 > sctp: DATA[flgs=0, len=1468, tsn=1, sid=0, ssn=0, ppid=0]
++0.0 > sctp: DATA[flgs=E, len=1112, tsn=2, sid=0, ssn=0, ppid=0]
++0.1 < sctp: NR_SACK[flgs=0, cum_tsn=0, a_rwnd=5000, gaps=[], nr_gaps=[1:1], dups=[]]
+* > sctp: DATA[flgs=E, len=1112, tsn=2, sid=0, ssn=0, ppid=0]
++0.1 < sctp: NR_SACK[flgs=0, cum_tsn=2, a_rwnd=5000, gaps=[], nr_gaps=[], dups=[]]
+
+// Receive some data
++1.0 < sctp: DATA[flgs=BE, len=1016, tsn=3, sid=0, ssn=0, ppid=0]
++0.0 read(3, ..., 2000) = 1000
++0.0 > sctp: NR_SACK[flgs=..., cum_tsn=3, a_rwnd=..., gaps=..., nr_gaps=..., dups=...]
+
+// Receive more data, observe a non-delayed SACK
++1.0 < sctp: DATA[flgs=IBE, len=1016, tsn=4, sid=0, ssn=1, ppid=0]
++0.0 read(3, ..., 2000) = 1000
++0.0 > sctp: NR_SACK[flgs=0, cum_tsn=4, a_rwnd=..., gaps=..., nr_gaps=..., dups=...]
+
+// Tear down the association
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=4]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]
