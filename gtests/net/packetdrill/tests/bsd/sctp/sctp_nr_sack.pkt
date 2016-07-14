@@ -41,7 +41,7 @@
 +0.0 read(3, ..., 2000) = 1000
 +0.0 > sctp: NR_SACK[flgs=..., cum_tsn=3, a_rwnd=..., gaps=..., nr_gaps=..., dups=...]
 
-// Receive more data, observe a non-delayed SACK
+// Receive more data, observe a non-delayed NR-SACK
 +1.0 < sctp: DATA[flgs=IBE, len=1016, tsn=4, sid=0, ssn=1, ppid=0]
 +0.0 read(3, ..., 2000) = 1000
 +0.0 > sctp: NR_SACK[flgs=0, cum_tsn=4, a_rwnd=..., gaps=..., nr_gaps=..., dups=...]
