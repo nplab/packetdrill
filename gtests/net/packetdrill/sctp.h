@@ -260,6 +260,7 @@ struct sctp_reconfig_chunk {
 #define SCTP_PAD_PARAMETER_TYPE				0x8005
 #define SCTP_Set_Primary_Address			0xc004
 #define SCTP_ADAPTATION_INDICATION_PARAMETER_TYPE	0xc006
+#define SCTP_FORWARD_TSN_SUPPORTED_PARAMETER_TYPE       0xc000
 
 #define MAX_SCTP_PARAMETER_BYTES			0xffff
 
@@ -392,6 +393,11 @@ struct sctp_reconfig_generic_request_parameter {
 	__be16 length;
 	__be32 reqsn;
 	__u8 value[];
+} __packed;
+
+struct sctp_forward_tsn_supported_parameter {
+	__be16 type;
+	__be16 length;
 } __packed;
 
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001

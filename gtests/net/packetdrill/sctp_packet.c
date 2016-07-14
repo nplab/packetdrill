@@ -2078,6 +2078,20 @@ sctp_ecn_capable_parameter_new(void)
 	                                    0);
 }
 
+struct sctp_parameter_list_item *
+sctp_forward_tsn_supported_parameter_new()
+{
+	struct sctp_forward_tsn_supported_parameter *parameter;
+
+	parameter = malloc(sizeof(struct sctp_forward_tsn_supported_parameter));
+	assert(parameter != NULL);
+	parameter->type = htons(SCTP_FORWARD_TSN_SUPPORTED_PARAMETER_TYPE);
+	parameter->length = htons(sizeof(struct sctp_forward_tsn_supported_parameter));
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+	                                    sizeof(struct sctp_forward_tsn_supported_parameter),
+	                                    0);
+}
+
 struct sctp_parameter_list *
 sctp_parameter_list_new(void)
 {
