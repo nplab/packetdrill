@@ -255,9 +255,6 @@ static void test_sctp_ipv6_packet_to_string(void)
 	char *error = NULL;
 	enum packet_parse_result_t result =
 		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
-	if (result != PACKET_OK) {
-		printf("error was %s\n", error);
-	}
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -266,9 +263,6 @@ static void test_sctp_ipv6_packet_to_string(void)
 
 	/* Test a DUMP_SHORT dump */
 	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
-	if (status != STATUS_OK) {
-		printf("error was %s\n", error);
-	}
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
