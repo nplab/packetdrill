@@ -767,8 +767,7 @@ sctp_nr_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
 		number_of_nr_gaps = 0;
 		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 		flags |= FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK;
-	}
-	else {
+	} else {
 		number_of_nr_gaps = nr_gaps_list->nr_entries;
 		length += number_of_nr_gaps * sizeof(union sctp_nr_sack_block);
 	}

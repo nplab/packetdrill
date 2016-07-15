@@ -19,8 +19,7 @@
 +0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=1, is=1, tsn=3,
                       STATE_COOKIE[len=4, val=...],
                       SUPPORTED_EXTENSIONS[types=[NR_SACK]],
-                      SUPPORTED_ADDRESS_TYPES[types=[IPv4]],
-                      PARAMETER[type=0xbf11, len=5, val=[0x01]]]
+                      SUPPORTED_ADDRESS_TYPES[types=[IPv4]]]
 +0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
 +0.1 < sctp: COOKIE_ACK[flgs=0]
 
