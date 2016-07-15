@@ -110,7 +110,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		/* SCTP Common Header: */
 		0x04, 0xd2, 0x1f, 0x90,
 		0x01, 0x02, 0x03, 0x04,
-		0x6b, 0x44, 0x25, 0xe5,
+		0xbb, 0x6a, 0x20, 0xe8,
 		/* SCTP DATA Chunk */
 		0x00, 0x0f, 0x00, 0x13,
 		0x01, 0x02, 0x03, 0x04,
@@ -163,6 +163,16 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0x00, 0x05, 0x00, 0x0f,
 		0x10, 0x00, 0x10, 0x14,
 		0x01, 0x02, 0x03, 0x04,
+		/* SCTP NR-SACK Chunk*/
+		0x10, 0x00, 0x00, 0x24, //0x10 = nr_sack, 0x24 = chunk length
+		0x01, 0x02, 0x03, 0x04, // cum_tsn
+		0x00, 0x01, 0x00, 0x00, // a_rwnd
+		0x00, 0x02, 0x00, 0x01, // num_gap_ack_blocks, num_nr_gap_blocks
+		0x00, 0x01, 0x00, 0x00, // num_dup_blocks, reserved
+		0x00, 0x05, 0x00, 0x0f, // gap_ack_block_1
+		0x10, 0x00, 0x10, 0x14, // gap_ack_block_2
+		0x10, 0x14, 0x10, 0x15, // gap_nr_ack_block_1
+		0x01, 0x02, 0x03, 0x04, // dup_tsn_block
 		/* SCTP HEARTBEAT Chunk */
 		0x04, 0x00, 0x00, 0x0a,
 		0x00, 0x01, 0x00, 0x06,
@@ -244,7 +254,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0x84, 0x00, 0x00, 0x10,
 		0x50, 0x50, 0x50, 0x50,
 		0x50, 0x50, 0x50, 0x50,
-		0x50, 0x50, 0x50, 0x50
+		0x50, 0x50, 0x50, 0x50,
 	};
 
 	struct packet *packet = packet_new(sizeof(data));
@@ -254,6 +264,9 @@ static void test_sctp_ipv6_packet_to_string(void)
 	char *error = NULL;
 	enum packet_parse_result_t result =
 		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+	if (result != PACKET_OK) {
+		printf ("error was %s\n", error);
+	}
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -262,6 +275,9 @@ static void test_sctp_ipv6_packet_to_string(void)
 
 	/* Test a DUMP_SHORT dump */
 	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+	if (status != STATUS_OK) {
+		printf ("error was %s\n", error);
+	}
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -284,6 +300,8 @@ static void test_sctp_ipv6_packet_to_string(void)
 			   "PARAMETER[type=0x8001, value=[]]]]]; "
 		"SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
 		     "gaps=[1:3, 5:15, 4096:4116], dups=[16909060]]; "
+		"NR_SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
+		     "gaps=[5:15, 4096:4116], nr_gaps=[4116:4117], dups=[16909060]]; "
 		"HEARTBEAT[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
 		"HEARTBEAT_ACK[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
 		"ABORT[flgs=T]; "
