@@ -219,6 +219,23 @@ static int sctp_ecn_capable_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_forward_tsn_supported_parameter_to_string(
+	FILE *s,
+	struct sctp_forward_tsn_supported_parameter *parameter,
+	char **error)
+{
+	u16 length;
+
+	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_forward_tsn_supported_parameter)) {
+		asprintf(error, "FORWARD_TSN_SUPPORTED parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
+	fputs("FORWARD_TSN_SUPPORTED[]", s);
+	return STATUS_OK;
+}
+
 static int sctp_supported_extensions_parameter_to_string(
 	FILE *s,
 	struct sctp_supported_extensions_parameter *parameter,
@@ -602,6 +619,10 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_ECN_CAPABLE_PARAMETER_TYPE:
 		result = sctp_ecn_capable_parameter_to_string(s,
 			(struct sctp_ecn_capable_parameter *)parameter, error);
+		break;
+	case SCTP_FORWARD_TSN_SUPPORTED_PARAMETER_TYPE:
+		result = sctp_forward_tsn_supported_parameter_to_string(s,
+			(struct sctp_forward_tsn_supported_parameter *)parameter, error);
 		break;
 	case SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE:
 		result = sctp_supported_extensions_parameter_to_string(s,
