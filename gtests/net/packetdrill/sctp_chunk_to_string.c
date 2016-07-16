@@ -1724,7 +1724,7 @@ static int sctp_forward_tsn_chunk_to_string(
 	fputs("FORWARD_TSN[", s);
 	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "len=%u, ", length);
-	fprintf(s, "cum_tsn=%d, ", ntohl(chunk->cum_tsn));
+	fprintf(s, "cum_tsn=%u, ", ntohl(chunk->cum_tsn));
 	
 	fprintf(s, "sids=[");
 	
