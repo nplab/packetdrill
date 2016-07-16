@@ -501,7 +501,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL CMSG_LEN CMSG_LEVEL CMSG_TYPE CMSG_DATA
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
-%token <reserved> ACK ECR EOL MSS NOP SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
+%token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> FAST_OPEN
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
@@ -523,7 +523,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
 %token <reserved> SHUTDOWN_COMPLETE I_DATA PAD RECONFIG FORWARD_TSN
 %token <reserved> TYPE FLAGS LEN
-%token <reserved> TAG A_RWND OS IS TSN SID SSN MID PPID FSN CUM_TSN GAPS DUPS
+%token <reserved> TAG A_RWND OS IS TSN SID SSN MID PPID FSN CUM_TSN GAPS NR_GAPS DUPS
 %token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE FORWARD_TSN_SUPPORTED
@@ -666,7 +666,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_generic_chunk_spec
 %type <chunk_list_item> sctp_data_chunk_spec
 %type <chunk_list_item> sctp_init_chunk_spec sctp_init_ack_chunk_spec
-%type <chunk_list_item> sctp_sack_chunk_spec
+%type <chunk_list_item> sctp_sack_chunk_spec sctp_nr_sack_chunk_spec
 %type <chunk_list_item> sctp_heartbeat_chunk_spec sctp_heartbeat_ack_chunk_spec
 %type <chunk_list_item> sctp_abort_chunk_spec
 %type <chunk_list_item> sctp_shutdown_chunk_spec
@@ -724,7 +724,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <byte_list_item> byte
 %type <u16_list> u16_list
 %type <u16_item> u16_item
-%type <sack_block_list> opt_gaps gap_list opt_dups dup_list
+%type <sack_block_list> opt_gaps opt_nr_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
 %type <forward_tsn_sids_list> opt_stream_identifier sids_list
 %type <forward_tsn_sids_list_item> sid
@@ -1045,6 +1045,7 @@ sctp_chunk_spec
 | sctp_init_chunk_spec              { $$ = $1; }
 | sctp_init_ack_chunk_spec          { $$ = $1; }
 | sctp_sack_chunk_spec              { $$ = $1; }
+| sctp_nr_sack_chunk_spec           { $$ = $1; }
 | sctp_heartbeat_chunk_spec         { $$ = $1; }
 | sctp_heartbeat_ack_chunk_spec     { $$ = $1; }
 | sctp_abort_chunk_spec             { $$ = $1; }
@@ -1086,6 +1087,9 @@ chunk_type
 }
 | SACK {
 	$$ = SCTP_SACK_CHUNK_TYPE;
+}
+| NR_SACK {
+	$$ = SCTP_NR_SACK_CHUNK_TYPE;
 }
 | HEARTBEAT {
 	$$ = SCTP_HEARTBEAT_CHUNK_TYPE;
@@ -1531,6 +1535,12 @@ opt_gaps
 | GAPS '=' '[' gap_list ']' { $$ = $4; }
 ;
 
+opt_nr_gaps
+: NR_GAPS '=' ELLIPSIS         { $$ = NULL; }
+| NR_GAPS '=' '[' ELLIPSIS ']' { $$ = NULL; }
+| NR_GAPS '=' '[' gap_list ']' { $$ = $4; }
+;
+
 gap_list
 :                  { $$ = sctp_sack_block_list_new(); }
 | gap              { $$ = sctp_sack_block_list_new();
@@ -1638,6 +1648,12 @@ sctp_sack_chunk_spec
 : SACK '[' opt_flags ',' opt_cum_tsn ',' opt_a_rwnd ',' opt_gaps ',' opt_dups']' {
 	$$ = sctp_sack_chunk_new($3, $5, $7, $9, $11);
 }
+
+sctp_nr_sack_chunk_spec
+: NR_SACK '[' opt_flags ',' opt_cum_tsn ',' opt_a_rwnd ',' opt_gaps ',' opt_nr_gaps ',' opt_dups']' {
+	$$ = sctp_nr_sack_chunk_new($3, $5, $7, $9, $11, $13);
+}
+
 
 sctp_heartbeat_chunk_spec
 : HEARTBEAT '[' opt_flags ',' sctp_heartbeat_information_parameter_spec ']' {

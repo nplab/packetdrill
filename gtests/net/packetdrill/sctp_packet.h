@@ -282,6 +282,18 @@ sctp_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
                     struct sctp_sack_block_list *gaps,
                     struct sctp_sack_block_list *dups);
 
+#define FLAG_NR_SACK_CHUNK_CUM_TSN_NOCHECK         0x00000100
+#define FLAG_NR_SACK_CHUNK_A_RWND_NOCHECK          0x00000200
+#define FLAG_NR_SACK_CHUNK_GAP_BLOCKS_NOCHECK      0x00000400
+#define FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK   0x00000800
+#define FLAG_NR_SACK_CHUNK_DUP_TSNS_NOCHECK        0x00001000
+
+struct sctp_chunk_list_item *
+sctp_nr_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
+                    struct sctp_sack_block_list *gaps,
+		    struct sctp_sack_block_list *nr_gaps,
+                    struct sctp_sack_block_list *dups);
+
 struct sctp_chunk_list_item *
 sctp_heartbeat_chunk_new(s64 flgs, struct sctp_parameter_list_item *info);
 
