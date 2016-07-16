@@ -268,6 +268,9 @@ static int sctp_supported_extensions_parameter_to_string(
 		case SCTP_SACK_CHUNK_TYPE:
 			fputs("SACK", s);
 			break;
+		case SCTP_NR_SACK_CHUNK_TYPE:
+			fputs("NR-SACK", s);
+			break;
 		case SCTP_HEARTBEAT_CHUNK_TYPE:
 			fputs("HEARTBEAT", s);
 			break;
@@ -1273,6 +1276,52 @@ static int sctp_sack_chunk_to_string(FILE *s,
 	return STATUS_OK;
 }
 
+static int sctp_nr_sack_chunk_to_string(FILE *s,
+				     struct sctp_nr_sack_chunk *chunk,
+				     char **error)
+{
+	u16 length;
+	u16 nr_gaps, nr_of_nr_gaps, nr_dups;
+	u16 i;
+
+	length = ntohs(chunk->length);
+	if (length < sizeof(struct sctp_nr_sack_chunk)) {
+		asprintf(error, "NR-SACK chunk too short (length=%u)", length);
+		return STATUS_ERR;
+	}
+	nr_gaps = ntohs(chunk->nr_gap_blocks);
+	nr_of_nr_gaps = ntohs(chunk->nr_of_nr_gap_blocks);
+	nr_dups = ntohs(chunk->nr_dup_tsns);
+	if (length != sizeof(struct sctp_nr_sack_chunk) +
+		      (nr_gaps + nr_of_nr_gaps +  nr_dups) * sizeof(u32)) {
+		asprintf(error, "NR-SACK chunk length inconsistent");
+		return STATUS_ERR;
+	}
+	fputs("NR-SACK[", s);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
+	fprintf(s, "cum_tsn=%u, ", ntohl(chunk->cum_tsn));
+	fprintf(s, "a_rwnd=%u, ", ntohl(chunk->a_rwnd));
+	fputs("gaps=[", s);
+	for (i = 0; i < nr_gaps; i++)
+		fprintf(s, "%s%u:%u",
+			   i > 0 ? ", " : "",
+			   ntohs(chunk->block[i].gap.start),
+			   ntohs(chunk->block[i].gap.end));
+	fputs("], nr-gaps=[", s);
+	for (i = 0; i < nr_of_nr_gaps; i++)
+		fprintf(s, "%s%u:%u",
+			   i > 0 ? ", " : "",
+			   ntohs(chunk->block[i + nr_gaps].gap.start),
+			   ntohs(chunk->block[i + nr_gaps].gap.end));
+	fputs("], dups=[", s);
+	for (i = 0; i < nr_dups; i++)
+		fprintf(s, "%s%u",
+			   i > 0 ? ", " : "",
+			   ntohl(chunk->block[i + nr_gaps + nr_of_nr_gaps].tsn));
+	fputs("]]", s);
+	return STATUS_OK;
+}
+
 static int sctp_heartbeat_chunk_to_string(FILE *s,
 					  struct sctp_heartbeat_chunk *chunk,
 					  char **error)
@@ -1693,6 +1742,10 @@ int sctp_chunk_to_string(FILE *s, struct sctp_chunk *chunk, char **error)
 	case SCTP_SACK_CHUNK_TYPE:
 		result = sctp_sack_chunk_to_string(s,
 			(struct sctp_sack_chunk *)chunk, error);
+		break;
+	case SCTP_NR_SACK_CHUNK_TYPE:
+		result = sctp_nr_sack_chunk_to_string(s,
+			(struct sctp_nr_sack_chunk *)chunk, error);
 		break;
 	case SCTP_HEARTBEAT_CHUNK_TYPE:
 		result = sctp_heartbeat_chunk_to_string(s,

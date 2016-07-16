@@ -646,6 +646,7 @@ static int map_inbound_sctp_packet(
 	struct sctp_init_chunk *init;
 	struct sctp_init_ack_chunk *init_ack;
 	struct sctp_sack_chunk *sack;
+	struct sctp_nr_sack_chunk *nr_sack;
 	struct sctp_abort_chunk *abort;
 	struct sctp_shutdown_chunk *shutdown;
 	struct sctp_ecne_chunk *ecne;
@@ -655,7 +656,7 @@ static int map_inbound_sctp_packet(
 	struct sctp_reconfig_chunk *reconfig;
 	u32 local_diff, remote_diff;
 	u32 v_tag;
-	u16 nr_gap_blocks, nr_dup_tsns, i;
+	u16 nr_gap_blocks, number_of_nr_gap_blocks, nr_dup_tsns, i;
 	bool reflect_v_tag;
 	bool contains_init_chunk;
 
@@ -707,6 +708,22 @@ static int map_inbound_sctp_packet(
 			if (ntohs(sack->length) == sizeof(struct sctp_sack_chunk) + sizeof(union sctp_sack_block) * (nr_dup_tsns+nr_gap_blocks)) {
 				for (i = 0; i < nr_dup_tsns; i++) {
 					sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
+				}
+			}
+			break;
+		case SCTP_NR_SACK_CHUNK_TYPE:
+			nr_sack = (struct sctp_nr_sack_chunk *)chunk;
+			DEBUGP("Old SACK cum TSN %d\n", ntohl(nr_sack->cum_tsn));
+			nr_sack->cum_tsn = htonl(ntohl(nr_sack->cum_tsn) + local_diff);
+			DEBUGP("New SACK cum TSN %d\n", ntohl(nr_sack->cum_tsn));
+			nr_gap_blocks = ntohs(nr_sack->nr_gap_blocks);
+			number_of_nr_gap_blocks = ntohs(nr_sack->nr_of_nr_gap_blocks);
+			nr_dup_tsns = ntohs(nr_sack->nr_dup_tsns);
+
+			if (ntohs(nr_sack->length) == sizeof(struct sctp_nr_sack_chunk) + sizeof(union sctp_nr_sack_block) * (nr_dup_tsns+nr_gap_blocks)) {
+				for (i = 0; i < nr_dup_tsns; i++) {
+					u16 offset = nr_gap_blocks + number_of_nr_gap_blocks;
+					nr_sack->block[i + offset].tsn = htonl(ntohl(nr_sack->block[i + offset].tsn) + local_diff);
 				}
 			}
 			break;
@@ -943,13 +960,14 @@ static int map_outbound_live_sctp_packet(
 	struct sctp_init_chunk *init;
 	struct sctp_init_ack_chunk *init_ack;
 	struct sctp_sack_chunk *sack;
+	struct sctp_nr_sack_chunk *nr_sack;
 	struct sctp_shutdown_chunk *shutdown;
 	struct sctp_ecne_chunk *ecne;
 	struct sctp_cwr_chunk *cwr;
 	struct sctp_i_data_chunk *i_data;
 	struct sctp_reconfig_chunk *reconfig;
 	u32 local_diff, remote_diff;
-	u16 nr_gap_blocks, nr_dup_tsns, i;
+	u16 nr_gap_blocks, nr_dup_tsns, number_of_nr_gap_blocks, i;
 
 	/* FIXME: transform v-tag in the common header*/
 	DEBUGP("map_outbound_live_sctp_packet\n");
@@ -990,6 +1008,17 @@ static int map_outbound_live_sctp_packet(
 			nr_dup_tsns = ntohs(sack->nr_dup_tsns);
 			for (i = 0; i < nr_dup_tsns; i++) {
 				sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + remote_diff);
+			}
+			break;
+		case SCTP_NR_SACK_CHUNK_TYPE:
+			nr_sack = (struct sctp_nr_sack_chunk *)chunk;
+			nr_sack->cum_tsn = htonl(ntohl(nr_sack->cum_tsn) + remote_diff);
+			nr_gap_blocks = ntohs(nr_sack->nr_gap_blocks);
+			number_of_nr_gap_blocks = ntohs(nr_sack->nr_of_nr_gap_blocks);
+			nr_dup_tsns = ntohs(nr_sack->nr_dup_tsns);
+			for (i = 0; i < nr_dup_tsns; i++) {
+				u16 offset = nr_gap_blocks + number_of_nr_gap_blocks;
+				nr_sack->block[i + offset].tsn = htonl(ntohl(nr_sack->block[i + offset].tsn) + remote_diff);
 			}
 			break;
 		case SCTP_SHUTDOWN_CHUNK_TYPE:
@@ -1812,6 +1841,99 @@ static int verify_sack_chunk(struct sctp_sack_chunk *actual_chunk,
 	return STATUS_OK;
 }
 
+static int verify_nr_sack_chunk(struct sctp_nr_sack_chunk *actual_chunk,
+                             struct sctp_nr_sack_chunk *script_chunk,
+                             u32 flags, char **error)
+{
+	u16 actual_nr_gap_blocks, actual_nr_of_nr_gap_blocks, actual_nr_dup_tsns;
+	u16 script_nr_gap_blocks, script_nr_of_nr_gap_blocks, script_nr_dup_tsns;
+	u16 i, actual_base, script_base;
+
+	actual_nr_gap_blocks = ntohs(actual_chunk->nr_gap_blocks);
+	actual_nr_of_nr_gap_blocks = ntohs(actual_chunk->nr_of_nr_gap_blocks);
+	actual_nr_dup_tsns = ntohs(actual_chunk->nr_dup_tsns);
+	script_nr_gap_blocks = ntohs(script_chunk->nr_gap_blocks);
+	script_nr_of_nr_gap_blocks = ntohs(script_chunk->nr_of_nr_gap_blocks);
+	script_nr_dup_tsns = ntohs(script_chunk->nr_dup_tsns);
+	
+	script_base = 0;
+
+	if ((flags & FLAG_NR_SACK_CHUNK_CUM_TSN_NOCHECK ? STATUS_OK :
+	        check_field("sctp_nr_sack_chunk_cum_tsn",
+		            ntohl(script_chunk->cum_tsn),
+		            ntohl(actual_chunk->cum_tsn),
+		            error)) ||
+	    (flags & FLAG_NR_SACK_CHUNK_A_RWND_NOCHECK ? STATUS_OK :
+	        check_field("sctp_nr_sack_chunk_a_rwnd",
+		            ntohl(script_chunk->a_rwnd),
+		            ntohl(actual_chunk->a_rwnd),
+		            error)) ||
+	    (flags & FLAG_NR_SACK_CHUNK_GAP_BLOCKS_NOCHECK? STATUS_OK :
+		check_field("sctp_nr_sack_chunk_nr_gap_blocks",
+		            script_nr_gap_blocks,
+		            actual_nr_gap_blocks,
+		            error)) ||
+	    (flags & FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK? STATUS_OK :
+		check_field("sctp_nr_sack_chunk_nr_of_nr_gap_blocks",
+		            script_nr_of_nr_gap_blocks,
+		            actual_nr_of_nr_gap_blocks,
+		            error)) ||
+	    (flags & FLAG_NR_SACK_CHUNK_DUP_TSNS_NOCHECK? STATUS_OK :
+		check_field("sctp_nr_sack_chunk_nr_dup_tsns",
+		            script_nr_dup_tsns,
+		            actual_nr_dup_tsns,
+		            error))) {
+		return STATUS_ERR;
+	}
+
+	if ((flags & FLAG_NR_SACK_CHUNK_GAP_BLOCKS_NOCHECK) == 0) {
+		for (i = 0; i < script_nr_gap_blocks; i++) {
+			if (check_field("sctp_nr_sack_chunk_gap_block_start",
+		                        ntohs(script_chunk->block[i].gap.start),
+		                        ntohs(actual_chunk->block[i].gap.start),
+		                        error) ||
+		            check_field("sctp_nr_sack_chunk_gap_block_end",
+		                        ntohs(script_chunk->block[i].gap.end),
+		                        ntohs(actual_chunk->block[i].gap.end),
+		                        error)) {
+				return STATUS_ERR;
+			}
+		}
+		script_base += actual_nr_gap_blocks;
+	}
+	
+	if ((flags & FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK) == 0) {
+		actual_base = actual_nr_gap_blocks;
+		for (i = 0; i < script_nr_of_nr_gap_blocks; i++) {
+			if (check_field("sctp_nr_sack_chunk_nr_gap_block_start",
+		                        ntohs(script_chunk->block[script_base + i].gap.start),
+		                        ntohs(actual_chunk->block[actual_base + i].gap.start),
+		                        error) ||
+		            check_field("sctp_nr_sack_chunk_nr_gap_block_end",
+		                        ntohs(script_chunk->block[script_base + i].gap.end),
+		                        ntohs(actual_chunk->block[actual_base + i].gap.end),
+		                        error)) {
+				return STATUS_ERR;
+			}
+		}
+		script_base += script_nr_of_nr_gap_blocks;
+	}
+	
+	
+	if ((flags & FLAG_NR_SACK_CHUNK_DUP_TSNS_NOCHECK) == 0) {
+		actual_base = actual_nr_gap_blocks + actual_nr_of_nr_gap_blocks;
+		for (i = 0; i < script_nr_dup_tsns; i++) {
+			if (check_field("sctp_nr_sack_chunk_dup_tsn",
+		                        ntohl(script_chunk->block[script_base + i].tsn),
+		                        ntohl(actual_chunk->block[actual_base + i].tsn),
+		                        error)) {
+				return STATUS_ERR;
+			}
+		}
+	}
+	return STATUS_OK;
+}
+
 static int verify_heartbeat_chunk(struct sctp_heartbeat_chunk *actual_chunk,
                                   struct sctp_heartbeat_chunk *script_chunk,
                                   u32 flags, char **error)
@@ -2109,6 +2231,11 @@ static int verify_sctp(
 		case SCTP_SACK_CHUNK_TYPE:
 			result = verify_sack_chunk((struct sctp_sack_chunk *)actual_chunk,
 			                           (struct sctp_sack_chunk *)script_chunk,
+			                           flags, error);
+			break;
+		case SCTP_NR_SACK_CHUNK_TYPE:
+			result = verify_nr_sack_chunk((struct sctp_nr_sack_chunk *)actual_chunk,
+			                           (struct sctp_nr_sack_chunk *)script_chunk,
 			                           flags, error);
 			break;
 		case SCTP_HEARTBEAT_CHUNK_TYPE:

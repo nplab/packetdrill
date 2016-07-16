@@ -743,6 +743,103 @@ sctp_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
 }
 
 struct sctp_chunk_list_item *
+sctp_nr_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
+                    struct sctp_sack_block_list *gaps,
+		    struct sctp_sack_block_list *nr_gaps_list,
+                    struct sctp_sack_block_list *dups) {
+	struct sctp_nr_sack_chunk *chunk;
+	struct sctp_sack_block_list_item *item;
+	u32 flags;
+	u32 length;
+	u16 i, nr_gaps, nr_dups, number_of_nr_gaps;
+
+	flags = 0;
+	length = sizeof(struct sctp_nr_sack_chunk);
+	if (gaps == NULL) {
+		nr_gaps = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_NR_SACK_CHUNK_GAP_BLOCKS_NOCHECK;
+	} else {
+		nr_gaps = gaps->nr_entries;
+		length += nr_gaps * sizeof(union sctp_nr_sack_block);
+	}
+	if (nr_gaps_list == NULL) {
+		number_of_nr_gaps = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK;
+	} else {
+		number_of_nr_gaps = nr_gaps_list->nr_entries;
+		length += number_of_nr_gaps * sizeof(union sctp_nr_sack_block);
+	}
+	if (dups == NULL) {
+		nr_dups = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_NR_SACK_CHUNK_DUP_TSNS_NOCHECK;
+	} else {
+		nr_dups = dups->nr_entries;
+		length += nr_dups * sizeof(union sctp_nr_sack_block);
+	}
+	assert(is_valid_u16(length));
+	assert(length % 4 == 0);
+	chunk = malloc(length);
+	assert(chunk != NULL);
+	chunk->type = SCTP_NR_SACK_CHUNK_TYPE;
+	if (flgs == -1) {
+		chunk->flags = 0;
+		flags |= FLAG_CHUNK_FLAGS_NOCHECK;
+	} else {
+		chunk->flags = (u8)flgs;
+	}
+	chunk->length = htons(length);
+	if (cum_tsn == -1) {
+		chunk->cum_tsn = htonl(0);
+		flags |= FLAG_NR_SACK_CHUNK_CUM_TSN_NOCHECK;
+	} else {
+		chunk->cum_tsn = htonl((u32)cum_tsn);
+	}
+	if (a_rwnd == -1) {
+		chunk->a_rwnd = htonl(0);
+		flags |= FLAG_NR_SACK_CHUNK_A_RWND_NOCHECK;
+	} else {
+		chunk->a_rwnd = htonl((u32)a_rwnd);
+	}
+	chunk->nr_gap_blocks = htons(nr_gaps);
+	chunk->nr_dup_tsns = htons(nr_dups);
+	chunk->nr_of_nr_gap_blocks = htons(number_of_nr_gaps);
+
+	if (gaps != NULL) {
+		for (i = 0, item = gaps->first;
+		     (i < nr_gaps) && (item != NULL);
+		     i++, item = item->next) {
+			chunk->block[i].gap.start = htons(item->block.gap.start);
+			chunk->block[i].gap.end = htons(item->block.gap.end);
+		}
+		assert((i == nr_gaps) && (item == NULL));
+	}
+	if (nr_gaps_list != NULL) {
+		for (i = 0, item = nr_gaps_list->first;
+		     (i < number_of_nr_gaps) && (item != NULL);
+		     i++, item = item->next) {
+			chunk->block[i + nr_gaps].gap.start = htons(item->block.gap.start);
+			chunk->block[i + nr_gaps].gap.end = htons(item->block.gap.end);
+		}
+		assert((i == number_of_nr_gaps) && (item == NULL));
+	}
+	if (dups != NULL) {
+		for (i = 0, item = dups->first;
+		     (i < nr_dups) && (item != NULL);
+		     i++, item = item->next) {
+			chunk->block[i + nr_gaps + number_of_nr_gaps].tsn= htonl(item->block.tsn);
+		}
+		assert((i == nr_dups) && (item == NULL));
+	}
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	                                length, flags,
+	                                sctp_parameter_list_new(),
+	                                sctp_cause_list_new());
+}
+
+struct sctp_chunk_list_item *
 sctp_heartbeat_chunk_new(s64 flgs, struct sctp_parameter_list_item *info)
 {
 	struct sctp_heartbeat_chunk *chunk;
@@ -2917,6 +3014,33 @@ new_sctp_packet(int address_family,
 					return NULL;
 				}
 				if (chunk_item->flags & FLAG_SACK_CHUNK_DUP_TSNS_NOCHECK) {
+					asprintf(error,
+						 "DUP_TSNS must be specified for inbound packets");
+					return NULL;
+				}
+				break;
+			case SCTP_NR_SACK_CHUNK_TYPE:
+				if (chunk_item->flags & FLAG_NR_SACK_CHUNK_CUM_TSN_NOCHECK) {
+					asprintf(error,
+						 "CUM_TSN must be specified for inbound packets");
+					return NULL;
+				}
+				if (chunk_item->flags & FLAG_NR_SACK_CHUNK_A_RWND_NOCHECK) {
+					asprintf(error,
+						 "A_RWND must be specified for inbound packets");
+					return NULL;
+				}
+				if (chunk_item->flags & FLAG_NR_SACK_CHUNK_GAP_BLOCKS_NOCHECK) {
+					asprintf(error,
+						 "GAP_BLOCKS must be specified for inbound packets");
+					return NULL;
+				}
+				if (chunk_item->flags & FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK) {
+					asprintf(error,
+						 "NR_GAP_BLOCKS must be specified for inbound packets");
+					return NULL;
+				}
+				if (chunk_item->flags & FLAG_NR_SACK_CHUNK_DUP_TSNS_NOCHECK) {
 					asprintf(error,
 						 "DUP_TSNS must be specified for inbound packets");
 					return NULL;

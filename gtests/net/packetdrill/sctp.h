@@ -41,6 +41,7 @@ struct sctp_common_header {
 #define SCTP_INIT_CHUNK_TYPE				0x01
 #define SCTP_INIT_ACK_CHUNK_TYPE			0x02
 #define SCTP_SACK_CHUNK_TYPE				0x03
+#define SCTP_NR_SACK_CHUNK_TYPE				0x10
 #define SCTP_HEARTBEAT_CHUNK_TYPE			0x04
 #define SCTP_HEARTBEAT_ACK_CHUNK_TYPE			0x05
 #define SCTP_ABORT_CHUNK_TYPE				0x06
@@ -124,6 +125,31 @@ struct sctp_sack_chunk {
 	__be16 nr_gap_blocks;
 	__be16 nr_dup_tsns;
 	union sctp_sack_block block[];
+} __packed;
+
+union sctp_nr_sack_block {
+	struct {
+		__be16 start;
+		__be16 end;
+	} gap;
+	struct {
+		__be16 start;
+		__be16 end;
+	} nr_gap;
+	u32 tsn;
+} __packed;
+
+struct sctp_nr_sack_chunk {
+	__u8 type;
+	__u8 flags;
+	__be16 length;
+	__be32 cum_tsn;
+	__be32 a_rwnd;
+	__be16 nr_gap_blocks;
+	__be16 nr_of_nr_gap_blocks;
+	__be16 nr_dup_tsns;
+	__be16 reserved;
+	union sctp_nr_sack_block block[];
 } __packed;
 
 struct sctp_heartbeat_chunk {
