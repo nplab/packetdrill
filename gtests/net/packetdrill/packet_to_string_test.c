@@ -328,7 +328,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"ECNE[flgs=0x00, tsn=16909060]; "
 		"CWR[flgs=0x00, tsn=16909060]; "
 		"SHUTDOWN_COMPLETE[flgs=T]; "
-		"FORWARD_TSN[flgs=0x00, len=12, cum_tsn=3047862031, sids=[1:2]; "
+		"FORWARD_TSN[flgs=0x00, len=12, cum_tsn=3047862031, sids=[1:2]]; "
 		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
 		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]";
@@ -390,7 +390,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"ECNE[flgs=0x00, tsn=16909060]; "
 		"CWR[flgs=0x00, tsn=16909060]; "
 		"SHUTDOWN_COMPLETE[flgs=T]; "
-		"FORWARD_TSN[flgs=0x00, len=12, cum_tsn=3047862031, sids=[1:2]; "
+		"FORWARD_TSN[flgs=0x00, len=12, cum_tsn=3047862031, sids=[1:2]]; "
 		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
 		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]";
@@ -452,7 +452,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"ECNE[flgs=0x00, tsn=16909060]; "
 		"CWR[flgs=0x00, tsn=16909060]; "
 		"SHUTDOWN_COMPLETE[flgs=T]; "
-		"FORWARD_TSN[flgs=0x00, len=12, cum_tsn=3047862031, sids=[1:2]; "
+		"FORWARD_TSN[flgs=0x00, len=12, cum_tsn=3047862031, sids=[1:2]]; "
 		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
 		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]"

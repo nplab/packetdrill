@@ -1737,7 +1737,8 @@ static int sctp_forward_tsn_chunk_to_string(
 		}
 	}
 	
-	fprintf(s, "]");
+	fputs("]", s);
+	fputs("]", s);
 	
 	return STATUS_OK;
 }

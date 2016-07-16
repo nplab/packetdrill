@@ -270,7 +270,7 @@ struct sctp_reconfig_chunk {
 
 struct sctp_stream_identifier_block {
 	__u16 stream;
-        __u16 stream_sequence;
+	__u16 stream_sequence;
 } __packed;
 
 struct sctp_forward_tsn_chunk {
