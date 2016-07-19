@@ -234,11 +234,11 @@ sctp_sack_block_list_item_dup_new(u32 tsn)
 	return item;
 }
 
-struct sctp_forward_tsn_sids_list *
-sctp_forward_tsn_sids_list_new () {
-	struct sctp_forward_tsn_sids_list *list;
+struct sctp_forward_tsn_ids_list *
+sctp_forward_tsn_ids_list_new () {
+	struct sctp_forward_tsn_ids_list *list;
 
-	list = malloc(sizeof(struct sctp_forward_tsn_sids_list));
+	list = malloc(sizeof(struct sctp_forward_tsn_ids_list));
 	assert(list != NULL);
 	list->first = NULL;
 	list->last = NULL;
@@ -247,8 +247,8 @@ sctp_forward_tsn_sids_list_new () {
 }
 
 void
-sctp_forward_tsn_sids_list_append(struct sctp_forward_tsn_sids_list *list,
-			          struct sctp_forward_tsn_sids_list_item *item) {
+sctp_forward_tsn_ids_list_append(struct sctp_forward_tsn_ids_list *list,
+			          struct sctp_forward_tsn_ids_list_item *item) {
 	assert(item->next == NULL);
 	if (list->last == NULL) {
 		assert(list->first == NULL);
@@ -262,8 +262,8 @@ sctp_forward_tsn_sids_list_append(struct sctp_forward_tsn_sids_list *list,
 	list->nr_entries++;
 }
 
-void sctp_forward_tsn_sids_list_free (struct sctp_forward_tsn_sids_list *list) {
-	struct sctp_forward_tsn_sids_list_item *current_item, *next_item;
+void sctp_forward_tsn_ids_list_free (struct sctp_forward_tsn_ids_list *list) {
+	struct sctp_forward_tsn_ids_list_item *current_item, *next_item;
 
 	if (list == NULL) {
 		return;
@@ -281,11 +281,11 @@ void sctp_forward_tsn_sids_list_free (struct sctp_forward_tsn_sids_list *list) {
 	free(list);
 }
 
-struct sctp_forward_tsn_sids_list_item *
-sctp_forward_tsn_sids_list_item_new(u16 stream_identifier, u16 stream_sequence_number) {
-	struct sctp_forward_tsn_sids_list_item *item;
+struct sctp_forward_tsn_ids_list_item *
+sctp_forward_tsn_ids_list_item_new(u16 stream_identifier, u16 stream_sequence_number) {
+	struct sctp_forward_tsn_ids_list_item *item;
 
-	item = malloc(sizeof(struct sctp_forward_tsn_sids_list_item));
+	item = malloc(sizeof(struct sctp_forward_tsn_ids_list_item));
 	assert(item != NULL);
 	item->next = NULL;
 	item->stream_identifier = stream_identifier;
@@ -1440,9 +1440,9 @@ sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding)
 }
 
 struct sctp_chunk_list_item *
-sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_sids_list *sids) {
+sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *sids) {
 	struct sctp_forward_tsn_chunk *chunk;
-	struct sctp_forward_tsn_sids_list_item *item;
+	struct sctp_forward_tsn_ids_list_item *item;
 	
 	DEBUGP("sctp_forward_tsn_chunk_new called with cum_tsn = %d and sids_list = %p", cum_tsn, sids);
 	
@@ -1455,7 +1455,7 @@ sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_sids_list *sids)
 	if (sids == NULL) {
 		nr_sids = 0;
 		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
-		flags |= FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK;
+		flags |= FLAG_FORWARD_TSN_CHUNK_IDS_NOCHECK;
 	} else {
 		nr_sids = sids->nr_entries;
 		length += nr_sids * sizeof(struct sctp_stream_identifier_block);
@@ -1476,7 +1476,7 @@ sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_sids_list *sids)
 	}
 	
 	if (nr_sids == 0 || sids == NULL) {
-		flags |= FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK;
+		flags |= FLAG_FORWARD_TSN_CHUNK_IDS_NOCHECK;
 	}
 
 	if (sids != NULL) {

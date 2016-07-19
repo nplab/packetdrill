@@ -2167,7 +2167,7 @@ static int verify_reconfig_chunk(struct sctp_reconfig_chunk *actual_chunk,
 				      error);
 }
 
-static u16 get_num_sid_blocks (u16 packet_length) {
+static u16 get_num_id_blocks (u16 packet_length) {
 	return (packet_length - sizeof(struct sctp_forward_tsn_chunk)) / sizeof(struct sctp_stream_identifier_block);
 }
 
@@ -2176,8 +2176,8 @@ static int verify_forward_tsn_chunk(struct sctp_forward_tsn_chunk *actual_chunk,
 				 u32 flags, char **error) {
 	u16 actual_packet_length = ntohs(script_chunk->length);
 	u16 script_packet_length = ntohs(script_chunk->length);
-	u16 actual_nr_sid_blocks = get_num_sid_blocks(actual_packet_length);
-	u16 script_nr_sid_blocks = get_num_sid_blocks(script_packet_length);
+	u16 actual_nr_id_blocks = get_num_id_blocks(actual_packet_length);
+	u16 script_nr_id_blocks = get_num_id_blocks(script_packet_length);
 	u16 i;
 	
 	if ((flags & FLAG_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK) == 0) {
@@ -2189,15 +2189,15 @@ static int verify_forward_tsn_chunk(struct sctp_forward_tsn_chunk *actual_chunk,
 		}
 	}
 	
-	if ((flags & FLAG_FORWARD_TSN_CHUNK_SIDS_NOCHECK) == 0) {
+	if ((flags & FLAG_FORWARD_TSN_CHUNK_IDS_NOCHECK) == 0) {
 		if (check_field("nr_sid_blocks",
-				 actual_nr_sid_blocks,
-				 script_nr_sid_blocks,
+				 actual_nr_id_blocks,
+				 script_nr_id_blocks,
 				 error) == STATUS_ERR) {
 			return STATUS_ERR;
 		}
 		
-		for (i = 0; i < script_nr_sid_blocks; i++) {
+		for (i = 0; i < script_nr_id_blocks; i++) {
 			if (check_field("sctp_forward_tsn_stream_identifier",
 		                        ntohs(script_chunk->stream_identifier_blocks[i].stream),
 		                        ntohs(actual_chunk->stream_identifier_blocks[i].stream),

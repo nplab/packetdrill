@@ -472,8 +472,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct sctp_u16_list_item *u16_item;
 	struct sctp_sack_block_list_item *sack_block_list_item;
 	struct sctp_sack_block_list *sack_block_list;
-	struct sctp_forward_tsn_sids_list *forward_tsn_sids_list;
-	struct sctp_forward_tsn_sids_list_item  *forward_tsn_sids_list_item;
+	struct sctp_forward_tsn_ids_list *forward_tsn_ids_list;
+	struct sctp_forward_tsn_ids_list_item  *forward_tsn_ids_list_item;
 	struct sctp_address_type_list_item *address_type_list_item;
 	struct sctp_address_type_list *address_type_list;
 	struct sctp_parameter_type_list_item *parameter_type_list_item;
@@ -528,7 +528,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE FORWARD_TSN_SUPPORTED
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
-%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS INCOMING_SSN_RESET
+%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN IDS SIDS INCOMING_SSN_RESET
 %token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
 %token <reserved> SSN_TSN_RESET ADD_INCOMING_STREAMS NUMBER_OF_NEW_STREAMS
 %token <reserved> ADD_OUTGOING_STREAMS RECONFIG_REQUEST_GENERIC
@@ -726,8 +726,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <u16_item> u16_item
 %type <sack_block_list> opt_gaps opt_nr_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
-%type <forward_tsn_sids_list> opt_stream_identifier sids_list
-%type <forward_tsn_sids_list_item> sid
+%type <forward_tsn_ids_list> opt_stream_identifier ids_list
+%type <forward_tsn_ids_list_item> id
 %type <address_type_list> address_types_list
 %type <address_type_list_item> address_type
 %type <parameter_type_list> parameter_types_list
@@ -1585,27 +1585,28 @@ dup
 ;
 
 opt_stream_identifier
-: SIDS '=' ELLIPSIS         { $$ = NULL; }
-| SIDS '=' '[' ELLIPSIS ']' { $$ = NULL; }
-| SIDS '=' '[' sids_list ']' { $$ = $4; }
+: IDS '=' ELLIPSIS         { $$ = NULL; }
+| IDS '=' '[' ELLIPSIS ']' { $$ = NULL; }
+| IDS '=' '[' ids_list ']' { $$ = $4; }
 ;
 
-sids_list
-:                  { $$ = sctp_forward_tsn_sids_list_new(); }
-| sid              { $$ =sctp_forward_tsn_sids_list_new();
-                     sctp_forward_tsn_sids_list_append($$, $1); }
-| sids_list ',' sid { $$ = $1;
-                     sctp_forward_tsn_sids_list_append($1, $3); }
+ids_list
+:                  { $$ = sctp_forward_tsn_ids_list_new(); }
+| id              { $$ =sctp_forward_tsn_ids_list_new();
+                     sctp_forward_tsn_ids_list_append($$, $1); }
+| ids_list ',' id { $$ = $1;
+                     sctp_forward_tsn_ids_list_append($1, $3); }
 ;
 
-sid: INTEGER ':' INTEGER {
-	if (!is_valid_u16($1)) {
+id
+: '{' INTEGER ',' INTEGER '}' {
+	if (!is_valid_u16($2)) {
 		semantic_error("stream identifier out of range");
 	}
-	if (!is_valid_u16($3)) {
+	if (!is_valid_u16($4)) {
 		semantic_error("stream sequence number out of range");
 	}
-	$$ = sctp_forward_tsn_sids_list_item_new($1, $3);
+	$$ = sctp_forward_tsn_ids_list_item_new($2, $4);
 }
 ;
 

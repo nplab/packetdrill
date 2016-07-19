@@ -586,6 +586,7 @@ req_sn				return REQ_SN;
 resp_sn				return RESP_SN;
 last_tsn			return LAST_TSN;
 sids				return SIDS;
+ids				return IDS;
 result				return RESULT;
 sender_next_tsn			return SENDER_NEXT_TSN;
 receiver_next_tsn		return RECEIVER_NEXT_TSN;

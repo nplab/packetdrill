@@ -1703,7 +1703,7 @@ static int sctp_reconfig_chunk_to_string(
 	return result;
 }
 
-static u16 get_num_sid_blocks (u16 packet_length) {
+static u16 get_num_id_blocks (u16 packet_length) {
 	return (packet_length - sizeof(struct sctp_forward_tsn_chunk)) / sizeof(struct sctp_stream_identifier_block);
 }
 
@@ -1714,7 +1714,7 @@ static int sctp_forward_tsn_chunk_to_string(
 {
 	u16 length, i;
 	length = ntohs(chunk->length);
-	u16 num_sid_blocks = get_num_sid_blocks(length);
+	u16 num_id_blocks = get_num_id_blocks(length);
 	
 	if (length < sizeof(struct sctp_forward_tsn_chunk)) {
 		asprintf(error, "FORWARD_TSN chunk too short (length=%u)", length);
@@ -1726,19 +1726,18 @@ static int sctp_forward_tsn_chunk_to_string(
 	fprintf(s, "len=%u, ", length);
 	fprintf(s, "cum_tsn=%u, ", ntohl(chunk->cum_tsn));
 	
-	fprintf(s, "sids=[");
+	fprintf(s, "ids=[");
 	
-	for (i = 0; i < num_sid_blocks; i++) {
-		fprintf(s, "%u:%u",  
+	for (i = 0; i < num_id_blocks; i++) {
+		fprintf(s, "{%u,%u}",  
 			ntohs(chunk->stream_identifier_blocks[i].stream), 
 			ntohs(chunk->stream_identifier_blocks[i].stream_sequence));
-		if (i != num_sid_blocks-1) {
-			fprintf(s, ", ");
+		if (i != num_id_blocks-1) {
+			fprintf(s, ",");
 		}
 	}
 	
-	fputs("]", s);
-	fputs("]", s);
+	fputs("]]", s);
 	
 	return STATUS_OK;
 }
