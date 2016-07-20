@@ -1703,6 +1703,45 @@ static int sctp_reconfig_chunk_to_string(
 	return result;
 }
 
+static u16 get_num_id_blocks (u16 packet_length) {
+	return (packet_length - sizeof(struct sctp_forward_tsn_chunk)) / sizeof(struct sctp_stream_identifier_block);
+}
+
+static int sctp_forward_tsn_chunk_to_string(
+	FILE *s,
+	struct sctp_forward_tsn_chunk *chunk,
+	char **error)
+{
+	u16 length, i;
+	length = ntohs(chunk->length);
+	u16 num_id_blocks = get_num_id_blocks(length);
+	
+	if (length < sizeof(struct sctp_forward_tsn_chunk)) {
+		asprintf(error, "FORWARD_TSN chunk too short (length=%u)", length);
+		return STATUS_ERR;
+	}
+	
+	fputs("FORWARD_TSN[", s);
+	fprintf(s, "flgs=0x%02x, ", chunk->flags);
+	fprintf(s, "len=%u, ", length);
+	fprintf(s, "cum_tsn=%u, ", ntohl(chunk->cum_tsn));
+	
+	fprintf(s, "ids=[");
+	
+	for (i = 0; i < num_id_blocks; i++) {
+		fprintf(s, "{%u,%u}",  
+			ntohs(chunk->stream_identifier_blocks[i].stream), 
+			ntohs(chunk->stream_identifier_blocks[i].stream_sequence));
+		if (i != num_id_blocks-1) {
+			fprintf(s, ",");
+		}
+	}
+	
+	fputs("]]", s);
+	
+	return STATUS_OK;
+}
+
 static int sctp_unknown_chunk_to_string(FILE *s,
 					struct sctp_chunk *chunk,
 					char **error)
@@ -1802,6 +1841,10 @@ int sctp_chunk_to_string(FILE *s, struct sctp_chunk *chunk, char **error)
 	case SCTP_RECONFIG_CHUNK_TYPE:
 		result = sctp_reconfig_chunk_to_string(s,
 			(struct sctp_reconfig_chunk *)chunk, error);
+		break;
+	case SCTP_FORWARD_TSN_CHUNK_TYPE:
+		result = sctp_forward_tsn_chunk_to_string(s,
+			(struct sctp_forward_tsn_chunk *)chunk, error);
 		break;
 	default:
 		result = sctp_unknown_chunk_to_string(s, chunk, error);

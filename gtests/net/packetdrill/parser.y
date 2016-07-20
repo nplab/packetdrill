@@ -472,6 +472,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct sctp_u16_list_item *u16_item;
 	struct sctp_sack_block_list_item *sack_block_list_item;
 	struct sctp_sack_block_list *sack_block_list;
+	struct sctp_forward_tsn_ids_list *forward_tsn_ids_list;
+	struct sctp_forward_tsn_ids_list_item  *forward_tsn_ids_list_item;
 	struct sctp_address_type_list_item *address_type_list_item;
 	struct sctp_address_type_list *address_type_list;
 	struct sctp_parameter_type_list_item *parameter_type_list_item;
@@ -519,14 +521,14 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SPINFO_MTU GAUTH_ASSOC_ID GAUTH_NUMBER_OF_CHUNKS GAUTH_CHUNKS
 %token <reserved> CHUNK DATA INIT INIT_ACK HEARTBEAT HEARTBEAT_ACK ABORT
 %token <reserved> SHUTDOWN SHUTDOWN_ACK ERROR COOKIE_ECHO COOKIE_ACK ECNE CWR
-%token <reserved> SHUTDOWN_COMPLETE I_DATA PAD RECONFIG
+%token <reserved> SHUTDOWN_COMPLETE I_DATA PAD RECONFIG FORWARD_TSN
 %token <reserved> TYPE FLAGS LEN
 %token <reserved> TAG A_RWND OS IS TSN SID SSN MID PPID FSN CUM_TSN GAPS NR_GAPS DUPS
 %token <reserved> PARAMETER HEARTBEAT_INFORMATION IPV4_ADDRESS IPV6_ADDRESS
 %token <reserved> STATE_COOKIE UNRECOGNIZED_PARAMETER COOKIE_PRESERVATIVE
 %token <reserved> HOSTNAME_ADDRESS SUPPORTED_ADDRESS_TYPES ECN_CAPABLE FORWARD_TSN_SUPPORTED
 %token <reserved> SUPPORTED_EXTENSIONS ADAPTATION_CODE_POINT ADAPTATION_INDICATION
-%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN SIDS INCOMING_SSN_RESET
+%token <reserved> OUTGOING_SSN_RESET REQ_SN RESP_SN LAST_TSN IDS SIDS INCOMING_SSN_RESET
 %token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
 %token <reserved> SSN_TSN_RESET ADD_INCOMING_STREAMS NUMBER_OF_NEW_STREAMS
 %token <reserved> ADD_OUTGOING_STREAMS RECONFIG_REQUEST_GENERIC
@@ -675,6 +677,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <chunk_list_item> sctp_shutdown_complete_chunk_spec
 %type <chunk_list_item> sctp_i_data_chunk_spec
 %type <chunk_list_item> sctp_pad_chunk_spec sctp_reconfig_chunk_spec
+%type <chunk_list_item> sctp_forward_tsn_spec
 %type <parameter_list> opt_parameter_list_spec sctp_parameter_list_spec
 %type <parameter_list_item> sctp_parameter_spec
 %type <parameter_list_item> sctp_generic_parameter_spec
@@ -723,6 +726,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <u16_item> u16_item
 %type <sack_block_list> opt_gaps opt_nr_gaps gap_list opt_dups dup_list
 %type <sack_block_list_item> gap dup
+%type <forward_tsn_ids_list> opt_stream_identifier ids_list
+%type <forward_tsn_ids_list_item> id
 %type <address_type_list> address_types_list
 %type <address_type_list_item> address_type
 %type <parameter_type_list> parameter_types_list
@@ -1055,6 +1060,7 @@ sctp_chunk_spec
 | sctp_i_data_chunk_spec            { $$ = $1; }
 | sctp_pad_chunk_spec               { $$ = $1; }
 | sctp_reconfig_chunk_spec          { $$ = $1; }
+| sctp_forward_tsn_spec             { $$ = $1; }
 ;
 
 chunk_type
@@ -1126,6 +1132,9 @@ chunk_type
 } 
 | RECONFIG {
 	$$ = SCTP_RECONFIG_CHUNK_TYPE;
+}
+| FORWARD_TSN {
+	$$ = SCTP_FORWARD_TSN_CHUNK_TYPE;
 }
 ;
 
@@ -1575,6 +1584,32 @@ dup
 }
 ;
 
+opt_stream_identifier
+: IDS '=' ELLIPSIS         { $$ = NULL; }
+| IDS '=' '[' ELLIPSIS ']' { $$ = NULL; }
+| IDS '=' '[' ids_list ']' { $$ = $4; }
+;
+
+ids_list
+:                  { $$ = sctp_forward_tsn_ids_list_new(); }
+| id              { $$ =sctp_forward_tsn_ids_list_new();
+                     sctp_forward_tsn_ids_list_append($$, $1); }
+| ids_list ',' id { $$ = $1;
+                     sctp_forward_tsn_ids_list_append($1, $3); }
+;
+
+id
+: '{' INTEGER ',' INTEGER '}' {
+	if (!is_valid_u16($2)) {
+		semantic_error("stream identifier out of range");
+	}
+	if (!is_valid_u16($4)) {
+		semantic_error("stream sequence number out of range");
+	}
+	$$ = sctp_forward_tsn_ids_list_item_new($2, $4);
+}
+;
+
 sctp_generic_chunk_spec
 : CHUNK '[' opt_chunk_type ',' opt_flags ',' opt_len ',' opt_val ']' {
 	if (($7 != -1) &&
@@ -1710,6 +1745,11 @@ sctp_pad_chunk_spec
 		semantic_error("length value out of range");
 	}
 	$$ = sctp_pad_chunk_new($3, $5, NULL);
+}
+
+sctp_forward_tsn_spec
+: FORWARD_TSN '[' opt_cum_tsn ',' opt_stream_identifier']' {
+    $$ = sctp_forward_tsn_chunk_new($3, $5);
 }
 
 opt_req_sn

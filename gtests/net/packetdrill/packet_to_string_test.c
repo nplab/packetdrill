@@ -29,6 +29,7 @@
 #include <string.h>
 #include "ethernet.h"
 #include "packet_parser.h"
+#include "logging.h"
 
 static void test_sctp_ipv4_packet_to_string(void)
 {
@@ -102,7 +103,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 	/* An IPv6/SCTP packet. */
 	u8 data[] = {
 		/* IPv6 Base Header: */
-		0x60, 0x00, 0x00, 0x00, 0x01, 0xfc, 0x84, 0xff,
+		0x60, 0x00, 0x00, 0x00, 0x02, 0x0c, 0x84, 0xff,
 		0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0x22,
 		0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -110,7 +111,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		/* SCTP Common Header: */
 		0x04, 0xd2, 0x1f, 0x90,
 		0x01, 0x02, 0x03, 0x04,
-		0x17, 0x7a, 0xeb, 0xd7,
+		0xd8, 0x6a, 0x11, 0x71,
 		/* SCTP DATA Chunk */
 		0x00, 0x0f, 0x00, 0x13,
 		0x01, 0x02, 0x03, 0x04,
@@ -236,6 +237,11 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0x01, 0x02, 0x03, 0x04,
 		/* SCTP SHUTDOWN_COMPLETE Chunk */
 		0x0e, 0x01, 0x00, 0x04,
+		/* FORWARD_TSN Chunk*/
+		0xc0, 0x00, 0x00, 0x10,
+		0xb5, 0xaa, 0xaf, 0x0f,
+		0x00, 0x01, 0x00, 0x02,
+		0x00, 0x03, 0x00, 0x04,
 		/* SCTP I-DATA Chunk */
 		0x40, 0x0f, 0x00, 0x17,
 		0x00, 0x00, 0x00, 0x04,
@@ -264,6 +270,11 @@ static void test_sctp_ipv6_packet_to_string(void)
 	char *error = NULL;
 	enum packet_parse_result_t result =
 		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+#if DEBUG_LOGGING == 1
+	if (result != PACKET_OK) {
+		printf("error was: %s\n", error);
+	}
+#endif
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -272,6 +283,11 @@ static void test_sctp_ipv6_packet_to_string(void)
 
 	/* Test a DUMP_SHORT dump */
 	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+#if DEBUG_LOGGING == 1
+	if (status != STATUS_OK) {
+		printf("error was: %s\n", error);
+	}
+#endif
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -324,6 +340,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"ECNE[flgs=0x00, tsn=16909060]; "
 		"CWR[flgs=0x00, tsn=16909060]; "
 		"SHUTDOWN_COMPLETE[flgs=T]; "
+		"FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,2},{3,4}]]; "
 		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
 		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]";
@@ -385,6 +402,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"ECNE[flgs=0x00, tsn=16909060]; "
 		"CWR[flgs=0x00, tsn=16909060]; "
 		"SHUTDOWN_COMPLETE[flgs=T]; "
+		"FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,2},{3,4}]]; "
 		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
 		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]";
@@ -446,14 +464,15 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"ECNE[flgs=0x00, tsn=16909060]; "
 		"CWR[flgs=0x00, tsn=16909060]; "
 		"SHUTDOWN_COMPLETE[flgs=T]; "
+		"FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,2},{3,4}]]; "
 		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
 		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]"
 		"\n"
-		"0x0000: 60 00 00 00 01 fc 84 ff 00 02 00 00 00 00 00 00 " "\n"
+		"0x0000: 60 00 00 00 02 0c 84 ff 00 02 00 00 00 00 00 00 " "\n"
 		"0x0010: 00 00 00 00 00 00 22 22 00 01 00 00 00 00 00 00 " "\n"
 		"0x0020: 00 00 00 00 00 00 11 11 04 d2 1f 90 01 02 03 04 " "\n"
-		"0x0030: 17 7a eb d7 00 0f 00 13 01 02 03 04 00 ff 01 00 " "\n"
+		"0x0030: d8 6a 11 71 00 0f 00 13 01 02 03 04 00 ff 01 00 " "\n"
 		"0x0040: 00 00 00 00 00 01 02 00 01 00 00 68 00 00 00 01 " "\n"
 		"0x0050: 00 01 00 00 00 0f 00 0f 01 02 03 04 00 05 00 08 " "\n"
 		"0x0060: 01 02 03 04 00 06 00 14 00 00 00 00 00 00 00 00 " "\n"
@@ -480,11 +499,12 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"0x01b0: 40 40 00 00 07 00 00 08 01 02 03 04 08 00 00 04 " "\n"
 		"0x01c0: 09 00 00 04 0a 00 00 05 45 00 00 00 0b 00 00 04 " "\n"
 		"0x01d0: 0c 00 00 08 01 02 03 04 0d 00 00 08 01 02 03 04 " "\n"
-		"0x01e0: 0e 01 00 04 40 0f 00 17 00 00 00 04 00 ff 00 00 " "\n"
-		"0x01f0: 00 00 00 01 00 00 00 00 00 01 02 00 40 0d 00 17 " "\n"
-		"0x0200: 00 00 00 04 00 ff 00 00 00 00 00 02 00 00 00 01 " "\n"
-		"0x0210: 00 01 02 00 84 00 00 10 50 50 50 50 50 50 50 50 " "\n"
-		"0x0220: 50 50 50 50 " "\n";
+		"0x01e0: 0e 01 00 04 c0 00 00 10 b5 aa af 0f 00 01 00 02 " "\n"
+		"0x01f0: 00 03 00 04 40 0f 00 17 00 00 00 04 00 ff 00 00 " "\n"
+		"0x0200: 00 00 00 01 00 00 00 00 00 01 02 00 40 0d 00 17 " "\n"
+		"0x0210: 00 00 00 04 00 ff 00 00 00 00 00 02 00 00 00 01 " "\n"
+		"0x0220: 00 01 02 00 84 00 00 10 50 50 50 50 50 50 50 50 " "\n"
+		"0x0230: 50 50 50 50 " "\n";
 	printf("expected = '%s'\n", expected);
 	assert(strcmp(dump, expected) == 0);
 	free(dump);

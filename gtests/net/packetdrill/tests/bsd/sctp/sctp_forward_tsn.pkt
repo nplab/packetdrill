@@ -1,0 +1,40 @@
+#ifdef FreeBSD
+// disable all extensions except PR-SCTP on FreeBSD
+ 0.0 `sysctl -w net.inet.sctp.ecn_enable=0`
++0.0 `sysctl -w net.inet.sctp.pr_enable=1`
++0.0 `sysctl -w net.inet.sctp.asconf_enable=0`
++0.0 `sysctl -w net.inet.sctp.auth_enable=0`
++0.0 `sysctl -w net.inet.sctp.reconfig_enable=0`
++0.0 `sysctl -w net.inet.sctp.nrsack_enable=0`
++0.0 `sysctl -w net.inet.sctp.pktdrop_enable=0`
+#endif
+
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
++0.0 bind(3, ..., ...) = 0
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=16, is=16, tsn=1, STATE_COOKIE[len=4, val=...], FORWARD_TSN_SUPPORTED[]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+// Turn off the sending of HEARTBEATs.
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address=..., spp_hbinterval=0, spp_pathmaxrxt=0, spp_pathmtu=0, spp_flags=SPP_HB_DISABLE|SPP_PMTUD_DISABLE, spp_ipv6_flowlabel=0, spp_dscp=0}, 152) = 0
+//sctp_sendmsg(int sd, const void * msg, size_t len, struct sockaddr *to, socklen_t tolen,
+//             uint32_t ppid, uint32_t flags, uint16_t stream_no, uint32_t timetolive, uint32_t context);
++0.0 sctp_sendmsg(3, ..., 1000, ..., ..., htonl(1234), 0, 1, 10, 0) = 1000
++0.0 > sctp: DATA[flgs=BE, len=1016, tsn=1, sid=1, ssn=0, ppid=1234]
+* > sctp: FORWARD_TSN[cum_tsn=1, ids=[{1,0}]]
++0.1 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
++0.0 sctp_sendmsg(3, ..., 1000, ..., ..., htonl(1234), 0, 1, 10, 0) = 1000
++0.0 > sctp: DATA[flgs=BE, len=1016, tsn=2, sid=1, ssn=1, ppid=1234]
+* > sctp: FORWARD_TSN[cum_tsn=2, ids=[{1,1}]]
++1.0 < sctp: DATA[flgs=BE, len=1016, tsn=1, sid=1, ssn=0, ppid=1234]
+* > sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=..., gaps=[], dups=[]]
++0.0 read(3, ..., 2000) = 1000
++2.0 < sctp: FORWARD_TSN[cum_tsn=1, ids=[{1,0}]]
++0.0 close(3) = 0
++0.0 > sctp: SHUTDOWN[flgs=0, cum_tsn=1]
++0.1 < sctp: SHUTDOWN_ACK[flgs=0]
++0.0 > sctp: SHUTDOWN_COMPLETE[flgs=0]

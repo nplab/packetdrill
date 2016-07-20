@@ -56,6 +56,7 @@ struct sctp_common_header {
 #define SCTP_I_DATA_CHUNK_TYPE				0x40
 #define SCTP_RECONFIG_CHUNK_TYPE			0x82
 #define SCTP_PAD_CHUNK_TYPE				0x84
+#define SCTP_FORWARD_TSN_CHUNK_TYPE                     0xc0
 
 #define MAX_SCTP_CHUNK_BYTES	0xffff
 
@@ -265,6 +266,19 @@ struct sctp_reconfig_chunk {
 	__u8 flags;
 	__be16 length;
 	__u8 parameter[];
+} __packed;
+
+struct sctp_stream_identifier_block {
+	__u16 stream;
+	__u16 stream_sequence;
+} __packed;
+
+struct sctp_forward_tsn_chunk {
+	__u8 type;
+	__u8 flags;
+	__be16 length;
+	__be32 cum_tsn;
+	struct sctp_stream_identifier_block stream_identifier_blocks[];
 } __packed;
 
 #define SCTP_HEARTBEAT_INFORMATION_PARAMETER_TYPE	0x0001
