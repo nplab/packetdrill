@@ -557,6 +557,7 @@ I-DATA				return I_DATA;
 PAD				return PAD;
 RECONFIG			return RECONFIG;
 FORWARD_TSN                     return FORWARD_TSN;
+I_FORWARD_TSN                   return I_FORWARD_TSN;
 type				return TYPE;
 flgs				return FLAGS;
 len				return LEN;

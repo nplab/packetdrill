@@ -1632,14 +1632,14 @@ i_forward_tsn_ids_list
 i_forward_tsn_id
 : '{' WORD ',' INTEGER ',' INTEGER '}' {
 	char *c = $2;
-	if (*c != 'O' || *c != 'U') {
+	if (*c != 'O' && *c != 'U') {
 		semantic_error("either O for ordered or U for unordered must be specified");
 	}
 	if (!is_valid_u16($4)) {
 		semantic_error("stream identifier out of range");
 	}
-	if (!is_valid_u16($6)) {
-		semantic_error("stream sequence number out of range");
+	if (!is_valid_u32($6)) {
+		semantic_error("message identifier number out of range");
 	}
 	$$ = sctp_i_forward_tsn_ids_list_item_new(*c, $4, $6);
 }
