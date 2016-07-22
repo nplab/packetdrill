@@ -293,6 +293,66 @@ sctp_forward_tsn_ids_list_item_new(u16 stream_identifier, u16 stream_sequence_nu
 	return item;
 }
 
+struct sctp_i_forward_tsn_ids_list *
+sctp_i_forward_tsn_ids_list_new () {
+	struct sctp_i_forward_tsn_ids_list *list;
+
+	list = malloc(sizeof(struct sctp_i_forward_tsn_ids_list));
+	assert(list != NULL);
+	list->first = NULL;
+	list->last = NULL;
+	list->nr_entries = 0;
+	return list;
+}
+
+void
+sctp_i_forward_tsn_ids_list_append(struct sctp_i_forward_tsn_ids_list *list,
+			          struct sctp_i_forward_tsn_ids_list_item *item) {
+	assert(item->next == NULL);
+	if (list->last == NULL) {
+		assert(list->first == NULL);
+		assert(list->nr_entries == 0);
+		list->first = item;
+	} else {
+		assert(list->first != NULL);
+		list->last->next = item;
+	}
+	list->last = item;
+	list->nr_entries++;
+}
+
+void sctp_i_forward_tsn_ids_list_free (struct sctp_i_forward_tsn_ids_list *list) {
+	struct sctp_i_forward_tsn_ids_list_item *current_item, *next_item;
+
+	if (list == NULL) {
+		return;
+	}
+	current_item = list->first;
+	while (current_item != NULL) {
+		assert(list->nr_entries > 0);
+		next_item = current_item->next;
+		assert(next_item != NULL || current_item == list->last);
+		free(current_item);
+		current_item = next_item;
+		list->nr_entries--;
+	}
+	assert(list->nr_entries == 0);
+	free(list);
+}
+
+struct sctp_i_forward_tsn_ids_list_item *
+sctp_i_forward_tsn_ids_list_item_new(char u_bit_set, u16 stream_identifier, u32 message_identifier) {
+	struct sctp_i_forward_tsn_ids_list_item *item;
+
+	item = malloc(sizeof(struct sctp_i_forward_tsn_ids_list_item));
+	assert(item != NULL);
+	item->next = NULL;
+	item->stream_identifier = stream_identifier;
+	item->u_bit_set = u_bit_set;
+	item->message_identifier = message_identifier;
+	return item;
+}
+
 struct sctp_address_type_list *
 sctp_address_type_list_new(void)
 {
@@ -1488,6 +1548,70 @@ sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *sids) 
 		}
 		
 		assert((i == nr_sids) && (item == NULL));
+	}
+	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
+	                                length, flags,
+	                                sctp_parameter_list_new(),
+	                                sctp_cause_list_new());
+}
+
+struct sctp_chunk_list_item *
+sctp_i_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_i_forward_tsn_ids_list *ids_list) {
+	struct sctp_i_forward_tsn_chunk *chunk;
+	struct sctp_i_forward_tsn_ids_list_item *item;
+	
+	DEBUGP("sctp_i_forward_tsn_chunk_new called with cum_tsn = %d and sids_list = %p", cum_tsn, ids_list);
+	
+	u32 flags;
+	u32 length;
+	u16 i, nr_ids;
+
+	flags = 0;
+	length = sizeof(struct sctp_i_forward_tsn_chunk);
+	if (ids_list == NULL) {
+		nr_ids = 0;
+		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
+		flags |= FLAG_I_FORWARD_TSN_CHUNK_IDS_NOCHECK;
+	} else {
+		nr_ids = ids_list->nr_entries;
+		length += nr_ids * sizeof(struct sctp_i_forward_tsn_identifier_block);
+	}
+	
+	assert(is_valid_u16(length));
+	assert(length % 4 == 0);
+	chunk = malloc(length);
+	assert(chunk != NULL);
+	chunk->type = SCTP_I_FORWARD_TSN_CHUNK_TYPE;
+	chunk->flags = 0;
+	chunk->length = htons(length);
+	if (cum_tsn == -1) {
+		chunk->cum_tsn = htonl(0);
+		flags |= FLAG_I_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK;
+	} else {
+		chunk->cum_tsn = htonl((u32)cum_tsn);
+	}
+	
+	if (nr_ids == 0 || ids_list == NULL) {
+		flags |= FLAG_I_FORWARD_TSN_CHUNK_IDS_NOCHECK;
+	}
+
+	if (ids_list != NULL) {
+		for (i = 0, item = ids_list->first;
+		     (i < nr_ids) && (item != NULL);
+		     i++, item = item->next) {
+			chunk->stream_identifier_blocks[i].stream_identifier= htons(item->stream_identifier);
+			if (item->u_bit_set == 'U') {
+				//TODO: htons required here?
+				chunk->stream_identifier_blocks[i].reserved = htons(0x01); 
+			}
+			else if (item->u_bit_set == 'O') {
+				chunk->stream_identifier_blocks[i].reserved = 0;
+			}
+			
+			chunk->stream_identifier_blocks[i].message_identifier = htonl(item->message_identifier);
+		}
+		
+		assert((i == nr_ids) && (item == NULL));
 	}
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                length, flags,
