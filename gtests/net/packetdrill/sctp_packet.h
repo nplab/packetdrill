@@ -123,7 +123,6 @@ void
 sctp_forward_tsn_ids_list_append(struct sctp_forward_tsn_ids_list *list,
 			          struct sctp_forward_tsn_ids_list_item *item);
 
-// TODO: where to call this freeing method... sctp_sack_block_list_free and sctp_byte_list_free are unused...?
 void sctp_forward_tsn_ids_list_free (struct sctp_forward_tsn_ids_list *list);
 
 struct sctp_forward_tsn_ids_list_item *
@@ -132,8 +131,8 @@ sctp_forward_tsn_ids_list_item_new(u16 stream_identifier, u16 stream_sequence_nu
 
 struct sctp_i_forward_tsn_ids_list_item {
 	struct sctp_i_forward_tsn_ids_list_item *next;
-	char u_bit_set;
 	u16 stream_identifier;
+        u16 reserved;
 	u32 message_identifier;
 }; 
 
@@ -153,7 +152,7 @@ sctp_i_forward_tsn_ids_list_append(struct sctp_i_forward_tsn_ids_list *list,
 void sctp_i_forward_tsn_ids_list_free (struct sctp_i_forward_tsn_ids_list *list);
 
 struct sctp_i_forward_tsn_ids_list_item *
-sctp_i_forward_tsn_ids_list_item_new(char u_bit_set, u16 stream_identifier, u32 message_identifier);
+sctp_i_forward_tsn_ids_list_item_new(u16 stream_identifier, u16 reserved, u32 message_identifier);
 
 struct sctp_address_type_list_item {
 	struct sctp_address_type_list_item *next;

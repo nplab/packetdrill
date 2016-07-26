@@ -341,14 +341,14 @@ void sctp_i_forward_tsn_ids_list_free (struct sctp_i_forward_tsn_ids_list *list)
 }
 
 struct sctp_i_forward_tsn_ids_list_item *
-sctp_i_forward_tsn_ids_list_item_new(char u_bit_set, u16 stream_identifier, u32 message_identifier) {
+sctp_i_forward_tsn_ids_list_item_new(u16 stream_identifier, u16 reserved, u32 message_identifier) {
 	struct sctp_i_forward_tsn_ids_list_item *item;
 
 	item = malloc(sizeof(struct sctp_i_forward_tsn_ids_list_item));
 	assert(item != NULL);
 	item->next = NULL;
 	item->stream_identifier = stream_identifier;
-	item->u_bit_set = u_bit_set;
+	item->reserved = reserved;
 	item->message_identifier = message_identifier;
 	return item;
 }
@@ -846,6 +846,8 @@ sctp_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
 			chunk->block[i].gap.end = htons(item->block.gap.end);
 		}
 		assert((i == nr_gaps) && (item == NULL));
+		sctp_sack_block_list_free(gaps);
+		
 	}
 	if (dups != NULL) {
 		for (i = 0, item = dups->first;
@@ -854,6 +856,7 @@ sctp_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
 			chunk->block[i + nr_gaps].tsn= htonl(item->block.tsn);
 		}
 		assert((i == nr_dups) && (item == NULL));
+		sctp_sack_block_list_free(dups);
 	}
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                length, flags,
@@ -934,6 +937,7 @@ sctp_nr_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
 			chunk->block[i].gap.end = htons(item->block.gap.end);
 		}
 		assert((i == nr_gaps) && (item == NULL));
+		sctp_sack_block_list_free(gaps);
 	}
 	if (nr_gaps_list != NULL) {
 		for (i = 0, item = nr_gaps_list->first;
@@ -943,6 +947,7 @@ sctp_nr_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
 			chunk->block[i + nr_gaps].gap.end = htons(item->block.gap.end);
 		}
 		assert((i == number_of_nr_gaps) && (item == NULL));
+		sctp_sack_block_list_free(nr_gaps_list);
 	}
 	if (dups != NULL) {
 		for (i = 0, item = dups->first;
@@ -951,6 +956,7 @@ sctp_nr_sack_chunk_new(s64 flgs, s64 cum_tsn, s64 a_rwnd,
 			chunk->block[i + nr_gaps + number_of_nr_gaps].tsn= htonl(item->block.tsn);
 		}
 		assert((i == nr_dups) && (item == NULL));
+		sctp_sack_block_list_free(dups);
 	}
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                length, flags,
@@ -1500,11 +1506,11 @@ sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding)
 }
 
 struct sctp_chunk_list_item *
-sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *sids) {
+sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *ids_list) {
 	struct sctp_forward_tsn_chunk *chunk;
 	struct sctp_forward_tsn_ids_list_item *item;
 	
-	DEBUGP("sctp_forward_tsn_chunk_new called with cum_tsn = %d and sids_list = %p", cum_tsn, sids);
+	DEBUGP("sctp_forward_tsn_chunk_new called with cum_tsn = %d and sids_list = %p", cum_tsn, ids_list);
 	
 	u32 flags;
 	u32 length;
@@ -1512,12 +1518,12 @@ sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *sids) 
 
 	flags = 0;
 	length = sizeof(struct sctp_forward_tsn_chunk);
-	if (sids == NULL) {
+	if (ids_list == NULL) {
 		nr_sids = 0;
 		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
 		flags |= FLAG_FORWARD_TSN_CHUNK_IDS_NOCHECK;
 	} else {
-		nr_sids = sids->nr_entries;
+		nr_sids = ids_list->nr_entries;
 		length += nr_sids * sizeof(struct sctp_stream_identifier_block);
 	}
 	
@@ -1535,12 +1541,12 @@ sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *sids) 
 		chunk->cum_tsn = htonl((u32)cum_tsn);
 	}
 	
-	if (nr_sids == 0 || sids == NULL) {
+	if (nr_sids == 0 || ids_list == NULL) {
 		flags |= FLAG_FORWARD_TSN_CHUNK_IDS_NOCHECK;
 	}
 
-	if (sids != NULL) {
-		for (i = 0, item = sids->first;
+	if (ids_list != NULL) {
+		for (i = 0, item = ids_list->first;
 		     (i < nr_sids) && (item != NULL);
 		     i++, item = item->next) {
 			chunk->stream_identifier_blocks[i].stream= htons(item->stream_identifier);
@@ -1548,7 +1554,9 @@ sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *sids) 
 		}
 		
 		assert((i == nr_sids) && (item == NULL));
+		sctp_forward_tsn_ids_list_free(ids_list);
 	}
+	
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                length, flags,
 	                                sctp_parameter_list_new(),
@@ -1600,19 +1608,14 @@ sctp_i_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_i_forward_tsn_ids_list *id
 		     (i < nr_ids) && (item != NULL);
 		     i++, item = item->next) {
 			chunk->stream_identifier_blocks[i].stream_identifier= htons(item->stream_identifier);
-			if (item->u_bit_set == 'U') {
-				//TODO: htons required here?
-				chunk->stream_identifier_blocks[i].reserved = htons(0x01); 
-			}
-			else if (item->u_bit_set == 'O') {
-				chunk->stream_identifier_blocks[i].reserved = 0;
-			}
-			
+			chunk->stream_identifier_blocks[i].reserved = htons(item->reserved); 
 			chunk->stream_identifier_blocks[i].message_identifier = htonl(item->message_identifier);
 		}
 		
 		assert((i == nr_ids) && (item == NULL));
+		sctp_i_forward_tsn_ids_list_free(ids_list);
 	}
+	
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                length, flags,
 	                                sctp_parameter_list_new(),

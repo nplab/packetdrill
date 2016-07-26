@@ -1768,9 +1768,9 @@ static int sctp_i_forward_tsn_chunk_to_string(
 	fprintf(s, "ids=[");
 	
 	for (i = 0; i < num_id_blocks; i++) {
-		fprintf(s, "{%s,%u,%u}",  
-			(ntohs(chunk->stream_identifier_blocks[i].reserved) & 1) ? "U" : "O",
+		fprintf(s, "{%u,%u,%u}",  
 			ntohs(chunk->stream_identifier_blocks[i].stream_identifier), 
+			ntohs(chunk->stream_identifier_blocks[i].reserved),
 			ntohl(chunk->stream_identifier_blocks[i].message_identifier));
 		if (i != num_id_blocks-1) {
 			fprintf(s, ",");
