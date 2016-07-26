@@ -123,12 +123,36 @@ void
 sctp_forward_tsn_ids_list_append(struct sctp_forward_tsn_ids_list *list,
 			          struct sctp_forward_tsn_ids_list_item *item);
 
-// TODO: where to call this freeing method... sctp_sack_block_list_free and sctp_byte_list_free are unused...?
 void sctp_forward_tsn_ids_list_free (struct sctp_forward_tsn_ids_list *list);
 
 struct sctp_forward_tsn_ids_list_item *
 sctp_forward_tsn_ids_list_item_new(u16 stream_identifier, u16 stream_sequence_number);
 
+
+struct sctp_i_forward_tsn_ids_list_item {
+	struct sctp_i_forward_tsn_ids_list_item *next;
+	u16 stream_identifier;
+        u16 reserved;
+	u32 message_identifier;
+}; 
+
+struct sctp_i_forward_tsn_ids_list {
+	struct sctp_i_forward_tsn_ids_list_item *first;
+	struct sctp_i_forward_tsn_ids_list_item *last;
+	u16 nr_entries;
+};
+
+struct sctp_i_forward_tsn_ids_list *
+sctp_i_forward_tsn_ids_list_new ();
+
+void
+sctp_i_forward_tsn_ids_list_append(struct sctp_i_forward_tsn_ids_list *list,
+			          struct sctp_i_forward_tsn_ids_list_item *item);
+
+void sctp_i_forward_tsn_ids_list_free (struct sctp_i_forward_tsn_ids_list *list);
+
+struct sctp_i_forward_tsn_ids_list_item *
+sctp_i_forward_tsn_ids_list_item_new(u16 stream_identifier, u16 reserved, u32 message_identifier);
 
 struct sctp_address_type_list_item {
 	struct sctp_address_type_list_item *next;
@@ -356,6 +380,12 @@ sctp_pad_chunk_new(s64 flgs, s64 len, u8* padding);
 
 struct sctp_chunk_list_item *
 sctp_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_forward_tsn_ids_list *sids_list);
+
+#define FLAG_I_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK  0x00000100
+#define FLAG_I_FORWARD_TSN_CHUNK_IDS_NOCHECK      0x00000200
+
+struct sctp_chunk_list_item *
+sctp_i_forward_tsn_chunk_new(u32 cum_tsn, struct sctp_i_forward_tsn_ids_list *ids_list);
 
 struct sctp_chunk_list_item *
 sctp_reconfig_chunk_new(s64 flgs, struct sctp_parameter_list *parameters);

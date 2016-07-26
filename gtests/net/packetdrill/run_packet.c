@@ -655,6 +655,7 @@ static int map_inbound_sctp_packet(
 	struct sctp_i_data_chunk *i_data;
 	struct sctp_reconfig_chunk *reconfig;
 	struct sctp_forward_tsn_chunk *forward_tsn;
+	struct sctp_i_forward_tsn_chunk *i_forward_tsn;
 	
 	u32 local_diff, remote_diff;
 	u32 v_tag;
@@ -760,6 +761,10 @@ static int map_inbound_sctp_packet(
 		case SCTP_FORWARD_TSN_CHUNK_TYPE: 
 			forward_tsn = (struct sctp_forward_tsn_chunk *) chunk;
 			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + local_diff);
+			break;
+		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
+			i_forward_tsn = (struct sctp_i_forward_tsn_chunk *) chunk;
+			i_forward_tsn->cum_tsn = htonl(ntohl(i_forward_tsn->cum_tsn) + local_diff);
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			reconfig = (struct sctp_reconfig_chunk *)chunk;
@@ -973,6 +978,7 @@ static int map_outbound_live_sctp_packet(
 	struct sctp_i_data_chunk *i_data;
 	struct sctp_reconfig_chunk *reconfig;
 	struct sctp_forward_tsn_chunk *forward_tsn;
+	struct sctp_i_forward_tsn_chunk *i_forward_tsn;
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, number_of_nr_gap_blocks, i;
 
@@ -1047,6 +1053,10 @@ static int map_outbound_live_sctp_packet(
 		case SCTP_FORWARD_TSN_CHUNK_TYPE: 
 			forward_tsn = (struct sctp_forward_tsn_chunk *) chunk;
 			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + local_diff);
+			break;
+		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
+			i_forward_tsn = (struct sctp_i_forward_tsn_chunk *) chunk;
+			i_forward_tsn->cum_tsn = htonl(ntohl(i_forward_tsn->cum_tsn) + local_diff);
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			reconfig = (struct sctp_reconfig_chunk *)chunk;
@@ -2214,6 +2224,58 @@ static int verify_forward_tsn_chunk(struct sctp_forward_tsn_chunk *actual_chunk,
 	return STATUS_OK;
 }
 
+static u16 get_num_id_blocks_for_i_forward_tsn (u16 packet_length) {
+	return (packet_length - sizeof(struct sctp_i_forward_tsn_chunk)) / sizeof(struct sctp_i_forward_tsn_identifier_block);
+}
+
+static int verify_i_forward_tsn_chunk(struct sctp_i_forward_tsn_chunk *actual_chunk,
+				 struct sctp_i_forward_tsn_chunk *script_chunk,
+				 u32 flags, char **error) {
+	u16 actual_packet_length = ntohs(script_chunk->length);
+	u16 script_packet_length = ntohs(script_chunk->length);
+	u16 actual_nr_id_blocks = get_num_id_blocks_for_i_forward_tsn(actual_packet_length);
+	u16 script_nr_id_blocks = get_num_id_blocks_for_i_forward_tsn(script_packet_length);
+	u16 i;
+	
+	if ((flags & FLAG_I_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK) == 0) {
+		if (check_field("sctp_i_forward_tsn_cum_tsn",
+				 ntohl(script_chunk->cum_tsn),
+				 ntohl(actual_chunk->cum_tsn),
+				 error) == STATUS_ERR) {
+			return STATUS_ERR;
+		}
+	}
+	
+	if ((flags & FLAG_I_FORWARD_TSN_CHUNK_IDS_NOCHECK) == 0) {
+		if (check_field("nr_id_blocks",
+				 actual_nr_id_blocks,
+				 script_nr_id_blocks,
+				 error) == STATUS_ERR) {
+			return STATUS_ERR;
+		}
+		
+		for (i = 0; i < script_nr_id_blocks; i++) {
+			if (check_field("sctp_i_forward_tsn_stream_identifier",
+		                        ntohs(script_chunk->stream_identifier_blocks[i].stream_identifier),
+		                        ntohs(actual_chunk->stream_identifier_blocks[i].stream_identifier),
+		                        error) == STATUS_ERR ||
+		            check_field("sctp_i_forward_tsn_u_bit",
+		                        ntohs(script_chunk->stream_identifier_blocks[i].reserved),
+		                        ntohs(actual_chunk->stream_identifier_blocks[i].reserved),
+		                        error) == STATUS_ERR ||
+			    check_field("sctp_i_forward_tsn_message_identifier",
+		                        ntohs(script_chunk->stream_identifier_blocks[i].message_identifier),
+		                        ntohs(actual_chunk->stream_identifier_blocks[i].message_identifier),
+		                        error) == STATUS_ERR 
+				) {
+				return STATUS_ERR;
+			}
+		}
+	}
+	
+	return STATUS_OK;
+}
+
 /* Verify that required actual SCTP packet fields are as the script expected. */
 static int verify_sctp(
 	const struct packet *actual_packet,
@@ -2367,6 +2429,11 @@ static int verify_sctp(
 		case SCTP_FORWARD_TSN_CHUNK_TYPE:
 			result = verify_forward_tsn_chunk((struct sctp_forward_tsn_chunk *)actual_chunk,
 			                               (struct sctp_forward_tsn_chunk *)script_chunk,
+			                               flags, error);
+			break;
+		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
+			result = verify_i_forward_tsn_chunk((struct sctp_i_forward_tsn_chunk *)actual_chunk,
+			                               (struct sctp_i_forward_tsn_chunk *)script_chunk,
 			                               flags, error);
 			break;
 		default:
