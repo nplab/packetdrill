@@ -1634,7 +1634,7 @@ i_forward_tsn_id
 	if (!is_valid_u16($2)) {
 		semantic_error("stream identifier out of range");
 	}
-        if (!is_valid_u16($4)) {
+	if (!is_valid_u16($4)) {
 		semantic_error("reserved out of range");
 	}
 	if (!is_valid_u32($6)) {
