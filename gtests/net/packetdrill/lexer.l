@@ -165,6 +165,7 @@ static inline char* remove_ifdef_start_and_endtag(char *code, int os_name_length
 	return code_without_ifdef;
 }
 
+static int old_yylineno = 0;
 
 static void handle_ifdef(enum ifdef_os os, const char *s) {
 	char *code = NULL;
@@ -187,6 +188,11 @@ static void handle_ifdef(enum ifdef_os os, const char *s) {
 
 	code = strdup(s);
 	
+        // keep track of the current value of yylineno, because we need to restore it later (see EOF-Condition),
+        // otherwise all ifdefs that were interpreted will count twice in yylineno,
+        // which will mess up the value in yylineno.
+        old_yylineno = yylineno;
+
 	code_without_ifdef = remove_ifdef_start_and_endtag(code, os_name_length);
 	ifdef_stack[ifdef_stack_ptr++] = YY_CURRENT_BUFFER;
 	yy_switch_to_buffer(yy_scan_string(code_without_ifdef));
@@ -656,6 +662,8 @@ NULL				return NULL_;
 					if ( --ifdef_stack_ptr < 0 ) {
 						yyterminate();
 					} else {
+						// here we need to restore the saved correct value of yylineno
+						yylineno = old_yylineno;
 						yy_delete_buffer(YY_CURRENT_BUFFER);
 						yy_switch_to_buffer(ifdef_stack[ifdef_stack_ptr]);
 					}
