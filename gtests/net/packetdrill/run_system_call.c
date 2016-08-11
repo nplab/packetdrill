@@ -4673,7 +4673,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	int script_fd, live_fd, live_msg_flags = 0, result;
 	void *msg;
 	u32 len;
-	struct sockaddr live_from;
+	struct sockaddr_storage live_from;
 	socklen_t live_fromlen;
 	struct sctp_sndrcvinfo live_sinfo;
 	struct expression *len_expr, *script_sinfo_expr, *script_msg_flags_expr;
@@ -4705,7 +4705,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 	}
 
 	script_from_expr = get_arg(args, 3, error);
-	if (check_sockaddr(script_from_expr, &live_from, error)) {
+	if (check_sockaddr(script_from_expr, (struct sockaddr *)&live_from, error)) {
 		return STATUS_ERR;
 	}
 	script_fromlen_expr = get_arg(args, 4, error);
