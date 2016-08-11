@@ -760,11 +760,11 @@ static int map_inbound_sctp_packet(
 			break;
 		case SCTP_FORWARD_TSN_CHUNK_TYPE: 
 			forward_tsn = (struct sctp_forward_tsn_chunk *) chunk;
-			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + local_diff);
+			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + remote_diff);
 			break;
 		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
 			i_forward_tsn = (struct sctp_i_forward_tsn_chunk *) chunk;
-			i_forward_tsn->cum_tsn = htonl(ntohl(i_forward_tsn->cum_tsn) + local_diff);
+			i_forward_tsn->cum_tsn = htonl(ntohl(i_forward_tsn->cum_tsn) + remote_diff);
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			reconfig = (struct sctp_reconfig_chunk *)chunk;
