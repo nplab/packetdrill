@@ -263,19 +263,16 @@ static int sctp_supported_extensions_parameter_to_string(
 			fputs("INIT", s);
 			break;
 		case SCTP_INIT_ACK_CHUNK_TYPE:
-			fputs("INIT-ACK", s);
+			fputs("INIT_ACK", s);
 			break;
 		case SCTP_SACK_CHUNK_TYPE:
 			fputs("SACK", s);
-			break;
-		case SCTP_NR_SACK_CHUNK_TYPE:
-			fputs("NR-SACK", s);
 			break;
 		case SCTP_HEARTBEAT_CHUNK_TYPE:
 			fputs("HEARTBEAT", s);
 			break;
 		case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
-			fputs("HEARTBEAT-ACK", s);
+			fputs("HEARTBEAT_ACK", s);
 			break;
 		case SCTP_ABORT_CHUNK_TYPE:
 			fputs("ABORT", s);
@@ -284,16 +281,16 @@ static int sctp_supported_extensions_parameter_to_string(
 			fputs("SHUTDOWN", s);
 			break;
 		case SCTP_SHUTDOWN_ACK_CHUNK_TYPE:
-			fputs("SHUTDOWN-ACK", s);
+			fputs("SHUTDOWN_ACK", s);
 			break;
 		case SCTP_ERROR_CHUNK_TYPE:
 			fputs("ERROR", s);
 			break;
 		case SCTP_COOKIE_ECHO_CHUNK_TYPE:
-			fputs("COOKIE-ECHO", s);
+			fputs("COOKIE_ECHO", s);
 			break;
 		case SCTP_COOKIE_ACK_CHUNK_TYPE:
-			fputs("COOKIE-ACK", s);
+			fputs("COOKIE_ACK", s);
 			break;
 		case SCTP_ECNE_CHUNK_TYPE:
 			fputs("ECNE", s);
@@ -302,16 +299,25 @@ static int sctp_supported_extensions_parameter_to_string(
 			fputs("CWR", s);
 			break;
 		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
-			fputs("SHUTDOWN-COMPLETE", s);
+			fputs("SHUTDOWN_COMPLETE", s);
+			break;
+		case SCTP_NR_SACK_CHUNK_TYPE:
+			fputs("NR_SACK", s);
 			break;
 		case SCTP_I_DATA_CHUNK_TYPE:
-			fputs("I-DATA", s);
+			fputs("I_DATA", s);
+			break;
+		case SCTP_RECONFIG_CHUNK_TYPE:
+			fputs("RECONFIG", s);
 			break;
 		case SCTP_PAD_CHUNK_TYPE:
 			fputs("PAD", s);
 			break;
-		case SCTP_RECONFIG_CHUNK_TYPE:
-			fputs("RECONFIG", s);
+		case SCTP_FORWARD_TSN_CHUNK_TYPE:
+			fputs("FORWARD_TSN", s);
+			break;
+		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
+			fputs("I_FORWARD_TSN", s);
 			break;
 		default:
 			fprintf(s, "0x%02x", parameter->chunk_type[i]);

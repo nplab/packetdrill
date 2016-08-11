@@ -41,7 +41,6 @@ struct sctp_common_header {
 #define SCTP_INIT_CHUNK_TYPE				0x01
 #define SCTP_INIT_ACK_CHUNK_TYPE			0x02
 #define SCTP_SACK_CHUNK_TYPE				0x03
-#define SCTP_NR_SACK_CHUNK_TYPE				0x10
 #define SCTP_HEARTBEAT_CHUNK_TYPE			0x04
 #define SCTP_HEARTBEAT_ACK_CHUNK_TYPE			0x05
 #define SCTP_ABORT_CHUNK_TYPE				0x06
@@ -53,11 +52,12 @@ struct sctp_common_header {
 #define SCTP_ECNE_CHUNK_TYPE				0x0c
 #define SCTP_CWR_CHUNK_TYPE				0x0d
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE		0x0e
+#define SCTP_NR_SACK_CHUNK_TYPE				0x10
 #define SCTP_I_DATA_CHUNK_TYPE				0x40
 #define SCTP_RECONFIG_CHUNK_TYPE			0x82
 #define SCTP_PAD_CHUNK_TYPE				0x84
-#define SCTP_FORWARD_TSN_CHUNK_TYPE                     0xc0
-#define SCTP_I_FORWARD_TSN_CHUNK_TYPE                   0xc2
+#define SCTP_FORWARD_TSN_CHUNK_TYPE			0xc0
+#define SCTP_I_FORWARD_TSN_CHUNK_TYPE			0xc2
 
 
 #define MAX_SCTP_CHUNK_BYTES	0xffff
