@@ -559,7 +559,7 @@ COOKIE_ACK			return COOKIE_ACK;
 ECNE				return ECNE;
 CWR				return CWR;
 SHUTDOWN_COMPLETE		return SHUTDOWN_COMPLETE;
-I-DATA				return I_DATA;
+I_DATA				return I_DATA;
 PAD				return PAD;
 RECONFIG			return RECONFIG;
 FORWARD_TSN                     return FORWARD_TSN;
