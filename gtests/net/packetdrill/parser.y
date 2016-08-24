@@ -1141,6 +1141,9 @@ chunk_type
 | FORWARD_TSN {
 	$$ = SCTP_FORWARD_TSN_CHUNK_TYPE;
 }
+| I_FORWARD_TSN {
+	$$ = SCTP_I_FORWARD_TSN_CHUNK_TYPE;
+}
 ;
 
 opt_chunk_type
