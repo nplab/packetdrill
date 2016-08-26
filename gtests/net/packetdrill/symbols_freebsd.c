@@ -292,8 +292,20 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_MD5SIG,                       "TCP_MD5SIG"                      },
 	{ TCP_INFO,                         "TCP_INFO"                        },
 	{ TCP_CONGESTION,                   "TCP_CONGESTION"                  },
+#if __FreeBSD_version >=1100000
+	{ TCP_CCALGOOPT,                    "TCP_CCALGOOPT"                   },
+#endif
+	{ TCP_KEEPINIT,                     "TCP_KEEPINIT"                    },
+	{ TCP_KEEPIDLE,                     "TCP_KEEPIDLE"                    },
+	{ TCP_KEEPINTVL,                    "TCP_KEEPINTVL"                   },
+	{ TCP_KEEPCNT,                      "TCP_KEEPCNT"                     },
+	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
+	{ TCP_KEEPCNT,                      "TCP_KEEPCNT"                     },
+#if __FreeBSD_version >= 1003000
+	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
+#endif
 
-#if __FreeBSD_version >= 1100000
+#if __FreeBSD_version >= 1002000
 	/* /usr/include/netinet/udplite.h */
 	{ UDPLITE_RECV_CSCOV,               "UDPLITE_RECV_CSCOV"              },
 	{ UDPLITE_SEND_CSCOV,               "UDPLITE_SEND_CSCOV"              },
