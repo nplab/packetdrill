@@ -303,7 +303,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
 #endif
 
-#if __FreeBSD_version >= 1002000
+#if __FreeBSD_version >= 1001000
 	/* /usr/include/netinet/udplite.h */
 	{ UDPLITE_RECV_CSCOV,               "UDPLITE_RECV_CSCOV"              },
 	{ UDPLITE_SEND_CSCOV,               "UDPLITE_SEND_CSCOV"              },
