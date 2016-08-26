@@ -299,8 +299,6 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_KEEPIDLE,                     "TCP_KEEPIDLE"                    },
 	{ TCP_KEEPINTVL,                    "TCP_KEEPINTVL"                   },
 	{ TCP_KEEPCNT,                      "TCP_KEEPCNT"                     },
-	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
-	{ TCP_KEEPCNT,                      "TCP_KEEPCNT"                     },
 #if __FreeBSD_version >= 1003000
 	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
 #endif
