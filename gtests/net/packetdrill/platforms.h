@@ -50,7 +50,7 @@
 
 #include <netinet/sctp.h>
 #include <sys/param.h>
-#if __FreeBSD_version >= 1010000
+#if __FreeBSD_version >= 1001000
 #include <netinet/udplite.h>
 #endif
 #define USE_LIBPCAP             1
