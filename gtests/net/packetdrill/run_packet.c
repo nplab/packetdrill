@@ -600,7 +600,8 @@ static int map_inbound_icmp_tcp_packet(
 	struct socket *socket, struct packet *live_packet, char **error)
 {
 	u32 *seq = packet_echoed_tcp_seq(live_packet);
-	bool is_syn = live_packet->tcp->syn;
+	/* FIXME: There is currently no way to access the TCP flags */
+	bool is_syn = false;
 	u32 seq_offset = local_seq_script_to_live_offset(socket, is_syn);
 	*seq = htonl(ntohl(*seq) + seq_offset);
 	return STATUS_OK;
