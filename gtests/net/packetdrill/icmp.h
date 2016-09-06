@@ -94,4 +94,8 @@ struct icmpv4 {
 #define ICMP_PREC_CUTOFF        15
 #define NR_ICMP_UNREACH         15
 
+/* Codes for ICMP_TIME_EXCEEDED */
+#define ICMP_TTL_EX             0
+#define ICMP_REAS_TIME_EX       1
+
 #endif /* __ICMP_HEADERS_H__ */

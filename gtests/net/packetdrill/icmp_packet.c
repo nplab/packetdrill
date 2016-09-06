@@ -62,6 +62,13 @@ struct icmp_code_info icmpv4_unreachable_codes[] = {
 	{ 0, NULL },
 };
 
+/* Values for the 'code' byte of an IPv4 ICMP_TIME_EXCEEDED header (RFC 1700). */
+struct icmp_code_info icmpv4_time_exceeded_codes[] = {
+	{ ICMP_TTL_EX,		"ttl_exceeded_in_transit" },
+	{ ICMP_REAS_TIME_EX,	"frag_reass_exceeded" },
+	{ 0, NULL },
+};
+
 /* Information about the supported types of ICMPv4 header (RFC 1700). */
 struct icmp_type_info icmpv4_types[] = {
 	{ ICMP_ECHOREPLY,	"echo_reply" },
@@ -69,7 +76,7 @@ struct icmp_type_info icmpv4_types[] = {
 	{ ICMP_SOURCE_QUENCH,	"source_quench" },
 	{ ICMP_REDIRECT,	"redirect" },
 	{ ICMP_ECHO,		"echo_request" },
-	{ ICMP_TIME_EXCEEDED,	"time_exceeded" },
+	{ ICMP_TIME_EXCEEDED,	"time_exceeded", icmpv4_time_exceeded_codes },
 	{ ICMP_PARAMETERPROB,	"parameter_problem" },
 	{ ICMP_TIMESTAMP,	"timestamp_request" },
 	{ ICMP_TIMESTAMPREPLY,	"timestamp_reply" },
