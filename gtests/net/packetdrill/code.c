@@ -117,6 +117,12 @@ static void write_symbols(struct code_state *code)
 	emit_var(code, "TCPI_OPT_WSCALE",	TCPI_OPT_WSCALE);
 	emit_var(code, "TCPI_OPT_ECN",		TCPI_OPT_ECN);
 #endif  /* linux */
+#ifdef __FreeBSD__
+	emit_var(code, "TCPI_OPT_TIMESTAMPS",	TCPI_OPT_TIMESTAMPS);
+	emit_var(code, "TCPI_OPT_SACK",		TCPI_OPT_SACK);
+	emit_var(code, "TCPI_OPT_WSCALE",	TCPI_OPT_WSCALE);
+	emit_var(code, "TCPI_OPT_ECN",		TCPI_OPT_ECN);
+#endif
 }
 
 #endif  /* HAVE_TCP_INFO */
