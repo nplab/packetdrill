@@ -89,7 +89,6 @@ struct icmp_type_info icmpv4_types[] = {
 
 /* Values for the 'code' byte of an ICMPV6_DEST_UNREACH header (RFC 2463). */
 struct icmp_code_info icmpv6_unreachable_codes[] = {
-	{ ICMP_NET_UNREACH,		"net_unreachable" },
 	{ ICMPV6_NOROUTE,		"no_route" },
 	{ ICMPV6_ADM_PROHIBITED,	"admin_prohibited" },
 	{ ICMPV6_NOT_NEIGHBOUR,		"not_neighbour" },
