@@ -20,6 +20,7 @@ git clone https://github.com/nplab/packetdrill.git
 cd packetdrill/gtests/net/packetdrill/
 ./configure
 make
+sudo cp  packetdrill /usr/bin
 ```
 ### FreeBSD
 For installing the required packages run:
@@ -32,6 +33,7 @@ git clone https://github.com/nplab/packetdrill.git
 cd packetdrill/gtests/net/packetdrill/
 ./configure
 gmake
+sudo cp  packetdrill /usr/local/bin
 ```
 ##  Continous Integration
 The status of continous integration testing is available from [grid](http://212.201.121.110:38010/grid) and [waterfall](http://212.201.121.110:38010/waterfall).
