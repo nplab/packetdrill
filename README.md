@@ -25,16 +25,25 @@ sudo cp packetdrill /usr/bin
 ### FreeBSD
 For installing the required packages run:
 ```
-sudo pkg install ???
+sudo pkg install git bison
 ```
 Then download the sources, compile them and install the files:
 ```
 git clone https://github.com/nplab/packetdrill.git
 cd packetdrill/gtests/net/packetdrill/
 ./configure
-gmake
+make
 sudo cp packetdrill /usr/local/bin
 ```
+To be able to run packetdrill in combination with `sudo` run
+```
+sudo sysctl -w vm.old_mlock=1
+```
+or add
+```
+vm.old_mlock=1
+```
+to `/etc/sysctl.conf` and reboot.
 ##  Continous Integration
 The status of continous integration testing is available from [grid](http://212.201.121.110:38010/grid) and [waterfall](http://212.201.121.110:38010/waterfall).
 If you are only interested in a single branch, just append `?branch=BRANCHNAME` to the URL, for example [waterfall](http://212.201.121.110:38010/waterfall?branch=master).
