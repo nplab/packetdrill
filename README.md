@@ -19,7 +19,7 @@ Then download the sources, compile them and install the files:
 git clone https://github.com/nplab/packetdrill.git
 cd packetdrill/gtests/net/packetdrill/
 ./configure
-gmake
+make
 ```
 ### FreeBSD
 For installing the required packages run:
