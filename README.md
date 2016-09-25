@@ -20,7 +20,7 @@ git clone https://github.com/nplab/packetdrill.git
 cd packetdrill/gtests/net/packetdrill/
 ./configure
 make
-sudo cp  packetdrill /usr/bin
+sudo cp packetdrill /usr/bin
 ```
 ### FreeBSD
 For installing the required packages run:
