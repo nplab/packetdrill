@@ -12,7 +12,7 @@ There are some papers ([;login: October 2013](https://www.usenix.org/system/file
 ### Linux (Ubuntu)
 For installing the required packages run:
 ```
-sudo apt-get install ???
+sudo apt-get install git libsctp-dev bison flex
 ```
 Then download the sources, compile them and install the files:
 ```
