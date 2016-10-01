@@ -102,6 +102,34 @@ static void emit_var_end(struct code_state *code)
 /* Write out a formatted representation of useful symbolic names. */
 static void write_symbols(struct code_state *code)
 {
+	/* tcpi_state */
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	emit_var(code, "TCPI_CLOSED",		TCPS_CLOSED);
+	emit_var(code, "TCPI_LISTEN",		TCPS_LISTEN);
+	emit_var(code, "TCPI_SYN_SENT",		TCPS_SYN_SENT);
+	emit_var(code, "TCPI_SYN_RECEIVED",	TCPS_SYN_RECEIVED);
+	emit_var(code, "TCPI_ESTABLISHED",	TCPS_ESTABLISHED);
+	emit_var(code, "TCPI_CLOSE_WAIT",	TCPS_CLOSE_WAIT);
+	emit_var(code, "TCPI_FIN_WAIT_1",	TCPS_FIN_WAIT_1);
+	emit_var(code, "TCPI_CLOSING",		TCPS_CLOSING);
+	emit_var(code, "TCPI_LAST_ACK",		TCPS_LAST_ACK);
+	emit_var(code, "TCPI_FIN_WAIT_2",	TCPS_FIN_WAIT_2);
+	emit_var(code, "TCPI_TIME_WAIT",	TCPS_TIME_WAIT);
+#endif
+#ifdef linux
+	emit_var(code, "TCPI_CLOSED",		7);
+	emit_var(code, "TCPI_LISTEN",		10);
+	emit_var(code, "TCPI_SYN_SENT",		2);
+	emit_var(code, "TCPI_SYN_RECEIVED",	3);
+	emit_var(code, "TCPI_ESTABLISHED",	1);
+	emit_var(code, "TCPI_CLOSE_WAIT",	8);
+	emit_var(code, "TCPI_FIN_WAIT_1",	4);
+	emit_var(code, "TCPI_CLOSING",		11);
+	emit_var(code, "TCPI_LAST_ACK",		9);
+	emit_var(code, "TCPI_FIN_WAIT_2",	5);
+	emit_var(code, "TCPI_TIME_WAIT",	6);
+	emit_var(code, "TCPI_NEW_SYN_RECV",	12);
+#endif
 #ifdef linux
 	/* Emit symbolic names for tcpi_ca_state values. */
 	emit_var(code, "TCP_CA_Open",		TCP_CA_Open);

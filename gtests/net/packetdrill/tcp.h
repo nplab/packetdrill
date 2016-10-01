@@ -34,6 +34,9 @@
 #include "types.h"
 
 #include <netinet/tcp.h>
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#include <netinet/tcp_fsm.h>
+#endif
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #define SOL_TCP IPPROTO_TCP
