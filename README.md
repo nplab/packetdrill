@@ -5,7 +5,45 @@ A fork of [packetdrill](https://code.google.com/p/packetdrill/) which adds suppo
 
 and generic bugfixes, espcially several fixes required to get packetdrill working on FreeBSD.
 
+## Information
 There are some papers ([;login: October 2013](https://www.usenix.org/system/files/login/articles/10_cardwell-online.pdf), [USENIX ATC '13](https://www.usenix.org/system/files/conference/atc13/atc13-cardwell.pdf)) and a presentation ([ICCRG IETF87](https://www.ietf.org/proceedings/87/slides/slides-87-iccrg-1.pdf)) describing packetdrill.
 
+## Installation
+### Linux (Ubuntu)
+For installing the required packages run:
+```
+sudo apt-get install git libsctp-dev bison flex
+```
+Then download the sources, compile them and install the files:
+```
+git clone https://github.com/nplab/packetdrill.git
+cd packetdrill/gtests/net/packetdrill/
+./configure
+make
+sudo cp packetdrill /usr/bin
+```
+### FreeBSD
+For installing the required packages run:
+```
+sudo pkg install git bison
+```
+Then download the sources, compile them and install the files:
+```
+git clone https://github.com/nplab/packetdrill.git
+cd packetdrill/gtests/net/packetdrill/
+./configure
+make
+sudo cp packetdrill /usr/local/bin
+```
+To be able to run packetdrill in combination with `sudo` run
+```
+sudo sysctl -w vm.old_mlock=1
+```
+or add
+```
+vm.old_mlock=1
+```
+to `/etc/sysctl.conf` and reboot.
+##  Continous Integration
 The status of continous integration testing is available from [grid](http://212.201.121.110:38010/grid) and [waterfall](http://212.201.121.110:38010/waterfall).
 If you are only interested in a single branch, just append `?branch=BRANCHNAME` to the URL, for example [waterfall](http://212.201.121.110:38010/waterfall?branch=master).
