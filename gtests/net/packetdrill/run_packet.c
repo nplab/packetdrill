@@ -3274,24 +3274,17 @@ static int do_inbound_script_packet(
 			packet_payload_len(live_packet);
 	}
 
-	if (live_packet->ipv4 != NULL) {
-		if (live_packet->ipv4->src_ip.s_addr == 0) {
-			DEBUGP("live_packet->ipv4->src_ip.s_addr == 0\n");
-			state->socket_under_test = setup_new_child_socket(state, packet);
+	if ((state->socket_under_test == NULL) &&
+	    (((live_packet->ipv4 != NULL) &&
+	      (live_packet->ipv4->src_ip.s_addr == htonl(INADDR_ANY))) ||
+	     ((live_packet->ipv6 != NULL) &&
+	      (IN6_IS_ADDR_UNSPECIFIED(&live_packet->ipv6->src_ip))))) {
 			struct tuple live_inbound;
-			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
-			set_packet_tuple(live_packet, &live_inbound);
-		}
-	}
 
-	if (live_packet->ipv6 != NULL) {
-		if (IN6_IS_ADDR_UNSPECIFIED(&live_packet->ipv6->src_ip)) {
-			DEBUGP("live_packet->ipv6->src_ip.s_addr == 0\n");
+			DEBUGP("live_packet has wildcard source address\n");
 			state->socket_under_test = setup_new_child_socket(state, packet);
-			struct tuple live_inbound;
 			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
 			set_packet_tuple(live_packet, &live_inbound);
-		}
 	}
 
 	/* Inject live packet into kernel. */
