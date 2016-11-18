@@ -62,7 +62,11 @@
  * sequence that wait_for_event() must execute while waiting
  * for the next event.
  */
+#if defined(__FreeBSD__)
+const int MAX_SPIN_USECS = 100;
+#else
 const int MAX_SPIN_USECS = 20;
+#endif
 
 static struct state *state = NULL;
 
@@ -328,13 +332,27 @@ void wait_for_event(struct state *state)
 		 * that we know has a fine-grained usleep(), then
 		 * usleep() instead of spinning on the CPU.
 		 */
-#if defined(linux) || defined(__FreeBSD__)
+#if defined(linux)
 		/* Since the scheduler may not wake us up precisely
 		 * when we tell it to, sleep until just before the
 		 * event we're waiting for and then spin.
 		 */
 		if (wait_usecs > MAX_SPIN_USECS) {
 			usleep(wait_usecs - MAX_SPIN_USECS);
+		}
+#endif
+#if defined(__FreeBSD__)
+		/* Since the scheduler may not wake us up precisely
+		 * when we tell it to, sleep until just before the
+		 * event we're waiting for and then spin.
+		 * Since FreeBSD is overshooting by about 10 percent,
+		 * take this into account.
+		 */
+		if (wait_usecs > MAX_SPIN_USECS) {
+			useconds_t delta = (useconds_t)(wait_usecs - MAX_SPIN_USECS);
+
+			delta -= delta >> 3;
+			usleep(delta);
 		}
 #endif
 
