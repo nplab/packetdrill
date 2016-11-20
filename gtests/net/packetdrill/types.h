@@ -133,6 +133,14 @@ enum ip_ecn_t {
 	ECN_NOCHECK,
 };
 
+/* Type to handle <integer>! for specifying absolute vs adjusted values.
+ * The <integer>! means absolute integer. Just a plain <integer> is relative.
+ */
+struct abs_integer {
+	s64 integer;
+	bool absolute;
+};
+
 /* Length of output buffer for inet_ntop, plus prefix length (e.g. "/128"). */
 #define ADDR_STR_LEN ((INET_ADDRSTRLEN + INET6_ADDRSTRLEN)+5)
 

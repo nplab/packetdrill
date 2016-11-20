@@ -936,6 +936,10 @@ static int map_inbound_packet(
 	if (find_tcp_timestamp(live_packet, error))
 		return STATUS_ERR;
 
+	/* If we are using absolute ecr values, do not adjust the ecr. */
+	if (live_packet->flags & FLAG_ABSOLUTE_TS_ECR) {
+		return STATUS_OK;
+	}
 	/* Remap TCP timestamp echo reply from script value to a live
 	 * value. We say "a" rather than "the" live value because
 	 * there could be multiple live values corresponding to the
@@ -3389,7 +3393,7 @@ int reset_connection(struct state *state, struct socket *socket)
 
 	packet = new_tcp_packet(socket->address_family,
 				DIRECTION_INBOUND, ECN_NONE,
-				"R.", seq, 0, ack_seq, window, NULL, &error);
+				"R.", seq, 0, ack_seq, window, NULL, false, &error);
 	if (packet == NULL)
 		die("%s", error);
 

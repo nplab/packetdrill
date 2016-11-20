@@ -152,6 +152,12 @@ static struct script *out_script = NULL;
 /* The test invocation to pass back to parse_and_finalize_config(). */
 struct invocation *invocation;
 
+/* Temporary variables to allow passing absolute timestamp flags to
+ * the tcp_options struct from the timestamp options. Adding fields
+ * to struct tcp_option, which might be cleaner, affects the on-wire format.
+ */
+bool absolute_ts_ecr = false;
+
 /* Copy the script contents into our single linear buffer. */
 void copy_script(const char *script_buffer, struct script *script)
 {
@@ -439,6 +445,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
  */
 %union {
 	s64 integer;
+	struct abs_integer abs_integer;
 	double floating;
 	char *string;
 	char *reserved;
@@ -586,6 +593,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
+%type <abs_integer> abs_integer
 %type <direction> direction
 %type <ip_ecn> opt_ip_info
 %type <ip_ecn> ip_ecn
@@ -2366,7 +2374,10 @@ tcp_packet_spec
 	inner = new_tcp_packet(in_config->wire_protocol,
 			       direction, $2, $3,
 			       $4.start_sequence, $4.payload_bytes,
-			       $5, $6, $7, &error);
+			       $5, $6, $7,
+			       absolute_ts_ecr,
+			       &error);
+	absolute_ts_ecr = false;
 	free($3);
 	free($7);
 	if (inner == NULL) {
@@ -2694,17 +2705,18 @@ tcp_option
 | SACK sack_block_list {
 	$$ = $2;
 }
-| TIMESTAMP VAL INTEGER ECR INTEGER  {
+| TIMESTAMP VAL INTEGER ECR abs_integer  {
 	u32 val, ecr;
+	absolute_ts_ecr = $5.absolute;
 	$$ = tcp_option_new(TCPOPT_TIMESTAMP, TCPOLEN_TIMESTAMP);
-	if (!is_valid_u32($3)) {
+	val = $3;
+	ecr = $5.integer;
+	if (!is_valid_u32(val)) {
 		semantic_error("ts val out of range");
 	}
-	if (!is_valid_u32($5)) {
+	if (!is_valid_u32(ecr)) {
 		semantic_error("ecr val out of range");
 	}
-	val = $3;
-	ecr = $5;
 	$$->data.time_stamp.val = htonl(val);
 	$$->data.time_stamp.ecr = htonl(ecr);
 }
@@ -2718,6 +2730,11 @@ tcp_option
 		free(error);
 	}
 }
+;
+
+abs_integer
+: INTEGER     { $$.integer = $1; $$.absolute = false; }
+| INTEGER '!' { $$.integer = $1; $$.absolute = true; }
 ;
 
 sack_block_list
