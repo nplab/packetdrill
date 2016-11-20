@@ -1565,8 +1565,7 @@ static void begin_syscall(struct state *state, struct syscall_spec *syscall)
  */
 enum result_check_t {
 	CHECK_EXACT,		/* check that result matches exactly */
-	CHECK_NON_NEGATIVE,	/* check that result is non-negative */
-	CHECK_ALLOW_MAPPING,	/* checks for results after accept-syscall */
+	CHECK_FD,		/* check that result fd or matching error */
 };
 static int end_syscall(struct state *state, struct syscall_spec *syscall,
 		       enum result_check_t mode, int actual, char **error)
@@ -1587,14 +1586,14 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 	/* Compare actual vs expected return value */
 	if (get_s32(syscall->result, &expected, error))
 		return STATUS_ERR;
-	if (mode == CHECK_NON_NEGATIVE) {
+	if (mode == CHECK_FD && expected >= 0) {
 		if (actual < 0) {
 			asprintf(error,
 				 "Expected non-negative result but got %d with errno %d (%s)",
 				 actual, actual_errno, strerror(actual_errno));
 			return STATUS_ERR;
 		}
-	} else if (mode == CHECK_EXACT) {
+	} else if (mode == CHECK_FD || mode == CHECK_EXACT) {
 		if (actual != expected) {
 			if (actual < 0)
 				asprintf(error,
@@ -1606,18 +1605,6 @@ static int end_syscall(struct state *state, struct syscall_spec *syscall,
 				asprintf(error,
 					 "Expected result %d but got %d",
 					 expected, actual);
-			return STATUS_ERR;
-		}
-	} else if (mode == CHECK_ALLOW_MAPPING) {
-		if ((expected >= 0)  && (actual < 0)) {
-			asprintf(error,
-				 "Expected non-negative result but got %d with errno %d (%s)",
-				 actual, actual_errno, strerror(actual_errno));
-			return STATUS_ERR;
-		} else if ((expected < 0) && (actual != expected)) {
-			asprintf(error,
-				 "Expected result %d but got %d",
-				 expected, actual);
 			return STATUS_ERR;
 		}
 	} else {
@@ -2005,7 +1992,7 @@ static int syscall_socket(struct state *state, struct syscall_spec *syscall,
 
 	result = socket(domain, type, protocol);
 
-	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
+	if (end_syscall(state, syscall, CHECK_FD, result, error))
 		return STATUS_ERR;
 
 	if (result >= 0) {
@@ -2097,7 +2084,7 @@ static int syscall_accept(struct state *state, struct syscall_spec *syscall,
 
 	result = accept(live_fd, (struct sockaddr *)&live_addr, &live_addrlen);
 
-	if (end_syscall(state, syscall, CHECK_ALLOW_MAPPING, result, error))
+	if (end_syscall(state, syscall, CHECK_FD, result, error))
 		return STATUS_ERR;
 
 	if (result >= 0) {
@@ -4288,7 +4275,7 @@ static int syscall_open(struct state *state, struct syscall_spec *syscall,
 
 	result = open(name, flags);
 
-	if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
+	if (end_syscall(state, syscall, CHECK_FD, result, error))
 		return STATUS_ERR;
 
 	if (result >= 0) {
@@ -6107,14 +6094,8 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 	begin_syscall(state, syscall);
 
 	result = sctp_peeloff(live_fd, assoc_id);
-	if (result < 0) {
-		if (end_syscall(state, syscall, CHECK_EXACT, result, error))
-			return STATUS_ERR;
-		return STATUS_OK;
-	} else {
-		if (end_syscall(state, syscall, CHECK_NON_NEGATIVE, result, error))
-			return STATUS_ERR;
-	}
+	if (end_syscall(state, syscall, CHECK_FD, result, error))
+		return STATUS_ERR;
 	if (get_s32(syscall->result, &script_new_fd, error))
 		return STATUS_ERR;
 	if (run_syscall_sctp_peeloff(state, script_fd, script_new_fd, result, error)) {
@@ -6124,7 +6105,7 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 
 	return STATUS_OK;
 #else
-	asprintf(error, "sctp_connectx is not supported");
+	asprintf(error, "sctp_peeloff is not supported");
 	return STATUS_ERR;
 #endif
 }
