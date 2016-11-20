@@ -44,5 +44,6 @@ extern struct packet *new_tcp_packet(int address_family,
 				     u32 ack_sequence,
 				     s32 window,
 				     const struct tcp_options *tcp_options,
+				     bool abs_ts_ecr,
 				     char **error);
 #endif /* __TCP_PACKET_H__ */

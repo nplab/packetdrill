@@ -59,6 +59,7 @@ struct packet *new_tcp_packet(int address_family,
 			       u32 ack_sequence,
 			       s32 window,
 			       const struct tcp_options *tcp_options,
+			       bool abs_ts_ecr,
 			       char **error)
 {
 	struct packet *packet = NULL;  /* the newly-allocated result packet */
@@ -155,6 +156,10 @@ struct packet *new_tcp_packet(int address_family,
 		/* Copy TCP options into packet */
 		memcpy(tcp_option_start, tcp_options->data,
 		       tcp_options->length);
+	}
+
+	if (abs_ts_ecr) {
+		packet->flags |= FLAG_ABSOLUTE_TS_ECR;
 	}
 
 	packet->ip_bytes = ip_bytes;
