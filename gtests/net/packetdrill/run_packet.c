@@ -215,7 +215,7 @@ static inline bool sctp_is_init_packet(const struct packet *packet) {
 	if (packet->chunk_list != NULL) {
 		item = packet->chunk_list->first;
 		if ((item != NULL) && 
-			(item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
+		    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
 			return true;
 		}
 	} else {
@@ -287,11 +287,10 @@ static struct socket *handle_listen_for_script_packet(
 				struct sctp_init_chunk *init;
 				item = packet->chunk_list->first;
 				init = (struct sctp_init_chunk *) item->chunk;
-				
+
 				sctp_socket_set_initiate_tag(socket, ntohl(init->initiate_tag));
 				sctp_socket_set_initial_tsn(socket, ntohl(init->initial_tsn));
-			}
-			else {
+			} else {
 				struct header sctp_header;
 				unsigned int i;
 				bool found = false;
@@ -3277,15 +3276,14 @@ static int do_inbound_script_packet(
 		socket->last_injected_tcp_payload_len =
 			packet_payload_len(live_packet);
 	}
-
-	if ((state->socket_under_test == NULL) &&
-	    (((live_packet->ipv4 != NULL) &&
-	      (live_packet->ipv4->src_ip.s_addr == htonl(INADDR_ANY))) ||
-	     ((live_packet->ipv6 != NULL) &&
-	      (IN6_IS_ADDR_UNSPECIFIED(&live_packet->ipv6->src_ip))))) {
+	if (((live_packet->ipv4 != NULL) &&
+	     (live_packet->ipv4->src_ip.s_addr == htonl(INADDR_ANY))) ||
+	    ((live_packet->ipv6 != NULL) &&
+	     (IN6_IS_ADDR_UNSPECIFIED(&live_packet->ipv6->src_ip)))) {
 			struct tuple live_inbound;
 
-			DEBUGP("live_packet has wildcard source address\n");
+			DEBUGP("live_packet has wildcard source address.\n");
+			DEBUGP("socket_under_test = %p\n", state->socket_under_test);
 			state->socket_under_test = setup_new_child_socket(state, packet);
 			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
 			set_packet_tuple(live_packet, &live_inbound);

@@ -78,6 +78,78 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_SETFIB,                        "SO_SETFIB"                       },
 	{ SO_USER_COOKIE,                   "SO_USER_COOKIE"                  },
 
+	/* /usr/include/netinet/in.h */
+	{ IP_OPTIONS,                       "IP_OPTIONS"                      },
+	{ IP_HDRINCL,                       "IP_HDRINCL"                      },
+	{ IP_TOS,                           "IP_TOS"                          },
+	{ IP_TTL,                           "IP_TTL"                          },
+	{ IP_RECVOPTS,                      "IP_RECVOPTS"                     },
+	{ IP_RECVRETOPTS,                   "IP_RECVRETOPTS"                  },
+	{ IP_RECVDSTADDR,                   "IP_RECVDSTADDR"                  },
+	{ IP_SENDSRCADDR,                   "IP_SENDSRCADDR"                  },
+	{ IP_RETOPTS,                       "IP_RETOPTS"                      },
+	{ IP_PORTRANGE,                     "IP_PORTRANGE"                    },
+	{ IP_RECVIF,                        "IP_RECVIF"                       },
+#ifdef IP_RSS_LISTEN_BUCKET
+	{ IP_RSS_LISTEN_BUCKET,             "IP_RSS_LISTEN_BUCKET"            },
+#endif
+	{ IP_RECVTTL,                       "IP_RECVTTL"                      },
+	{ IP_MINTTL,                        "IP_MINTTL,"                      },
+	{ IP_DONTFRAG,                      "IP_DONTFRAG"                     },
+	{ IP_RECVTOS,                       "IP_RECVTOS"                      },
+#ifdef IP_FLOWID
+	{ IP_FLOWID,                        "IP_FLOWID"                       },
+#endif
+#ifdef IP_FLOWTYPE
+	{ IP_FLOWTYPE,                      "IP_FLOWTYPE"                     },
+#endif
+#ifdef IP_RSSBUCKETID
+	{ IP_RSSBUCKETID,                   "IP_RSSBUCKETID"                  },
+#endif
+#ifdef IP_RECVFLOWID
+	{ IP_RECVFLOWID,                    "IP_RECVFLOWID"                   },
+#endif
+#ifdef IP_RECVRSSBUCKETID
+	{ IP_RECVRSSBUCKETID,               "IP_RECVRSSBUCKETID"              },
+#endif
+
+	/* /usr/include/netinet6/in6.h */
+	{ IPV6_UNICAST_HOPS,                "IPV6_UNICAST_HOPS"               },
+	{ IPV6_PORTRANGE,                   "IPV6_PORTRANGE"                  },
+	{ IPV6_CHECKSUM,                    "IPV6_CHECKSUM"                   },
+	{ IPV6_V6ONLY,                      "IPV6_V6ONLY"                     },
+	{ IPV6_RECVPKTINFO,                 "IPV6_RECVPKTINFO"                },
+	{ IPV6_RECVHOPLIMIT,                "IPV6_RECVHOPLIMIT"               },
+	{ IPV6_RECVRTHDR,                   "IPV6_RECVRTHDR"                  },
+	{ IPV6_RECVHOPOPTS,                 "IPV6_RECVHOPOPTS"                },
+	{ IPV6_RECVDSTOPTS,                 "IPV6_RECVDSTOPTS"                },
+	{ IPV6_USE_MIN_MTU,                 "IPV6_USE_MIN_MTU"                },
+	{ IPV6_RECVPATHMTU,                 "IPV6_RECVPATHMTU"                },
+	{ IPV6_PATHMTU,                     "IPV6_PATHMTU"                    },
+	{ IPV6_HOPLIMIT,                    "IPV6_HOPLIMIT"                   },
+	{ IPV6_RECVTCLASS,                  "IPV6_RECVTCLASS"                 },
+	{ IPV6_AUTOFLOWLABEL,               "IPV6_AUTOFLOWLABEL"              },
+	{ IPV6_TCLASS,                      "IPV6_TCLASS"                     },
+	{ IPV6_DONTFRAG,                    "IPV6_DONTFRAG"                   },
+#ifdef IPV6_RSS_LISTEN_BUCKET
+	{ IPV6_RSS_LISTEN_BUCKET,           "IPV6_RSS_LISTEN_BUCKET"          },
+#endif
+#ifdef IPV6_FLOWID
+	{ IPV6_FLOWID,                      "IPV6_FLOWID"                     },
+#endif
+#ifdef IPV6_FLOWTYPE
+	{ IPV6_FLOWTYPE,                    "IPV6_FLOWTYPE"                   },
+#endif
+#ifdef IPV6_RSSBUCKETID
+	{ IPV6_RSSBUCKETID,                 "IPV6_RSSBUCKETID"                },
+#endif
+#ifdef IPV6_RECVFLOWID
+	{ IPV6_RECVFLOWID,                  "IPV6_RECVFLOWID"                 },
+#endif
+#ifdef IPV6_RECVRSSBUCKETID
+	{ IPV6_RECVRSSBUCKETID,             "IPV6_RECVRSSBUCKETID"            },
+#endif
+
 	/* /usr/include/netinet/sctp.h and /usr/include/netinet/sctp_uio.h */
 	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
 	{ SCTP_ASSOCINFO,                   "SCTP_ASSOCINFO"                  },
