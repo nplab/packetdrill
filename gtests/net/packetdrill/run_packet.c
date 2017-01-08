@@ -278,7 +278,7 @@ static struct socket *handle_listen_for_script_packet(
 	if (!match)
 		return NULL;
 	
-	if (socket != NULL)
+	if (socket == NULL)
 		socket = setup_new_child_socket(state, packet);
 
 	if (packet->sctp != NULL) {
