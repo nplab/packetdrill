@@ -2596,7 +2596,7 @@ opt_ip_info
 ;
 
 ip_ecn
-: NO_ECN		{ $$ = ECN_NONE; }
+: NO_ECN	{ $$ = ECN_NONE; }
 | ECT0		{ $$ = ECN_ECT0; }
 | ECT1		{ $$ = ECN_ECT1; }
 | ECT01		{ $$ = ECN_ECT01; }
