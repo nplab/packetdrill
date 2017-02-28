@@ -328,7 +328,7 @@ static struct socket *handle_listen_for_script_packet(
 		socket->live.remote_isn = ntohl(packet->tcp->seq);
 	}
 
-	if (DEBUG_LOGGING) {
+	if (debug_logging) {
 		char local_string[ADDR_STR_LEN];
 		char remote_string[ADDR_STR_LEN];
 		DEBUGP("live: local: %s.%d\n",

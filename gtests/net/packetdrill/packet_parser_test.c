@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int debug_logging=0;
+
 static void test_parse_sctp_ipv4_packet(void)
 {
 	/* A SCTP/IPv4 packet. */

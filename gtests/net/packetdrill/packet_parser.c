@@ -232,7 +232,7 @@ static int parse_ipv4(struct packet *packet, u8 *header_start, u8 *packet_end,
 	p += ip_header_bytes;
 	assert(p <= packet_end);
 
-	if (DEBUG_LOGGING) {
+	if (debug_logging) {
 		char src_string[ADDR_STR_LEN];
 		char dst_string[ADDR_STR_LEN];
 		struct ip_address src_ip, dst_ip;
@@ -304,7 +304,7 @@ static int parse_ipv6(struct packet *packet, u8 *header_start, u8 *packet_end,
 	p += ip_header_bytes;
 	assert(p <= packet_end);
 
-	if (DEBUG_LOGGING) {
+	if (debug_logging) {
 		char src_string[ADDR_STR_LEN];
 		char dst_string[ADDR_STR_LEN];
 		struct ip_address src_ip, dst_ip;
