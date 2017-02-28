@@ -31,6 +31,8 @@
 #include "packet_parser.h"
 #include "logging.h"
 
+int debug_logging=0;
+
 static void test_sctp_ipv4_packet_to_string(void)
 {
 	/* An IPv4/SCTP packet. */

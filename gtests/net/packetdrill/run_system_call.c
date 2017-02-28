@@ -1841,7 +1841,7 @@ static int run_syscall_accept(struct state *state,
 	}
 
 	for (socket = state->sockets; socket != NULL; socket = socket->next) {
-		if (DEBUG_LOGGING) {
+		if (debug_logging) {
 			char remote_string[ADDR_STR_LEN];
 			DEBUGP("socket state=%d script addr: %s:%d\n",
 			       socket->state,
@@ -1886,7 +1886,7 @@ static int run_syscall_accept(struct state *state,
 	socket->live.fd			= live_accepted_fd;
 	socket->script.fd		= script_accepted_fd;
 
-	if (DEBUG_LOGGING) {
+	if (debug_logging) {
 		char local_string[ADDR_STR_LEN];
 		char remote_string[ADDR_STR_LEN];
 		DEBUGP("live: local: %s.%d\n",

@@ -32,6 +32,8 @@
 #include "tcp.h"
 #include "udplite.h"
 
+int debug_logging=0;
+
 static void test_tcp_udp_v4_checksum(void)
 {
 	u8 data[] __aligned(4) = {

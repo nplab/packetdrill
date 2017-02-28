@@ -59,6 +59,7 @@ enum option_codes {
 	OPT_NON_FATAL,
 	OPT_DRY_RUN,
 	OPT_VERBOSE = 'v',	/* our only single-letter option */
+	OPT_DEBUG,
 };
 
 /* Specification of command line options for getopt_long(). */
@@ -87,6 +88,7 @@ struct option options[] = {
 	{ "non_fatal",		.has_arg = true,  NULL, OPT_NON_FATAL },
 	{ "dry_run",		.has_arg = false, NULL, OPT_DRY_RUN },
 	{ "verbose",		.has_arg = false, NULL, OPT_VERBOSE },
+	{ "debug",		.has_arg = false, NULL, OPT_DEBUG },
 	{ NULL },
 };
 
@@ -117,6 +119,7 @@ void show_usage(void)
 		"\t[--wire_server_dev=<eth_dev_name>]\n"
 		"\t[--dry_run]\n"
 		"\t[--verbose|-v]\n"
+		"\t[--debug]\n"
 		"\tscript_path ...\n");
 }
 
@@ -465,6 +468,9 @@ static void process_option(int opt, char *optarg, struct config *config,
 		break;
 	case OPT_VERBOSE:
 		config->verbose = true;
+		break;
+	case OPT_DEBUG:
+		debug_logging = true;
 		break;
 	default:
 		show_usage();

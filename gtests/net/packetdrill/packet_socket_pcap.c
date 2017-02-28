@@ -303,7 +303,7 @@ int packet_socket_receive(struct packet_socket *psock,
 	DEBUGP("pcap_next_ex: caplen:%u len:%u offset:%d\n",
 	       pkt_header->caplen, pkt_header->len, psock->pcap_offset);
 
-	if (DEBUG_LOGGING) {
+	if (debug_logging) {
 		/* Dump a hex dump of packet sniffed by pcap. */
 		char *hex = NULL;
 		hex_dump(pkt_data, pkt_header->caplen, &hex);
