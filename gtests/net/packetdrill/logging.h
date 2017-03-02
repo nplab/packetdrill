@@ -31,11 +31,15 @@
 extern int debug_logging;
 
 /* Use a gcc variadic macro to conditionally compile debug printing. */
+#if defined(DEBUG)
 #define DEBUGP(...)				\
 	if (debug_logging) {			\
 		fprintf(stdout,  __VA_ARGS__);	\
 		fflush(stdout);			\
 	}
+#else
+#define DEBUGP(...) {}
+#endif /* DEBUG */
 
 /* Log the message to stderr and then exit with a failure status code. */
 extern void die(char *format, ...);

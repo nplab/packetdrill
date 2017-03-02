@@ -328,6 +328,7 @@ static struct socket *handle_listen_for_script_packet(
 		socket->live.remote_isn = ntohl(packet->tcp->seq);
 	}
 
+#if defined(DEBUG)
 	if (debug_logging) {
 		char local_string[ADDR_STR_LEN];
 		char remote_string[ADDR_STR_LEN];
@@ -344,6 +345,7 @@ static struct socket *handle_listen_for_script_packet(
 			DEBUGP("live: initial tsn: %u\n", socket->live.remote_initial_tsn);
 		}
 	}
+#endif /* DEBUG */
 
 	return socket;
 }

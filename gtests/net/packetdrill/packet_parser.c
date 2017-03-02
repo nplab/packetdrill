@@ -232,6 +232,7 @@ static int parse_ipv4(struct packet *packet, u8 *header_start, u8 *packet_end,
 	p += ip_header_bytes;
 	assert(p <= packet_end);
 
+#if defined(DEBUG)
 	if (debug_logging) {
 		char src_string[ADDR_STR_LEN];
 		char dst_string[ADDR_STR_LEN];
@@ -241,6 +242,7 @@ static int parse_ipv4(struct packet *packet, u8 *header_start, u8 *packet_end,
 		DEBUGP("src IP: %s\n", ip_to_string(&src_ip, src_string));
 		DEBUGP("dst IP: %s\n", ip_to_string(&dst_ip, dst_string));
 	}
+#endif /* DEBUG */
 
 	/* Examine the L4 header. */
 	const int layer4_bytes = ip_total_bytes - ip_header_bytes;
@@ -304,6 +306,7 @@ static int parse_ipv6(struct packet *packet, u8 *header_start, u8 *packet_end,
 	p += ip_header_bytes;
 	assert(p <= packet_end);
 
+#if defined(DEBUG)
 	if (debug_logging) {
 		char src_string[ADDR_STR_LEN];
 		char dst_string[ADDR_STR_LEN];
@@ -313,6 +316,7 @@ static int parse_ipv6(struct packet *packet, u8 *header_start, u8 *packet_end,
 		DEBUGP("src IP: %s\n", ip_to_string(&src_ip, src_string));
 		DEBUGP("dst IP: %s\n", ip_to_string(&dst_ip, dst_string));
 	}
+#endif /* DEBUG */
 
 	/* Examine the L4 header. */
 	const int layer4_bytes = ip_total_bytes - ip_header_bytes;
