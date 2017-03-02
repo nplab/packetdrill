@@ -1841,6 +1841,7 @@ static int run_syscall_accept(struct state *state,
 	}
 
 	for (socket = state->sockets; socket != NULL; socket = socket->next) {
+#if defined(DEBUG)
 		if (debug_logging) {
 			char remote_string[ADDR_STR_LEN];
 			DEBUGP("socket state=%d script addr: %s:%d\n",
@@ -1849,7 +1850,7 @@ static int run_syscall_accept(struct state *state,
 					    remote_string),
 			       socket->script.remote.port);
 		}
-
+#endif /* DEBUG */
 		if ((socket->state == SOCKET_PASSIVE_SYNACK_SENT) ||  /* TFO */
 		    (socket->state == SOCKET_PASSIVE_SYNACK_ACKED) ||
 		    (socket->state == SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED)) {
@@ -1886,6 +1887,7 @@ static int run_syscall_accept(struct state *state,
 	socket->live.fd			= live_accepted_fd;
 	socket->script.fd		= script_accepted_fd;
 
+#if defined(DEBUG)
 	if (debug_logging) {
 		char local_string[ADDR_STR_LEN];
 		char remote_string[ADDR_STR_LEN];
@@ -1896,6 +1898,7 @@ static int run_syscall_accept(struct state *state,
 		       ip_to_string(&socket->live.remote.ip, remote_string),
 		       ntohs(socket->live.remote.port));
 	}
+#endif /* DEBUG */
 	return STATUS_OK;
 }
 

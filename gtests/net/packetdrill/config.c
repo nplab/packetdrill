@@ -119,7 +119,7 @@ void show_usage(void)
 		"\t[--wire_server_dev=<eth_dev_name>]\n"
 		"\t[--dry_run]\n"
 		"\t[--verbose|-v]\n"
-		"\t[--debug]\n"
+		"\t[--debug] * requires compilation with DEBUG *\n"
 		"\tscript_path ...\n");
 }
 
@@ -470,6 +470,9 @@ static void process_option(int opt, char *optarg, struct config *config,
 		config->verbose = true;
 		break;
 	case OPT_DEBUG:
+#if !defined(DEBUG)
+		die("error: --debug requires building with DEBUG on.\n");
+#endif
 		debug_logging = true;
 		break;
 	default:
