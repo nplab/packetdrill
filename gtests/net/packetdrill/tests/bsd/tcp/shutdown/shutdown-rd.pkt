@@ -1,0 +1,31 @@
+// This test checks for the behavior of sequence
+// shutdown(SHUT_RD), read, write
+
+// Establish the connection
+0.000 socket(..., SOCK_STREAM, IPPROTO_TCP) = 3
+0.000 setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0
+0.000 bind(3, ..., ...) = 0
+0.000 listen(3, 1) = 0
+
+0.100 < S 0:0(0) win 65535 <mss 1460,sackOK,nop,nop,nop,wscale 7>
+0.100 > S. 0:0(0) ack 1 <...>
+0.200 < . 1:1(0) ack 1 win 65535
+0.200 accept(3, ..., ...) = 4
+
+0.250 shutdown(4, SHUT_RD) = 0
+
+// Verify if read works (It should not work)
+0.250 read(4, ..., 1000) = 0
+
+// What happens when client sends some data at this instance?
+0.260 < P. 1:1001(1000) ack 1 win 65535
+
+// We respond with a delayed ack
+0.360 > . 1:1(0) ack 1001 <...>
+
+// Verify whether writing and sending works
+
+// We send 1 data segment
+0.370 write(4, ..., 1000) = 1000
+0.370 > P. 1:1001(1000) ack 1001 <...>
+0.400 < . 1001:1001(0) ack 1001 win 65535
