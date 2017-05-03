@@ -984,7 +984,7 @@ sctp_packet_spec
 	                                -1, false, $6, &error);
 	if (inner == NULL) {
 		assert(error != NULL);
-        semantic_error(error);
+		semantic_error(error);
 		free(error);
 	}
 
