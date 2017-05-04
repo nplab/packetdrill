@@ -96,6 +96,7 @@ enum expression_t {
 	EXPR_SCTP_STREAM_RESET_EVENT, /* expression tree for sctp_stream_reset_event struct for sctp notifications */
 	EXPR_SCTP_ASSOC_RESET_EVENT,  /* expression tree for sctp_assoc_reset_event struct for sctp notifications */
 	EXPR_SCTP_STREAM_CHANGE_EVENT, /* expression tree for sctp_stream_change_event struct for sctp notifications */
+	EXPR_SCTP_UDPENCAPS,      /* expression tree for sctp_udpencaps struct for [gs]etsockopt */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -165,6 +166,7 @@ struct expression {
 		struct sctp_stream_reset_event_expr *sctp_stream_reset_event;
 		struct sctp_assoc_reset_event_expr *sctp_assoc_reset_event;
 		struct sctp_stream_change_event_expr *sctp_stream_change_event;
+		struct sctp_udpencaps_expr *sctp_udpencaps;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -633,6 +635,13 @@ struct sctp_stream_change_event_expr {
 	struct expression *strchange_assoc_id;
 	struct expression *strchange_instrms;
 	struct expression *strchange_outstrms;
+};
+
+/* Parse tree for sctp_udpencaps struct */
+struct sctp_udpencaps_expr {
+	struct expression *sue_assoc_id;
+	struct expression *sue_address;
+	struct expression *sue_port;
 };
 
 /* The errno-related info from strace to summarize a system call error */

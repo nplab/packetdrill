@@ -696,6 +696,24 @@ int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **erro
 #endif
 
 #if defined(__FreeBSD__) || defined(linux)
+#ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
+int check_u16_htons_expr(struct expression *expr, u16 value, char *val_name, char **error) {
+	if (expr->type != EXPR_ELLIPSIS) {
+		u16 script_val;
+
+		if (get_u16(expr, &script_val, error)) {
+			return STATUS_ERR;
+		}
+		if (ntohs(script_val) != ntohs(value)) {
+			asprintf(error, "%s: expected: %hu actual: %hu",
+				 val_name, ntohs(script_val), ntohs(value));
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 int check_u16_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u16 script_val;
@@ -736,7 +754,7 @@ int check_u32_hton_expr(struct expression *expr, u32 value, char *val_name, char
 		}
 		if (htonl(value) != htonl(script_val)) {
 			asprintf(error, "%s: expected: %u actual: %u", val_name,
-				 htonl(script_val), htonl(value));
+				 ntohl(script_val), ntohl(value));
 			return STATUS_ERR;
 		}
 	}
@@ -3145,6 +3163,18 @@ static int check_sctp_authchunks(struct sctp_authchunks_expr *expr,
 }
 #endif
 
+#ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
+static int check_sctp_udpencaps(struct sctp_udpencaps_expr *expr,
+			        struct sctp_udpencaps *sctp_udpencaps,
+			        char **error) {
+	if (check_u16_htons_expr(expr->sue_port, sctp_udpencaps->sue_port,
+				 "sctp_udpencaps.sue_port", error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -3436,6 +3466,28 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		break;
 #endif
+#ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
+	case EXPR_SCTP_UDPENCAPS: {
+		struct sctp_udpencaps_expr *expr_udpencaps = val_expression->value.sctp_udpencaps;
+		struct sctp_udpencaps *live_udpencaps = malloc(sizeof(struct sctp_udpencaps));
+
+		live_optlen = (socklen_t) sizeof(struct sctp_udpencaps);
+		memset(live_udpencaps, 0, sizeof(struct sctp_udpencaps));
+		if (get_sctp_assoc_t(expr_udpencaps->sue_assoc_id,
+				     &(live_udpencaps->sue_assoc_id), error)) {
+			free(live_udpencaps);
+			return STATUS_ERR;
+		}
+		if (get_sockstorage_arg(expr_udpencaps->sue_address,
+					&(live_udpencaps->sue_address), live_fd)) {
+			asprintf(error, "can't determine sue_address");
+			free(live_udpencaps);
+			return STATUS_ERR;
+		}
+		live_optval = live_udpencaps;
+		break;
+	}
+#endif
 	case EXPR_LIST:
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -3583,6 +3635,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		// SCTP_ADD_STREAMS should not be a successfull option
 		break;
 #endif
+#ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
+	case EXPR_SCTP_UDPENCAPS:
+		result = check_sctp_udpencaps(val_expression->value.sctp_udpencaps, live_optval, error);
+		break;
+#endif
 	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "optval: expected: %d actual: %d",
@@ -3679,6 +3736,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_ADD_STREAMS
 	struct sctp_add_streams add_streams;
 #endif
+#ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
+	struct sctp_udpencaps udpencaps;
+#endif
+
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -3864,7 +3925,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_GET_PEER_ADDR_INFO
 	case EXPR_SCTP_PADDRINFO:
 		if (get_sctp_assoc_t(val_expression->value.sctp_paddrinfo->spinfo_assoc_id,
-				    &paddrinfo.spinfo_assoc_id, error)) {
+				     &paddrinfo.spinfo_assoc_id, error)) {
 			return STATUS_ERR;
 		}
 		if (get_sockstorage_arg(val_expression->value.sctp_paddrinfo->spinfo_address,
@@ -4171,7 +4232,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			expr = get_arg(list, i, error);
 			get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
 		}
-
 		optval = reset_streams;
 		break;
 	}
@@ -4190,8 +4250,25 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			    &add_streams.sas_outstrms, error)) {
 			return STATUS_ERR;
 		}
-
 		optval = &add_streams;
+		break;
+#endif
+#ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
+	case EXPR_SCTP_UDPENCAPS:
+		if (get_sctp_assoc_t(val_expression->value.sctp_udpencaps->sue_assoc_id,
+				     &udpencaps.sue_assoc_id, error)) {
+			return STATUS_ERR;
+		}
+		if (get_sockstorage_arg(val_expression->value.sctp_udpencaps->sue_address,
+					&udpencaps.sue_address, live_fd)) {
+			asprintf(error, "can't determine sue_address");
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.sctp_udpencaps->sue_port,
+			    &udpencaps.sue_port, error)) {
+			return STATUS_ERR;
+		}
+		optval = &udpencaps;
 		break;
 #endif
 	default:
@@ -4200,6 +4277,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 		break;
 	}
+	assert(optval != NULL);
+
 	begin_syscall(state, syscall);
 
 	result = setsockopt(live_fd, level, optname, optval, optlen);

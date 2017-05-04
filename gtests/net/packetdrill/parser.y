@@ -590,6 +590,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> STRRESET_TYPE STRRESET_FLAGS STRRESET_LENGTH STRRESET_ASSOC_ID STRRESET_STREAM_LIST
 %token <reserved> ASSOCRESET_TYPE ASSOCRESET_FLAGS ASSOCRESET_LENGTH ASSOCRESET_ASSOC_ID ASSOCRESET_LOCAL_TSN ASSOCRESET_REMOTE_TSN
 %token <reserved> STRCHANGE_TYPE STRCHANGE_FLAGS STRCHANGE_LENGTH STRCHANGE_ASSOC_ID STRCHANGE_INSTRMS STRCHANGE_OUTSTRMS
+%token <reserved> SUE_ASSOC_ID SUE_ADDRESS SUE_PORT
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -670,6 +671,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> assocreset_local_tsn assocreset_remote_tsn
 %type <expression> sctp_stream_change_event strchange_type strchange_flags strchange_length strchange_instrms strchange_outstrms
 %type <expression> sctp_add_streams
+%type <expression> sctp_udpencaps sue_address sue_port
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -2952,6 +2954,9 @@ expression
 	$$ = $1;
 }
 | sctp_add_streams  {
+	$$ = $1;
+}
+| sctp_udpencaps  {
 	$$ = $1;
 }
 | null              {
@@ -5563,7 +5568,44 @@ sctp_stream_change_event
 	$$->value.sctp_stream_change_event->strchange_assoc_id = $10;
 	$$->value.sctp_stream_change_event->strchange_instrms = $12;
 	$$->value.sctp_stream_change_event->strchange_outstrms = $14;
+}
+;
 
+sue_address
+: SUE_ADDRESS '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+| SUE_ADDRESS '=' sockaddr {
+	$$ = $3;
+}
+;
+
+sue_port
+: SUE_PORT '=' _HTONS_ '(' INTEGER ')' {
+	if (!is_valid_u16($5)) {
+		semantic_error("sue_port out of range");
+	}
+	$$ = new_integer_expression(htons($5), "%u");
+}
+| SUE_PORT '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+sctp_udpencaps
+: '{' SUE_ASSOC_ID '=' sctp_assoc_id ',' sue_address ',' sue_port '}' {
+	$$ = new_expression(EXPR_SCTP_UDPENCAPS);
+	$$->value.sctp_udpencaps = calloc(1, sizeof(struct sctp_udpencaps_expr));
+	$$->value.sctp_udpencaps->sue_assoc_id = $4;
+	$$->value.sctp_udpencaps->sue_address = $6;
+	$$->value.sctp_udpencaps->sue_port = $8;
+}
+| '{' sue_address ',' sue_port '}' {
+	$$ = new_expression(EXPR_SCTP_UDPENCAPS);
+	$$->value.sctp_udpencaps = calloc(1, sizeof(struct sctp_udpencaps_expr));
+	$$->value.sctp_udpencaps->sue_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_udpencaps->sue_address = $2;
+	$$->value.sctp_udpencaps->sue_port = $4;
 }
 ;
 
