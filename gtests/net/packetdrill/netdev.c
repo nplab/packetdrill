@@ -405,10 +405,10 @@ static void local_netdev_read_queue(struct local_netdev *netdev,
 			else
 				die_perror("tun read()");
 		}
-       }
+	}
 }
 
-static int local_netdev_receive(struct netdev *a_netdev,
+static int local_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 				struct packet **packet, char **error)
 {
 	struct local_netdev *netdev = to_local_netdev(a_netdev);
@@ -417,14 +417,15 @@ static int local_netdev_receive(struct netdev *a_netdev,
 
 	DEBUGP("local_netdev_receive\n");
 
-	status = netdev_receive_loop(netdev->psock, DIRECTION_OUTBOUND, packet,
-				     &num_packets, error);
+	status = netdev_receive_loop(netdev->psock, DIRECTION_OUTBOUND,
+				     udp_encaps,packet, &num_packets, error);
 	local_netdev_read_queue(netdev, num_packets);
 	return status;
 }
 
 int netdev_receive_loop(struct packet_socket *psock,
 			enum direction_t direction,
+			u8 udp_encaps,
 			struct packet **packet,
 			int *num_packets,
 			char **error)
@@ -446,7 +447,8 @@ int netdev_receive_loop(struct packet_socket *psock,
 			continue;
 
 		++*num_packets;
-		result = parse_packet(*packet, in_bytes, ether_type, error);
+		result = parse_packet(*packet, in_bytes, ether_type, udp_encaps,
+				      error);
 
 		if (result == PACKET_OK)
 			return STATUS_OK;

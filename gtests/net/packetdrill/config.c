@@ -60,6 +60,7 @@ enum option_codes {
 	OPT_DRY_RUN,
 	OPT_VERBOSE = 'v',	/* our only single-letter option */
 	OPT_DEBUG,
+	OPT_UDP_ENCAPS,
 };
 
 /* Specification of command line options for getopt_long(). */
@@ -89,6 +90,7 @@ struct option options[] = {
 	{ "dry_run",		.has_arg = false, NULL, OPT_DRY_RUN },
 	{ "verbose",		.has_arg = false, NULL, OPT_VERBOSE },
 	{ "debug",		.has_arg = false, NULL, OPT_DEBUG },
+	{ "udp_encapsulation",	.has_arg = true,  NULL, OPT_UDP_ENCAPS },
 	{ NULL },
 };
 
@@ -120,6 +122,7 @@ void show_usage(void)
 		"\t[--dry_run]\n"
 		"\t[--verbose|-v]\n"
 		"\t[--debug] * requires compilation with DEBUG *\n"
+		"\t[--udp_encapsulation=[sctp,tcp]]\n"
 		"\tscript_path ...\n");
 }
 
@@ -365,8 +368,7 @@ static void process_option(int opt, char *optarg, struct config *config,
 	char *end = NULL;
 	unsigned long speed = 0;
 
-	DEBUGP("process_option %d ('%c') = %s\n",
-	       opt, (char)opt, optarg);
+	DEBUGP("process_option %d = %s\n", opt, optarg);
 
 	switch (opt) {
 	case OPT_IP_VERSION:
@@ -474,6 +476,14 @@ static void process_option(int opt, char *optarg, struct config *config,
 		die("error: --debug requires building with DEBUG on.\n");
 #endif
 		debug_logging = true;
+		break;
+	case OPT_UDP_ENCAPS:
+		if (strcmp(optarg, "sctp") == 0)
+			config->udp_encaps = IPPROTO_SCTP;
+		else if (strcmp(optarg, "tcp") == 0)
+			config->udp_encaps = IPPROTO_TCP;
+		else
+			die("%s: bad --udp_encapsulation: %s\n", where, optarg);
 		break;
 	default:
 		show_usage();

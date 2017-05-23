@@ -52,7 +52,7 @@ struct netdev_ops {
 	 * pointer to the newly-allocated packet. Caller must free the packet
 	 * with packet_free().
 	 */
-	int (*receive)(struct netdev *netdev,
+	int (*receive)(struct netdev *netdev, u8 udp_encaps,
 		       struct packet **packet, char **error);
 };
 
@@ -75,10 +75,11 @@ static inline int netdev_send(struct netdev *netdev,
  * with packet_free().
  */
 static inline int netdev_receive(struct netdev *netdev,
+				 u8 udp_encaps,
 				 struct packet **packet,
 				 char **error)
 {
-	return netdev->ops->receive(netdev, packet, error);
+	return netdev->ops->receive(netdev, udp_encaps, packet, error);
 }
 
 
@@ -88,6 +89,7 @@ static inline int netdev_receive(struct netdev *netdev,
  */
 extern int netdev_receive_loop(struct packet_socket *psock,
 			       enum direction_t direction,
+			       u8 udp_encaps,
 			       struct packet **packet,
 			       int *num_packets,
 			       char **error);

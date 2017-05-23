@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int debug_logging=0;
+int debug_logging = 0;
 
 static void test_parse_sctp_ipv4_packet(void)
 {
@@ -50,7 +50,7 @@ static void test_parse_sctp_ipv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -96,7 +96,7 @@ static void test_parse_sctp_ipv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -120,6 +120,105 @@ static void test_parse_sctp_ipv6_packet(void)
 
 	packet_free(packet);
 }
+
+static void test_parse_sctp_udp_ipv4_packet(void)
+{
+	/* A SCTP/UDP/IPv4 packet. */
+	u8 data[] = {
+		/* 1.1.1.1:1234 > 192.168.0.1:60213
+		 * udp(9899 > 9899): sctp: ABORT[] */
+		0x45, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x11, 0xf9, 0x15, 0x01, 0x01, 0x01, 0x01,
+		0xc0, 0xa8, 0x00, 0x01, 0x26, 0xab, 0x26, 0xab,
+		0x00, 0x18, 0x00, 0x00, 0x04, 0xd2, 0xeb, 0x35,
+		0x01, 0x02, 0x03, 0x04, 0xab, 0x0c, 0xeb, 0x7a,
+		0x06, 0x01, 0x00, 0x04
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data),
+			     ETHERTYPE_IP, IPPROTO_SCTP, &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	struct ipv4 *expected_ipv4 = (struct ipv4 *)(packet->buffer);
+	struct udp *expected_udp =
+		(struct udp *)(expected_ipv4 + 1);
+	struct sctp_common_header *expected_sctp =
+		(struct sctp_common_header *)(expected_udp + 1);
+
+	assert(packet->ip_bytes		== sizeof(data));
+	assert(packet->ipv4		== expected_ipv4);
+	assert(packet->ipv6		== NULL);
+	assert(packet->sctp		== expected_sctp);
+	assert(packet->tcp		== NULL);
+	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
+	assert(packet->icmpv4		== NULL);
+	assert(packet->icmpv6		== NULL);
+
+	assert(packet->time_usecs	== 0);
+	assert(packet->flags		== 0);
+	assert(packet->ecn		== 0);
+
+	packet_free(packet);
+}
+
+static void test_parse_sctp_udp_ipv6_packet(void)
+{
+	/* A SCTP/UDP/IPv6 packet. */
+	u8 data[] = {
+		/* 2001:db8::1:54242 > fd3d:fa7b:d17d::1:8080
+		 * udp(9899->9899): sctp: ABORT[] */
+		0x60, 0x00, 0x00, 0x00, 0x00, 0x18, 0x11, 0xff,
+		0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0xfd, 0x3d, 0xfa, 0x7b, 0xd1, 0x7d, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0x26, 0xab, 0x26, 0xab, 0x00, 0x18, 0x00, 0x00,
+		0xd3, 0xe2, 0x1f, 0x90, 0x01, 0x02, 0x03, 0x04,
+		0xc4, 0xb0, 0x47, 0x64, 0x06, 0x01, 0x00, 0x04
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data),
+			     ETHERTYPE_IPV6, IPPROTO_SCTP, &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	struct ipv6 *expected_ipv6 = (struct ipv6 *)(packet->buffer);
+	struct udp *expected_udp =
+		(struct udp *)(expected_ipv6 + 1);
+	struct sctp_common_header *expected_sctp =
+		(struct sctp_common_header *)(expected_udp + 1);
+
+	assert(packet->ip_bytes		== sizeof(data));
+	assert(packet->ipv4		== NULL);
+	assert(packet->ipv6		== expected_ipv6);
+	assert(packet->sctp		== expected_sctp);
+	assert(packet->tcp		== NULL);
+	assert(packet->udp		== NULL);
+	assert(packet->udplite		== NULL);
+	assert(packet->icmpv4		== NULL);
+	assert(packet->icmpv6		== NULL);
+
+	assert(packet->time_usecs	== 0);
+	assert(packet->flags		== 0);
+	assert(packet->ecn		== 0);
+
+	packet_free(packet);
+}
+
 
 static void test_parse_tcp_ipv4_packet(void)
 {
@@ -145,7 +244,7 @@ static void test_parse_tcp_ipv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -193,7 +292,7 @@ static void test_parse_tcp_ipv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -234,7 +333,7 @@ static void test_parse_udp_ipv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -278,7 +377,7 @@ static void test_parse_udp_ipv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -320,7 +419,7 @@ static void test_parse_udplite_ipv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -366,7 +465,7 @@ static void test_parse_udplite_ipv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -418,7 +517,7 @@ static void test_parse_ipv4_gre_ipv4_tcp_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -510,7 +609,7 @@ static void test_parse_ipv4_gre_mpls_ipv4_tcp_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -588,7 +687,7 @@ static void test_parse_icmpv4_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IP, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -642,7 +741,7 @@ static void test_parse_icmpv6_packet(void)
 	memcpy(packet->buffer, data, sizeof(data));
 	char *error = NULL;
 	enum packet_parse_result_t result =
-		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, &error);
+		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, 0, &error);
 	assert(result == PACKET_OK);
 	assert(error == NULL);
 
@@ -670,6 +769,8 @@ int main(void)
 {
 	test_parse_sctp_ipv4_packet();
 	test_parse_sctp_ipv6_packet();
+	test_parse_sctp_udp_ipv4_packet();
+	test_parse_sctp_udp_ipv6_packet();
 	test_parse_tcp_ipv4_packet();
 	test_parse_tcp_ipv6_packet();
 	test_parse_udp_ipv4_packet();

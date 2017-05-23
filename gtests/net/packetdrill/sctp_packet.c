@@ -3013,10 +3013,12 @@ new_sctp_packet(int address_family,
                 s64 tag,
                 bool bad_crc32c,
                 struct sctp_chunk_list *list,
+                u16 udp_src_port,
+                u16 udp_dst_port,
                 char **error)
 {
 	struct packet *packet;  /* the newly-allocated result packet */
-	struct header *sctp_header;  /* the SCTP header info */
+	struct header *sctp_header, *udp_header;
 	struct sctp_chunk_list_item *chunk_item;
 	struct sctp_parameter_list_item *parameter_item;
 	struct sctp_cause_list_item *cause_item;
@@ -3024,11 +3026,12 @@ new_sctp_packet(int address_family,
 	const int ip_option_bytes = 0;
 	const int ip_header_bytes = (ip_header_min_len(address_family) +
 				     ip_option_bytes);
+	const int udp_header_bytes = sizeof(struct udp);
 	const int sctp_header_bytes = sizeof(struct sctp_common_header);
 	const int sctp_chunk_bytes = list->length;
-	const int ip_bytes =
-		 ip_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+	int ip_bytes;
 	bool overbook = false;
+	bool encapsulate = (udp_src_port > 0) || (udp_dst_port > 0);
 
 	/* Sanity-check all the various lengths */
 	if (ip_option_bytes & 0x3) {
@@ -3038,6 +3041,11 @@ new_sctp_packet(int address_family,
 		return NULL;
 	}
 	assert((ip_header_bytes & 0x3) == 0);
+
+	ip_bytes = ip_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+	if (encapsulate) {
+		ip_bytes += udp_header_bytes;
+	}
 
 	if (ip_bytes > MAX_SCTP_DATAGRAM_BYTES) {
 		asprintf(error, "SCTP packet too large");
@@ -3383,7 +3391,6 @@ new_sctp_packet(int address_family,
 	/* Allocate and zero out a packet object of the desired size */
 	packet = packet_new(overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
 	memset(packet->buffer, 0, overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
-
 	packet->direction = direction;
 	packet->flags = 0;
 	if (bad_crc32c) {
@@ -3395,14 +3402,29 @@ new_sctp_packet(int address_family,
 	packet->ecn = ecn;
 
 	/* Set IP header fields */
-	set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-			     IPPROTO_SCTP);
+	if (encapsulate) {
+		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
+				     IPPROTO_UDP);
+		udp_header = packet_append_header(packet, HEADER_UDP, udp_header_bytes);
+		udp_header->total_bytes = udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+		udp_header->h.udp->src_port = htons(udp_src_port);
+		udp_header->h.udp->dst_port = htons(udp_dst_port);
+		udp_header->h.udp->len = htons(udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes);
+		udp_header->h.udp->check = htons(0);
+	} else {
+		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
+				     IPPROTO_SCTP);
+	}
 
 	sctp_header = packet_append_header(packet, HEADER_SCTP, sctp_header_bytes);
 	sctp_header->total_bytes = sctp_header_bytes + sctp_chunk_bytes;
 
 	/* Find the start of the SCTP common header of the packet */
-	packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes);
+	if (encapsulate) {
+		packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes + udp_header_bytes);
+	} else {
+		packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes);
+	}
 	u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
 
 	/* Set SCTP header fields */
@@ -3436,8 +3458,8 @@ new_sctp_packet(int address_family,
 		sctp_chunk_start += chunk_item->length;
 	}
 	free(packet->chunk_list);
+	packet->ip_bytes += sctp_chunk_bytes;
 	packet->chunk_list = list;
-	packet->ip_bytes = ip_bytes;
 	return packet;
 }
 
@@ -3453,24 +3475,27 @@ static void print_sctp_byte_list(struct sctp_byte_list *list) {
 
 struct packet *
 new_sctp_generic_packet(int address_family,
-                enum direction_t direction,
-                enum ip_ecn_t ecn,
-                s64 tag,
-                bool bad_crc32c,
-                struct sctp_byte_list *bytes,
-                char **error) {
+			enum direction_t direction,
+			enum ip_ecn_t ecn,
+			s64 tag,
+			bool bad_crc32c,
+			struct sctp_byte_list *bytes,
+			u16 udp_src_port,
+			u16 udp_dst_port,
+			char **error) {
 	struct packet *packet;  /* the newly-allocated result packet */
-	struct header *sctp_header;  /* the SCTP header info */
+	struct header *sctp_header, *udp_header;
 	struct sctp_byte_list_item *item = NULL;
 	/* Calculate lengths in bytes of all sections of the packet */
 	const int ip_option_bytes = 0;
 	const int ip_header_bytes = (ip_header_min_len(address_family) +
 				     ip_option_bytes);
+	const int udp_header_bytes = sizeof(struct udp);
 	const int sctp_header_bytes = sizeof(struct sctp_common_header);
 	const int sctp_chunk_bytes = bytes->nr_entries;
-	const int ip_bytes =
-		 ip_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+	int ip_bytes;
 	bool overbook = false;
+	bool encapsulate = (udp_src_port > 0) || (udp_dst_port > 0);
 	u16 i;
 
 #ifdef DEBUG_LOGGING
@@ -3492,6 +3517,11 @@ new_sctp_generic_packet(int address_family,
 	}
 	assert((ip_header_bytes & 0x3) == 0);
 
+	ip_bytes = ip_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+	if (encapsulate) {
+		ip_bytes += udp_header_bytes;
+	}
+
 	if (ip_bytes > MAX_SCTP_DATAGRAM_BYTES) {
 		asprintf(error, "SCTP packet too large");
 		return NULL;
@@ -3512,14 +3542,29 @@ new_sctp_generic_packet(int address_family,
 	packet->ecn = ecn;
 
 	/* Set IP header fields */
-	set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-			     IPPROTO_SCTP);
+	if (encapsulate) {
+		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
+				     IPPROTO_UDP);
+		udp_header = packet_append_header(packet, HEADER_UDP, udp_header_bytes);
+		udp_header->total_bytes = udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
+		udp_header->h.udp->src_port = htons(udp_src_port);
+		udp_header->h.udp->dst_port = htons(udp_dst_port);
+		udp_header->h.udp->len = htons(udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes);
+		udp_header->h.udp->check = htons(0);
+	} else {
+		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
+				     IPPROTO_SCTP);
+	}
 
 	sctp_header = packet_append_header(packet, HEADER_SCTP, sctp_header_bytes);
 	sctp_header->total_bytes = sctp_header_bytes + sctp_chunk_bytes;
 
 	/* Find the start of the SCTP common header of the packet */
-	packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes);
+	if (encapsulate) {
+		packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes + udp_header_bytes);
+	} else {
+		packet->sctp = (struct sctp_common_header *) (ip_start(packet) + udp_header_bytes);
+	}
 	u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
 
 	/* Set SCTP header fields */

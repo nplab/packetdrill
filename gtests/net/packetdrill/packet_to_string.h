@@ -37,7 +37,7 @@ enum dump_format_t {
  * packet 'packet'. Returns STATUS_OK on success; on failure returns
  * STATUS_ERR and sets error message.
  */
-extern int packet_to_string(struct packet *packet,
+extern int packet_to_string(struct packet *packet, u8 udp_encaps,
 			    enum dump_format_t format,
 			    char **ascii_string, char **error);
 

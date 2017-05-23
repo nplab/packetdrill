@@ -28,6 +28,6 @@
 #include "packet.h"
 
 /* Fill in layer 3 and layer 4 checksums for the given input 'packet'. */
-extern void checksum_packet(struct packet *packet);
+extern void checksum_packet(struct packet *packet, u8 udp_encaps);
 
 #endif /* __PACKET_CHECKSUM_H__ */

@@ -30,7 +30,7 @@
 enum packet_parse_result_t {
 	PACKET_OK,		/* no errors detected */
 	PACKET_BAD,		/* illegal header */
-	PACKET_UNKNOWN_L4,	/* not TCP or UDP or UDPLite */
+	PACKET_UNKNOWN_L4,	/* not SCTP or TCP or UDP or UDPLite */
 };
 
 /* Given an input packet of length 'in_bytes' stored in the buffer
@@ -42,6 +42,6 @@ enum packet_parse_result_t {
  * error message.
  */
 int parse_packet(struct packet *packet, int in_bytes,
-		 u16 ether_type, char **error);
+		 u16 ether_type, u8 udp_encaps, char **error);
 
 #endif /* __PACKET_PARSER_H__ */

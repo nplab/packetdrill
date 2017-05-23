@@ -120,7 +120,7 @@ static int mpls_header_to_string(FILE *s, struct packet *packet, int layer,
 	return STATUS_OK;
 }
 
-static int sctp_packet_to_string(FILE *s, struct packet *packet,
+static int sctp_packet_to_string(FILE *s, struct packet *packet, int i,
 				 enum dump_format_t format, char **error)
 {
 	struct sctp_chunks_iterator iter;
@@ -137,6 +137,13 @@ static int sctp_packet_to_string(FILE *s, struct packet *packet,
 	fputs("sctp", s);
 	if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
 		fputs("(bad_crc32c)", s);
+	}
+
+	if (packet->headers[i + 1].type == HEADER_UDP) {
+		struct udp *udp = packet->headers[i + 1].h.udp;
+
+		fprintf(s, "/udp(%u > %u)",
+			ntohs(udp->src_port), ntohs(udp->dst_port));
 	}
 	fputc(':', s);
 
@@ -167,7 +174,7 @@ static int sctp_packet_to_string(FILE *s, struct packet *packet,
 /* Print a string representation of the TCP packet:
  *  direction opt_ip_info flags seq ack window tcp_options
  */
-static int tcp_packet_to_string(FILE *s, struct packet *packet,
+static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 				enum dump_format_t format, char **error)
 {
 	int result = STATUS_OK;       /* return value */
@@ -176,7 +183,6 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet,
 		endpoints_to_string(s, packet);
 		fputc(' ', s);
 	}
-
 
 	/* We print flags in the same order as tcpdump 4.1.1. */
 	if (packet->tcp->fin)
@@ -214,6 +220,13 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet,
 		else
 			fprintf(s, "<%s>", tcp_options);
 		free(tcp_options);
+	}
+
+	if (packet->headers[i + 1].type == HEADER_UDP) {
+		struct udp *udp = packet->headers[i + 1].h.udp;
+
+		fprintf(s, "/udp(%u > %u)",
+			ntohs(udp->src_port), ntohs(udp->dst_port));
 	}
 
 	if (format == DUMP_VERBOSE)
@@ -297,7 +310,7 @@ static int encap_header_to_string(FILE *s, struct packet *packet, int layer,
 	return printer(s, packet, layer, format, error);
 }
 
-int packet_to_string(struct packet *packet,
+int packet_to_string(struct packet *packet, u8 udp_encaps,
 		     enum dump_format_t format,
 		     char **ascii_string, char **error)
 {
@@ -307,9 +320,14 @@ int packet_to_string(struct packet *packet,
 	FILE *s = open_memstream(ascii_string, &size);  /* output string */
 	int i;
 	int header_count = packet_header_count(packet);
+	int limit;
 
 	/* Print any encapsulation headers preceding layer 3 and 4 headers. */
-	for (i = 0; i < header_count - 2; ++i) {
+	if (udp_encaps == 0)
+		limit = header_count - 2;
+	else
+		limit = header_count - 3;
+	for (i = 0; i < limit; ++i) {
 		if (packet->headers[i].type == HEADER_NONE)
 			break;
 		if (encap_header_to_string(s, packet, i, format, error))
@@ -320,10 +338,12 @@ int packet_to_string(struct packet *packet,
 		fputs("[NO IP HEADER]", s);
 	} else {
 		if (packet->sctp != NULL) {
-			if (sctp_packet_to_string(s, packet, format, error))
+			if (sctp_packet_to_string(s, packet, limit, format,
+						  error))
 				goto out;
 		} else if (packet->tcp != NULL) {
-			if (tcp_packet_to_string(s, packet, format, error))
+			if (tcp_packet_to_string(s, packet, limit, format,
+						 error))
 				goto out;
 		} else if (packet->udp != NULL) {
 			if (udp_packet_to_string(s, packet, format, error))
