@@ -330,6 +330,7 @@ static struct socket *handle_listen_for_script_packet(
 
 #if defined(DEBUG)
 	if (debug_logging) {
+#if 0
 		char local_string[ADDR_STR_LEN];
 		char remote_string[ADDR_STR_LEN];
 		DEBUGP("live: local: %s.%d\n",
@@ -338,6 +339,7 @@ static struct socket *handle_listen_for_script_packet(
 		DEBUGP("live: remote: %s.%d\n",
 		       ip_to_string(&socket->live.remote.ip, remote_string),
 		       ntohs(socket->live.remote.port));
+#endif
 		if (packet->tcp != NULL) {
 			DEBUGP("live: ISN: %u\n", socket->live.remote_isn);
 		} else {
