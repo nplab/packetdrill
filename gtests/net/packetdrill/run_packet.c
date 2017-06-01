@@ -633,16 +633,22 @@ static int map_inbound_icmp_udplite_packet(
 static int map_inbound_icmp_packet(
 	struct socket *socket,
 	struct packet *live_packet,
-	bool encapsulated,
+	u8 udp_encaps,
 	char **error)
 {
-	if (packet_echoed_ip_protocol(live_packet) == IPPROTO_SCTP)
-		return map_inbound_icmp_sctp_packet(socket, live_packet, encapsulated, error);
-	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_TCP)
-		return map_inbound_icmp_tcp_packet(socket, live_packet, encapsulated, error);
-	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_UDP)
+	int protocol;
+
+	protocol = packet_echoed_ip_protocol(live_packet);
+	if ((protocol == IPPROTO_UDP) && (udp_encaps != 0)) {
+		protocol = udp_encaps;
+	}
+	if (protocol == IPPROTO_SCTP)
+		return map_inbound_icmp_sctp_packet(socket, live_packet, udp_encaps == IPPROTO_SCTP, error);
+	else if (protocol == IPPROTO_TCP)
+		return map_inbound_icmp_tcp_packet(socket, live_packet, udp_encaps == IPPROTO_TCP, error);
+	else if (protocol == IPPROTO_UDP)
 		return map_inbound_icmp_udp_packet(socket, live_packet, error);
-	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_UDPLITE)
+	else if (protocol == IPPROTO_UDPLITE)
 		return map_inbound_icmp_udplite_packet(socket, live_packet,
 						       error);
 	else
@@ -921,7 +927,7 @@ static int map_inbound_packet(
 	set_packet_tuple(live_packet, &live_inbound, udp_encaps != 0);
 
 	if ((live_packet->icmpv4 != NULL) || (live_packet->icmpv6 != NULL))
-		return map_inbound_icmp_packet(socket, live_packet, udp_encaps != 0, error);
+		return map_inbound_icmp_packet(socket, live_packet, udp_encaps, error);
 
 	if (live_packet->sctp) {
 		return map_inbound_sctp_packet(socket, live_packet, error);
