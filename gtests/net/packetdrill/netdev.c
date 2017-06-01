@@ -112,10 +112,20 @@ static void check_remote_address(struct config *config,
 static void create_device(struct config *config, struct local_netdev *netdev)
 {
 	/* Open the tun device, which "clones" it for our purposes. */
-	int tun_fd = open(TUN_PATH, O_RDWR);
-	if (tun_fd < 0)
-		die_perror("open tun device");
+	int tun_fd;
 
+	tun_fd = open(TUN_PATH, O_RDWR);
+#if defined(__FreeBSD__)
+	if ((tun_fd < 0) && (errno == ENOENT)) {
+		if (system("kldload -q if_tun") < 0) {
+			die_perror("kldload -q if_tun");
+		}
+		tun_fd = open(TUN_PATH, O_RDWR);
+	}
+#endif
+	if (tun_fd < 0) {
+		die_perror("open tun device");
+	}
 	netdev->tun_fd = tun_fd;
 
 #ifdef linux
