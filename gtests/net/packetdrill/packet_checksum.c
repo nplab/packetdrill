@@ -31,7 +31,7 @@
 #include "ipv6.h"
 #include "tcp.h"
 
-static void checksum_ipv4_packet(struct packet *packet, u8 udp_encaps)
+static void checksum_ipv4_packet(struct packet *packet)
 {
 	struct ipv4 *ipv4 = packet->ipv4;
 
@@ -50,7 +50,7 @@ static void checksum_ipv4_packet(struct packet *packet, u8 udp_encaps)
 		struct udp *udp;
 
 		sctp->crc32c = htonl(0);
-		if (udp_encaps == IPPROTO_SCTP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
 		} else {
 			sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
@@ -58,7 +58,7 @@ static void checksum_ipv4_packet(struct packet *packet, u8 udp_encaps)
 		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
 			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
 		}
-		if (udp_encaps == IPPROTO_SCTP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			udp = ((struct udp *)sctp) - 1;
 			udp->check = 0;
 			udp->check = tcp_udp_v4_checksum(ipv4->src_ip,
@@ -71,7 +71,7 @@ static void checksum_ipv4_packet(struct packet *packet, u8 udp_encaps)
 		struct udp *udp;
 
 		tcp->check = 0;
-		if (udp_encaps == IPPROTO_TCP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			tcp->check = tcp_udp_v4_checksum(ipv4->src_ip,
 							 ipv4->dst_ip,
 							 IPPROTO_TCP, tcp,
@@ -82,7 +82,7 @@ static void checksum_ipv4_packet(struct packet *packet, u8 udp_encaps)
 							 IPPROTO_TCP, tcp,
 							 l4_bytes);
 		}
-		if (udp_encaps == IPPROTO_TCP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			udp = ((struct udp *)tcp) - 1;
 			udp->check = 0;
 			udp->check = tcp_udp_v4_checksum(ipv4->src_ip,
@@ -120,7 +120,7 @@ static void checksum_ipv4_packet(struct packet *packet, u8 udp_encaps)
 	}
 }
 
-static void checksum_ipv6_packet(struct packet *packet, u8 udp_encaps)
+static void checksum_ipv6_packet(struct packet *packet)
 {
 	struct ipv6 *ipv6 = packet->ipv6;
 
@@ -138,7 +138,7 @@ static void checksum_ipv6_packet(struct packet *packet, u8 udp_encaps)
 		struct udp *udp;
 
 		sctp->crc32c = htonl(0);
-		if (udp_encaps == IPPROTO_SCTP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
 		} else {
 			sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
@@ -146,7 +146,7 @@ static void checksum_ipv6_packet(struct packet *packet, u8 udp_encaps)
 		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
 			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
 		}
-		if (udp_encaps == IPPROTO_SCTP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			udp = ((struct udp *)sctp) - 1;
 			udp->check = 0;
 			udp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
@@ -159,7 +159,7 @@ static void checksum_ipv6_packet(struct packet *packet, u8 udp_encaps)
 		struct udp *udp;
 
 		tcp->check = 0;
-		if (udp_encaps == IPPROTO_TCP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			tcp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
 							 &ipv6->dst_ip,
 							 IPPROTO_TCP, tcp,
@@ -170,7 +170,7 @@ static void checksum_ipv6_packet(struct packet *packet, u8 udp_encaps)
 							 IPPROTO_TCP, tcp,
 							 l4_bytes);
 		}
-		if (udp_encaps == IPPROTO_TCP) {
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			udp = ((struct udp *)tcp) - 1;
 			udp->check = 0;
 			udp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
@@ -211,13 +211,13 @@ static void checksum_ipv6_packet(struct packet *packet, u8 udp_encaps)
 	}
 }
 
-void checksum_packet(struct packet *packet, u8 udp_encaps)
+void checksum_packet(struct packet *packet)
 {
 	int address_family = packet_address_family(packet);
 	if (address_family == AF_INET)
-		return checksum_ipv4_packet(packet, udp_encaps);
+		return checksum_ipv4_packet(packet);
 	else if (address_family == AF_INET6)
-		return checksum_ipv6_packet(packet, udp_encaps);
+		return checksum_ipv6_packet(packet);
 	else
 		assert(!"bad ip version");
 }

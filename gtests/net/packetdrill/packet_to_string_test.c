@@ -68,7 +68,7 @@ static void test_sctp_ipv4_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, 0, DUMP_SHORT, &dump, &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -78,7 +78,7 @@ static void test_sctp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, 0, DUMP_FULL, &dump, &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -89,7 +89,7 @@ static void test_sctp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, 0, DUMP_VERBOSE, &dump, &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -295,7 +295,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, 0, DUMP_SHORT, &dump, &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 #if DEBUG_LOGGING == 1
 	if (status != STATUS_OK) {
 		printf("error was: %s\n", error);
@@ -362,7 +362,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, 0, DUMP_FULL, &dump, &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -425,7 +425,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, 0, DUMP_VERBOSE, &dump, &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -567,7 +567,7 @@ static void test_sctp_udp_ipv4_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, IPPROTO_SCTP, DUMP_SHORT, &dump,
+	status = packet_to_string(packet, DUMP_SHORT, &dump,
 				  &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
@@ -578,7 +578,7 @@ static void test_sctp_udp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, IPPROTO_SCTP, DUMP_FULL, &dump,
+	status = packet_to_string(packet, DUMP_FULL, &dump,
 				  &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
@@ -590,7 +590,7 @@ static void test_sctp_udp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, IPPROTO_SCTP, DUMP_VERBOSE, &dump,
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump,
 				  &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
@@ -648,8 +648,7 @@ static void test_sctp_udp_ipv6_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, IPPROTO_SCTP, DUMP_SHORT, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 #if DEBUG_LOGGING == 1
 	if (status != STATUS_OK) {
 		printf("error was: %s\n", error);
@@ -665,8 +664,7 @@ static void test_sctp_udp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, IPPROTO_SCTP, DUMP_FULL, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -677,8 +675,7 @@ static void test_sctp_udp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, IPPROTO_SCTP, DUMP_VERBOSE, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -739,8 +736,7 @@ static void test_tcp_udp_ipv4_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, IPPROTO_TCP, DUMP_SHORT, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -753,8 +749,7 @@ static void test_tcp_udp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, IPPROTO_TCP, DUMP_FULL, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -768,8 +763,7 @@ static void test_tcp_udp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, IPPROTO_TCP, DUMP_VERBOSE, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -837,8 +831,7 @@ static void test_tcp_udp_ipv6_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, IPPROTO_TCP, DUMP_SHORT, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -850,8 +843,7 @@ static void test_tcp_udp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, IPPROTO_TCP, DUMP_FULL, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -864,8 +856,7 @@ static void test_tcp_udp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, IPPROTO_TCP, DUMP_VERBOSE, &dump,
-				  &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -924,7 +915,7 @@ static void test_tcp_ipv4_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, 0, DUMP_SHORT, &dump, &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -936,7 +927,7 @@ static void test_tcp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, 0, DUMP_FULL, &dump, &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -949,7 +940,7 @@ static void test_tcp_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, 0, DUMP_VERBOSE, &dump, &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1009,7 +1000,7 @@ static void test_tcp_ipv6_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, 0, DUMP_SHORT, &dump, &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1020,7 +1011,7 @@ static void test_tcp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, 0, DUMP_FULL, &dump, &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1032,7 +1023,7 @@ static void test_tcp_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, 0, DUMP_VERBOSE, &dump, &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1090,7 +1081,7 @@ static void test_gre_mpls_tcp_ipv4_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, 0, DUMP_FULL, &dump, &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1138,7 +1129,7 @@ static void test_udplite_ipv4_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, 0, DUMP_SHORT, &dump, &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1149,7 +1140,7 @@ static void test_udplite_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, 0, DUMP_FULL, &dump, &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1161,7 +1152,7 @@ static void test_udplite_ipv4_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, 0, DUMP_VERBOSE, &dump, &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1216,7 +1207,7 @@ static void test_udplite_ipv6_packet_to_string(void)
 	char *dump = NULL, *expected = NULL;
 
 	/* Test a DUMP_SHORT dump */
-	status = packet_to_string(packet, 0, DUMP_SHORT, &dump, &error);
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1227,7 +1218,7 @@ static void test_udplite_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_FULL dump */
-	status = packet_to_string(packet, 0, DUMP_FULL, &dump, &error);
+	status = packet_to_string(packet, DUMP_FULL, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);
@@ -1239,7 +1230,7 @@ static void test_udplite_ipv6_packet_to_string(void)
 	free(dump);
 
 	/* Test a DUMP_VERBOSE dump */
-	status = packet_to_string(packet, 0, DUMP_VERBOSE, &dump, &error);
+	status = packet_to_string(packet, DUMP_VERBOSE, &dump, &error);
 	assert(status == STATUS_OK);
 	assert(error == NULL);
 	printf("dump = '%s'\n", dump);

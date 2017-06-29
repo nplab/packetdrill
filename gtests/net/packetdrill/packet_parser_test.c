@@ -163,7 +163,7 @@ static void test_parse_sctp_udp_ipv4_packet(void)
 	assert(packet->icmpv6		== NULL);
 
 	assert(packet->time_usecs	== 0);
-	assert(packet->flags		== 0);
+	assert(packet->flags		== FLAGS_UDP_ENCAPSULATED);
 	assert(packet->ecn		== 0);
 
 	packet_free(packet);
@@ -213,7 +213,7 @@ static void test_parse_sctp_udp_ipv6_packet(void)
 	assert(packet->icmpv6		== NULL);
 
 	assert(packet->time_usecs	== 0);
-	assert(packet->flags		== 0);
+	assert(packet->flags		== FLAGS_UDP_ENCAPSULATED);
 	assert(packet->ecn		== 0);
 
 	packet_free(packet);

@@ -3392,7 +3392,7 @@ new_sctp_packet(int address_family,
 	packet = packet_new(overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
 	memset(packet->buffer, 0, overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
 	packet->direction = direction;
-	packet->flags = 0;
+	packet->flags = encapsulate ? FLAGS_UDP_ENCAPSULATED : 0;
 	if (bad_crc32c) {
 		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
 	}
@@ -3538,6 +3538,9 @@ new_sctp_generic_packet(int address_family,
 	}
 	if (tag != -1) {
 		packet->flags |= FLAGS_SCTP_EXPLICIT_TAG;
+	}
+	if (encapsulate) {
+		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
 	}
 	packet->ecn = ecn;
 

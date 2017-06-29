@@ -112,6 +112,7 @@ struct packet {
 #define FLAGS_SCTP_BAD_CRC32C     0x8  /* compute bad CRC32C for SCTP packets */
 #define FLAGS_SCTP_EXPLICIT_TAG   0x10 /* verification tag specified */
 #define FLAGS_SCTP_GENERIC_PACKET 0x20 /* set if it is a generic packet */
+#define FLAGS_UDP_ENCAPSULATED    0x40 /* TCP/UDP or SCTP/UDP encapsulated */
 
 	enum ip_ecn_t ecn;	/* IPv4/IPv6 ECN treatment for packet */
 

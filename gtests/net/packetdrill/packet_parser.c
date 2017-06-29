@@ -464,15 +464,17 @@ static int parse_udp(struct packet *packet, u8 udp_encaps,
 
 	DEBUGP("UDP src port: %d\n", ntohs(udp->src_port));
 	DEBUGP("UDP dst port: %d\n", ntohs(udp->dst_port));
-	if (udp_encaps == IPPROTO_SCTP)
+	if (udp_encaps == IPPROTO_SCTP) {
+		packet->flags |= FLAGS_UDP_ENCAPSULATED;
 		return parse_sctp(packet, p + udp_header_len,
 				  layer4_bytes - udp_header_len,
 				  packet_end, error);
-	else if (udp_encaps == IPPROTO_TCP)
+	} else if (udp_encaps == IPPROTO_TCP) {
+		packet->flags |= FLAGS_UDP_ENCAPSULATED;
 		return parse_tcp(packet, p + udp_header_len,
 				 layer4_bytes - udp_header_len,
 				  packet_end, error);
-	else {
+	} else {
 		assert(udp_encaps == 0);
 		packet->udp = udp;
 		p += layer4_bytes;

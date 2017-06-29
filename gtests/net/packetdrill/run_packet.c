@@ -101,7 +101,7 @@ static u16 next_ephemeral_port(struct state *state)
  * *error followed by the given type and a hex dump of the given
  * packet.
  */
-static void add_packet_dump(struct state *state, char **error, const char *type,
+static void add_packet_dump(char **error, const char *type,
 			    struct packet *packet, s64 time_usecs,
 			    enum dump_format_t format)
 {
@@ -109,7 +109,7 @@ static void add_packet_dump(struct state *state, char **error, const char *type,
 		char *old_error = *error;
 		char *dump = NULL, *dump_error = NULL;
 
-		packet_to_string(packet, state->config->udp_encaps, format,
+		packet_to_string(packet, format,
 				 &dump, &dump_error);
 		asprintf(error, "%s\n%s packet: %9.6f %s%s%s",
 			 old_error, type, usecs_to_secs(time_usecs), dump,
@@ -129,8 +129,8 @@ static void verbose_packet_dump(struct state *state, const char *type,
 	if (state->config->verbose) {
 		char *dump = NULL, *dump_error = NULL;
 
-		packet_to_string(live_packet, state->config->udp_encaps,
-				 DUMP_SHORT, &dump, &dump_error);
+		packet_to_string(live_packet, DUMP_SHORT,
+				 &dump, &dump_error);
 
 		printf("%s packet: %9.6f %s%s%s\n",
 		       type, usecs_to_secs(time_usecs), dump,
@@ -2893,10 +2893,10 @@ static int verify_outbound_live_packet(
 	result = STATUS_OK;
 
 out:
-	add_packet_dump(state, error, "script", script_packet, script_usecs,
+	add_packet_dump(error, "script", script_packet, script_usecs,
 			DUMP_SHORT);
 	if (actual_packet != NULL) {
-		add_packet_dump(state, error, "actual", actual_packet,
+		add_packet_dump(error, "actual", actual_packet,
 				actual_usecs, DUMP_SHORT);
 		packet_free(actual_packet);
 	}
@@ -3177,7 +3177,7 @@ static int do_outbound_script_packet(
 	/* Save the TCP header so we can reset the connection at the end. */
 	if (live_packet->tcp) {
 		socket->last_outbound_tcp_header = *(live_packet->tcp);
-		if (state->config->udp_encaps == IPPROTO_TCP) {
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			struct udp *udp = (struct udp *)(live_packet->tcp) - 1;
 
 			socket->last_outbound_udp_encaps_src_port = ntohs(udp->src_port);
@@ -3186,7 +3186,7 @@ static int do_outbound_script_packet(
 	}
 
 	if (live_packet->sctp) {
-		if (state->config->udp_encaps == IPPROTO_SCTP) {
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			struct udp *udp = (struct udp *)(live_packet->sctp) - 1;
 
 			socket->last_outbound_udp_encaps_src_port = ntohs(udp->src_port);
@@ -3206,8 +3206,7 @@ out:
 
 /* Checksum the packet and inject it into the kernel under test. */
 static int send_live_ip_packet(struct netdev *netdev,
-			       struct packet *packet,
-			       u8 udp_encaps)
+			       struct packet *packet)
 {
 	assert(packet->ip_bytes > 0);
 	/* We do IPv4 and IPv6 */
@@ -3217,7 +3216,7 @@ static int send_live_ip_packet(struct netdev *netdev,
 	       packet->icmpv4 || packet->icmpv6);
 
 	/* Fill in layer 3 and layer 4 checksums */
-	checksum_packet(packet, udp_encaps);
+	checksum_packet(packet);
 
 	return netdev_send(netdev, packet);
 }
@@ -3290,7 +3289,7 @@ static int do_inbound_script_packet(
 								break;
 							}
 						}
-						if (state->config->udp_encaps == IPPROTO_SCTP) {
+						if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 							struct udp *udp;
 
 							assert(packet->headers[i + 1].type == HEADER_UDP);
@@ -3339,7 +3338,7 @@ static int do_inbound_script_packet(
 								break;
 							}
 						}
-						if (state->config->udp_encaps == IPPROTO_SCTP) {
+						if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 							struct udp *udp;
 
 							assert(packet->headers[i + 1].type == HEADER_UDP);
@@ -3381,7 +3380,7 @@ static int do_inbound_script_packet(
 		socket->last_injected_tcp_header = *(live_packet->tcp);
 		socket->last_injected_tcp_payload_len =
 			packet_payload_len(live_packet);
-		if (state->config->udp_encaps == IPPROTO_TCP) {
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			struct udp *udp = (struct udp *)(live_packet->tcp) - 1;
 
 			socket->last_injected_udp_encaps_src_port = ntohs(udp->src_port);
@@ -3389,7 +3388,7 @@ static int do_inbound_script_packet(
 		}
 	}
 	if (live_packet->sctp) {
-		if (state->config->udp_encaps == IPPROTO_SCTP) {
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			struct udp *udp = (struct udp *)(live_packet->sctp) - 1;
 
 			socket->last_injected_udp_encaps_src_port = ntohs(udp->src_port);
@@ -3411,7 +3410,7 @@ static int do_inbound_script_packet(
 	}
 
 	/* Inject live packet into kernel. */
-	result = send_live_ip_packet(state->netdev, live_packet, state->config->udp_encaps);
+	result = send_live_ip_packet(state->netdev, live_packet);
 
 out:
 	packet_free(live_packet);
@@ -3532,7 +3531,7 @@ int reset_connection(struct state *state, struct socket *socket)
 	set_packet_tuple(packet, &live_inbound, state->config->udp_encaps != 0);
 
 	/* Inject live packet into kernel. */
-	result = send_live_ip_packet(state->netdev, packet, state->config->udp_encaps);
+	result = send_live_ip_packet(state->netdev, packet);
 
 	packet_free(packet);
 
@@ -3595,7 +3594,7 @@ int abort_association(struct state *state, struct socket *socket)
 	}
 
 	/* Inject live packet into kernel. */
-	result = send_live_ip_packet(state->netdev, packet, state->config->udp_encaps);
+	result = send_live_ip_packet(state->netdev, packet);
 
 	packet_free(packet);
 

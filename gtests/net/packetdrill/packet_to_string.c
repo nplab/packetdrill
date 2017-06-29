@@ -310,7 +310,7 @@ static int encap_header_to_string(FILE *s, struct packet *packet, int layer,
 	return printer(s, packet, layer, format, error);
 }
 
-int packet_to_string(struct packet *packet, u8 udp_encaps,
+int packet_to_string(struct packet *packet,
 		     enum dump_format_t format,
 		     char **ascii_string, char **error)
 {
@@ -323,10 +323,10 @@ int packet_to_string(struct packet *packet, u8 udp_encaps,
 	int limit;
 
 	/* Print any encapsulation headers preceding layer 3 and 4 headers. */
-	if (udp_encaps == 0)
-		limit = header_count - 2;
-	else
+	if (packet->flags & FLAGS_UDP_ENCAPSULATED)
 		limit = header_count - 3;
+	else
+		limit = header_count - 2;
 	for (i = 0; i < limit; ++i) {
 		if (packet->headers[i].type == HEADER_NONE)
 			break;

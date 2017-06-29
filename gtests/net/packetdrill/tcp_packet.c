@@ -115,7 +115,7 @@ struct packet *new_tcp_packet(int address_family,
 	memset(packet->buffer, 0, ip_bytes);
 
 	packet->direction = direction;
-	packet->flags = 0;
+	packet->flags = encapsulate ? FLAGS_UDP_ENCAPSULATED : 0;
 	packet->ecn = ecn;
 
 	/* Set IP header fields */
