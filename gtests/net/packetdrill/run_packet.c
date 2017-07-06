@@ -940,8 +940,10 @@ static int map_inbound_packet(
 	/* Remap the sequence number from script sequence number to live. */
 	const bool is_syn = live_packet->tcp->syn;
 	const u32 seq_offset = remote_seq_script_to_live_offset(socket, is_syn);
-	live_packet->tcp->seq =
-	    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
+	if ((live_packet->flags & FLAG_ABSOLUTE_SEQ) == 0) {
+		live_packet->tcp->seq =
+		    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
+	}
 
 	/* Remap the ACK and SACKs from script sequence number to live. */
 	const u32 ack_offset = local_seq_script_to_live_offset(socket, is_syn);
@@ -1188,9 +1190,12 @@ static int map_outbound_live_packet(
 	/* Rewrite TCP sequence number from live to script space. */
 	const bool is_syn = live_packet->tcp->syn;
 	const u32 seq_offset = local_seq_live_to_script_offset(socket, is_syn);
-	actual_packet->tcp->seq =
-	    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
-
+	if ((script_packet->flags & FLAG_ABSOLUTE_SEQ) == 0) {
+		actual_packet->tcp->seq =
+		    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
+	} else {
+		actual_packet->tcp->seq = live_packet->tcp->seq;
+	}
 	/* Rewrite ACKs and SACKs from live to script space. */
 	const u32 ack_offset = remote_seq_live_to_script_offset(socket, is_syn);
 	if (actual_packet->tcp->ack)
@@ -3522,7 +3527,7 @@ int reset_connection(struct state *state, struct socket *socket)
 	packet = new_tcp_packet(socket->address_family,
 				DIRECTION_INBOUND, ECN_NONE,
 				"R.", seq, 0, ack_seq, window, NULL, false,
-				udp_src_port, udp_dst_port, &error);
+				false, udp_src_port, udp_dst_port, &error);
 	if (packet == NULL)
 		die("%s", error);
 

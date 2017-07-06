@@ -460,6 +460,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct {
 		u32 start_sequence;
 		u16 payload_bytes;
+		bool absolute;
 	} tcp_sequence_info;
 	struct {
 		int protocol;
@@ -2319,7 +2320,7 @@ sctp_protocol_violation_cause_spec
 }
 
 tcp_packet_spec
-: packet_prefix opt_ip_info flags seq opt_ack opt_window opt_tcp_options opt_udp_encaps_info{
+: packet_prefix opt_ip_info flags seq opt_ack opt_window opt_tcp_options opt_udp_encaps_info {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
@@ -2335,6 +2336,7 @@ tcp_packet_spec
 			       $4.start_sequence, $4.payload_bytes,
 			       $5, $6, $7,
 			       absolute_ts_ecr,
+			       $4.absolute,
 			       $8.udp_src_port, $8.udp_dst_port,
 			       &error);
 	absolute_ts_ecr = false;
@@ -2598,6 +2600,25 @@ seq
 	}
 	$$.start_sequence = $1;
 	$$.payload_bytes = $5;
+	$$.absolute = false;
+}
+| INTEGER ':' INTEGER '(' INTEGER ')' '!' {
+	if (!is_valid_u32($1)) {
+		semantic_error("TCP start sequence number out of range");
+	}
+	if (!is_valid_u32($3)) {
+		semantic_error("TCP end sequence number out of range");
+	}
+	if (!is_valid_u16($5)) {
+		semantic_error("TCP payload size out of range");
+	}
+	if ($3 != ($1 +$5)) {
+		semantic_error("inconsistent TCP sequence numbers and "
+			       "payload size");
+	}
+	$$.start_sequence = $1;
+	$$.payload_bytes = $5;
+	$$.absolute = true;
 }
 ;
 

@@ -60,6 +60,7 @@ struct packet *new_tcp_packet(int address_family,
 			       s32 window,
 			       const struct tcp_options *tcp_options,
 			       bool abs_ts_ecr,
+			       bool abs_seq,
 			       u16 udp_src_port,
 			       u16 udp_dst_port,
 			       char **error)
@@ -182,6 +183,9 @@ struct packet *new_tcp_packet(int address_family,
 
 	if (abs_ts_ecr) {
 		packet->flags |= FLAG_ABSOLUTE_TS_ECR;
+	}
+	if (abs_seq) {
+		packet->flags |= FLAG_ABSOLUTE_SEQ;
 	}
 
 	packet->ip_bytes = ip_bytes;

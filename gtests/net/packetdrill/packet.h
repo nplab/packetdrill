@@ -109,10 +109,11 @@ struct packet {
 #define FLAG_WIN_NOCHECK          0x1  /* don't check TCP receive window */
 #define FLAG_OPTIONS_NOCHECK      0x2  /* don't check TCP options */
 #define FLAG_ABSOLUTE_TS_ECR      0x4  /* don't adjust TCP TS ecr */
-#define FLAGS_SCTP_BAD_CRC32C     0x8  /* compute bad CRC32C for SCTP packets */
-#define FLAGS_SCTP_EXPLICIT_TAG   0x10 /* verification tag specified */
-#define FLAGS_SCTP_GENERIC_PACKET 0x20 /* set if it is a generic packet */
-#define FLAGS_UDP_ENCAPSULATED    0x40 /* TCP/UDP or SCTP/UDP encapsulated */
+#define FLAG_ABSOLUTE_SEQ         0x8  /* don't adjust TCP.SEQ */
+#define FLAGS_SCTP_BAD_CRC32C     0x10 /* compute bad CRC32C for SCTP packets */
+#define FLAGS_SCTP_EXPLICIT_TAG   0x20 /* verification tag specified */
+#define FLAGS_SCTP_GENERIC_PACKET 0x40 /* set if it is a generic packet */
+#define FLAGS_UDP_ENCAPSULATED    0x80 /* TCP/UDP or SCTP/UDP encapsulated */
 
 	enum ip_ecn_t ecn;	/* IPv4/IPv6 ECN treatment for packet */
 
