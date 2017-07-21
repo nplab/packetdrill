@@ -376,9 +376,13 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(TCP_FASTOPEN)
 	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
 #endif
+#if defined(TCP_FUNCTION_BLK)
+	{ TCP_FUNCTION_BLK,                 "TCP_FUNCTION_BLK"                },
+#endif
 #if defined(TCP_REMOTE_UDP_ENCAPS_PORT)
 	{ TCP_REMOTE_UDP_ENCAPS_PORT,       "TCP_REMOTE_UDP_ENCAPS_PORT"      },
 #endif
+
 #if defined(UDPLITE_RECV_CSCOV) && defined(UDPLITE_SEND_CSCOV)
 	/* /usr/include/netinet/udplite.h */
 	{ UDPLITE_RECV_CSCOV,               "UDPLITE_RECV_CSCOV"              },

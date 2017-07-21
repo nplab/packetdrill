@@ -3175,6 +3175,27 @@ static int check_sctp_udpencaps(struct sctp_udpencaps_expr *expr,
 }
 #endif
 
+#ifdef TCP_FUNCTION_BLK
+static int check_tcp_function_set(struct tcp_function_set_expr *expr,
+			          struct tcp_function_set *tcp_function_set,
+			          char **error) {
+	if (strncmp(expr->function_set_name->value.string,
+	            tcp_function_set->function_set_name,
+	            TCP_FUNCTION_NAME_LEN_MAX)) {
+		asprintf(error, "tcp_function_set.function_set_name: expected: %s, actual: %.*s\n",
+		         expr->function_set_name->value.string,
+		         TCP_FUNCTION_NAME_LEN_MAX,
+		         tcp_function_set->function_set_name);
+		return STATUS_ERR;
+	}
+	if (check_u32_expr(expr->pcbcnt, tcp_function_set->pcbcnt,
+	                   "tcp_function_set.pcbcnt", error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -3488,6 +3509,15 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 	}
 #endif
+#ifdef TCP_FUNCTION_BLK
+	case EXPR_TCP_FUNCTION_SET: {
+		struct tcp_function_set *live_tcp_function_set = malloc(sizeof(struct tcp_function_set));
+
+		memset(live_tcp_function_set, 0, sizeof(struct tcp_function_set));
+		live_optval = live_tcp_function_set;
+		break;
+	}
+#endif
 	case EXPR_LIST:
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -3640,6 +3670,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_udpencaps(val_expression->value.sctp_udpencaps, live_optval, error);
 		break;
 #endif
+#ifdef TCP_FUNCTION_BLK
+	case EXPR_TCP_FUNCTION_SET:
+		result = check_tcp_function_set(val_expression->value.tcp_function_set, live_optval, error);
+		break;
+#endif
 	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "optval: expected: %d actual: %d",
@@ -3738,6 +3773,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
 	struct sctp_udpencaps udpencaps;
+#endif
+#ifdef TCP_FUNCTION_BLK
+	struct tcp_function_set tcp_function_set;
 #endif
 
 	if (check_arg_count(args, 5, error))
@@ -4269,6 +4307,22 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &udpencaps;
+		break;
+#endif
+#ifdef TCP_FUNCTION_BLK
+	case EXPR_TCP_FUNCTION_SET:
+		if (val_expression->value.tcp_function_set->function_set_name->type == EXPR_STRING) {
+			strncpy(tcp_function_set.function_set_name,
+			        val_expression->value.tcp_function_set->function_set_name->value.string,
+			        TCP_FUNCTION_NAME_LEN_MAX);
+		} else {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.tcp_function_set->pcbcnt,
+			    &tcp_function_set.pcbcnt, error)) {
+			return STATUS_ERR;
+		}
+		optval = &tcp_function_set;
 		break;
 #endif
 	default:

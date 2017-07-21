@@ -528,6 +528,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
+%token <reserved> FUNCTION_SET_NAME PCBCNT
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
@@ -641,6 +642,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data
 %type <expression> sf_hdtr iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
+%type <expression> tcp_function_set function_set_name pcbcnt
 %type <udp_encaps_info> opt_udp_encaps_info
 %type <sctp_header_spec> sctp_header_spec
 %type <expression> sctp_assoc_id
@@ -2850,6 +2852,9 @@ expression
 | linger            {
 	$$ = $1;
 }
+| tcp_function_set  {
+	$$ = $1;
+}
 | sf_hdtr           {
 	$$ = $1;
 }
@@ -3163,7 +3168,9 @@ l_onoff
 	}
 	$$ = new_integer_expression($3, "%ld");
 }
-| ONOFF '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| ONOFF '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 l_linger
@@ -3173,7 +3180,9 @@ l_linger
 	}
 	$$ = new_integer_expression($3, "%ld");
 }
-| LINGER '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| LINGER '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 linger
@@ -3182,6 +3191,42 @@ linger
 	$$->value.linger = calloc(1, sizeof(struct linger_expr));
 	$$->value.linger->l_onoff  = $2;
 	$$->value.linger->l_linger = $4;
+}
+;
+
+function_set_name
+: FUNCTION_SET_NAME '=' STRING {
+	$$ = new_expression(EXPR_STRING);
+	$$->value.string = $3;
+	$$->format = "\"%s\"";
+}
+| FUNCTION_SET_NAME '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+pcbcnt
+: PCBCNT '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("linger out of range");
+	}
+	$$ = new_integer_expression($3, "%lu");
+}
+| PCBCNT '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+tcp_function_set
+: '{' function_set_name ',' pcbcnt '}' {
+#if defined(__FreeBSD__)
+	$$ = new_expression(EXPR_TCP_FUNCTION_SET);
+	$$->value.tcp_function_set = calloc(1, sizeof(struct tcp_function_set_expr));
+	$$->value.tcp_function_set->function_set_name = $2;
+	$$->value.tcp_function_set->pcbcnt = $4;
+#else
+	$$ = NULL;
+#endif
 }
 ;
 
