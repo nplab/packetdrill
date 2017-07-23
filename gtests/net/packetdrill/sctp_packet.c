@@ -3463,7 +3463,7 @@ new_sctp_packet(int address_family,
 	return packet;
 }
 
-#ifdef DEBUG_LOGGING
+#ifdef DEBUG
 static void print_sctp_byte_list(struct sctp_byte_list *list) {
 	struct sctp_byte_list_item *item;
 
@@ -3498,7 +3498,7 @@ new_sctp_generic_packet(int address_family,
 	bool encapsulate = (udp_src_port > 0) || (udp_dst_port > 0);
 	u16 i;
 
-#ifdef DEBUG_LOGGING
+#ifdef DEBUG
 	print_sctp_byte_list(bytes);
 #endif
 
