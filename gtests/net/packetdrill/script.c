@@ -332,11 +332,13 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.linger->l_onoff);
 		free_expression(expression->value.linger->l_linger);
 		break;
+#if defined(__FreeBSD__)
 	case EXPR_TCP_FUNCTION_SET:
 		assert(expression->value.tcp_function_set);
 		free_expression(expression->value.tcp_function_set->function_set_name);
 		free_expression(expression->value.tcp_function_set->pcbcnt);
 		break;
+#endif
 	case EXPR_SCTP_RTOINFO:
 		assert(expression->value.sctp_rtoinfo);
 		free_expression(expression->value.sctp_rtoinfo->srto_assoc_id);
@@ -2765,10 +2767,12 @@ static int evaluate(struct expression *in,
 		memcpy(&out->value.linger, &in->value.linger,
 		       sizeof(in->value.linger));
 		break;
+#if defined(__FreeBSD__)
 	case EXPR_TCP_FUNCTION_SET:		/* copy as-is */
 		memcpy(&out->value.tcp_function_set, &in->value.tcp_function_set,
 		       sizeof(in->value.tcp_function_set));
 		break;
+#endif
 	case EXPR_SCTP_RTOINFO:
 		result = evaluate_sctp_rtoinfo_expression(in, out, error);
 		break;
