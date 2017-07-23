@@ -725,7 +725,7 @@ static void test_tcp_udp_ipv4_packet_to_string(void)
 		parse_packet(packet, sizeof(data), ETHERTYPE_IP, IPPROTO_TCP,
 			     &error);
 #if DEBUG_LOGGING == 1
-	if (result != STATUS_OK) {
+	if (result != PACKET_OK) {
 		printf("error was: %s\n", error);
 	}
 #endif
@@ -820,7 +820,7 @@ static void test_tcp_udp_ipv6_packet_to_string(void)
 		parse_packet(packet, sizeof(data), ETHERTYPE_IPV6, IPPROTO_TCP,
 			     &error);
 #if DEBUG_LOGGING == 1
-	if (result != STATUS_OK) {
+	if (result != PACKET_OK) {
 		printf("error was: %s\n", error);
 	}
 #endif
