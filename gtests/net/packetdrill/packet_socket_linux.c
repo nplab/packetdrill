@@ -175,7 +175,7 @@ void packet_socket_set_filter(struct packet_socket *psock,
 	bpfcode.filter[3].k = ((client_ether[0] << 8)  |
 			       (client_ether[1]));
 
-	if (DEBUG_LOGGING) {
+	if (debug_logging) {
 		int i;
 		DEBUGP("filter constants:\n");
 		for (i = 0; i < bpfcode.len; ++i)
