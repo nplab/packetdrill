@@ -3179,14 +3179,16 @@ static int check_sctp_udpencaps(struct sctp_udpencaps_expr *expr,
 static int check_tcp_function_set(struct tcp_function_set_expr *expr,
 			          struct tcp_function_set *tcp_function_set,
 			          char **error) {
-	if (strncmp(expr->function_set_name->value.string,
-	            tcp_function_set->function_set_name,
-	            TCP_FUNCTION_NAME_LEN_MAX)) {
-		asprintf(error, "tcp_function_set.function_set_name: expected: %s, actual: %.*s\n",
-		         expr->function_set_name->value.string,
-		         TCP_FUNCTION_NAME_LEN_MAX,
-		         tcp_function_set->function_set_name);
-		return STATUS_ERR;
+	if (expr->function_set_name->type != EXPR_ELLIPSIS) {
+		if (strncmp(expr->function_set_name->value.string,
+		            tcp_function_set->function_set_name,
+		            TCP_FUNCTION_NAME_LEN_MAX)) {
+			asprintf(error, "tcp_function_set.function_set_name: expected: %s, actual: %.*s\n",
+			         expr->function_set_name->value.string,
+			         TCP_FUNCTION_NAME_LEN_MAX,
+			         tcp_function_set->function_set_name);
+			return STATUS_ERR;
+		}
 	}
 	if (check_u32_expr(expr->pcbcnt, tcp_function_set->pcbcnt,
 	                   "tcp_function_set.pcbcnt", error))
@@ -4311,13 +4313,12 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef TCP_FUNCTION_BLK
 	case EXPR_TCP_FUNCTION_SET:
-		if (val_expression->value.tcp_function_set->function_set_name->type == EXPR_STRING) {
-			strncpy(tcp_function_set.function_set_name,
-			        val_expression->value.tcp_function_set->function_set_name->value.string,
-			        TCP_FUNCTION_NAME_LEN_MAX);
-		} else {
+		if (check_type(val_expression->value.tcp_function_set->function_set_name, EXPR_STRING, error)) {
 			return STATUS_ERR;
 		}
+		strncpy(tcp_function_set.function_set_name,
+		        val_expression->value.tcp_function_set->function_set_name->value.string,
+		        TCP_FUNCTION_NAME_LEN_MAX);
 		if (get_u32(val_expression->value.tcp_function_set->pcbcnt,
 			    &tcp_function_set.pcbcnt, error)) {
 			return STATUS_ERR;
