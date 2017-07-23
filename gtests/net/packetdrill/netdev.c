@@ -84,13 +84,19 @@ static void cleanup_old_device(struct config *config,
 {
 #if defined(__NetBSD__)
 	char *cleanup_command = NULL;
+#ifdef DEBUG
 	int result;
+#endif
 
 	asprintf(&cleanup_command,
 		 "/sbin/ifconfig %s down delete > /dev/null 2>&1",
 		 TUN_DEV);
 	DEBUGP("running: '%s'\n", cleanup_command);
+#ifdef DEBUG
 	result = system(cleanup_command);
+#else
+	system(cleanup_command);
+#endif
 	DEBUGP("result: %d\n", result);
 	free(cleanup_command);
 #endif  /* defined(__NetBSD__) */
