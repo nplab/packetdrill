@@ -44,22 +44,24 @@
 #include "packet.h"
 #include "tcp.h"
 
-static int parse_ipv4(struct packet *packet, u8 *header_start, u8 *packet_end,
-		      char **error);
-static int parse_ipv6(struct packet *packet, u8 *header_start, u8 *packet_end,
-		      char **error);
-static int parse_mpls(struct packet *packet, u8 *header_start, u8 *packet_end,
-		      char **error);
+static int parse_ipv4(struct packet *packet, u8 udp_encaps,
+		      u8 *header_start, u8 *packet_end, char **error);
+static int parse_ipv6(struct packet *packet, u8 udp_encaps,
+		      u8 *header_start, u8 *packet_end, char **error);
+static int parse_mpls(struct packet *packet, u8 udp_encaps,
+		      u8 *header_start, u8 *packet_end, char **error);
 static int parse_layer3_packet_by_proto(struct packet *packet,
-					u16 proto, u8 *header_start,
-					u8 *packet_end, char **error);
-static int parse_layer4(struct packet *packet, u8 *header_start,
+					u16 proto, u8 udp_encaps,
+					u8 *header_start, u8 *packet_end,
+					char **error);
+static int parse_layer4(struct packet *packet, u8 udp_encaps, u8 *header_start,
 			int layer4_protocol, int layer4_bytes,
 			u8 *packet_end, bool *is_inner, char **error);
 
 static int parse_layer3_packet_by_proto(struct packet *packet,
-					u16 proto, u8 *header_start,
-					u8 *packet_end, char **error)
+					u16 proto, u8 udp_encaps,
+					u8 *header_start, u8 *packet_end,
+					char **error)
 {
 	u8 *p = header_start;
 
@@ -77,7 +79,8 @@ static int parse_layer3_packet_by_proto(struct packet *packet,
 		 */
 		ip = (struct ipv4 *)p;
 		if (ip->version == 4) {
-			return parse_ipv4(packet, p, packet_end, error);
+			return parse_ipv4(packet, udp_encaps, p, packet_end,
+					  error);
 		} else {
 			asprintf(error, "Bad IP version for ETHERTYPE_IP");
 			goto error_out;
@@ -96,14 +99,15 @@ static int parse_layer3_packet_by_proto(struct packet *packet,
 		 */
 		ip = (struct ipv6 *)p;
 		if (ip->version == 6) {
-			return parse_ipv6(packet, p, packet_end, error);
+			return parse_ipv6(packet, udp_encaps, p, packet_end,
+					  error);
 		} else {
 			asprintf(error, "Bad IP version for ETHERTYPE_IPV6");
 			goto error_out;
 		}
 	} else if ((proto == ETHERTYPE_MPLS_UC) ||
 		   (proto == ETHERTYPE_MPLS_MC)) {
-		return parse_mpls(packet, p, packet_end, error);
+		return parse_mpls(packet, udp_encaps, p, packet_end, error);
 	} else {
 		return PACKET_UNKNOWN_L4;
 	}
@@ -112,7 +116,7 @@ error_out:
 	return PACKET_BAD;
 }
 
-static int parse_layer3_packet(struct packet *packet,
+static int parse_layer3_packet(struct packet *packet, u8 udp_encaps,
 			       u8 *header_start, u8 *packet_end,
 			       char **error)
 {
@@ -131,16 +135,16 @@ static int parse_layer3_packet(struct packet *packet,
 	 */
 	ip = (struct ipv4 *) (p);
 	if (ip->version == 4)
-		return parse_ipv4(packet, p, packet_end, error);
+		return parse_ipv4(packet, udp_encaps, p, packet_end, error);
 	else if (ip->version == 6)
-		return parse_ipv6(packet, p, packet_end, error);
+		return parse_ipv6(packet, udp_encaps, p, packet_end, error);
 
 	asprintf(error, "Unsupported IP version");
 	return PACKET_BAD;
 }
 
 int parse_packet(struct packet *packet, int in_bytes,
-		 u16 ether_type, char **error)
+		 u16 ether_type, u8 udp_encaps, char **error)
 {
 	assert(in_bytes <= packet->buffer_bytes);
 	char *message = NULL;		/* human-readable error summary */
@@ -150,7 +154,7 @@ int parse_packet(struct packet *packet, int in_bytes,
 	/* packet_end points to the byte beyond the end of packet. */
 	u8 *packet_end = packet->buffer + in_bytes;
 
-	result = parse_layer3_packet_by_proto(packet, ether_type,
+	result = parse_layer3_packet_by_proto(packet, ether_type, udp_encaps,
 					      header_start, packet_end, error);
 
 	if (result != PACKET_BAD)
@@ -170,8 +174,8 @@ int parse_packet(struct packet *packet, int in_bytes,
  * packet_parse_result_t.
  * Note that packet_end points to the byte beyond the end of packet.
  */
-static int parse_ipv4(struct packet *packet, u8 *header_start, u8 *packet_end,
-		      char **error)
+static int parse_ipv4(struct packet *packet, u8 udp_encaps,
+		      u8 *header_start, u8 *packet_end, char **error)
 {
 	struct header *ip_header = NULL;
 	u8 *p = header_start;
@@ -247,8 +251,8 @@ static int parse_ipv4(struct packet *packet, u8 *header_start, u8 *packet_end,
 	/* Examine the L4 header. */
 	const int layer4_bytes = ip_total_bytes - ip_header_bytes;
 	const int layer4_protocol = ipv4->protocol;
-	result = parse_layer4(packet, p, layer4_protocol, layer4_bytes,
-			      packet_end, &is_inner, error);
+	result = parse_layer4(packet, udp_encaps, p, layer4_protocol,
+			      layer4_bytes, packet_end, &is_inner, error);
 
 	/* If this is the innermost IP header then this is the primary. */
 	if (is_inner)
@@ -268,8 +272,8 @@ error_out:
  * protocol other than TCP. Return a packet_parse_result_t.
  * Note that packet_end points to the byte beyond the end of packet.
  */
-static int parse_ipv6(struct packet *packet, u8 *header_start, u8 *packet_end,
-		      char **error)
+static int parse_ipv6(struct packet *packet, u8 udp_encaps,
+		      u8 *header_start, u8 *packet_end, char **error)
 {
 	struct header *ip_header = NULL;
 	u8 *p = header_start;
@@ -321,8 +325,8 @@ static int parse_ipv6(struct packet *packet, u8 *header_start, u8 *packet_end,
 	/* Examine the L4 header. */
 	const int layer4_bytes = ip_total_bytes - ip_header_bytes;
 	const int layer4_protocol = ipv6->next_header;
-	result = parse_layer4(packet, p, layer4_protocol, layer4_bytes,
-			      packet_end, &is_inner, error);
+	result = parse_layer4(packet, udp_encaps, p, layer4_protocol,
+			      layer4_bytes, packet_end, &is_inner, error);
 
 	/* If this is the innermost IP header then this is the primary. */
 	if (is_inner)
@@ -422,19 +426,21 @@ error_out:
 }
 
 /* Parse the UDP header. Return a packet_parse_result_t. */
-static int parse_udp(struct packet *packet, u8 *layer4_start, int layer4_bytes,
-		     u8 *packet_end, char **error)
+static int parse_udp(struct packet *packet, u8 udp_encaps,
+		     u8 *layer4_start, int layer4_bytes, u8 *packet_end,
+		     char **error)
 {
 	struct header *udp_header = NULL;
 	u8 *p = layer4_start;
+	struct udp *udp;
 
 	assert(layer4_bytes >= 0);
 	if (layer4_bytes < sizeof(struct udp)) {
 		asprintf(error, "Truncated UDP header");
 		goto error_out;
 	}
-	packet->udp = (struct udp *) p;
-	const int udp_len = ntohs(packet->udp->len);
+	udp = (struct udp *) p;
+	const int udp_len = ntohs(udp->len);
 	const int udp_header_len = sizeof(struct udp);
 	if (udp_len < udp_header_len) {
 		asprintf(error, "UDP datagram length too small for UDP header");
@@ -456,12 +462,25 @@ static int parse_udp(struct packet *packet, u8 *layer4_start, int layer4_bytes,
 	}
 	udp_header->total_bytes = layer4_bytes;
 
-	p += layer4_bytes;
-	assert(p <= packet_end);
-
-	DEBUGP("UDP src port: %d\n", ntohs(packet->udp->src_port));
-	DEBUGP("UDP dst port: %d\n", ntohs(packet->udp->dst_port));
-	return PACKET_OK;
+	DEBUGP("UDP src port: %d\n", ntohs(udp->src_port));
+	DEBUGP("UDP dst port: %d\n", ntohs(udp->dst_port));
+	if (udp_encaps == IPPROTO_SCTP) {
+		packet->flags |= FLAGS_UDP_ENCAPSULATED;
+		return parse_sctp(packet, p + udp_header_len,
+				  layer4_bytes - udp_header_len,
+				  packet_end, error);
+	} else if (udp_encaps == IPPROTO_TCP) {
+		packet->flags |= FLAGS_UDP_ENCAPSULATED;
+		return parse_tcp(packet, p + udp_header_len,
+				 layer4_bytes - udp_header_len,
+				  packet_end, error);
+	} else {
+		assert(udp_encaps == 0);
+		packet->udp = udp;
+		p += layer4_bytes;
+		assert(p <= packet_end);
+		return PACKET_OK;
+	}
 
 error_out:
 	return PACKET_BAD;
@@ -585,8 +604,9 @@ error_out:
 }
 
 /* Parse the GRE header. Return a packet_parse_result_t. */
-static int parse_gre(struct packet *packet, u8 *layer4_start, int layer4_bytes,
-		     u8 *packet_end, char **error)
+static int parse_gre(struct packet *packet, u8 udp_encaps,
+		     u8 *layer4_start, int layer4_bytes, u8 *packet_end,
+		     char **error)
 {
 	struct header *gre_header = NULL;
 	u8 *p = layer4_start;
@@ -629,14 +649,14 @@ static int parse_gre(struct packet *packet, u8 *layer4_start, int layer4_bytes,
 	p += gre_header_len;
 	assert(p <= packet_end);
 	return parse_layer3_packet_by_proto(packet, ntohs(gre->protocol),
-					    p, packet_end, error);
+					    udp_encaps, p, packet_end, error);
 
 error_out:
 	return PACKET_BAD;
 }
 
-static int parse_mpls(struct packet *packet, u8 *header_start, u8 *packet_end,
-		      char **error)
+static int parse_mpls(struct packet *packet, u8 udp_encaps,
+		      u8 *header_start, u8 *packet_end, char **error)
 {
 	struct header *mpls_header = NULL;
 	u8 *p = header_start;
@@ -670,13 +690,13 @@ static int parse_mpls(struct packet *packet, u8 *header_start, u8 *packet_end,
 
 	/* Move on to the header inside the MPLS label stack. */
 	assert(p <= packet_end);
-	return parse_layer3_packet(packet, p, packet_end, error);
+	return parse_layer3_packet(packet, udp_encaps, p, packet_end, error);
 
 error_out:
 	return PACKET_BAD;
 }
 
-static int parse_layer4(struct packet *packet, u8 *layer4_start,
+static int parse_layer4(struct packet *packet, u8 udp_encaps, u8 *layer4_start,
 			int layer4_protocol, int layer4_bytes,
 			u8 *packet_end, bool *is_inner, char **error)
 {
@@ -690,8 +710,8 @@ static int parse_layer4(struct packet *packet, u8 *layer4_start,
 				 error);
 	} else if (layer4_protocol == IPPROTO_UDP) {
 		*is_inner = true;	/* found inner-most layer 4 */
-		return parse_udp(packet, layer4_start, layer4_bytes, packet_end,
-				 error);
+		return parse_udp(packet, udp_encaps, layer4_start, layer4_bytes,
+				 packet_end, error);
 	} else if (layer4_protocol == IPPROTO_UDPLITE) {
 		*is_inner = true;	/* found inner-most layer 4 */
 		return parse_udplite(packet, layer4_start, layer4_bytes,
@@ -706,14 +726,16 @@ static int parse_layer4(struct packet *packet, u8 *layer4_start,
 				    packet_end, error);
 	} else if (layer4_protocol == IPPROTO_GRE) {
 		*is_inner = false;
-		return parse_gre(packet, layer4_start, layer4_bytes, packet_end,
-				 error);
+		return parse_gre(packet, udp_encaps, layer4_start, layer4_bytes,
+				 packet_end, error);
 	} else if (layer4_protocol == IPPROTO_IPIP) {
 		*is_inner = false;
-		return parse_ipv4(packet, layer4_start, packet_end, error);
+		return parse_ipv4(packet, udp_encaps, layer4_start, packet_end,
+				  error);
 	} else if (layer4_protocol == IPPROTO_IPV6) {
 		*is_inner = false;
-		return parse_ipv6(packet, layer4_start, packet_end, error);
+		return parse_ipv6(packet, udp_encaps, layer4_start, packet_end,
+				  error);
 	}
 	return PACKET_UNKNOWN_L4;
 }

@@ -116,6 +116,11 @@ struct socket {
 	struct tcp last_injected_tcp_header;
 	u32 last_injected_tcp_payload_len;
 
+	u16 last_outbound_udp_encaps_dst_port;
+	u16 last_outbound_udp_encaps_src_port;
+	u16 last_injected_udp_encaps_src_port;
+	u16 last_injected_udp_encaps_dst_port;
+
 	struct sctp_cookie_echo_chunk *prepared_cookie_echo;
 	u16 prepared_cookie_echo_length;
 	struct sctp_heartbeat_ack_chunk *prepared_heartbeat_ack;
@@ -233,14 +238,15 @@ static inline void set_headers_tuple(struct ipv4 *ipv4,
 
 /* Set the tuple for a packet header echoed inside an ICMPv4/ICMPv6 message. */
 static inline void set_icmp_echoed_tuple(struct packet *packet,
-					 const struct tuple *tuple)
+					 const struct tuple *tuple,
+					 bool encapsulated)
 {
 	/* All currently supported ICMP message types include a copy
 	 * of the outbound IP header and the first few bytes inside,
 	 * which so far always means the first ICMP_ECHO_BYTES of
 	 * TCP header.
 	 */
-	DEBUGP("set_icmp_echoed_tuple");
+	DEBUGP("set_icmp_echoed_tuple encapsulated: %d\n", encapsulated);
 
 	/* Flip the direction of the tuple, since the ICMP message is
 	 * flowing in the direction opposite that of the echoed TCP/IP
@@ -250,8 +256,8 @@ static inline void set_icmp_echoed_tuple(struct packet *packet,
 	reverse_tuple(tuple, &echoed_tuple);
 	set_headers_tuple(packet_echoed_ipv4_header(packet),
 			  packet_echoed_ipv6_header(packet),
-			  packet_echoed_sctp_header(packet),
-			  packet_echoed_tcp_header(packet),
+			  packet_echoed_sctp_header(packet, encapsulated),
+			  packet_echoed_tcp_header(packet, encapsulated),
 			  packet_echoed_udp_header(packet),
 			  packet_echoed_udplite_header(packet),
 			  &echoed_tuple);
@@ -259,12 +265,12 @@ static inline void set_icmp_echoed_tuple(struct packet *packet,
 
 /* Set the tuple for a packet. */
 static inline void set_packet_tuple(struct packet *packet,
-				    const struct tuple *tuple)
+				    const struct tuple *tuple, bool encapsulated)
 {
 	set_headers_tuple(packet->ipv4, packet->ipv6, packet->sctp, packet->tcp,
 			  packet->udp, packet->udplite, tuple);
 	if ((packet->icmpv4 != NULL) || (packet->icmpv6 != NULL))
-		set_icmp_echoed_tuple(packet, tuple);
+		set_icmp_echoed_tuple(packet, tuple, encapsulated);
 }
 
 

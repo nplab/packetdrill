@@ -184,7 +184,7 @@ static int wire_server_netdev_send(struct netdev *a_netdev,
 	return result;
 }
 
-static int wire_server_netdev_receive(struct netdev *a_netdev,
+static int wire_server_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 				      struct packet **packet, char **error)
 {
 	struct wire_server_netdev *netdev = to_server_netdev(a_netdev);
@@ -192,8 +192,8 @@ static int wire_server_netdev_receive(struct netdev *a_netdev,
 
 	DEBUGP("wire_server_netdev_receive\n");
 
-	return netdev_receive_loop(netdev->psock, DIRECTION_INBOUND, packet,
-				   &num_packets, error);
+	return netdev_receive_loop(netdev->psock, DIRECTION_INBOUND, udp_encaps,
+				   packet, &num_packets, error);
 }
 
 struct netdev_ops wire_server_netdev_ops = {

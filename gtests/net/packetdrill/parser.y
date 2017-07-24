@@ -460,6 +460,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	struct {
 		u32 start_sequence;
 		u16 payload_bytes;
+		bool absolute;
 	} tcp_sequence_info;
 	struct {
 		int protocol;
@@ -467,7 +468,17 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 		u32 verification_tag;	/* used for SCTP */
 		u32 start_sequence;	/* used for TCP */
 		u16 checksum_coverage;	/* used for UDPLite */
+		u16 udp_src_port;
+		u16 udp_dst_port;
 	} transport_info;
+	struct {
+		u16 udp_src_port;
+		u16 udp_dst_port;
+	} udp_encaps_info;
+	struct {
+		bool bad_crc32c;
+		s64 tag;
+	} sctp_header_spec;
 	struct option_list *option;
 	struct event *event;
 	struct packet *packet;
@@ -517,6 +528,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
+%token <reserved> FUNCTION_SET_NAME PCBCNT
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
@@ -590,6 +602,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> STRRESET_TYPE STRRESET_FLAGS STRRESET_LENGTH STRRESET_ASSOC_ID STRRESET_STREAM_LIST
 %token <reserved> ASSOCRESET_TYPE ASSOCRESET_FLAGS ASSOCRESET_LENGTH ASSOCRESET_ASSOC_ID ASSOCRESET_LOCAL_TSN ASSOCRESET_REMOTE_TSN
 %token <reserved> STRCHANGE_TYPE STRCHANGE_FLAGS STRCHANGE_LENGTH STRCHANGE_ASSOC_ID STRCHANGE_INSTRMS STRCHANGE_OUTSTRMS
+%token <reserved> SUE_ASSOC_ID SUE_ADDRESS SUE_PORT
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
@@ -628,7 +641,11 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> decimal_integer hex_integer data
 %type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data
 %type <expression> sf_hdtr iovec pollfd opt_revents
-%type <expression> linger l_onoff l_linger sctp_assoc_id
+%type <expression> linger l_onoff l_linger
+%type <expression> tcp_function_set function_set_name pcbcnt
+%type <udp_encaps_info> opt_udp_encaps_info
+%type <sctp_header_spec> sctp_header_spec
+%type <expression> sctp_assoc_id
 %type <expression> sctp_status sstat_state sstat_rwnd sstat_unackdata sstat_penddata
 %type <expression> sstat_instrms sstat_outstrms sstat_fragmentation_point sstat_primary
 %type <expression> sctp_initmsg sinit_num_ostreams sinit_max_instreams sinit_max_attempts
@@ -670,6 +687,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> assocreset_local_tsn assocreset_remote_tsn
 %type <expression> sctp_stream_change_event strchange_type strchange_flags strchange_length strchange_instrms strchange_outstrms
 %type <expression> sctp_add_streams
+%type <expression> sctp_udpencaps sue_address sue_port
 %type <errno_info> opt_errno
 %type <chunk_list> sctp_chunk_list_spec
 %type <chunk_list_item> sctp_chunk_spec
@@ -908,14 +926,58 @@ packet_spec
 | icmp_packet_spec    { $$ = $1; }
 ;
 
+opt_udp_encaps_info
+:	{
+	$$.udp_src_port = 0;
+	$$.udp_dst_port = 0;
+}
+| '/' UDP '(' INTEGER '>' INTEGER ')' {
+	if (!is_valid_u16($4)) {
+		semantic_error("UDP source port out of range");
+	}
+	if (!is_valid_u16($6)) {
+		semantic_error("UDP destination port out of range");
+	}
+	$$.udp_src_port = $4;
+	$$.udp_dst_port = $6;
+}
+;
+
+sctp_header_spec
+: SCTP {
+	$$.bad_crc32c = false;
+	$$.tag = -1;
+}
+| SCTP '(' BAD_CRC32C ')' {
+	$$.bad_crc32c = true;
+	$$.tag = -1;
+}
+| SCTP '(' TAG '=' INTEGER ')' {
+	if (!is_valid_u32($5)) {
+		semantic_error("tag value out of range");
+	}
+	$$.bad_crc32c = false;
+	$$.tag = $5;
+}
+| SCTP '(' BAD_CRC32C ',' TAG '=' INTEGER ')' {
+	if (!is_valid_u32($7)) {
+		semantic_error("tag value out of range");
+	}
+	$$.bad_crc32c = true;
+	$$.tag = $7;
+}
+;
+
 sctp_packet_spec
-: packet_prefix opt_ip_info SCTP ':' sctp_chunk_list_spec {
+: packet_prefix opt_ip_info sctp_header_spec opt_udp_encaps_info ':' sctp_chunk_list_spec {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
 	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
-	                        -1, false, $5, &error);
+	                        $3.tag, $3.bad_crc32c, $6,
+	                        $4.udp_src_port, $4.udp_dst_port,
+	                        &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
@@ -924,115 +986,15 @@ sctp_packet_spec
 
 	$$ = packet_encapsulate_and_free(outer, inner);
 }
-| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ')' ':' sctp_chunk_list_spec {
-	char *error = NULL;
-	struct packet *outer = $1, *inner = NULL;
-	enum direction_t direction = outer->direction;
-
-	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
-	                        -1, true, $8, &error);
-	if (inner == NULL) {
-		assert(error != NULL);
-		semantic_error(error);
-		free(error);
-	}
-
-	$$ = packet_encapsulate_and_free(outer, inner);
-}
-| packet_prefix opt_ip_info SCTP '(' TAG '=' INTEGER ')' ':' sctp_chunk_list_spec {
-	char *error = NULL;
-	struct packet *outer = $1, *inner = NULL;
-	enum direction_t direction = outer->direction;
-
-	if (!is_valid_u32($7)) {
-		semantic_error("tag value out of range");
-	}
-	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
-	                        $7, false, $10, &error);
-	if (inner == NULL) {
-		assert(error != NULL);
-		semantic_error(error);
-		free(error);
-	}
-
-	$$ = packet_encapsulate_and_free(outer, inner);
-}
-| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ',' TAG '=' INTEGER ')' ':' sctp_chunk_list_spec {
-	char *error = NULL;
-	struct packet *outer = $1, *inner = NULL;
-	enum direction_t direction = outer->direction;
-
-	if (!is_valid_u32($9)) {
-		semantic_error("tag value out of range");
-	}
-	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
-	                        $9, true, $12, &error);
-	if (inner == NULL) {
-		assert(error != NULL);
-		semantic_error(error);
-		free(error);
-	}
-
-	$$ = packet_encapsulate_and_free(outer, inner);
-}
-| packet_prefix opt_ip_info SCTP ':' '[' byte_list ']' {
+| packet_prefix opt_ip_info sctp_header_spec opt_udp_encaps_info ':' '[' byte_list ']' {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
 	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
-	                                -1, false, $6, &error);
-	if (inner == NULL) {
-		assert(error != NULL);
-        semantic_error(error);
-		free(error);
-	}
-
-	$$ = packet_encapsulate_and_free(outer, inner);
-}
-| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ')' ':'  '[' byte_list ']' {
-	char *error = NULL;
-	struct packet *outer = $1, *inner = NULL;
-	enum direction_t direction = outer->direction;
-
-	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
-	                                -1, true, $9, &error);
-	if (inner == NULL) {
-		assert(error != NULL);
-		semantic_error(error);
-		free(error);
-	}
-
-	$$ = packet_encapsulate_and_free(outer, inner);
-}
-| packet_prefix opt_ip_info SCTP '(' TAG '=' INTEGER ')' ':' '[' byte_list ']' {
-	char *error = NULL;
-	struct packet *outer = $1, *inner = NULL;
-	enum direction_t direction = outer->direction;
-
-	if (!is_valid_u32($7)) {
-		semantic_error("tag value out of range");
-	}
-	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
-	                                $7, false, $11, &error);
-	if (inner == NULL) {
-		assert(error != NULL);
-		semantic_error(error);
-		free(error);
-	}
-
-	$$ = packet_encapsulate_and_free(outer, inner);
-}
-| packet_prefix opt_ip_info SCTP '(' BAD_CRC32C ',' TAG '=' INTEGER ')' ':' '[' byte_list ']' {
-	char *error = NULL;
-	struct packet *outer = $1, *inner = NULL;
-	enum direction_t direction = outer->direction;
-
-	if (!is_valid_u32($9)) {
-		semantic_error("tag value out of range");
-	}
-	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
-	                                $9, true, $13, &error);
+	                                $3.tag, $3.bad_crc32c, $7,
+	                                $4.udp_src_port, $4.udp_dst_port,
+	                                &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
@@ -2360,7 +2322,7 @@ sctp_protocol_violation_cause_spec
 }
 
 tcp_packet_spec
-: packet_prefix opt_ip_info flags seq opt_ack opt_window opt_tcp_options {
+: packet_prefix opt_ip_info flags seq opt_ack opt_window opt_tcp_options opt_udp_encaps_info {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
@@ -2376,6 +2338,8 @@ tcp_packet_spec
 			       $4.start_sequence, $4.payload_bytes,
 			       $5, $6, $7,
 			       absolute_ts_ecr,
+			       $4.absolute,
+			       $8.udp_src_port, $8.udp_dst_port,
 			       &error);
 	absolute_ts_ecr = false;
 	free($3);
@@ -2445,7 +2409,8 @@ icmp_packet_spec
 	inner = new_icmp_packet(in_config->wire_protocol, direction, $4, $5,
 				$2.protocol, $2.payload_bytes,
 				$2.start_sequence, $2.checksum_coverage,
-				$2.verification_tag, $6, &error);
+				$2.verification_tag, $6,
+				$2.udp_src_port, $2.udp_dst_port, &error);
 	free($4);
 	free($5);
 	if (inner == NULL) {
@@ -2557,26 +2522,36 @@ opt_icmp_echoed
 	$$.protocol		= IPPROTO_TCP;
 	$$.payload_bytes	= 0;
 	$$.start_sequence	= 0;
+	$$.udp_src_port		= 0;
+	$$.udp_dst_port		= 0;
 }
-| '[' SCTP '(' INTEGER ')' ']'	{
+| '[' SCTP '(' INTEGER ')' opt_udp_encaps_info ']'	{
 	$$.protocol		= IPPROTO_SCTP;
 	$$.payload_bytes	= 0;
 	$$.verification_tag	= $4;
+	$$.udp_src_port		= $6.udp_src_port;
+	$$.udp_dst_port		= $6.udp_dst_port;
 }
 | '[' UDP '(' INTEGER ')' ']'	{
 	$$.protocol		= IPPROTO_UDP;
 	$$.payload_bytes	= $4;
 	$$.start_sequence	= 0;
+	$$.udp_src_port		= 0;
+	$$.udp_dst_port		= 0;
 }
 | '[' UDPLITE '(' INTEGER ',' INTEGER ')' ']'	{
 	$$.protocol		= IPPROTO_UDPLITE;
 	$$.payload_bytes	= $4;
 	$$.checksum_coverage	= $6;
+	$$.udp_src_port		= 0;
+	$$.udp_dst_port		= 0;
 }
-| '[' seq ']'		{
+| '[' seq opt_udp_encaps_info ']'	{
 	$$.protocol		= IPPROTO_TCP;
 	$$.payload_bytes	= $2.payload_bytes;
 	$$.start_sequence	= $2.start_sequence;
+	$$.udp_src_port		= $3.udp_src_port;
+	$$.udp_dst_port		= $3.udp_dst_port;
 }
 ;
 
@@ -2627,6 +2602,25 @@ seq
 	}
 	$$.start_sequence = $1;
 	$$.payload_bytes = $5;
+	$$.absolute = false;
+}
+| INTEGER ':' INTEGER '(' INTEGER ')' '!' {
+	if (!is_valid_u32($1)) {
+		semantic_error("TCP start sequence number out of range");
+	}
+	if (!is_valid_u32($3)) {
+		semantic_error("TCP end sequence number out of range");
+	}
+	if (!is_valid_u16($5)) {
+		semantic_error("TCP payload size out of range");
+	}
+	if ($3 != ($1 +$5)) {
+		semantic_error("inconsistent TCP sequence numbers and "
+			       "payload size");
+	}
+	$$.start_sequence = $1;
+	$$.payload_bytes = $5;
+	$$.absolute = true;
 }
 ;
 
@@ -2858,6 +2852,9 @@ expression
 | linger            {
 	$$ = $1;
 }
+| tcp_function_set  {
+	$$ = $1;
+}
 | sf_hdtr           {
 	$$ = $1;
 }
@@ -2952,6 +2949,9 @@ expression
 	$$ = $1;
 }
 | sctp_add_streams  {
+	$$ = $1;
+}
+| sctp_udpencaps  {
 	$$ = $1;
 }
 | null              {
@@ -3168,7 +3168,9 @@ l_onoff
 	}
 	$$ = new_integer_expression($3, "%ld");
 }
-| ONOFF '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| ONOFF '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 l_linger
@@ -3178,7 +3180,9 @@ l_linger
 	}
 	$$ = new_integer_expression($3, "%ld");
 }
-| LINGER '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
+| LINGER '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
 ;
 
 linger
@@ -3187,6 +3191,42 @@ linger
 	$$->value.linger = calloc(1, sizeof(struct linger_expr));
 	$$->value.linger->l_onoff  = $2;
 	$$->value.linger->l_linger = $4;
+}
+;
+
+function_set_name
+: FUNCTION_SET_NAME '=' STRING {
+	$$ = new_expression(EXPR_STRING);
+	$$->value.string = $3;
+	$$->format = "\"%s\"";
+}
+| FUNCTION_SET_NAME '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+pcbcnt
+: PCBCNT '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("linger out of range");
+	}
+	$$ = new_integer_expression($3, "%lu");
+}
+| PCBCNT '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+tcp_function_set
+: '{' function_set_name ',' pcbcnt '}' {
+#if defined(__FreeBSD__)
+	$$ = new_expression(EXPR_TCP_FUNCTION_SET);
+	$$->value.tcp_function_set = calloc(1, sizeof(struct tcp_function_set_expr));
+	$$->value.tcp_function_set->function_set_name = $2;
+	$$->value.tcp_function_set->pcbcnt = $4;
+#else
+	$$ = NULL;
+#endif
 }
 ;
 
@@ -5563,7 +5603,44 @@ sctp_stream_change_event
 	$$->value.sctp_stream_change_event->strchange_assoc_id = $10;
 	$$->value.sctp_stream_change_event->strchange_instrms = $12;
 	$$->value.sctp_stream_change_event->strchange_outstrms = $14;
+}
+;
 
+sue_address
+: SUE_ADDRESS '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+| SUE_ADDRESS '=' sockaddr {
+	$$ = $3;
+}
+;
+
+sue_port
+: SUE_PORT '=' _HTONS_ '(' INTEGER ')' {
+	if (!is_valid_u16($5)) {
+		semantic_error("sue_port out of range");
+	}
+	$$ = new_integer_expression(htons($5), "%u");
+}
+| SUE_PORT '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+sctp_udpencaps
+: '{' SUE_ASSOC_ID '=' sctp_assoc_id ',' sue_address ',' sue_port '}' {
+	$$ = new_expression(EXPR_SCTP_UDPENCAPS);
+	$$->value.sctp_udpencaps = calloc(1, sizeof(struct sctp_udpencaps_expr));
+	$$->value.sctp_udpencaps->sue_assoc_id = $4;
+	$$->value.sctp_udpencaps->sue_address = $6;
+	$$->value.sctp_udpencaps->sue_port = $8;
+}
+| '{' sue_address ',' sue_port '}' {
+	$$ = new_expression(EXPR_SCTP_UDPENCAPS);
+	$$->value.sctp_udpencaps = calloc(1, sizeof(struct sctp_udpencaps_expr));
+	$$->value.sctp_udpencaps->sue_assoc_id = new_expression(EXPR_ELLIPSIS);
+	$$->value.sctp_udpencaps->sue_address = $2;
+	$$->value.sctp_udpencaps->sue_port = $4;
 }
 ;
 

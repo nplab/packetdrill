@@ -53,71 +53,73 @@ struct expression_type_entry {
 	const char *name;
 };
 struct expression_type_entry expression_type_table[] = {
-	{ EXPR_NONE,                 "none" },
-	{ EXPR_NULL,		     "null" },
-	{ EXPR_ELLIPSIS,             "ellipsis" },
-	{ EXPR_INTEGER,              "integer" },
-	{ EXPR_WORD,                 "word" },
-	{ EXPR_STRING,               "string" },
-	{ EXPR_SOCKET_ADDRESS_IPV4,  "sockaddr_in" },
-	{ EXPR_SOCKET_ADDRESS_IPV6,  "sockaddr_in6" },
-	{ EXPR_LINGER,               "linger" },
-	{ EXPR_BINARY,               "binary_expression" },
-	{ EXPR_LIST,                 "list" },
-	{ EXPR_IOVEC,                "iovec" },
-	{ EXPR_MSGHDR,               "msghdr" },
-	{ EXPR_CMSGHDR,              "cmsghdr"},
-	{ EXPR_POLLFD,               "pollfd" },
+	{ EXPR_NONE,                        "none"                            },
+	{ EXPR_NULL,                        "null"                            },
+	{ EXPR_ELLIPSIS,                    "ellipsis"                        },
+	{ EXPR_INTEGER,                     "integer"                         },
+	{ EXPR_WORD,                        "word"                            },
+	{ EXPR_STRING,                      "string"                          },
+	{ EXPR_SOCKET_ADDRESS_IPV4,         "sockaddr_in"                     },
+	{ EXPR_SOCKET_ADDRESS_IPV6,         "sockaddr_in6"                    },
+	{ EXPR_LINGER,                      "linger"                          },
+	{ EXPR_BINARY,                      "binary_expression"               },
+	{ EXPR_LIST,                        "list"                            },
+	{ EXPR_IOVEC,                       "iovec"                           },
+	{ EXPR_MSGHDR,                      "msghdr"                          },
+	{ EXPR_CMSGHDR,                     "cmsghdr"                         },
+	{ EXPR_POLLFD,                      "pollfd"                          },
 #if defined(__FreeBSD__)
-	{ EXPR_SF_HDTR,              "sf_hdtr" },
+	{ EXPR_SF_HDTR,                     "sf_hdtr"                         },
+	{ EXPR_TCP_FUNCTION_SET,            "tcp_function_set"                },
 #endif
-	{ EXPR_SCTP_RTOINFO,         "sctp_rtoinfo"},
-	{ EXPR_SCTP_INITMSG,         "sctp_initmsg"},
-	{ EXPR_SCTP_ASSOC_VALUE,     "sctp_assoc_value"},
-	{ EXPR_SCTP_HMACALGO,        "sctp_hmacalgo"},
-	{ EXPR_SCTP_AUTHKEYID,       "sctp_authkeyid"},
-	{ EXPR_SCTP_SACKINFO,        "sctp_sackinfo"},
-	{ EXPR_SCTP_STATUS,          "sctp_status"},
-	{ EXPR_SCTP_PADDRINFO,	     "sctp_paddrinfo"},
-	{ EXPR_SCTP_PEER_ADDR_PARAMS,"sctp_peer_addr_params"},
-	{ EXPR_SCTP_STREAM_VALUE,    "sctp_stream_value"},
-	{ EXPR_SCTP_ASSOCPARAMS,     "sctp_assocparams"},
-	{ EXPR_SCTP_EVENT,	     "sctp_event"      },
-	{ EXPR_SCTP_EVENT_SUBSCRIBE, "sctp_event_subscribe"},
-	{ EXPR_SCTP_SNDINFO,         "sctp_sndinfo"    },
-	{ EXPR_SCTP_SETPRIM,         "sctp_setprim"    },
-	{ EXPR_SCTP_SETADAPTATION,   "sctp_setadaptation"},
-	{ EXPR_SCTP_SNDRCVINFO,      "sctp_sndrcvinfo" },
-	{ EXPR_SCTP_PRINFO,          "sctp_prinfo"     },
-	{ EXPR_SCTP_DEFAULT_PRINFO,  "sctp_default_prinfo"},
-	{ EXPR_SCTP_AUTHINFO,        "sctp_authinfo"   },
-	{ EXPR_SCTP_SENDV_SPA,       "sctp_sendv_spa"  },
-	{ EXPR_SCTP_RCVINFO,         "sctp_rcvinfo"    },
-	{ EXPR_SCTP_NXTINFO,         "sctp_nxtinfo"    },
-	{ EXPR_SCTP_RECVV_RN,        "sctp_recvv_rn "  },
-	{ EXPR_SCTP_ASSOC_CHANGE,    "sctp_assoc_change"},
-	{ EXPR_SCTP_PADDR_CHANGE,    "sctp_paddr_change"},
-	{ EXPR_SCTP_REMOTE_ERROR,    "sctp_remote_error"},
-	{ EXPR_SCTP_SEND_FAILED,     "sctp_send_failed"},
-	{ EXPR_SCTP_SHUTDOWN_EVENT,  "sctp_shutdown_event"},
-	{ EXPR_SCTP_ADAPTATION_EVENT,"sctp_adaptation_event"},
-	{ EXPR_SCTP_PDAPI_EVENT,     "sctp_pdapi_event"},
-	{ EXPR_SCTP_AUTHKEY_EVENT,   "sctp_authkey_event"},
-	{ EXPR_SCTP_SENDER_DRY_EVENT,"sctp_sender_dry_event"},
-	{ EXPR_SCTP_SEND_FAILED_EVENT,"sctp_send_failed_event"},
-	{ EXPR_SCTP_TLV,             "sctp_tlv"        },
-	{ EXPR_SCTP_EXTRCVINFO,      "sctp_extrcvinfo" },
-	{ EXPR_SCTP_ASSOC_IDS,       "sctp_assoc_ids"  },
-	{ EXPR_SCTP_AUTHCHUNKS,      "sctp_authchunks" },
-	{ EXPR_SCTP_SETPEERPRIM,     "sctp_setpeerprim"},
-	{ EXPR_SCTP_AUTHCHUNK,       "sctp_authchunk"  },
-	{ EXPR_SCTP_AUTHKEY,         "sctp_authkey"    },
-	{ EXPR_SCTP_RESET_STREAMS,   "sctp_reset_streams"},
-	{ EXPR_SCTP_ADD_STREAMS,     "sctp_add_streams"},
-	{ EXPR_SCTP_STREAM_RESET_EVENT, "sctp_stream_reset_event"},
-	{ EXPR_SCTP_ASSOC_RESET_EVENT, "sctp_assoc_reset_event"},
-	{ EXPR_SCTP_STREAM_CHANGE_EVENT, "sctp_stream_change_event"},
-	{ NUM_EXPR_TYPES,            NULL}
+	{ EXPR_SCTP_RTOINFO,                "sctp_rtoinfo"                    },
+	{ EXPR_SCTP_INITMSG,                "sctp_initmsg"                    },
+	{ EXPR_SCTP_ASSOC_VALUE,            "sctp_assoc_value"                },
+	{ EXPR_SCTP_HMACALGO,               "sctp_hmacalgo"                   },
+	{ EXPR_SCTP_AUTHKEYID,              "sctp_authkeyid"                  },
+	{ EXPR_SCTP_SACKINFO,               "sctp_sackinfo"                   },
+	{ EXPR_SCTP_STATUS,                 "sctp_status"                     },
+	{ EXPR_SCTP_PADDRINFO,              "sctp_paddrinfo"                  },
+	{ EXPR_SCTP_PEER_ADDR_PARAMS,       "sctp_peer_addr_params"           },
+	{ EXPR_SCTP_STREAM_VALUE,           "sctp_stream_value"               },
+	{ EXPR_SCTP_ASSOCPARAMS,            "sctp_assocparams"                },
+	{ EXPR_SCTP_EVENT,                  "sctp_event"                      },
+	{ EXPR_SCTP_EVENT_SUBSCRIBE,        "sctp_event_subscribe"            },
+	{ EXPR_SCTP_SNDINFO,                "sctp_sndinfo"                    },
+	{ EXPR_SCTP_SETPRIM,                "sctp_setprim"                    },
+	{ EXPR_SCTP_SETADAPTATION,          "sctp_setadaptation"              },
+	{ EXPR_SCTP_SNDRCVINFO,             "sctp_sndrcvinfo"                 },
+	{ EXPR_SCTP_PRINFO,                 "sctp_prinfo"                     },
+	{ EXPR_SCTP_DEFAULT_PRINFO,         "sctp_default_prinfo"             },
+	{ EXPR_SCTP_AUTHINFO,               "sctp_authinfo"                   },
+	{ EXPR_SCTP_SENDV_SPA,              "sctp_sendv_spa"                  },
+	{ EXPR_SCTP_RCVINFO,                "sctp_rcvinfo"                    },
+	{ EXPR_SCTP_NXTINFO,                "sctp_nxtinfo"                    },
+	{ EXPR_SCTP_RECVV_RN,               "sctp_recvv_rn"                   },
+	{ EXPR_SCTP_ASSOC_CHANGE,           "sctp_assoc_change"               },
+	{ EXPR_SCTP_PADDR_CHANGE,           "sctp_paddr_change"               },
+	{ EXPR_SCTP_REMOTE_ERROR,           "sctp_remote_error"               },
+	{ EXPR_SCTP_SEND_FAILED,            "sctp_send_failed"                },
+	{ EXPR_SCTP_SHUTDOWN_EVENT,         "sctp_shutdown_event"             },
+	{ EXPR_SCTP_ADAPTATION_EVENT,       "sctp_adaptation_event"           },
+	{ EXPR_SCTP_PDAPI_EVENT,            "sctp_pdapi_event"                },
+	{ EXPR_SCTP_AUTHKEY_EVENT,          "sctp_authkey_event"              },
+	{ EXPR_SCTP_SENDER_DRY_EVENT,       "sctp_sender_dry_event"           },
+	{ EXPR_SCTP_SEND_FAILED_EVENT,      "sctp_send_failed_event"          },
+	{ EXPR_SCTP_TLV,                    "sctp_tlv"                        },
+	{ EXPR_SCTP_EXTRCVINFO,             "sctp_extrcvinfo"                 },
+	{ EXPR_SCTP_ASSOC_IDS,              "sctp_assoc_ids"                  },
+	{ EXPR_SCTP_AUTHCHUNKS,             "sctp_authchunks"                 },
+	{ EXPR_SCTP_SETPEERPRIM,            "sctp_setpeerprim"                },
+	{ EXPR_SCTP_AUTHCHUNK,              "sctp_authchunk"                  },
+	{ EXPR_SCTP_AUTHKEY,                "sctp_authkey"                    },
+	{ EXPR_SCTP_RESET_STREAMS,          "sctp_reset_streams"              },
+	{ EXPR_SCTP_ADD_STREAMS,            "sctp_add_streams"                },
+	{ EXPR_SCTP_STREAM_RESET_EVENT,     "sctp_stream_reset_event"         },
+	{ EXPR_SCTP_ASSOC_RESET_EVENT,      "sctp_assoc_reset_event"          },
+	{ EXPR_SCTP_STREAM_CHANGE_EVENT,    "sctp_stream_change_event"        },
+	{ EXPR_SCTP_UDPENCAPS,              "sctp_udpencaps"                  },
+	{ NUM_EXPR_TYPES,                   NULL                              }
 };
 
 const char *expression_type_to_string(enum expression_t type)
@@ -219,7 +221,7 @@ struct flag_name poll_flags[] = {
 #endif
 
 #ifdef POLLINIGNEOF
-	{ POLLINIGNEOF, "POLLINIGNEOF"                    },
+	{ POLLINIGNEOF, "POLLINIGNEOF" },
 #endif
 
 	{ POLLERR,	"POLLERR" },
@@ -330,6 +332,13 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.linger->l_onoff);
 		free_expression(expression->value.linger->l_linger);
 		break;
+#if defined(__FreeBSD__)
+	case EXPR_TCP_FUNCTION_SET:
+		assert(expression->value.tcp_function_set);
+		free_expression(expression->value.tcp_function_set->function_set_name);
+		free_expression(expression->value.tcp_function_set->pcbcnt);
+		break;
+#endif
 	case EXPR_SCTP_RTOINFO:
 		assert(expression->value.sctp_rtoinfo);
 		free_expression(expression->value.sctp_rtoinfo->srto_assoc_id);
@@ -650,6 +659,11 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_stream_change_event->strchange_assoc_id);
 		free_expression(expression->value.sctp_stream_change_event->strchange_instrms);
 		free_expression(expression->value.sctp_stream_change_event->strchange_outstrms);
+		break;
+	case EXPR_SCTP_UDPENCAPS:
+		free_expression(expression->value.sctp_udpencaps->sue_assoc_id);
+		free_expression(expression->value.sctp_udpencaps->sue_address);
+		free_expression(expression->value.sctp_udpencaps->sue_port);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -2695,6 +2709,39 @@ static int evaluate_sctp_stream_change_event_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sctp_udpencaps_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct sctp_udpencaps_expr *in_udpencaps;
+	struct sctp_udpencaps_expr *out_udpencaps;
+
+	assert(in->type == EXPR_SCTP_UDPENCAPS);
+	assert(in->value.sctp_udpencaps);
+	assert(out->type == EXPR_SCTP_UDPENCAPS);
+
+	out->value.sctp_udpencaps = calloc(1, sizeof(struct sctp_udpencaps_expr));
+
+	in_udpencaps = in->value.sctp_udpencaps;
+	out_udpencaps = out->value.sctp_udpencaps;
+
+	if (evaluate(in_udpencaps->sue_assoc_id,
+		     &out_udpencaps->sue_assoc_id,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_udpencaps->sue_address,
+		     &out_udpencaps->sue_address,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_udpencaps->sue_port,
+		     &out_udpencaps->sue_port,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
+
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
 {
@@ -2720,6 +2767,12 @@ static int evaluate(struct expression *in,
 		memcpy(&out->value.linger, &in->value.linger,
 		       sizeof(in->value.linger));
 		break;
+#if defined(__FreeBSD__)
+	case EXPR_TCP_FUNCTION_SET:		/* copy as-is */
+		memcpy(&out->value.tcp_function_set, &in->value.tcp_function_set,
+		       sizeof(in->value.tcp_function_set));
+		break;
+#endif
 	case EXPR_SCTP_RTOINFO:
 		result = evaluate_sctp_rtoinfo_expression(in, out, error);
 		break;
@@ -2857,6 +2910,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_STREAM_CHANGE_EVENT:
 		result = evaluate_sctp_stream_change_event_expression(in, out, error);
+		break;
+	case EXPR_SCTP_UDPENCAPS:
+		result = evaluate_sctp_udpencaps_expression(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

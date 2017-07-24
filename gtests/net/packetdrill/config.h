@@ -36,7 +36,7 @@
 #include "script.h"
 
 #define TUN_DRIVER_SPEED_CUR	0	/* don't change current speed */
-#define TUN_DRIVER_DEFAULT_MTU 1500	/* default MTU for tun device */
+#define TUN_DRIVER_DEFAULT_MTU	1500	/* default MTU for tun device */
 
 extern struct option options[];
 
@@ -81,6 +81,9 @@ struct config {
 	bool dry_run;			/* parse script but don't execute? */
 
 	bool verbose;			/* print detailed debug info? */
+
+	u8 udp_encaps;			/* Protocol encapsulated in UDP */
+
 	char *script_path;		/* pathname of script file */
 
 	/* Shell command to invoke via system(3) to run post-processing code */

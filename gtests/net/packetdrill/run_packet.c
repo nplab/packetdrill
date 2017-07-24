@@ -189,7 +189,7 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 	assert(socket->state == SOCKET_INIT);
 	socket->state = SOCKET_PASSIVE_PACKET_RECEIVED;
 	socket->address_family = packet_address_family(packet);
-	socket->protocol = packet_ip_protocol(packet);
+	socket->protocol = packet_ip_protocol(packet, config->udp_encaps);
 
 	/* Set script info for this socket using script packet. */
 	struct tuple tuple;
@@ -330,6 +330,7 @@ static struct socket *handle_listen_for_script_packet(
 
 #if defined(DEBUG)
 	if (debug_logging) {
+#if 0
 		char local_string[ADDR_STR_LEN];
 		char remote_string[ADDR_STR_LEN];
 		DEBUGP("live: local: %s.%d\n",
@@ -338,6 +339,7 @@ static struct socket *handle_listen_for_script_packet(
 		DEBUGP("live: remote: %s.%d\n",
 		       ip_to_string(&socket->live.remote.ip, remote_string),
 		       ntohs(socket->live.remote.port));
+#endif
 		if (packet->tcp != NULL) {
 			DEBUGP("live: ISN: %u\n", socket->live.remote_isn);
 		} else {
@@ -413,7 +415,7 @@ static struct socket *handle_connect_for_script_packet(
 		state->socket_under_test = socket;
 		assert(socket->state == SOCKET_INIT);
 		socket->address_family = packet_address_family(packet);
-		socket->protocol = packet_ip_protocol(packet);
+		socket->protocol = packet_ip_protocol(packet, config->udp_encaps);
 
 		socket->script.fd	 = -1;
 
@@ -587,9 +589,12 @@ static int offset_sack_blocks(struct packet *packet,
 }
 
 static int map_inbound_icmp_sctp_packet(
-	struct socket *socket, struct packet *live_packet, char **error)
+	struct socket *socket,
+	struct packet *live_packet,
+	bool encapsulated,
+	char **error)
 {
-	u32 *v_tag = packet_echoed_sctp_v_tag(live_packet);
+	u32 *v_tag = packet_echoed_sctp_v_tag(live_packet, encapsulated);
 	*v_tag = htonl(socket->live.remote_initiate_tag);
 	return STATUS_OK;
 }
@@ -598,9 +603,12 @@ static int map_inbound_icmp_sctp_packet(
  * The Linux TCP layer ignores ICMP messages with bogus sequence numbers.
  */
 static int map_inbound_icmp_tcp_packet(
-	struct socket *socket, struct packet *live_packet, char **error)
+	struct socket *socket,
+	struct packet *live_packet,
+	bool encapsulated,
+	char **error)
 {
-	u32 *seq = packet_echoed_tcp_seq(live_packet);
+	u32 *seq = packet_echoed_tcp_seq(live_packet, encapsulated);
 	/* FIXME: There is currently no way to access the TCP flags */
 	bool is_syn = false;
 	u32 seq_offset = local_seq_script_to_live_offset(socket, is_syn);
@@ -623,15 +631,24 @@ static int map_inbound_icmp_udplite_packet(
 }
 
 static int map_inbound_icmp_packet(
-	struct socket *socket, struct packet *live_packet, char **error)
+	struct socket *socket,
+	struct packet *live_packet,
+	u8 udp_encaps,
+	char **error)
 {
-	if (packet_echoed_ip_protocol(live_packet) == IPPROTO_SCTP)
-		return map_inbound_icmp_sctp_packet(socket, live_packet, error);
-	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_TCP)
-		return map_inbound_icmp_tcp_packet(socket, live_packet, error);
-	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_UDP)
+	int protocol;
+
+	protocol = packet_echoed_ip_protocol(live_packet);
+	if ((protocol == IPPROTO_UDP) && (udp_encaps != 0)) {
+		protocol = udp_encaps;
+	}
+	if (protocol == IPPROTO_SCTP)
+		return map_inbound_icmp_sctp_packet(socket, live_packet, udp_encaps == IPPROTO_SCTP, error);
+	else if (protocol == IPPROTO_TCP)
+		return map_inbound_icmp_tcp_packet(socket, live_packet, udp_encaps == IPPROTO_TCP, error);
+	else if (protocol == IPPROTO_UDP)
 		return map_inbound_icmp_udp_packet(socket, live_packet, error);
-	else if (packet_echoed_ip_protocol(live_packet) == IPPROTO_UDPLITE)
+	else if (protocol == IPPROTO_UDPLITE)
 		return map_inbound_icmp_udplite_packet(socket, live_packet,
 						       error);
 	else
@@ -899,17 +916,18 @@ static int map_inbound_sctp_packet(
  * on failure returns STATUS_ERR and sets error message.
  */
 static int map_inbound_packet(
-	struct socket *socket, struct packet *live_packet, char **error)
+	struct socket *socket, struct packet *live_packet, u8 udp_encaps,
+	char **error)
 {
 	DEBUGP("map_inbound_packet\n");
 
 	/* Remap packet to live values. */
 	struct tuple live_inbound;
 	socket_get_inbound(&socket->live, &live_inbound);
-	set_packet_tuple(live_packet, &live_inbound);
+	set_packet_tuple(live_packet, &live_inbound, udp_encaps != 0);
 
 	if ((live_packet->icmpv4 != NULL) || (live_packet->icmpv6 != NULL))
-		return map_inbound_icmp_packet(socket, live_packet, error);
+		return map_inbound_icmp_packet(socket, live_packet, udp_encaps, error);
 
 	if (live_packet->sctp) {
 		return map_inbound_sctp_packet(socket, live_packet, error);
@@ -922,8 +940,10 @@ static int map_inbound_packet(
 	/* Remap the sequence number from script sequence number to live. */
 	const bool is_syn = live_packet->tcp->syn;
 	const u32 seq_offset = remote_seq_script_to_live_offset(socket, is_syn);
-	live_packet->tcp->seq =
-	    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
+	if ((live_packet->flags & FLAG_ABSOLUTE_SEQ) == 0) {
+		live_packet->tcp->seq =
+		    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
+	}
 
 	/* Remap the ACK and SACKs from script sequence number to live. */
 	const u32 ack_offset = local_seq_script_to_live_offset(socket, is_syn);
@@ -1143,6 +1163,7 @@ static int map_outbound_live_packet(
 	struct packet *live_packet,
 	struct packet *actual_packet,
 	struct packet *script_packet,
+	u8 udp_encaps,
 	char **error)
 {
 	DEBUGP("map_outbound_live_packet\n");
@@ -1156,7 +1177,7 @@ static int map_outbound_live_packet(
 
 	/* Rewrite 4-tuple to be outbound script values. */
 	socket_get_outbound(&socket->script, &script_outbound);
-	set_packet_tuple(actual_packet, &script_outbound);
+	set_packet_tuple(actual_packet, &script_outbound, udp_encaps != 0);
 
 	if (live_packet->sctp) {
 		return map_outbound_live_sctp_packet(socket, live_packet, actual_packet, script_packet, error);
@@ -1169,9 +1190,12 @@ static int map_outbound_live_packet(
 	/* Rewrite TCP sequence number from live to script space. */
 	const bool is_syn = live_packet->tcp->syn;
 	const u32 seq_offset = local_seq_live_to_script_offset(socket, is_syn);
-	actual_packet->tcp->seq =
-	    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
-
+	if ((script_packet->flags & FLAG_ABSOLUTE_SEQ) == 0) {
+		actual_packet->tcp->seq =
+		    htonl(ntohl(live_packet->tcp->seq) + seq_offset);
+	} else {
+		actual_packet->tcp->seq = live_packet->tcp->seq;
+	}
 	/* Rewrite ACKs and SACKs from live to script space. */
 	const u32 ack_offset = remote_seq_live_to_script_offset(socket, is_syn);
 	if (actual_packet->tcp->ack)
@@ -1312,7 +1336,7 @@ static int tcp_options_allowance(const struct packet *actual_packet,
 static int verify_ipv4(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	const struct ipv4 *actual_ipv4 = actual_packet->headers[layer].h.ipv4;
 	const struct ipv4 *script_ipv4 = script_packet->headers[layer].h.ipv4;
@@ -1339,6 +1363,18 @@ static int verify_ipv4(
 				ntohs(actual_ipv4->tot_len), error))
 			return STATUS_ERR;
 		break;
+	case IPPROTO_UDP:
+		if (udp_encaps == IPPROTO_TCP) {
+			if (check_field("ipv4_total_length",
+					(ntohs(script_ipv4->tot_len) +
+					 tcp_options_allowance(actual_packet,
+							       script_packet)),
+					ntohs(actual_ipv4->tot_len), error))
+				return STATUS_ERR;
+			break;
+		} else if (udp_encaps == IPPROTO_SCTP) {
+			break;
+		}
 	default:
 		if (check_field("ipv4_total_length",
 				ntohs(script_ipv4->tot_len),
@@ -1360,7 +1396,7 @@ static int verify_ipv4(
 static int verify_ipv6(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	const struct ipv6 *actual_ipv6 = actual_packet->headers[layer].h.ipv6;
 	const struct ipv6 *script_ipv6 = script_packet->headers[layer].h.ipv6;
@@ -1384,6 +1420,18 @@ static int verify_ipv6(
 				ntohs(actual_ipv6->payload_len), error))
 			return STATUS_ERR;
 		break;
+	case IPPROTO_UDP:
+		if (udp_encaps != 0) {
+			if (check_field("ipv6_payload_len",
+					(ntohs(script_ipv6->payload_len) +
+					 tcp_options_allowance(actual_packet,
+							       script_packet)),
+					ntohs(actual_ipv6->payload_len), error))
+				return STATUS_ERR;
+			break;
+		} else if (udp_encaps == IPPROTO_SCTP) {
+			break;
+		}
 	default:
 		if (check_field("ipv6_payload_len",
 				ntohs(script_ipv6->payload_len),
@@ -1456,7 +1504,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 			    (flags & FLAG_RECONFIG_RESP_SN_NOCHECK ? STATUS_OK :
 			    check_field("outgoing_ssn_reset_request_parameter.resp_sn",
 			                ntohl(script_reset->respsn),
-		                        ntohl(live_reset->respsn),
+			                ntohl(live_reset->respsn),
 			                error)) ||
 			    (flags & FLAG_RECONFIG_LAST_TSN_NOCHECK ? STATUS_OK :
 			    check_field("outgoing_ssn_reset_request_parameter.last_tsn",
@@ -1472,7 +1520,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 						    ntohs(live_reset->sids[i]),
 						    error)) {
 					return STATUS_ERR;
-                        	}
+				}
 			}
 			break;
 		}
@@ -1496,7 +1544,7 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 						    ntohs(live_reset->sids[i]),
 						    error)) {
 					return STATUS_ERR;
-                        	}
+				}
 			}
 			break;
 		}
@@ -2286,7 +2334,7 @@ static int verify_i_forward_tsn_chunk(struct sctp_i_forward_tsn_chunk *actual_ch
 static int verify_sctp(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	struct sctp_chunks_iterator iter;
 	struct sctp_chunk *actual_chunk;
@@ -2469,11 +2517,23 @@ static int verify_sctp(
 static int verify_tcp(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	const struct tcp *actual_tcp = actual_packet->headers[layer].h.tcp;
 	const struct tcp *script_tcp = script_packet->headers[layer].h.tcp;
+	const struct udp *actual_udp =  (struct udp *)actual_tcp - 1;
+	const struct udp *script_udp =  (struct udp *)script_tcp - 1;
 
+	if (udp_encaps != 0) {
+		if (check_field("udp_src_port",
+				ntohs(script_udp->src_port),
+				ntohs(actual_udp->src_port), error) ||
+		    check_field("udp_dst_port",
+				ntohs(script_udp->dst_port),
+				ntohs(actual_udp->dst_port), error)) {
+			return STATUS_ERR;
+		}
+	}
 	if (check_field("tcp_data_offset",
 			(script_tcp->doff +
 			 tcp_options_allowance(actual_packet,
@@ -2528,11 +2588,14 @@ static int verify_tcp(
 static int verify_udp(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	const struct udp *actual_udp = actual_packet->headers[layer].h.udp;
 	const struct udp *script_udp = script_packet->headers[layer].h.udp;
 
+	if (udp_encaps != 0) {
+		return STATUS_OK;
+	}
 	if (check_field("udp_len",
 			ntohs(script_udp->len),
 			ntohs(actual_udp->len), error))
@@ -2545,7 +2608,7 @@ static int verify_udp(
 static int verify_udplite(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	const struct udplite *actual_udplite =
 	    actual_packet->headers[layer].h.udplite;
@@ -2562,7 +2625,7 @@ static int verify_udplite(
 static int verify_gre(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	const struct gre *actual_gre = actual_packet->headers[layer].h.gre;
 	const struct gre *script_gre = script_packet->headers[layer].h.gre;
@@ -2579,7 +2642,7 @@ static int verify_gre(
 static int verify_mpls(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	const struct header *actual_header = &actual_packet->headers[layer];
 	const struct header *script_header = &script_packet->headers[layer];
@@ -2608,13 +2671,13 @@ static int verify_mpls(
 typedef int (*verifier_func)(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error);
+	int layer, u8 udp_encaps, char **error);
 
 /* Verify that required actual header fields are as the script expected. */
 static int verify_header(
 	const struct packet *actual_packet,
 	const struct packet *script_packet,
-	int layer, char **error)
+	int layer, u8 udp_encaps, char **error)
 {
 	verifier_func verifiers[HEADER_NUM_TYPES] = {
 		[HEADER_IPV4]		= verify_ipv4,
@@ -2644,13 +2707,13 @@ static int verify_header(
 	assert(type < HEADER_NUM_TYPES);
 	verifier = verifiers[type];
 	assert(verifier != NULL);
-	return verifier(actual_packet, script_packet, layer, error);
+	return verifier(actual_packet, script_packet, layer, udp_encaps, error);
 }
 
 /* Verify that required actual header fields are as the script expected. */
 static int verify_outbound_live_headers(
 	const struct packet *actual_packet,
-	const struct packet *script_packet, char **error)
+	const struct packet *script_packet, u8 udp_encaps, char **error)
 {
 	const int actual_headers = packet_header_count(actual_packet);
 	const int script_headers = packet_header_count(script_packet);
@@ -2676,7 +2739,8 @@ static int verify_outbound_live_headers(
 		if (script_packet->headers[i].type == HEADER_NONE)
 			break;
 
-		if (verify_header(actual_packet, script_packet, i, error))
+		if (verify_header(actual_packet, script_packet, i,
+				  udp_encaps, error))
 			return STATUS_ERR;
 	}
 
@@ -2795,11 +2859,13 @@ static int verify_outbound_live_packet(
 
 	/* Map live packet values into script space for easy comparison. */
 	if (map_outbound_live_packet(
-		    socket, live_packet, actual_packet, script_packet, error))
+		    socket, live_packet, actual_packet, script_packet,
+		    state->config->udp_encaps, error))
 		goto out;
 
 	/* Verify actual IP, TCP/UDP header values matched expected ones. */
-	if (verify_outbound_live_headers(actual_packet, script_packet, error)) {
+	if (verify_outbound_live_headers(actual_packet, script_packet,
+					 state->config->udp_encaps, error)) {
 		non_fatal = true;
 		goto out;
 	}
@@ -2835,8 +2901,8 @@ out:
 	add_packet_dump(error, "script", script_packet, script_usecs,
 			DUMP_SHORT);
 	if (actual_packet != NULL) {
-		add_packet_dump(error, "actual", actual_packet, actual_usecs,
-				DUMP_SHORT);
+		add_packet_dump(error, "actual", actual_packet,
+				actual_usecs, DUMP_SHORT);
 		packet_free(actual_packet);
 	}
 	if (result == STATUS_ERR &&
@@ -2857,7 +2923,8 @@ static int sniff_outbound_live_packet(
 	enum direction_t direction = DIRECTION_INVALID;
 	assert(*packet == NULL);
 	while (1) {
-		if (netdev_receive(state->netdev, packet, error))
+		if (netdev_receive(state->netdev, state->config->udp_encaps,
+				   packet, error))
 			return STATUS_ERR;
 		/* See if the packet matches an existing, known socket. */
 		socket = find_socket_for_live_packet(state, *packet,
@@ -3113,8 +3180,24 @@ static int do_outbound_script_packet(
 				    state, live_packet->time_usecs));
 
 	/* Save the TCP header so we can reset the connection at the end. */
-	if (live_packet->tcp)
+	if (live_packet->tcp) {
 		socket->last_outbound_tcp_header = *(live_packet->tcp);
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			struct udp *udp = (struct udp *)(live_packet->tcp) - 1;
+
+			socket->last_outbound_udp_encaps_src_port = ntohs(udp->src_port);
+			socket->last_outbound_udp_encaps_dst_port = ntohs(udp->dst_port);
+		}
+	}
+
+	if (live_packet->sctp) {
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			struct udp *udp = (struct udp *)(live_packet->sctp) - 1;
+
+			socket->last_outbound_udp_encaps_src_port = ntohs(udp->src_port);
+			socket->last_outbound_udp_encaps_dst_port = ntohs(udp->dst_port);
+		}
+	}
 
 	/* Verify the bits the kernel sent were what the script expected. */
 	result = verify_outbound_live_packet(
@@ -3211,9 +3294,21 @@ static int do_inbound_script_packet(
 								break;
 							}
 						}
-						assert(packet->headers[i + 1].type == HEADER_SCTP);
-						packet->headers[i].total_bytes += temp_offset;
-						packet->headers[i + 1].total_bytes += temp_offset;
+						if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+							struct udp *udp;
+
+							assert(packet->headers[i + 1].type == HEADER_UDP);
+							assert(packet->headers[i + 2].type == HEADER_SCTP);
+							packet->headers[i].total_bytes += temp_offset;
+							packet->headers[i + 1].total_bytes += temp_offset;
+							packet->headers[i + 2].total_bytes += temp_offset;
+							udp = ((struct udp *)packet->sctp) - 1;
+							udp->len = htons(ntohs(udp->len) + temp_offset);
+						} else {
+							assert(packet->headers[i + 1].type == HEADER_SCTP);
+							packet->headers[i].total_bytes += temp_offset;
+							packet->headers[i + 1].total_bytes += temp_offset;
+						}
 						offset += temp_offset;
 					}
 					if (((packet->flags & FLAGS_SCTP_BAD_CRC32C) == 0) &&
@@ -3248,9 +3343,21 @@ static int do_inbound_script_packet(
 								break;
 							}
 						}
-						assert(packet->headers[i + 1].type == HEADER_SCTP);
-						packet->headers[i].total_bytes += temp_offset;
-						packet->headers[i + 1].total_bytes += temp_offset;
+						if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+							struct udp *udp;
+
+							assert(packet->headers[i + 1].type == HEADER_UDP);
+							assert(packet->headers[i + 2].type == HEADER_SCTP);
+							packet->headers[i].total_bytes += temp_offset;
+							packet->headers[i + 1].total_bytes += temp_offset;
+							packet->headers[i + 2].total_bytes += temp_offset;
+							udp = ((struct udp *)packet->sctp) - 1;
+							udp->len = htons(ntohs(udp->len) + temp_offset);
+						} else {
+							assert(packet->headers[i + 1].type == HEADER_SCTP);
+							packet->headers[i].total_bytes += temp_offset;
+							packet->headers[i + 1].total_bytes += temp_offset;
+						}
 						offset += temp_offset;
 					}
 					break;
@@ -3265,7 +3372,8 @@ static int do_inbound_script_packet(
 	/* Start with a bit-for-bit copy of the packet from the script. */
 	struct packet *live_packet = packet_copy(packet);
 	/* Map packet fields from script values to live values. */
-	if (map_inbound_packet(socket, live_packet, error))
+	if (map_inbound_packet(socket, live_packet, state->config->udp_encaps,
+			       error))
 		goto out;
 
 	verbose_packet_dump(state, "inbound injected", live_packet,
@@ -3277,7 +3385,22 @@ static int do_inbound_script_packet(
 		socket->last_injected_tcp_header = *(live_packet->tcp);
 		socket->last_injected_tcp_payload_len =
 			packet_payload_len(live_packet);
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			struct udp *udp = (struct udp *)(live_packet->tcp) - 1;
+
+			socket->last_injected_udp_encaps_src_port = ntohs(udp->src_port);
+			socket->last_injected_udp_encaps_dst_port = ntohs(udp->dst_port);
+		}
 	}
+	if (live_packet->sctp) {
+		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			struct udp *udp = (struct udp *)(live_packet->sctp) - 1;
+
+			socket->last_injected_udp_encaps_src_port = ntohs(udp->src_port);
+			socket->last_injected_udp_encaps_dst_port = ntohs(udp->dst_port);
+		}
+	}
+
 	if (((live_packet->ipv4 != NULL) &&
 	     (live_packet->ipv4->src_ip.s_addr == htonl(INADDR_ANY))) ||
 	    ((live_packet->ipv6 != NULL) &&
@@ -3288,7 +3411,7 @@ static int do_inbound_script_packet(
 			DEBUGP("socket_under_test = %p\n", state->socket_under_test);
 			state->socket_under_test = setup_new_child_socket(state, packet);
 			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
-			set_packet_tuple(live_packet, &live_inbound);
+			set_packet_tuple(live_packet, &live_inbound, state->config->udp_encaps != 0);
 	}
 
 	/* Inject live packet into kernel. */
@@ -3360,7 +3483,17 @@ int reset_connection(struct state *state, struct socket *socket)
 	struct packet *packet = NULL;
 	struct tuple live_inbound;
 	int result = STATUS_OK;
+	u16 udp_src_port;
+	u16 udp_dst_port;
 
+	if (socket->last_outbound_udp_encaps_src_port != 0 ||
+	    socket->last_outbound_udp_encaps_dst_port != 0) {
+		udp_src_port = socket->last_outbound_udp_encaps_dst_port;
+		udp_dst_port = socket->last_outbound_udp_encaps_src_port;
+	} else {
+		udp_src_port = socket->last_injected_udp_encaps_src_port;
+		udp_dst_port = socket->last_injected_udp_encaps_dst_port;
+	}
 	/* Pick TCP header fields to be something the kernel will accept. */
 	if (socket->last_injected_tcp_header.ack) {
 		/* If we've already injected something, then use a sequence
@@ -3393,13 +3526,14 @@ int reset_connection(struct state *state, struct socket *socket)
 
 	packet = new_tcp_packet(socket->address_family,
 				DIRECTION_INBOUND, ECN_NONE,
-				"R.", seq, 0, ack_seq, window, NULL, false, &error);
+				"R.", seq, 0, ack_seq, window, NULL, false,
+				false, udp_src_port, udp_dst_port, &error);
 	if (packet == NULL)
 		die("%s", error);
 
 	/* Rewrite addresses and port to match inbound live traffic. */
 	socket_get_inbound(&socket->live, &live_inbound);
-	set_packet_tuple(packet, &live_inbound);
+	set_packet_tuple(packet, &live_inbound, state->config->udp_encaps != 0);
 
 	/* Inject live packet into kernel. */
 	result = send_live_ip_packet(state->netdev, packet);
@@ -3421,8 +3555,10 @@ int abort_association(struct state *state, struct socket *socket)
 	struct sctp_chunk_list *chunk_list;
 	struct sctp_cause_list *cause_list;
 	struct tuple live_inbound;
-	int result = STATUS_OK;
+	int result;
 	s64 flgs;
+	u16 udp_src_port;
+	u16 udp_dst_port;
 
 	if ((socket->live.local_initiate_tag == 0) &&
 	    (socket->live.remote_initiate_tag == 0)) {
@@ -3433,6 +3569,14 @@ int abort_association(struct state *state, struct socket *socket)
 	} else {
 		flgs = SCTP_ABORT_CHUNK_T_BIT;
 	}
+	if (socket->last_outbound_udp_encaps_src_port != 0 ||
+	    socket->last_outbound_udp_encaps_dst_port != 0) {
+		udp_src_port = socket->last_outbound_udp_encaps_dst_port;
+		udp_dst_port = socket->last_outbound_udp_encaps_src_port;
+	} else {
+		udp_src_port = socket->last_injected_udp_encaps_src_port;
+		udp_dst_port = socket->last_injected_udp_encaps_dst_port;
+	}
 	cause_list = sctp_cause_list_new();
 	sctp_cause_list_append(cause_list,
 	                       sctp_user_initiated_abort_cause_new("packetdrill cleaning up"));
@@ -3440,12 +3584,13 @@ int abort_association(struct state *state, struct socket *socket)
 	sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(flgs, cause_list));
 	packet = new_sctp_packet(socket->address_family,
 				 DIRECTION_INBOUND, ECN_NONE, -1, false,
-				 chunk_list, &error);
+				 chunk_list, udp_src_port, udp_dst_port,
+				 &error);
 	if (packet == NULL)
 		die("%s", error);
 	/* Rewrite addresses and port to match inbound live traffic. */
 	socket_get_inbound(&socket->live, &live_inbound);
-	set_packet_tuple(packet, &live_inbound);
+	set_packet_tuple(packet, &live_inbound, state->config->udp_encaps != 0);
 	/* Rewrite the verification tag in the SCTP common header */
 	if (socket->live.local_initiate_tag != 0) {
 		packet->sctp->v_tag = htonl(socket->live.local_initiate_tag);

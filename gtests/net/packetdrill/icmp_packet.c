@@ -291,6 +291,8 @@ struct packet *new_icmp_packet(int address_family,
 				u16 udplite_checksum_coverage,
 				u32 sctp_verification_tag,
 				s64 mtu,
+				u16 udp_src_port,
+				u16 udp_dst_port,
 				char **error)
 {
 	s32 type = -1;	/* bad type; means "unknown so far" */
@@ -303,10 +305,13 @@ struct packet *new_icmp_packet(int address_family,
 	 * header and the first 8 bytes after that (which will
 	 * typically have the port info needed to demux the message).
 	 */
+	const bool encapsulated = ((protocol != IPPROTO_UDP) &&
+				   ((udp_src_port > 0) || (udp_dst_port > 0)));
 	const int ip_fixed_bytes = ip_header_min_len(address_family);
 	const int ip_option_bytes = 0;
 	const int ip_header_bytes = ip_fixed_bytes + ip_option_bytes;
-	const int echoed_bytes = ip_fixed_bytes + ICMP_ECHO_BYTES;
+	const int echoed_bytes = ip_fixed_bytes + ICMP_ECHO_BYTES +
+				 (encapsulated ? sizeof(struct udp) : 0);
 	const int icmp_bytes = icmp_header_len(address_family) + echoed_bytes;
 	const int ip_bytes = ip_header_bytes + icmp_bytes;
 
@@ -355,16 +360,30 @@ struct packet *new_icmp_packet(int address_family,
 	 */
 	u8 *echoed_ip = packet_echoed_ip_header(packet);
 	const int echoed_ip_bytes = (ip_fixed_bytes +
+				     (encapsulated ? sizeof(struct udp) : 0) +
 				     layer4_header_len(protocol) +
 				     payload_bytes);
-	set_ip_header(echoed_ip, address_family, echoed_ip_bytes,
-		      ecn, protocol);
+	if (encapsulated) {
+		struct udp *udp;
+
+		set_ip_header(echoed_ip, address_family, echoed_ip_bytes,
+			      ecn, IPPROTO_UDP);
+		udp = (struct udp *)(echoed_ip + ip_fixed_bytes);
+		udp->src_port = htons(udp_src_port);
+		udp->dst_port = htons(udp_dst_port);
+		udp->len = htons(sizeof(struct udp) +
+				 layer4_header_len(protocol) +
+				 payload_bytes);
+	} else {
+		set_ip_header(echoed_ip, address_family, echoed_ip_bytes,
+			      ecn, protocol);
+	}
 	if (protocol == IPPROTO_SCTP) {
-		u32 *v_tag = packet_echoed_sctp_v_tag(packet);
+		u32 *v_tag = packet_echoed_sctp_v_tag(packet, encapsulated);
 		*v_tag = htonl(sctp_verification_tag);
 	}
 	if (protocol == IPPROTO_TCP) {
-		u32 *seq = packet_echoed_tcp_seq(packet);
+		u32 *seq = packet_echoed_tcp_seq(packet, encapsulated);
 		*seq = htonl(tcp_start_sequence);
 	}
 	if (protocol == IPPROTO_UDP) {

@@ -33,6 +33,7 @@
 #include "ip_packet.h"
 #include "mpls_packet.h"
 #include "sctp_packet.h"
+#include "udp_packet.h"
 
 
 /* Info for all types of header we support. */

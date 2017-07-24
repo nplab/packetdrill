@@ -60,18 +60,22 @@ struct packet *new_tcp_packet(int address_family,
 			       s32 window,
 			       const struct tcp_options *tcp_options,
 			       bool abs_ts_ecr,
+			       bool abs_seq,
+			       u16 udp_src_port,
+			       u16 udp_dst_port,
 			       char **error)
 {
 	struct packet *packet = NULL;  /* the newly-allocated result packet */
-	struct header *tcp_header = NULL;  /* the TCP header info */
+	struct header *tcp_header, *udp_header;
 	/* Calculate lengths in bytes of all sections of the packet */
 	const int ip_option_bytes = 0;
 	const int tcp_option_bytes = tcp_options ? tcp_options->length : 0;
 	const int ip_header_bytes = (ip_header_min_len(address_family) +
 				     ip_option_bytes);
+	const int udp_header_bytes = sizeof(struct udp);
 	const int tcp_header_bytes = sizeof(struct tcp) + tcp_option_bytes;
-	const int ip_bytes =
-		 ip_header_bytes + tcp_header_bytes + tcp_payload_bytes;
+	int ip_bytes;
+	bool encapsulate = (udp_src_port > 0) || (udp_dst_port > 0);
 
 	/* Sanity-check all the various lengths */
 	if (ip_option_bytes & 0x3) {
@@ -95,6 +99,10 @@ struct packet *new_tcp_packet(int address_family,
 		return NULL;
 	}
 
+	ip_bytes = ip_header_bytes + tcp_header_bytes + tcp_payload_bytes;
+	if (encapsulate) {
+		ip_bytes += udp_header_bytes;
+	}
 	if (ip_bytes > MAX_TCP_DATAGRAM_BYTES) {
 		asprintf(error, "TCP segment too large");
 		return NULL;
@@ -108,18 +116,33 @@ struct packet *new_tcp_packet(int address_family,
 	memset(packet->buffer, 0, ip_bytes);
 
 	packet->direction = direction;
-	packet->flags = 0;
+	packet->flags = encapsulate ? FLAGS_UDP_ENCAPSULATED : 0;
 	packet->ecn = ecn;
 
 	/* Set IP header fields */
-	set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-			     IPPROTO_TCP);
+	if (encapsulate) {
+		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
+				     IPPROTO_UDP);
+		udp_header = packet_append_header(packet, HEADER_UDP, udp_header_bytes);
+		udp_header->total_bytes = udp_header_bytes + tcp_header_bytes + tcp_payload_bytes;
+		udp_header->h.udp->src_port = htons(udp_src_port);
+		udp_header->h.udp->dst_port = htons(udp_dst_port);
+		udp_header->h.udp->len = htons(udp_header_bytes + tcp_header_bytes + tcp_payload_bytes);
+		udp_header->h.udp->check = htons(0);
+	} else {
+		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
+				     IPPROTO_TCP);
+	}
 
 	tcp_header = packet_append_header(packet, HEADER_TCP, tcp_header_bytes);
 	tcp_header->total_bytes = tcp_header_bytes + tcp_payload_bytes;
 
 	/* Find the start of TCP sections of the packet */
-	packet->tcp = (struct tcp *) (ip_start(packet) + ip_header_bytes);
+	if (encapsulate) {
+		packet->tcp = (struct tcp *) (ip_start(packet) + ip_header_bytes + udp_header_bytes);
+	} else {
+		packet->tcp = (struct tcp *) (ip_start(packet) + ip_header_bytes);
+	}
 	u8 *tcp_option_start = (u8 *) (packet->tcp + 1);
 
 	/* Set TCP header fields */
@@ -160,6 +183,9 @@ struct packet *new_tcp_packet(int address_family,
 
 	if (abs_ts_ecr) {
 		packet->flags |= FLAG_ABSOLUTE_TS_ECR;
+	}
+	if (abs_seq) {
+		packet->flags |= FLAG_ABSOLUTE_SEQ;
 	}
 
 	packet->ip_bytes = ip_bytes;

@@ -84,13 +84,19 @@ static void cleanup_old_device(struct config *config,
 {
 #if defined(__NetBSD__)
 	char *cleanup_command = NULL;
+#ifdef DEBUG
 	int result;
+#endif
 
 	asprintf(&cleanup_command,
 		 "/sbin/ifconfig %s down delete > /dev/null 2>&1",
 		 TUN_DEV);
 	DEBUGP("running: '%s'\n", cleanup_command);
+#ifdef DEBUG
 	result = system(cleanup_command);
+#else
+	system(cleanup_command);
+#endif
 	DEBUGP("result: %d\n", result);
 	free(cleanup_command);
 #endif  /* defined(__NetBSD__) */
@@ -112,10 +118,20 @@ static void check_remote_address(struct config *config,
 static void create_device(struct config *config, struct local_netdev *netdev)
 {
 	/* Open the tun device, which "clones" it for our purposes. */
-	int tun_fd = open(TUN_PATH, O_RDWR);
-	if (tun_fd < 0)
-		die_perror("open tun device");
+	int tun_fd;
 
+	tun_fd = open(TUN_PATH, O_RDWR);
+#if defined(__FreeBSD__)
+	if ((tun_fd < 0) && (errno == ENOENT)) {
+		if (system("kldload -q if_tun") < 0) {
+			die_perror("kldload -q if_tun");
+		}
+		tun_fd = open(TUN_PATH, O_RDWR);
+	}
+#endif
+	if (tun_fd < 0) {
+		die_perror("open tun device");
+	}
 	netdev->tun_fd = tun_fd;
 
 #ifdef linux
@@ -405,10 +421,10 @@ static void local_netdev_read_queue(struct local_netdev *netdev,
 			else
 				die_perror("tun read()");
 		}
-       }
+	}
 }
 
-static int local_netdev_receive(struct netdev *a_netdev,
+static int local_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 				struct packet **packet, char **error)
 {
 	struct local_netdev *netdev = to_local_netdev(a_netdev);
@@ -417,14 +433,15 @@ static int local_netdev_receive(struct netdev *a_netdev,
 
 	DEBUGP("local_netdev_receive\n");
 
-	status = netdev_receive_loop(netdev->psock, DIRECTION_OUTBOUND, packet,
-				     &num_packets, error);
+	status = netdev_receive_loop(netdev->psock, DIRECTION_OUTBOUND,
+				     udp_encaps,packet, &num_packets, error);
 	local_netdev_read_queue(netdev, num_packets);
 	return status;
 }
 
 int netdev_receive_loop(struct packet_socket *psock,
 			enum direction_t direction,
+			u8 udp_encaps,
 			struct packet **packet,
 			int *num_packets,
 			char **error)
@@ -446,7 +463,8 @@ int netdev_receive_loop(struct packet_socket *psock,
 			continue;
 
 		++*num_packets;
-		result = parse_packet(*packet, in_bytes, ether_type, error);
+		result = parse_packet(*packet, in_bytes, ether_type, udp_encaps,
+				      error);
 
 		if (result == PACKET_OK)
 			return STATUS_OK;

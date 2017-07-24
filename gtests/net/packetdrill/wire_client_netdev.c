@@ -150,7 +150,7 @@ static int wire_client_netdev_send(struct netdev *a_netdev,
 	return STATUS_ERR;
 }
 
-static int wire_client_netdev_receive(struct netdev *a_netdev,
+static int wire_client_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 				      struct packet **packet, char **error)
 {
 	DEBUGP("wire_client_netdev_receive\n");

@@ -1,6 +1,6 @@
 all: binaries
 
-CFLAGS = -g -Wall -Werror
+CFLAGS = -g -Wall -Werror -Wno-unknown-warning-option -Wno-address-of-packed-member
 
 parser.o: parser.y
 	bison --output=parser.c --defines=parser.h --report=state parser.y
@@ -8,7 +8,7 @@ parser.o: parser.y
 
 lexer.o: lexer.l parser.o
 	flex -olexer.c lexer.l
-	$(CC) -O2 -g -Wall -c lexer.c
+	$(CC) -O2 -g -Wall -Wno-unknown-warning-option -Wno-address-of-packed-member -c lexer.c
 
 packetdrill-lib := \
          checksum.o code.o config.o hash.o hash_map.o ip_address.o ip_prefix.o \

@@ -50,6 +50,8 @@ extern struct packet *new_icmp_packet(int address_family,
 				      u16 udplite_checksum_coverage,
 				      u32 sctp_verification_tag,
 				      s64 mtu,
+				      u16 udp_src_port,
+				      u16 udp_dst_port,
 				      char **error);
 
 #endif /* __ICMP_PACKET_H__ */

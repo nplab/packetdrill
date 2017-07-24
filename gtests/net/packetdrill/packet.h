@@ -109,9 +109,11 @@ struct packet {
 #define FLAG_WIN_NOCHECK          0x1  /* don't check TCP receive window */
 #define FLAG_OPTIONS_NOCHECK      0x2  /* don't check TCP options */
 #define FLAG_ABSOLUTE_TS_ECR      0x4  /* don't adjust TCP TS ecr */
-#define FLAGS_SCTP_BAD_CRC32C     0x8  /* compute bad CRC32C for SCTP packets */
-#define FLAGS_SCTP_EXPLICIT_TAG   0x10 /* verification tag specified */
-#define FLAGS_SCTP_GENERIC_PACKET 0x20 /* set if it is a generic packet */
+#define FLAG_ABSOLUTE_SEQ         0x8  /* don't adjust TCP.SEQ */
+#define FLAGS_SCTP_BAD_CRC32C     0x10 /* compute bad CRC32C for SCTP packets */
+#define FLAGS_SCTP_EXPLICIT_TAG   0x20 /* verification tag specified */
+#define FLAGS_SCTP_GENERIC_PACKET 0x40 /* set if it is a generic packet */
+#define FLAGS_UDP_ENCAPSULATED    0x80 /* TCP/UDP or SCTP/UDP encapsulated */
 
 	enum ip_ecn_t ecn;	/* IPv4/IPv6 ECN treatment for packet */
 
@@ -216,14 +218,18 @@ static inline int ip_header_min_len(int address_family)
 }
 
 /* Return the layer4 protocol of the packet. */
-static inline int packet_ip_protocol(const struct packet *packet)
+static inline int packet_ip_protocol(const struct packet *packet, u8 udp_encaps)
 {
+	int protocol = 0;
+
+	assert(packet->ipv4 != NULL || packet->ipv6 != NULL);
 	if (packet->ipv4 != NULL)
-		return packet->ipv4->protocol;
+		protocol = packet->ipv4->protocol;
 	if (packet->ipv6 != NULL)
-		return packet->ipv6->next_header;
-	assert(!"no valid IP header");
-	return 0;
+		protocol = packet->ipv6->next_header;
+	if (protocol == IPPROTO_UDP && udp_encaps != 0)
+		protocol = udp_encaps;
+	return protocol;
 }
 
 /* Return the length of an optionless TCP or UDP header. */
@@ -381,27 +387,37 @@ static inline int packet_echoed_ip_protocol(struct packet *packet)
 }
 
 /* Return the location of the transport header echoed by an ICMP message. */
-static inline u8 *packet_echoed_layer4_header(struct packet *packet)
+static inline u8 *packet_echoed_layer4_header(struct packet *packet, bool encapsulated)
 {
 	u8 *echoed_ip = packet_echoed_ip_header(packet);
 	int ip_header_len = packet_echoed_ip_header_len(packet);
-	return echoed_ip + ip_header_len;
+	if (packet_echoed_ip_protocol(packet) == IPPROTO_UDP && encapsulated == true) {
+		return echoed_ip + ip_header_len + sizeof(struct udp);
+	} else {
+		return echoed_ip + ip_header_len;
+	}
 }
 
 /* Return the location of the SCTP common header echoed by an ICMP message. */
 static inline struct sctp_common_header *
-packet_echoed_sctp_header(struct packet *packet)
+packet_echoed_sctp_header(struct packet *packet, bool encapsulated)
 {
-	if (packet_echoed_ip_protocol(packet) == IPPROTO_SCTP)
+	int protocol;
+
+	protocol = packet_echoed_ip_protocol(packet);
+	if (protocol == IPPROTO_UDP && encapsulated == true) {
+		protocol = IPPROTO_SCTP;
+	}
+	if (protocol == IPPROTO_SCTP)
 		return (struct sctp_common_header *)
-		       (packet_echoed_layer4_header(packet));
+		       (packet_echoed_layer4_header(packet, encapsulated));
 	return NULL;
 }
 
 /* Return the location of the SCTP verification tag echoed by an ICMP message. */
-static inline u32 *packet_echoed_sctp_v_tag(struct packet *packet)
+static inline u32 *packet_echoed_sctp_v_tag(struct packet *packet, bool encapsulated)
 {
-	struct sctp_common_header *echoed_sctp = packet_echoed_sctp_header(packet);
+	struct sctp_common_header *echoed_sctp = packet_echoed_sctp_header(packet, encapsulated);
 	assert(echoed_sctp);
 	u32 *v_tag = &(echoed_sctp->v_tag);
 	/* Check that the v_tag field is actually in the space we
@@ -412,10 +428,16 @@ static inline u32 *packet_echoed_sctp_v_tag(struct packet *packet)
 }
 
 /* Return the location of the TCP header echoed by an ICMP message. */
-static inline struct tcp *packet_echoed_tcp_header(struct packet *packet)
+static inline struct tcp *packet_echoed_tcp_header(struct packet *packet, bool encapsulated)
 {
-	if (packet_echoed_ip_protocol(packet) == IPPROTO_TCP)
-		return (struct tcp *)(packet_echoed_layer4_header(packet));
+	int protocol;
+
+	protocol = packet_echoed_ip_protocol(packet);
+	if (protocol == IPPROTO_UDP && encapsulated == true) {
+		protocol = IPPROTO_TCP;
+	}
+	if (protocol == IPPROTO_TCP)
+		return (struct tcp *)(packet_echoed_layer4_header(packet, encapsulated));
 	return NULL;
 }
 
@@ -423,7 +445,7 @@ static inline struct tcp *packet_echoed_tcp_header(struct packet *packet)
 static inline struct udp *packet_echoed_udp_header(struct packet *packet)
 {
 	if (packet_echoed_ip_protocol(packet) == IPPROTO_UDP)
-		return (struct udp *)(packet_echoed_layer4_header(packet));
+		return (struct udp *)(packet_echoed_layer4_header(packet, 0));
 	return NULL;
 }
 
@@ -432,14 +454,14 @@ static inline struct
 udplite *packet_echoed_udplite_header(struct packet *packet)
 {
 	if (packet_echoed_ip_protocol(packet) == IPPROTO_UDPLITE)
-		return (struct udplite *)(packet_echoed_layer4_header(packet));
+		return (struct udplite *)(packet_echoed_layer4_header(packet, 0));
 	return NULL;
 }
 
 /* Return the location of the TCP sequence number echoed by an ICMP message. */
-static inline u32 *packet_echoed_tcp_seq(struct packet *packet)
+static inline u32 *packet_echoed_tcp_seq(struct packet *packet, bool encapsulated)
 {
-	struct tcp *echoed_tcp = packet_echoed_tcp_header(packet);
+	struct tcp *echoed_tcp = packet_echoed_tcp_header(packet, encapsulated);
 	assert(echoed_tcp);
 	u32 *seq = &(echoed_tcp->seq);
 	/* Check that the seq field is actually in the space we

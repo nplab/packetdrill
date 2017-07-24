@@ -47,19 +47,52 @@ static void checksum_ipv4_packet(struct packet *packet)
 	/* Fill in IPv4-based layer 4 checksum. */
 	if (packet->sctp != NULL) {
 		struct sctp_common_header *sctp = packet->sctp;
+		struct udp *udp;
+
 		sctp->crc32c = htonl(0);
-		sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
+		} else {
+			sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+		}
 		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
 			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
 		}
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			udp = ((struct udp *)sctp) - 1;
+			udp->check = 0;
+			udp->check = tcp_udp_v4_checksum(ipv4->src_ip,
+							 ipv4->dst_ip,
+							 IPPROTO_UDP, udp,
+							 l4_bytes);
+		}
 	} else if (packet->tcp != NULL) {
 		struct tcp *tcp = packet->tcp;
+		struct udp *udp;
+
 		tcp->check = 0;
-		tcp->check = tcp_udp_v4_checksum(ipv4->src_ip,
-						 ipv4->dst_ip,
-						 IPPROTO_TCP, tcp, l4_bytes);
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			tcp->check = tcp_udp_v4_checksum(ipv4->src_ip,
+							 ipv4->dst_ip,
+							 IPPROTO_TCP, tcp,
+							 l4_bytes - sizeof(struct udp));
+		} else {
+			tcp->check = tcp_udp_v4_checksum(ipv4->src_ip,
+							 ipv4->dst_ip,
+							 IPPROTO_TCP, tcp,
+							 l4_bytes);
+		}
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			udp = ((struct udp *)tcp) - 1;
+			udp->check = 0;
+			udp->check = tcp_udp_v4_checksum(ipv4->src_ip,
+							 ipv4->dst_ip,
+							 IPPROTO_UDP, udp,
+							 l4_bytes);
+		}
 	} else if (packet->udp != NULL) {
 		struct udp *udp = packet->udp;
+
 		udp->check = 0;
 		udp->check = tcp_udp_v4_checksum(ipv4->src_ip,
 						 ipv4->dst_ip,
@@ -79,6 +112,7 @@ static void checksum_ipv4_packet(struct packet *packet)
 						     l4_bytes, coverage);
 	} else if (packet->icmpv4 != NULL) {
 		struct icmpv4 *icmpv4 = packet->icmpv4;
+
 		icmpv4->checksum = 0;
 		icmpv4->checksum = ipv4_checksum(icmpv4, l4_bytes);
 	} else {
@@ -101,19 +135,52 @@ static void checksum_ipv6_packet(struct packet *packet)
 	/* Fill in IPv6-based layer 4 checksum. */
 	if (packet->sctp != NULL) {
 		struct sctp_common_header *sctp = packet->sctp;
+		struct udp *udp;
+
 		sctp->crc32c = htonl(0);
-		sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
+		} else {
+			sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+		}
 		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
 			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
 		}
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			udp = ((struct udp *)sctp) - 1;
+			udp->check = 0;
+			udp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
+							 &ipv6->dst_ip,
+							 IPPROTO_UDP, udp,
+							 l4_bytes);
+		}
 	} else if (packet->tcp != NULL) {
 		struct tcp *tcp = packet->tcp;
+		struct udp *udp;
+
 		tcp->check = 0;
-		tcp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
-						 &ipv6->dst_ip,
-						 IPPROTO_TCP, tcp, l4_bytes);
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			tcp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
+							 &ipv6->dst_ip,
+							 IPPROTO_TCP, tcp,
+							 l4_bytes - sizeof(struct udp));
+		} else {
+			tcp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
+							 &ipv6->dst_ip,
+							 IPPROTO_TCP, tcp,
+							 l4_bytes);
+		}
+		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+			udp = ((struct udp *)tcp) - 1;
+			udp->check = 0;
+			udp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
+							 &ipv6->dst_ip,
+							 IPPROTO_UDP, udp,
+							 l4_bytes);
+		}
 	} else if (packet->udp != NULL) {
 		struct udp *udp = packet->udp;
+
 		udp->check = 0;
 		udp->check = tcp_udp_v6_checksum(&ipv6->src_ip,
 						 &ipv6->dst_ip,
