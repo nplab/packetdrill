@@ -38,7 +38,7 @@
 #include <netinet/sctp.h>
 #define HAVE_OPEN_MEMSTREAM     1
 #define HAVE_FMEMOPEN           1
-#define TUN_PATH                "/dev/net/tun"
+#define TUN_DIR                 "/dev/net"
 #define HAVE_TCP_INFO           1
 
 #endif  /* linux */
@@ -54,8 +54,7 @@
 #include <netinet/udplite.h>
 #endif
 #define USE_LIBPCAP             1
-#define TUN_PATH                "/dev/tun0"
-#define TUN_DEV                 "tun0"
+#define TUN_DIR                 "/dev"
 #define HAVE_TCP_INFO           1
 #if (__FreeBSD_version < 1000000 && __FreeBSD_version > 902000) || __FreeBSD_version > 1000028
 #define HAVE_FMEMOPEN           1
@@ -63,7 +62,7 @@
 #include "fmemopen.h"
 #endif
 #if (__FreeBSD_version > 902000)
-#define HAVE_OPEN_MEMSTREAM	1
+#define HAVE_OPEN_MEMSTREAM     1
 #else
 #include "open_memstream.h"
 #endif
@@ -75,8 +74,7 @@
 #if defined(__OpenBSD__)
 
 #define USE_LIBPCAP             1
-#define TUN_PATH                "/dev/tun0"
-#define TUN_DEV                 "tun0"
+#define TUN_DIR                 "/dev"
 
 #define HAVE_TCP_INFO           0
 
@@ -92,8 +90,7 @@
 #if defined(__NetBSD__)
 
 #define USE_LIBPCAP             1
-#define TUN_PATH                "/dev/tun0"
-#define TUN_DEV                 "tun0"
+#define TUN_DIR                 "/dev"
 
 #define HAVE_TCP_INFO           0
 
