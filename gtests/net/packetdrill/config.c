@@ -63,6 +63,7 @@ enum option_codes {
 	OPT_UDP_ENCAPS,
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	OPT_TUN_DEV,
+	OPT_PERSISTENT_TUN_DEV,
 #endif
 };
 
@@ -96,6 +97,7 @@ struct option options[] = {
 	{ "udp_encapsulation",	.has_arg = true,  NULL, OPT_UDP_ENCAPS },
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	{ "tun_dev",		.has_arg = true,  NULL, OPT_TUN_DEV },
+	{ "persistent_tun_dev",	.has_arg = false, NULL, OPT_PERSISTENT_TUN_DEV },
 #endif
 	{ NULL },
 };
@@ -131,6 +133,7 @@ void show_usage(void)
 		"\t[--udp_encapsulation=[sctp,tcp]]\n"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 		"\t[--tun_dev=<tun_dev_name>]\n"
+		"\t[--persistent_tun_dev]\n"
 #endif
 		"\tscript_path ...\n");
 }
@@ -345,6 +348,20 @@ void finalize_config(struct config *config)
 			die("wire_server_ip not specified\n");
 		}
 	}
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	if ((config->tun_device == NULL) &&
+	    (config->persistent_tun_device == true)) {
+		die("tun_dev not specified\n");
+	}
+	if ((config->is_wire_client) || (config->is_wire_server)){
+		if (config->tun_device != NULL) {
+			die("tun_dev specified specified\n");
+		}
+		if (config->persistent_tun_device == true) {
+			die("persistent_tun_dev requested\n");
+		}
+	}
+#endif
 }
 
 /* Expect that arg is comma-delimited, allowing for spaces. */
@@ -497,6 +514,9 @@ static void process_option(int opt, char *optarg, struct config *config,
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	case OPT_TUN_DEV:
 		config->tun_device = strdup(optarg);
+		break;
+	case OPT_PERSISTENT_TUN_DEV:
+		config->persistent_tun_device = true;
 		break;
 #endif
 	default:

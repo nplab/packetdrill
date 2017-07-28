@@ -65,6 +65,7 @@ struct local_netdev {
 	int ipv6_control_fd;	/* fd for IPv6 configuration of tun interface */
 	int index;		/* interface index from if_nametoindex */
 	struct packet_socket *psock;	/* for sniffing packets (owned) */
+	bool persistent;
 };
 
 struct netdev_ops local_netdev_ops;
@@ -88,7 +89,7 @@ static void cleanup_old_device(struct config *config,
 	int result;
 #endif
 
-	if (config->tun_device == NULL) {
+	if ((config->tun_device == NULL) || config->persistent_tun_device) {
 		return;
 	}
 	asprintf(&cleanup_command,
@@ -128,6 +129,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 #endif
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	netdev->persistent = config->persistent_tun_device;
 	if (config->tun_device != NULL) {
 		asprintf(&tun_path, "%s/%s", TUN_DIR, config->tun_device);
 	} else {
@@ -351,7 +353,7 @@ static void local_netdev_free(struct netdev *a_netdev)
 	if (netdev->tun_fd >= 0) {
 		close(netdev->tun_fd);
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-		if (netdev->name != NULL) {
+		if ((netdev->name != NULL) && !netdev->persistent) {
 			char *cleanup_command = NULL;
 
 			asprintf(&cleanup_command,

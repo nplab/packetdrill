@@ -110,6 +110,7 @@ struct config {
 	/* For local testing using a tun interface. */
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	char *tun_device;
+	bool persistent_tun_device;
 #endif
 };
 
