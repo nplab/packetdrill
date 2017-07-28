@@ -61,6 +61,9 @@ enum option_codes {
 	OPT_VERBOSE = 'v',	/* our only single-letter option */
 	OPT_DEBUG,
 	OPT_UDP_ENCAPS,
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	OPT_TUN_DEV,
+#endif
 };
 
 /* Specification of command line options for getopt_long(). */
@@ -91,6 +94,9 @@ struct option options[] = {
 	{ "verbose",		.has_arg = false, NULL, OPT_VERBOSE },
 	{ "debug",		.has_arg = false, NULL, OPT_DEBUG },
 	{ "udp_encapsulation",	.has_arg = true,  NULL, OPT_UDP_ENCAPS },
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	{ "tun_dev",		.has_arg = true,  NULL, OPT_TUN_DEV },
+#endif
 	{ NULL },
 };
 
@@ -123,6 +129,9 @@ void show_usage(void)
 		"\t[--verbose|-v]\n"
 		"\t[--debug] * requires compilation with DEBUG *\n"
 		"\t[--udp_encapsulation=[sctp,tcp]]\n"
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+		"\t[--tun_dev=<tun_dev_name>]\n"
+#endif
 		"\tscript_path ...\n");
 }
 
@@ -485,6 +494,11 @@ static void process_option(int opt, char *optarg, struct config *config,
 		else
 			die("%s: bad --udp_encapsulation: %s\n", where, optarg);
 		break;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	case OPT_TUN_DEV:
+		config->tun_device = strdup(optarg);
+		break;
+#endif
 	default:
 		show_usage();
 		exit(EXIT_FAILURE);

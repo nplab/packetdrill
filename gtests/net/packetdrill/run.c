@@ -513,9 +513,12 @@ static s64 schedule_start_time_usecs(void)
 }
 
 void signal_handler(int signal_number) {
-	if (state != NULL)
+	if (state != NULL) {
 		close_all_sockets(state);
-	
+		if (state->netdev != NULL) {
+			netdev_free(state->netdev);
+		}
+	}
 	die("Handled signal %d\n", signal_number);
 }
 
@@ -524,9 +527,15 @@ void run_script(struct config *config, struct script *script)
 	char *error = NULL;
 	struct netdev *netdev = NULL;
 	struct event *event = NULL;
-	
+
 	if (signal(SIGINT, signal_handler) == SIG_ERR) {
 		die("could not set up signal handler for SIGINT!");
+	}
+	if (signal(SIGTERM, signal_handler) == SIG_ERR) {
+		die("could not set up signal handler for SIGTERM!");
+	}
+	if (signal(SIGHUP, signal_handler) == SIG_ERR) {
+		die("could not set up signal handler for SIGHUP!");
 	}
 
 	DEBUGP("run_script: running script\n");

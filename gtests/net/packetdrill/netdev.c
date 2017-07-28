@@ -88,9 +88,12 @@ static void cleanup_old_device(struct config *config,
 	int result;
 #endif
 
+	if (config->tun_device == NULL) {
+		return;
+	}
 	asprintf(&cleanup_command,
 		 "/sbin/ifconfig %s down delete > /dev/null 2>&1",
-		 TUN_DEV);
+		 config->tun_device);
 	DEBUGP("running: '%s'\n", cleanup_command);
 #ifdef DEBUG
 	result = system(cleanup_command);
@@ -119,16 +122,31 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 {
 	/* Open the tun device, which "clones" it for our purposes. */
 	int tun_fd;
+	char *tun_path;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	struct stat buf;
+#endif
 
-	tun_fd = open(TUN_PATH, O_RDWR);
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	if (config->tun_device != NULL) {
+		asprintf(&tun_path, "%s/%s", TUN_DIR, config->tun_device);
+	} else {
+		asprintf(&tun_path, "%s/%s", TUN_DIR, "tun");
+	}
+#endif
+#if defined(linux)
+	asprintf(&tun_path, "%s/%s", TUN_DIR, "tun");
+#endif
+	tun_fd = open(tun_path, O_RDWR);
 #if defined(__FreeBSD__)
 	if ((tun_fd < 0) && (errno == ENOENT)) {
 		if (system("kldload -q if_tun") < 0) {
 			die_perror("kldload -q if_tun");
 		}
-		tun_fd = open(TUN_PATH, O_RDWR);
+		tun_fd = open(tun_path, O_RDWR);
 	}
 #endif
+	free(tun_path);
 	if (tun_fd < 0) {
 		die_perror("open tun device");
 	}
@@ -153,8 +171,10 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	const int mode = IFF_BROADCAST | IFF_MULTICAST;
 	if (ioctl(netdev->tun_fd, TUNSIFMODE, &mode, sizeof(mode)) < 0)
 		die_perror("TUNSIFMODE");
-
-	netdev->name = strdup(TUN_DEV);
+	if (fstat(netdev->tun_fd, &buf) < 0) {
+		die_perror("fstat tun device");
+	}
+	netdev->name = strdup(devname(buf.st_rdev, S_IFCHR));
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
 
 #if defined(__FreeBSD__) ||  defined(__NetBSD__)
@@ -328,8 +348,20 @@ static void local_netdev_free(struct netdev *a_netdev)
 
 	if (netdev->psock)
 		packet_socket_free(netdev->psock);
-	if (netdev->tun_fd >= 0)
+	if (netdev->tun_fd >= 0) {
 		close(netdev->tun_fd);
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+		if (netdev->name != NULL) {
+			char *cleanup_command = NULL;
+
+			asprintf(&cleanup_command,
+			         "/sbin/ifconfig %s destroy > /dev/null 2>&1",
+			         netdev->name);
+			system(cleanup_command);
+			free(cleanup_command);
+		}
+#endif
+	}
 	if (netdev->ipv4_control_fd >= 0)
 		close(netdev->ipv4_control_fd);
 	if (netdev->ipv6_control_fd >= 0)
