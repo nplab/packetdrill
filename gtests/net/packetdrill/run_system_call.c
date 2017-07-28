@@ -1936,9 +1936,16 @@ static int run_syscall_connect(struct state *state,
 	DEBUGP("run_syscall_connect\n");
 
 	/* Fill in the live address we want to connect to */
-	ip_to_sockaddr(&state->config->live_connect_ip,
-		       state->config->live_connect_port,
-		       live_addr, live_addrlen);
+	if ((state->socket_under_test != NULL) &&
+	    (state->socket_under_test->state == SOCKET_PASSIVE_PACKET_RECEIVED)) {
+		ip_to_sockaddr(&state->socket_under_test->live.remote.ip,
+			       ntohs(state->socket_under_test->live.remote.port),
+			       live_addr, live_addrlen);
+	} else {
+		ip_to_sockaddr(&state->config->live_connect_ip,
+			       state->config->live_connect_port,
+			       live_addr, live_addrlen);
+	}
 
 	socket = find_socket_by_script_fd(state, script_fd);
 	assert(socket != NULL);
