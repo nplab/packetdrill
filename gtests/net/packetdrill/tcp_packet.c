@@ -59,8 +59,10 @@ struct packet *new_tcp_packet(int address_family,
 			       u32 ack_sequence,
 			       s32 window,
 			       const struct tcp_options *tcp_options,
+			       bool ignore_ts_val,
 			       bool abs_ts_ecr,
 			       bool abs_seq,
+			       bool ignore_seq,
 			       u16 udp_src_port,
 			       u16 udp_dst_port,
 			       char **error)
@@ -181,11 +183,17 @@ struct packet *new_tcp_packet(int address_family,
 		       tcp_options->length);
 	}
 
+	if (ignore_ts_val) {
+		packet->flags |= FLAG_IGNORE_TS_VAL;
+	}
 	if (abs_ts_ecr) {
 		packet->flags |= FLAG_ABSOLUTE_TS_ECR;
 	}
 	if (abs_seq) {
 		packet->flags |= FLAG_ABSOLUTE_SEQ;
+	}
+	if (ignore_seq) {
+		packet->flags |= FLAG_IGNORE_SEQ;
 	}
 
 	packet->ip_bytes = ip_bytes;
