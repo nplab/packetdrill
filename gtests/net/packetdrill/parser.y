@@ -152,10 +152,11 @@ static struct script *out_script = NULL;
 /* The test invocation to pass back to parse_and_finalize_config(). */
 struct invocation *invocation;
 
-/* Temporary variables to allow passing absolute timestamp flags to
+/* Temporary variables to allow passing absolute or ignore timestamp flags to
  * the tcp_options struct from the timestamp options. Adding fields
  * to struct tcp_option, which might be cleaner, affects the on-wire format.
  */
+bool ignore_ts_val = false;
 bool absolute_ts_ecr = false;
 
 /* Copy the script contents into our single linear buffer. */
@@ -446,6 +447,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %union {
 	s64 integer;
 	struct abs_integer abs_integer;
+	struct ignore_integer ignore_integer;
 	double floating;
 	char *string;
 	char *reserved;
@@ -461,6 +463,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 		u32 start_sequence;
 		u16 payload_bytes;
 		bool absolute;
+		bool ignore;
 	} tcp_sequence_info;
 	struct {
 		int protocol;
@@ -607,6 +610,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <integer> INTEGER HEX_INTEGER
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
 %type <abs_integer> abs_integer
+%type <ignore_integer> ignore_integer
 %type <direction> direction
 %type <ip_ecn> opt_ip_info
 %type <ip_ecn> ip_ecn
@@ -2337,10 +2341,13 @@ tcp_packet_spec
 			       direction, $2, $3,
 			       $4.start_sequence, $4.payload_bytes,
 			       $5, $6, $7,
+			       ignore_ts_val,
 			       absolute_ts_ecr,
 			       $4.absolute,
+			       $4.ignore,
 			       $8.udp_src_port, $8.udp_dst_port,
 			       &error);
+	ignore_ts_val = false;
 	absolute_ts_ecr = false;
 	free($3);
 	free($7);
@@ -2622,6 +2629,14 @@ seq
 	$$.payload_bytes = $5;
 	$$.absolute = true;
 }
+| ELLIPSIS '(' INTEGER ')' {
+	if (!is_valid_u16($3)) {
+		semantic_error("TCP payload size out of range");
+	}
+	$$.start_sequence = 0;
+	$$.payload_bytes = $3;
+	$$.ignore = true;
+}
 ;
 
 opt_ack
@@ -2699,11 +2714,12 @@ tcp_option
 | SACK sack_block_list {
 	$$ = $2;
 }
-| TIMESTAMP VAL INTEGER ECR abs_integer  {
+| TIMESTAMP VAL ignore_integer ECR abs_integer  {
 	u32 val, ecr;
+	ignore_ts_val = $3.ignore;
 	absolute_ts_ecr = $5.absolute;
 	$$ = tcp_option_new(TCPOPT_TIMESTAMP, TCPOLEN_TIMESTAMP);
-	val = $3;
+	val = $3.integer;
 	ecr = $5.integer;
 	if (!is_valid_u32(val)) {
 		semantic_error("ts val out of range");
@@ -2729,6 +2745,11 @@ tcp_option
 abs_integer
 : INTEGER     { $$.integer = $1; $$.absolute = false; }
 | INTEGER '!' { $$.integer = $1; $$.absolute = true; }
+;
+
+ignore_integer
+: INTEGER     { $$.integer = $1; $$.ignore = false; }
+| ELLIPSIS     { $$.integer = 0; $$.ignore = true; }
 ;
 
 sack_block_list

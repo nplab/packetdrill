@@ -114,6 +114,8 @@ struct packet {
 #define FLAGS_SCTP_EXPLICIT_TAG   0x20 /* verification tag specified */
 #define FLAGS_SCTP_GENERIC_PACKET 0x40 /* set if it is a generic packet */
 #define FLAGS_UDP_ENCAPSULATED    0x80 /* TCP/UDP or SCTP/UDP encapsulated */
+#define FLAG_IGNORE_TS_VAL        0x100 /* set to ignore processing of TS val */
+#define FLAG_IGNORE_SEQ           0x200 /* set to ignore processing of sequence numbers */
 
 	enum ip_ecn_t ecn;	/* IPv4/IPv6 ECN treatment for packet */
 

@@ -141,6 +141,12 @@ struct abs_integer {
 	bool absolute;
 };
 
+/* Type to handle ... or <integer> for specifying an integer or to ignore one. */
+struct ignore_integer {
+	s64 integer;
+	bool ignore;
+};
+
 /* Length of output buffer for inet_ntop, plus prefix length (e.g. "/128"). */
 #define ADDR_STR_LEN ((INET_ADDRSTRLEN + INET6_ADDRSTRLEN)+5)
 

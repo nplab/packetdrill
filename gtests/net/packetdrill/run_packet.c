@@ -1215,9 +1215,11 @@ static int map_outbound_live_packet(
 		u32 actual_ts_val = packet_tcp_ts_val(actual_packet);
 
 		/* Remember script->actual TS val mapping for later. */
-		set_outbound_ts_val_mapping(socket,
-					    script_ts_val,
-					    actual_ts_val);
+		if (!(script_packet->flags & FLAG_IGNORE_TS_VAL)) {
+			set_outbound_ts_val_mapping(socket,
+						    script_ts_val,
+						    actual_ts_val);
+		}
 
 		/* Find baseline for socket's live->script TS val mapping. */
 		if (!socket->found_first_tcp_ts) {
@@ -2566,9 +2568,10 @@ static int verify_tcp(
 	    check_field("tcp_reserved_bits",
 			script_tcp->res1,
 			actual_tcp->res1, error) ||
-	    check_field("tcp_seq",
-			ntohl(script_tcp->seq),
-			ntohl(actual_tcp->seq), error) ||
+	    (script_packet->flags & FLAG_IGNORE_SEQ ? STATUS_OK :
+		check_field("tcp_seq",
+			    ntohl(script_tcp->seq),
+			    ntohl(actual_tcp->seq), error)) ||
 	    check_field("tcp_ack_seq",
 			ntohl(script_tcp->ack_seq),
 			ntohl(actual_tcp->ack_seq), error) ||
@@ -3039,7 +3042,7 @@ static int do_outbound_script_packet(
 	}
 
 	if (socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) {
-		if (packet->tcp && packet->tcp->syn && packet->tcp->ack) {
+		if (packet->tcp && packet->tcp->syn && packet->tcp->ack && !(packet->flags & FLAG_IGNORE_SEQ)) {
 			/* Script says we should see an outbound server SYNACK. */
 			socket->script.local_isn = ntohl(packet->tcp->seq);
 			DEBUGP("SYNACK script.local_isn: %u\n",
@@ -3526,8 +3529,8 @@ int reset_connection(struct state *state, struct socket *socket)
 
 	packet = new_tcp_packet(socket->address_family,
 				DIRECTION_INBOUND, ECN_NONE,
-				"R.", seq, 0, ack_seq, window, NULL, false,
-				false, udp_src_port, udp_dst_port, &error);
+				"R.", seq, 0, ack_seq, window, NULL, false, false,
+				false, false, udp_src_port, udp_dst_port, &error);
 	if (packet == NULL)
 		die("%s", error);
 
