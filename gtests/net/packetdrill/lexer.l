@@ -334,6 +334,8 @@ iov_len				return IOV_LEN;
 headers				return SF_HDTR_HEADERS;
 trailers			return SF_HDTR_TRAILERS;
 [.][.][.]			return ELLIPSIS;
+af_name				return AF_NAME;
+af_arg				return AF_ARG;
 function_set_name		return FUNCTION_SET_NAME;
 pcbcnt				return PCBCNT;
 assoc_id			return ASSOC_ID;

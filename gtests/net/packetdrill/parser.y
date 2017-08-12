@@ -531,6 +531,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
+%token <reserved> AF_NAME AF_ARG
 %token <reserved> FUNCTION_SET_NAME PCBCNT
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
@@ -646,6 +647,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data
 %type <expression> sf_hdtr iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
+%type <expression> accept_filter_arg af_name af_arg
 %type <expression> tcp_function_set function_set_name pcbcnt
 %type <udp_encaps_info> opt_udp_encaps_info
 %type <sctp_header_spec> sctp_header_spec
@@ -2873,6 +2875,9 @@ expression
 | linger            {
 	$$ = $1;
 }
+| accept_filter_arg {
+	$$ = $1;
+}
 | tcp_function_set  {
 	$$ = $1;
 }
@@ -3214,6 +3219,50 @@ linger
 	$$->value.linger->l_linger = $4;
 }
 ;
+
+af_name
+: AF_NAME '=' STRING {
+	$$ = new_expression(EXPR_STRING);
+	$$->value.string = $3;
+	$$->format = "\"%s\"";
+}
+| AF_NAME '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+af_arg
+: AF_ARG '=' STRING {
+	$$ = new_expression(EXPR_STRING);
+	$$->value.string = $3;
+	$$->format = "\"%s\"";
+}
+| AF_ARG '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+accept_filter_arg
+: '{' af_name '}' {
+#if defined(__FreeBSD__)
+	$$ = new_expression(EXPR_ACCEPT_FILTER_ARG);
+	$$->value.accept_filter_arg = calloc(1, sizeof(struct accept_filter_arg_expr));
+	$$->value.accept_filter_arg->af_name = $2;
+	$$->value.accept_filter_arg->af_arg = NULL;
+#else
+	$$ = NULL;
+#endif
+}
+| '{' af_name ',' af_arg '}' {
+#if defined(__FreeBSD__)
+	$$ = new_expression(EXPR_ACCEPT_FILTER_ARG);
+	$$->value.accept_filter_arg = calloc(1, sizeof(struct accept_filter_arg_expr));
+	$$->value.accept_filter_arg->af_name = $2;
+	$$->value.accept_filter_arg->af_arg = $4;
+#else
+	$$ = NULL;
+#endif
+}
 
 function_set_name
 : FUNCTION_SET_NAME '=' STRING {

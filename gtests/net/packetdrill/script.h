@@ -49,6 +49,7 @@ enum expression_t {
 	EXPR_POLLFD,		  /* expression tree for a pollfd struct */
 #if defined(__FreeBSD__)
 	EXPR_SF_HDTR,		  /* struct sf_hdtr for sendfile */
+	EXPR_ACCEPT_FILTER_ARG,	  /* struct accept_filter_arg */
 	EXPR_TCP_FUNCTION_SET,	  /* struct tcp_function_set */
 #endif
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
@@ -120,6 +121,7 @@ struct expression {
 		struct pollfd_expr *pollfd;
 #if defined(__FreeBSD__)
 		struct sf_hdtr_expr *sf_hdtr;
+		struct accept_filter_arg_expr *accept_filter_arg;
 		struct tcp_function_set_expr *tcp_function_set;
 #endif
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
@@ -233,6 +235,11 @@ struct sf_hdtr_expr {
 	struct expression *hdr_cnt;
 	struct expression *trailers;
 	struct expression *trl_cnt;
+};
+
+struct accept_filter_arg_expr {
+	struct expression *af_name;
+	struct expression *af_arg;
 };
 
 struct tcp_function_set_expr {

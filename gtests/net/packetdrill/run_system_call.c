@@ -41,6 +41,7 @@
 #include <sys/ioctl.h>
 #if defined(__FreeBSD__)
 #include <kvm.h>
+#include <stddef.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
 #include <sys/param.h>
@@ -3202,6 +3203,37 @@ static int check_sctp_udpencaps(struct sctp_udpencaps_expr *expr,
 }
 #endif
 
+#ifdef SO_ACCEPTFILTER
+static int check_accept_filter_arg(struct accept_filter_arg_expr *expr,
+				   struct accept_filter_arg *accept_filter_arg,
+				   char **error) {
+	if (expr->af_name->type != EXPR_ELLIPSIS) {
+		if (strncmp(expr->af_name->value.string,
+		            accept_filter_arg->af_name,
+		            offsetof(struct accept_filter_arg, af_arg))) {
+			asprintf(error, "accept_filter_arg.af_name: expected: %s, actual: %.*s\n",
+			         expr->af_name->value.string,
+			         (int)offsetof(struct accept_filter_arg, af_arg),
+			         accept_filter_arg->af_name);
+			return STATUS_ERR;
+		}
+	}
+	if (expr->af_arg != NULL &&
+	    expr->af_arg->type != EXPR_ELLIPSIS) {
+		if (strncmp(expr->af_arg->value.string,
+		            accept_filter_arg->af_arg,
+		            sizeof(struct accept_filter_arg) - offsetof(struct accept_filter_arg, af_arg))) {
+			asprintf(error, "accept_filter_arg.af_arg: expected: %s, actual: %.*s\n",
+			         expr->af_arg->value.string,
+			         (int)(sizeof(struct accept_filter_arg) - offsetof(struct accept_filter_arg, af_arg)),
+			         accept_filter_arg->af_arg);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 #ifdef TCP_FUNCTION_BLK
 static int check_tcp_function_set(struct tcp_function_set_expr *expr,
 			          struct tcp_function_set *tcp_function_set,
@@ -3222,7 +3254,6 @@ static int check_tcp_function_set(struct tcp_function_set_expr *expr,
 		return STATUS_ERR;
 	return STATUS_OK;
 }
-
 #endif
 
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
@@ -3323,7 +3354,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_STATUS
 	case EXPR_SCTP_STATUS:
 		live_optval = malloc(sizeof(struct sctp_status));
-		live_optlen = (socklen_t) sizeof(struct sctp_status);
+		live_optlen = (socklen_t)sizeof(struct sctp_status);
 		if (get_sctp_assoc_t(val_expression->value.sctp_status->sstat_assoc_id,
 				    &((struct sctp_status*) live_optval)->sstat_assoc_id,
 				    error)) {
@@ -3336,7 +3367,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_PADDRINFO: {
 		struct sctp_paddrinfo_expr *expr_paddrinfo = val_expression->value.sctp_paddrinfo;
 		struct sctp_paddrinfo *live_paddrinfo = malloc(sizeof(struct sctp_paddrinfo));
-		live_optlen = (socklen_t) sizeof(struct sctp_paddrinfo);
+
 		memset(live_paddrinfo, 0, sizeof(struct sctp_paddrinfo));
 		if (get_sctp_assoc_t(val_expression->value.sctp_paddrinfo->spinfo_assoc_id,
 				    &(live_paddrinfo->spinfo_assoc_id), error)) {
@@ -3350,6 +3381,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		live_optval = live_paddrinfo;
+		live_optlen = (socklen_t)sizeof(struct sctp_paddrinfo);
 		break;
 	}
 #endif
@@ -3357,8 +3389,8 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_SCTP_PEER_ADDR_PARAMS: {
 		struct sctp_paddrparams_expr *expr_params = val_expression->value.sctp_paddrparams;
 		struct sctp_paddrparams *live_params = malloc(sizeof(struct sctp_paddrparams));
+
 		memset(live_params, 0, sizeof(struct sctp_paddrparams));
-		live_optlen = sizeof(struct sctp_paddrparams);
 		if (get_sockstorage_arg(expr_params->spp_address, &live_params->spp_address, live_fd)) {
 			asprintf(error, "can't determine spp_address");
 			free(live_params);
@@ -3369,30 +3401,30 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		live_optval = live_params;
+		live_optlen = (socklen_t)sizeof(struct sctp_paddrparams);
 		break;
 	}
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	case EXPR_SCTP_ASSOC_VALUE:
 		live_optval = malloc(sizeof(struct sctp_assoc_value));
-		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
 		if (get_sctp_assoc_t(val_expression->value.sctp_assoc_value->assoc_id,
 			&((struct sctp_assoc_value *) live_optval)->assoc_id, error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
 		break;
 #endif
 #ifdef SCTP_HMAC_IDENT
 	case EXPR_SCTP_HMACALGO:
 		live_optval = malloc(sizeof(struct sctp_hmacalgo));
-		live_optlen = sizeof(struct sctp_hmacalgo);
+		live_optlen = (socklen_t)sizeof(struct sctp_hmacalgo);
 		break;
 #endif
 #ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
 		live_optval = malloc(sizeof(struct sctp_stream_value));
-		live_optlen = (socklen_t)sizeof(struct sctp_stream_value);
 		((struct sctp_stream_value *) live_optval)->assoc_id = 0;
 		if (get_u16(val_expression->value.sctp_stream_value->stream_id,
 			    &((struct sctp_stream_value *)live_optval)->stream_id,
@@ -3400,12 +3432,12 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_stream_value);
 		break;
 #endif
 #ifdef SCTP_EVENT
 	case EXPR_SCTP_EVENT:
 		live_optval = malloc(sizeof(struct sctp_event));
-		live_optlen = sizeof(struct sctp_event);
 		if (get_sctp_assoc_t(val_expression->value.sctp_event->se_assoc_id,
 				     &((struct sctp_event *)live_optval)->se_assoc_id,
 				     error)) {
@@ -3418,37 +3450,37 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_event);
 		break;
 #endif
 #ifdef SCTP_DEFAULT_SEND_PARAM
 	case EXPR_SCTP_SNDRCVINFO:
 		live_optval = malloc(sizeof(struct sctp_sndrcvinfo));
-		live_optlen = sizeof(struct sctp_sndrcvinfo);
+		live_optlen = (socklen_t)sizeof(struct sctp_sndrcvinfo);
 		break;
 #endif
 #ifdef SCTP_EVENTS
 	case EXPR_SCTP_EVENT_SUBSCRIBE:
 		live_optval = malloc(sizeof(struct sctp_event_subscribe));
-		live_optlen = sizeof(struct sctp_event_subscribe);
+		live_optlen = (socklen_t)sizeof(struct sctp_event_subscribe);
 		break;
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO
 	case EXPR_SCTP_SNDINFO:
 		live_optval = malloc(sizeof(struct sctp_sndinfo));
-		live_optlen = sizeof(struct sctp_sndinfo);
 		if (get_sctp_assoc_t(val_expression->value.sctp_sndinfo->snd_assoc_id,
 				     &((struct sctp_sndinfo *)live_optval)->snd_assoc_id,
 				     error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_sndinfo);
 		break;
 #endif
 #ifdef SCTP_DEFAULT_PRINFO
 	case EXPR_SCTP_PRINFO:
 	case EXPR_SCTP_DEFAULT_PRINFO:
 		live_optval = malloc(sizeof(struct sctp_default_prinfo));
-		live_optlen = sizeof(struct sctp_default_prinfo);
 		if (EXPR_SCTP_DEFAULT_PRINFO) {
 			if (get_sctp_assoc_t(val_expression->value.sctp_default_prinfo->pr_assoc_id,
 					     &((struct sctp_default_prinfo *)live_optval)->pr_assoc_id,
@@ -3456,73 +3488,74 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 				free(live_optval);
 				return STATUS_ERR;
 			}
-		}else{
+		} else {
 			((struct sctp_default_prinfo *)live_optval)->pr_assoc_id = 0;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_default_prinfo);
 		break;
 #endif
 #ifdef SCTP_PRIMARY_ADDR
 	case EXPR_SCTP_SETPRIM:
 		live_optval = malloc(sizeof(struct sctp_setprim));
-		live_optlen = sizeof(struct sctp_setprim);
 		if (get_sctp_assoc_t(val_expression->value.sctp_setprim->ssp_assoc_id,
 				     &((struct sctp_setprim *)live_optval)->ssp_assoc_id,
 				     error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_setprim);
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
 	case EXPR_SCTP_SETADAPTATION:
 		live_optval = malloc(sizeof(struct sctp_setadaptation));
-		live_optlen = sizeof(struct sctp_setadaptation);
+		live_optlen = (socklen_t)sizeof(struct sctp_setadaptation);
 		break;
 #endif
 #ifdef SCTP_GET_ASSOC_ID_LIST
 	case EXPR_SCTP_ASSOC_IDS: {
 		int len = expression_list_length(val_expression->value.sctp_assoc_ids->gaids_assoc_id->value.list);
-		live_optval = malloc(sizeof(u32) + (sizeof(sctp_assoc_t) * len));
-		live_optlen = sizeof(u32) + (sizeof(sctp_assoc_t) * len);
+		live_optval = malloc(sizeof(struct sctp_assoc_ids) + (sizeof(sctp_assoc_t) * len));
+		live_optlen = (socklen_t)(sizeof(struct sctp_assoc_ids) + (sizeof(sctp_assoc_t) * len));
 		break;
 	}
 #endif
 #if defined(SCTP_PEER_AUTH_CHUNKS) || defined(SCTP_LOCAL_AUTH_CHUNKS)
 	case EXPR_SCTP_AUTHCHUNKS: {
 		int len = expression_list_length(val_expression->value.sctp_authchunks->gauth_chunks->value.list);
-		live_optval = malloc(sizeof(sctp_assoc_t) + sizeof(u32) + (sizeof(u8) * len));
-		live_optlen = sizeof(sctp_assoc_t) + sizeof(u32) + (sizeof(u8) * len);
+		live_optval = malloc(sizeof(struct sctp_authchunks) + (sizeof(u8) * len));
 		if (get_sctp_assoc_t(val_expression->value.sctp_authchunks->gauth_assoc_id,
 				     &((struct sctp_authchunks *)live_optval)->gauth_assoc_id,
 				     error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)(sizeof(struct sctp_authchunks) + (sizeof(u8) * len));
 		break;
 	}
 #endif
 #ifdef SCTP_RESET_STREAMS
 	case EXPR_SCTP_RESET_STREAMS:
 		live_optval = malloc(sizeof(struct sctp_reset_streams));
-		live_optlen = (socklen_t)sizeof(struct sctp_reset_streams);
 		if (get_sctp_assoc_t(val_expression->value.sctp_reset_streams->srs_assoc_id,
 				     &((struct sctp_reset_streams *)live_optval)->srs_assoc_id,
 				     error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_reset_streams);
 		break;
 #endif
 #ifdef SCTP_ADD_STREAMS
 	case EXPR_SCTP_ADD_STREAMS:
 		live_optval = malloc(sizeof(struct sctp_add_streams));
-		live_optlen = (socklen_t)sizeof(struct sctp_add_streams);
 		if (get_sctp_assoc_t(val_expression->value.sctp_add_streams->sas_assoc_id,
 				     &((struct sctp_add_streams *)live_optval)->sas_assoc_id,
 				     error)) {
 			free(live_optval);
 			return STATUS_ERR;
 		}
+		live_optlen = (socklen_t)sizeof(struct sctp_add_streams);
 		break;
 #endif
 #ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
@@ -3530,7 +3563,6 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		struct sctp_udpencaps_expr *expr_udpencaps = val_expression->value.sctp_udpencaps;
 		struct sctp_udpencaps *live_udpencaps = malloc(sizeof(struct sctp_udpencaps));
 
-		live_optlen = (socklen_t) sizeof(struct sctp_udpencaps);
 		memset(live_udpencaps, 0, sizeof(struct sctp_udpencaps));
 		if (get_sctp_assoc_t(expr_udpencaps->sue_assoc_id,
 				     &(live_udpencaps->sue_assoc_id), error)) {
@@ -3544,6 +3576,17 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		live_optval = live_udpencaps;
+		live_optlen = (socklen_t)sizeof(struct sctp_udpencaps);
+		break;
+	}
+#endif
+#ifdef SO_ACCEPTFILTER
+	case EXPR_ACCEPT_FILTER_ARG: {
+		struct accept_filter_arg *live_accept_filter_arg = malloc(sizeof(struct accept_filter_arg));
+
+		memset(live_accept_filter_arg, 0, sizeof(struct accept_filter_arg));
+		live_optval = live_accept_filter_arg;
+		live_optlen = (socklen_t)sizeof(struct accept_filter_arg);
 		break;
 	}
 #endif
@@ -3553,6 +3596,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 
 		memset(live_tcp_function_set, 0, sizeof(struct tcp_function_set));
 		live_optval = live_tcp_function_set;
+		live_optlen = (socklen_t)sizeof(struct tcp_function_set);
 		break;
 	}
 #endif
@@ -3708,6 +3752,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_udpencaps(val_expression->value.sctp_udpencaps, live_optval, error);
 		break;
 #endif
+#ifdef SO_ACCEPTFILTER
+	case EXPR_ACCEPT_FILTER_ARG:
+		result = check_accept_filter_arg(val_expression->value.accept_filter_arg, live_optval, error);
+		break;
+#endif
 #ifdef TCP_FUNCTION_BLK
 	case EXPR_TCP_FUNCTION_SET:
 		result = check_tcp_function_set(val_expression->value.tcp_function_set, live_optval, error);
@@ -3814,6 +3863,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
 	struct sctp_udpencaps udpencaps;
 #endif
+#ifdef SO_ACCEPTFILTER
+	struct accept_filter_arg accept_filter_arg;
+#endif
 #ifdef TCP_FUNCTION_BLK
 	struct tcp_function_set tcp_function_set;
 #endif
@@ -3866,6 +3918,12 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		optval = &optval_s32;
 		if (!optlen_provided) {
 			optlen = (socklen_t)sizeof(s32);
+		}
+		break;
+	case EXPR_NULL:
+		optval = NULL;
+		if (!optlen_provided) {
+			optlen = (socklen_t)0;
 		}
 		break;
 #ifdef SCTP_RTOINFO
@@ -4447,8 +4505,32 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		break;
 #endif
+#ifdef SO_ACCEPTFILTER
+	case EXPR_ACCEPT_FILTER_ARG:
+		memset(&accept_filter_arg, 0, sizeof(struct accept_filter_arg));
+		if (check_type(val_expression->value.accept_filter_arg->af_name, EXPR_STRING, error)) {
+			return STATUS_ERR;
+		}
+		strncpy(accept_filter_arg.af_name,
+			val_expression->value.accept_filter_arg->af_name->value.string,
+			offsetof(struct accept_filter_arg, af_arg));
+		if (val_expression->value.accept_filter_arg->af_arg != NULL &&
+		    val_expression->value.accept_filter_arg->af_arg->type != EXPR_ELLIPSIS) {
+			if (check_type(val_expression->value.accept_filter_arg->af_arg, EXPR_STRING, error)) {
+				return STATUS_ERR;
+			}
+			strncpy(accept_filter_arg.af_arg,
+				val_expression->value.accept_filter_arg->af_arg->value.string,
+				sizeof(struct accept_filter_arg) - offsetof(struct accept_filter_arg, af_arg));
+		}
+		optval = &accept_filter_arg;
+		if (!optlen_provided)
+			optlen = (socklen_t)sizeof(accept_filter_arg);
+		break;
+#endif
 #ifdef TCP_FUNCTION_BLK
 	case EXPR_TCP_FUNCTION_SET:
+		memset(&tcp_function_set, 0, sizeof(struct tcp_function_set));
 		if (check_type(val_expression->value.tcp_function_set->function_set_name, EXPR_STRING, error)) {
 			return STATUS_ERR;
 		}
@@ -4471,7 +4553,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 		break;
 	}
-	assert(optval != NULL);
+	assert(val_expression->type == EXPR_NULL || optval != NULL);
 
 	begin_syscall(state, syscall);
 
