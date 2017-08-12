@@ -1,0 +1,22 @@
+ 0.0 `sysctl -w net.inet.sctp.ecn_enable=1`
++0.0 `sysctl -w net.inet.sctp.pr_enable=0`
++0.0 `sysctl -w net.inet.sctp.asconf_enable=0`
++0.0 `sysctl -w net.inet.sctp.auth_enable=0`
++0.0 `sysctl -w net.inet.sctp.reconfig_enable=0`
++0.0 `sysctl -w net.inet.sctp.nrsack_enable=0`
++0.0 `sysctl -w net.inet.sctp.pktdrop_enable=0`
++0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
+// Check the handshake with en empty(!) cookie
++0.0 bind(3, ..., ...) = 0
++0.0 listen(3, 1) = 0
++0.0 < sctp: INIT[flgs=0, tag=1, a_rwnd=1500, os=1, is=1, tsn=0,
+                  ECN_CAPABLE[],
+                  COOKIE_PRESERVATIVE[incr=12345],
+                  SUPPORTED_ADDRESS_TYPES[types=[IPv4]]]
++0.0 > sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=..., os=..., is=..., tsn=10,
+                      ECN_CAPABLE[],
+                      STATE_COOKIE[len=..., val=...]]
++0.1 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]
++0.0 > sctp: COOKIE_ACK[flgs=0]
++0.0 < sctp: COOKIE_ECHO[flgs=0, len=..., val=...]
++0.0 close(3) = 0
