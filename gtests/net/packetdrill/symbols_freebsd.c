@@ -382,6 +382,9 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(TCP_REMOTE_UDP_ENCAPS_PORT)
 	{ TCP_REMOTE_UDP_ENCAPS_PORT,       "TCP_REMOTE_UDP_ENCAPS_PORT"      },
 #endif
+#if defined(TCP_LOG)
+	{ TCP_LOG,                          "TCP_LOG"                         },
+#endif
 
 #if defined(UDPLITE_RECV_CSCOV) && defined(UDPLITE_SEND_CSCOV)
 	/* /usr/include/netinet/udplite.h */
