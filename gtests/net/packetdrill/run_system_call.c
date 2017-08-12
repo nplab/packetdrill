@@ -283,7 +283,7 @@ static int check_type(struct expression *expression,
 }
 
 /* Sets the value from the expression argument, checking that it is a
- * valid size_t, and matches the expected type. Returns STATUS_OK on
+ * valid socklen_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
  */
 static int get_socklen_t(struct expression *expression,
@@ -575,6 +575,26 @@ static int off_t_bracketed_arg(struct expression_list *args,
 	return get_off_t(list->expression, value, error);
 }
 #endif
+
+static int socklen_t_bracketed_arg(struct expression_list *args,
+				   int index, socklen_t *value, char **error)
+{
+	struct expression_list *list;
+	struct expression *expression;
+
+	expression = get_arg(args, index, error);
+	if (expression == NULL)
+		return STATUS_ERR;
+	if (check_type(expression, EXPR_LIST, error))
+		return STATUS_ERR;
+	list = expression->value.list;
+	if (expression_list_length(list) != 1) {
+		asprintf(error,
+			 "Expected [<integer>] but got multiple elements");
+		return STATUS_ERR;
+	}
+	return get_socklen_t(list->expression, value, error);
+}
 
 /* Return STATUS_OK iff the argument with the given index is an
  * ellipsis (...).
@@ -3209,10 +3229,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
 	int script_fd, live_fd, level, optname, live_result, result = STATUS_OK;
-	s32 script_optval, script_optlen, expected;
+	s32 script_optval, expected;
+	socklen_t script_optlen, live_optlen;
+	bool optlen_provided;
 	void *live_optval;
-	socklen_t live_optlen;
-	struct expression *val_expression;
+	struct expression *val_expression, *len_expression;
 
 	if (check_arg_count(args, 5, error))
 		return STATUS_ERR;
@@ -3224,8 +3245,16 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	if (s32_arg(args, 2, &optname, error))
 		return STATUS_ERR;
-	if (s32_bracketed_arg(args, 4, &script_optlen, error))
+	len_expression = get_arg(args, 4, error);
+	if (len_expression == NULL)
 		return STATUS_ERR;
+	if (len_expression->type == EXPR_ELLIPSIS) {
+		optlen_provided = false;
+	} else {
+		if (socklen_t_bracketed_arg(args, 4, &script_optlen, error))
+			return STATUS_ERR;
+		optlen_provided = true;
+	}
 	if (get_s32(syscall->result, &expected, error))
 		return STATUS_ERR;
 	val_expression = get_arg(args, 3, error);
@@ -3548,7 +3577,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	}
 
-	if (live_optlen != script_optlen) {
+	if (optlen_provided && live_optlen != script_optlen) {
 		asprintf(error, "optlen: expected: %d actual: %d",
 			 (int)script_optlen, (int)live_optlen);
 		free(live_optval);
@@ -3703,9 +3732,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
-	int script_fd, live_fd, level, optname, optval_s32, optlen, result;
+	int script_fd, live_fd, level, optname, optval_s32, result;
+	socklen_t optlen;
+	bool optlen_provided;
 	void *optval = NULL;
-	struct expression *val_expression;
+	struct expression *val_expression, *len_expression;
 	struct linger linger;
 #ifdef SCTP_RTOINFO
 	struct sctp_rtoinfo rtoinfo;
@@ -3797,8 +3828,17 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	if (s32_arg(args, 2, &optname, error))
 		return STATUS_ERR;
-	if (s32_arg(args, 4, &optlen, error))
+
+	len_expression = get_arg(args, 4, error);
+	if (len_expression == NULL)
 		return STATUS_ERR;
+	if (len_expression->type == EXPR_ELLIPSIS) {
+		optlen_provided = false;
+	} else {
+		if (get_socklen_t(len_expression, &optlen, error))
+			return STATUS_ERR;
+		optlen_provided = true;
+	}
 
 	val_expression = get_arg(args, 3, error);
 	if (val_expression == NULL)
@@ -3810,14 +3850,23 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		get_s32(val_expression->value.linger->l_linger,
 			&linger.l_linger, error);
 		optval = &linger;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct linger);
+		}
 		break;
 	case EXPR_STRING:
 		optval = val_expression->value.string;
+		if (!optlen_provided) {
+			optlen = (socklen_t)strlen(val_expression->value.string);
+		}
 		break;
 	case EXPR_LIST:
 		if (s32_bracketed_arg(args, 3, &optval_s32, error))
 			return STATUS_ERR;
 		optval = &optval_s32;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(s32);
+		}
 		break;
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
@@ -3838,6 +3887,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &rtoinfo;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_rtoinfo);
+		}
 		break;
 #endif
 #ifdef SCTP_ASSOCINFO
@@ -3867,6 +3919,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &assocparams;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_assocparams);
+		}
 		break;
 #endif
 #ifdef SCTP_INITMSG
@@ -3875,6 +3930,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &initmsg;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_initmsg);
+		}
 		break;
 #endif
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
@@ -3888,19 +3946,24 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &assoc_value;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_assoc_value);
+		}
 		break;
 #endif
 #ifdef SCTP_HMAC_IDENT
 	case EXPR_SCTP_HMACALGO: {
-		int len, i;
 		struct expression_list *list;
+		size_t size;
+		unsigned int len, i;
 
 		if (check_type(val_expression->value.sctp_hmacalgo->shmac_idents, EXPR_LIST, error)) {
 			return STATUS_ERR;
 		}
 		list = val_expression->value.sctp_hmacalgo->shmac_idents->value.list;
 		len = expression_list_length(list);
-		hmacalgo = malloc(sizeof(u32) + (sizeof(u16) * len));
+		size = sizeof(struct sctp_hmacalgo) + len * sizeof(u16);
+		hmacalgo = malloc(size);
 
 		if (get_u32(val_expression->value.sctp_hmacalgo->shmac_number_of_idents,
 			    &hmacalgo->shmac_number_of_idents, error)) {
@@ -3913,8 +3976,11 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			get_u16(expr, &(hmacalgo->shmac_idents[i]), error);
 		}
 		optval = &hmacalgo;
-		break;
+		if (!optlen_provided) {
+			optlen = (socklen_t)size;
 		}
+		break;
+	}
 #endif
 #ifdef SCTP_SS_VALUE
 	case EXPR_SCTP_STREAM_VALUE:
@@ -3928,6 +3994,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &stream_value;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_stream_value);
+		}
 		break;
 #endif
 #if defined(SCTP_AUTH_ACTIVE_KEY) || defined(SCTP_AUTH_DEACTIVATE_KEY) || defined(SCTP_AUTH_DELETE_KEY)
@@ -3941,6 +4010,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &authkeyid;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_authkeyid);
+		}
 		break;
 #endif
 #ifdef SCTP_DELAYED_SACK
@@ -3958,6 +4030,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &sack_info;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_sack_info);
+		}
 		break;
 #endif
 #ifdef SCTP_STATUS
@@ -3967,6 +4042,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &status;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_status);
+		}
 		break;
 #endif
 #ifdef SCTP_GET_PEER_ADDR_INFO
@@ -3981,6 +4059,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &paddrinfo;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_paddrinfo);
+		}
 		break;
 #endif
 #ifdef SCTP_EVENT
@@ -3998,6 +4079,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &event;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_event);
+		}
 		break;
 #endif
 #ifdef SCTP_EVENTS
@@ -4043,6 +4127,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &event_subscribe;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_event_subscribe);
+		}
 		break;
 #endif
 #ifdef SCTP_DEFAULT_SEND_PARAM
@@ -4051,6 +4138,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &sndrcvinfo;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_sndrcvinfo);
+		}
 		break;
 #endif
 #ifdef SCTP_DEFAULT_SNDINFO
@@ -4076,6 +4166,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &sndinfo;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_sndinfo);
+		}
 		break;
 #endif
 #ifdef SCTP_DEFAULT_PRINFO
@@ -4090,6 +4183,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		default_prinfo.pr_assoc_id = 0;
 		optval = &default_prinfo;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_default_prinfo);
+		}
 		break;
 	case EXPR_SCTP_DEFAULT_PRINFO:
 		if (get_u16(val_expression->value.sctp_default_prinfo->pr_policy,
@@ -4105,6 +4201,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &default_prinfo;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_default_prinfo);
+		}
 		break;
 #endif
 #ifdef SCTP_PRIMARY_ADDR
@@ -4118,6 +4217,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &setprim;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_setprim);
+		}
 		break;
 #endif
 #ifdef SCTP_ADAPTATION_LAYER
@@ -4127,6 +4229,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &setadaptation;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_setadaptation);
+		}
 		break;
 #endif
 #ifdef SCTP_SET_PEER_PRIMARY_ADDR
@@ -4140,6 +4245,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &setpeerprim;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_setpeerprim);
+		}
 		break;
 #endif
 #ifdef SCTP_AUTH_CHUNK
@@ -4149,20 +4257,25 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &authchunk;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_authchunk);
+		}
 		break;
 #endif
 #ifdef SCTP_AUTH_KEY
 	case EXPR_SCTP_AUTHKEY: {
-		int i = 0, len = 0;
 		struct expression *key_expr;
 		struct expression_list *list;
+		size_t size;
+		unsigned int i, len;
 
 		if (check_type(val_expression->value.sctp_authkey->sca_key, EXPR_LIST, error)) {
 			return STATUS_ERR;
 		}
 		list = val_expression->value.sctp_authkey->sca_key->value.list;
 		len = expression_list_length(list);
-		key = malloc(sizeof(sctp_assoc_t) + sizeof(u16) + sizeof(u16) + (sizeof(u8) * len));
+		size = sizeof(struct sctp_authkey) + len * sizeof(u8);
+		key = malloc(size);
 
 		if (get_sctp_assoc_t(val_expression->value.sctp_authkey->sca_assoc_id,
 				     &key->sca_assoc_id, error)) {
@@ -4186,8 +4299,10 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 				return STATUS_ERR;
 			}
 		}
-		key->sca_keylength = len;
 		optval = key;
+		if (!optlen_provided) {
+			optlen = (socklen_t)size;
+		}
 		break;
 	}
 #endif
@@ -4246,19 +4361,24 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		paddrparams.spp_sackdelay = 0;
 #endif
 		optval = &paddrparams;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_paddrparams);
+		}
 		break;
 #endif
 #ifdef SCTP_RESET_STREAMS
 	case EXPR_SCTP_RESET_STREAMS: {
 		struct expression_list *list;
-		int len = 0, i = 0;
+		size_t size;
+		unsigned int len, i;
 
 		if (check_type(val_expression->value.sctp_reset_streams->srs_stream_list, EXPR_LIST, error)) {
 			return STATUS_ERR;
 		}
 		list = val_expression->value.sctp_reset_streams->srs_stream_list->value.list;
 		len = expression_list_length(list);
-		reset_streams = malloc(sizeof(u32) + sizeof(u16) + sizeof(u16) + (sizeof(u16) * len));
+		size = sizeof(struct sctp_reset_streams) + len * sizeof(u16);
+		reset_streams = malloc(size);
 
 		if (get_sctp_assoc_t(val_expression->value.sctp_reset_streams->srs_assoc_id,
 				     &reset_streams->srs_assoc_id, error)) {
@@ -4280,6 +4400,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
 		}
 		optval = reset_streams;
+		if (!optlen_provided) {
+			optlen = (socklen_t)size;
+		}
 		break;
 	}
 #endif
@@ -4298,6 +4421,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &add_streams;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_add_streams);
+		}
 		break;
 #endif
 #ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
@@ -4316,6 +4442,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &udpencaps;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct sctp_udpencaps);
+		}
 		break;
 #endif
 #ifdef TCP_FUNCTION_BLK
@@ -4331,6 +4460,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		optval = &tcp_function_set;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct tcp_function_set);
+		}
 		break;
 #endif
 	default:
