@@ -3244,7 +3244,7 @@ af_arg
 
 accept_filter_arg
 : '{' af_name '}' {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__)
 	$$ = new_expression(EXPR_ACCEPT_FILTER_ARG);
 	$$->value.accept_filter_arg = calloc(1, sizeof(struct accept_filter_arg_expr));
 	$$->value.accept_filter_arg->af_name = $2;
@@ -3254,7 +3254,7 @@ accept_filter_arg
 #endif
 }
 | '{' af_name ',' af_arg '}' {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__)
 	$$ = new_expression(EXPR_ACCEPT_FILTER_ARG);
 	$$->value.accept_filter_arg = calloc(1, sizeof(struct accept_filter_arg_expr));
 	$$->value.accept_filter_arg->af_name = $2;

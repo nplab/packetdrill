@@ -47,9 +47,11 @@ enum expression_t {
 	EXPR_MSGHDR,		  /* expression tree for a msghdr struct */
 	EXPR_CMSGHDR,             /* expression tree for a cmsghdr struct */
 	EXPR_POLLFD,		  /* expression tree for a pollfd struct */
+#if defined(__FreeBSD__) || defined(__NetBSD__)
+	EXPR_ACCEPT_FILTER_ARG,	  /* struct accept_filter_arg */
+#endif
 #if defined(__FreeBSD__)
 	EXPR_SF_HDTR,		  /* struct sf_hdtr for sendfile */
-	EXPR_ACCEPT_FILTER_ARG,	  /* struct accept_filter_arg */
 	EXPR_TCP_FUNCTION_SET,	  /* struct tcp_function_set */
 #endif
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
@@ -119,9 +121,11 @@ struct expression {
 		struct msghdr_expr *msghdr;
 		struct cmsghdr_expr *cmsghdr;
 		struct pollfd_expr *pollfd;
+#if defined(__FreeBSD__) || defined(__NetBSD__)
+		struct accept_filter_arg_expr *accept_filter_arg;
+#endif
 #if defined(__FreeBSD__)
 		struct sf_hdtr_expr *sf_hdtr;
-		struct accept_filter_arg_expr *accept_filter_arg;
 		struct tcp_function_set_expr *tcp_function_set;
 #endif
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
@@ -228,6 +232,13 @@ struct linger_expr {
 	struct expression *l_linger;
 };
 
+#if defined(__FreeBSD__) || defined(__NetBSD__)
+struct accept_filter_arg_expr {
+	struct expression *af_name;
+	struct expression *af_arg;
+};
+#endif
+
 #if defined(__FreeBSD__)
 /* Parse tree for a sf_hdtr struct in a sendfile syscall. */
 struct sf_hdtr_expr {
@@ -235,11 +246,6 @@ struct sf_hdtr_expr {
 	struct expression *hdr_cnt;
 	struct expression *trailers;
 	struct expression *trl_cnt;
-};
-
-struct accept_filter_arg_expr {
-	struct expression *af_name;
-	struct expression *af_arg;
 };
 
 struct tcp_function_set_expr {
