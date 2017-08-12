@@ -39,9 +39,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#if defined(__FreeBSD__) || defined(__NetBSD__)
+#include <stddef.h>
+#endif
 #if defined(__FreeBSD__)
 #include <kvm.h>
-#include <stddef.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
 #include <sys/param.h>
