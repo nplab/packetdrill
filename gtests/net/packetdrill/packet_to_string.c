@@ -202,23 +202,23 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 	if (packet->tcp->cwr)
 		fputc('W', s);   /* Congestion *W*indow reduced (ECN) */
 
-	fprintf(s, " %u:%u(%u) ",
+	fprintf(s, " %u:%u(%u)",
 		ntohl(packet->tcp->seq),
 		ntohl(packet->tcp->seq) + packet_payload_len(packet),
 		packet_payload_len(packet));
 
 	if (packet->tcp->ack)
-		fprintf(s, "ack %u ", ntohl(packet->tcp->ack_seq));
+		fprintf(s, " ack %u", ntohl(packet->tcp->ack_seq));
 
 	if (!(packet->flags & FLAG_WIN_NOCHECK))
-		fprintf(s, "win %u ", ntohs(packet->tcp->window));
+		fprintf(s, " win %u", ntohs(packet->tcp->window));
 
 	if (packet_tcp_options_len(packet) > 0) {
 		char *tcp_options = NULL;
 		if (tcp_options_to_string(packet, &tcp_options, error))
 			result = STATUS_ERR;
 		else
-			fprintf(s, "<%s>", tcp_options);
+			fprintf(s, " <%s>", tcp_options);
 		free(tcp_options);
 	}
 
