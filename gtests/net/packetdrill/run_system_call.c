@@ -1768,6 +1768,8 @@ static struct socket *insert_new_socket(
 	socket->protocol	= protocol;
 	socket->script.fd	= script_fd;
 	socket->live.fd		= live_fd;
+	socket->script.remote.ip.address_family = address_family;
+	socket->script.local.ip.address_family = address_family;
 	return socket;
 }
 
