@@ -4817,7 +4817,6 @@ static int syscall_sendfile(struct state *state, struct syscall_spec *syscall,
 		goto error_out;
 	}
 
-	status = STATUS_OK;
 error_out:
 	sf_hdtr_free(sf_hdtr);
 	return status;
