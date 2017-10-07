@@ -3496,7 +3496,6 @@ new_sctp_generic_packet(int address_family,
 	const int sctp_header_bytes = sizeof(struct sctp_common_header);
 	const int sctp_chunk_bytes = bytes->nr_entries;
 	int ip_bytes;
-	bool overbook = false;
 	bool encapsulate = (udp_src_port > 0) || (udp_dst_port > 0);
 	u16 i;
 
@@ -3530,8 +3529,8 @@ new_sctp_generic_packet(int address_family,
 	}
 
 	/* Allocate and zero out a packet object of the desired size */
-	packet = packet_new(overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
-	memset(packet->buffer, 0, overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
+	packet = packet_new(ip_bytes);
+	memset(packet->buffer, 0, ip_bytes);
 
 	packet->direction = direction;
 	packet->flags = FLAGS_SCTP_GENERIC_PACKET;
