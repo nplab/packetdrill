@@ -3123,6 +3123,7 @@ new_sctp_packet(int address_family,
 							 "number_of_new_streams value must be specified for inbound packets");
 						return NULL;
 					}
+					break;
 				case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE:
 					if (parameter_item->flags & FLAG_RECONFIG_REQ_SN_NOCHECK) {
 						asprintf(error,
@@ -3134,6 +3135,7 @@ new_sctp_packet(int address_family,
 							 "number_of_new_streams value must be specified for inbound packets");
 						return NULL;
 					}
+					break;
 				default:
 					break;
 				}
