@@ -4281,7 +4281,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		if (get_sockstorage_arg(val_expression->value.sctp_setprim->ssp_addr,
-			    	&setprim.ssp_addr, live_fd)) {
+		                        &setprim.ssp_addr, live_fd)) {
+			asprintf(error, "can't determine ssp_addr");
 			return STATUS_ERR;
 		}
 		optval = &setprim;
@@ -4309,7 +4310,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			return STATUS_ERR;
 		}
 		if (get_sockstorage_arg(val_expression->value.sctp_setpeerprim->sspp_addr,
-		    		&setpeerprim.sspp_addr, live_fd)) {
+		                        &setpeerprim.sspp_addr, live_fd)) {
+			asprintf(error, "can't determine sspp_addr");
 			return STATUS_ERR;
 		}
 		optval = &setpeerprim;
