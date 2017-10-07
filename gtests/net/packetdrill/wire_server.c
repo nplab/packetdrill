@@ -290,6 +290,7 @@ static int wire_server_send_packets_done(struct wire_server *wire_server,
 					 const char *error)
 {
 	struct wire_packets_done done;
+	int status;
 	int error_len = strlen(error) + 1;	/* +1 for '\0' */
 	int buf_len = sizeof(done) + error_len;
 	char *buf = malloc(buf_len);
@@ -303,10 +304,13 @@ static int wire_server_send_packets_done(struct wire_server *wire_server,
 			    WIRE_PACKETS_DONE,
 			    buf, buf_len)) {
 		fprintf(stderr, "error sending WIRE_PACKETS_DONE\n");
-		return STATUS_ERR;
+		status = STATUS_ERR;
+	} else {
+		status = STATUS_OK;
 	}
 
-	return STATUS_OK;
+	free(buf);
+	return status;
 }
 
 /* Coordinate with the wire client. See wire_client_next_event(). */
