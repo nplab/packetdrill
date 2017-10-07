@@ -6523,9 +6523,9 @@ static int syscall_sctp_getpaddrs(struct state *state, struct syscall_spec *sysc
 				goto error_out;
 			}
 			if (live_addr->sa_family == AF_INET) {
-                                live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in);
+				live_addr = (struct sockaddr *)((caddr_t *)live_addr + sizeof(struct sockaddr_in));
 			} else if (live_addr->sa_family == AF_INET6) {
-				live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in6);
+				live_addr = (struct sockaddr *)((caddr_t *)live_addr + sizeof(struct sockaddr_in6));
 			} else {
 				asprintf(error, "Bad Type of addrs[%d]", i);
 				goto error_out;
@@ -6608,9 +6608,9 @@ static int syscall_sctp_getladdrs(struct state *state, struct syscall_spec *sysc
 				goto error_out;
 			}
 			if (live_addr->sa_family == AF_INET) {
-                                live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in);
+				live_addr = (struct sockaddr *)((caddr_t *)live_addr + sizeof(struct sockaddr_in));
 			} else if (live_addr->sa_family == AF_INET6) {
-				live_addr = (struct sockaddr *)((caddr_t*)live_addr) + sizeof(struct sockaddr_in6);
+				live_addr = (struct sockaddr *)((caddr_t *)live_addr + sizeof(struct sockaddr_in6));
 			} else {
 				asprintf(error, "Bad Type of addrs[%d]", i);
 				goto error_out;
