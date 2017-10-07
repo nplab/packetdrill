@@ -5515,6 +5515,7 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	struct sctp_authinfo authinfo;
 	struct sctp_sendv_spa spa;
 
+	addrs = NULL;
 	if (check_arg_count(args, 9, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -5522,16 +5523,20 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	if (to_live_fd(state, script_fd, &live_fd, error))
 		return STATUS_ERR;
 	iovec_expr_list = get_arg(args, 1, error);
+	if (iovec_expr_list == NULL)
+		return STATUS_ERR;
 	iovec_new(iovec_expr_list, &iov,  &script_iovec_list_len, error);
 	iovcnt_expr = get_arg(args, 2, error);
+	if (iovcnt_expr == NULL)
+		goto error_out;
 	if (get_s32(iovcnt_expr, &iovcnt, error))
-		return STATUS_ERR;
+		goto error_out;
 	addrs_expr = get_arg(args, 3, error);
-	if (addrs_expr->type == EXPR_NULL) {
-		addrs = NULL;
-	} else if (addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV4 ||
-		   addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV6 ||
-		   addrs_expr->type == EXPR_ELLIPSIS) {
+	if (addrs_expr == NULL)
+		goto error_out;
+	if (addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV4 ||
+	    addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV6 ||
+	    addrs_expr->type == EXPR_ELLIPSIS) {
 		addrs = malloc(sizeof(struct sockaddr_storage));
 		get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd);
 	} else if (addrs_expr->type == EXPR_LIST) {
@@ -5539,13 +5544,17 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 		if (get_sockaddr_from_list(addrs_expr,  &size, &addrs, error)) {
 			goto error_out;
 		}
-	} else {
+	} else if (addrs_expr->type != EXPR_NULL) {
 		goto error_out;
 	}
 	addrcnt_expr = get_arg(args, 4, error);
+	if (addrcnt_expr == NULL)
+		goto error_out;
 	if (get_s32(addrcnt_expr, &addrcnt, error))
 		goto error_out;
 	info_expr = get_arg(args, 5, error);
+	if (info_expr == NULL)
+		goto error_out;
 	if (info_expr->type == EXPR_SCTP_SNDINFO) {
 		if (parse_expression_to_sctp_sndinfo(info_expr, &sndinfo, error))
 			goto error_out;
@@ -5569,12 +5578,18 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 		goto error_out;
 	}
 	infolen_expr = get_arg(args, 6, error);
+	if (infolen_expr == NULL)
+		goto error_out;
 	if (get_u32(infolen_expr, &infolen, error))
 		goto error_out;
 	infotype_expr = get_arg(args, 7, error);
+	if (infotype_expr == NULL)
+		goto error_out;
 	if (get_u32(infotype_expr, &infotype, error))
 		goto error_out;
 	flags_expr = get_arg(args, 8, error);
+	if (flags_expr == NULL)
+		goto error_out;
 	if (get_s32(flags_expr, &flags, error))
 		goto error_out;
 
