@@ -2596,17 +2596,19 @@ sctp_missing_mandatory_parameter_cause_new(struct sctp_parameter_type_list *list
 	assert(cause != NULL);
 	cause->code = htons(SCTP_MISSING_MANDATORY_PARAMETER_CAUSE_CODE);
 	cause->length = htons(cause_length);
-	cause->nr_parameters = htonl(list->nr_entries);
 	if (list != NULL) {
+		cause->nr_parameters = htonl(list->nr_entries);
 		for (i = 0, item = list->first;
 		     (i < list->nr_entries) && (item != NULL);
 		     i++, item = item->next) {
 			cause->parameter_type[i] = htons(item->parameter_type);
 		}
 		assert((i == list->nr_entries) && (item == NULL));
+	} else {
+		cause->nr_parameters = htonl(0);
 	}
 	if (padding_length == 2) {
-		cause->parameter_type[list->nr_entries] = htons(0);
+		cause->parameter_type[i] = htons(0);
 	}
 	return sctp_cause_list_item_new((struct sctp_cause *)cause,
 	                                cause_length, flags);
