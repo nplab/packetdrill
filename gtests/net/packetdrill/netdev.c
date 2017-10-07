@@ -271,6 +271,8 @@ static void set_device_offload_flags(struct local_netdev *netdev)
 static void bring_up_device(struct local_netdev *netdev)
 {
 	struct ifreq ifr;
+
+	assert(strlen(netdev->name) < IFNAMSIZ);
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, netdev->name, IFNAMSIZ);
 	if (ioctl(netdev->ipv4_control_fd, SIOCGIFFLAGS, &ifr) < 0)
