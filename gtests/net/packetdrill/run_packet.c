@@ -1423,7 +1423,7 @@ static int verify_ipv6(
 			return STATUS_ERR;
 		break;
 	case IPPROTO_UDP:
-		if (udp_encaps != 0) {
+		if (udp_encaps == IPPROTO_TCP) {
 			if (check_field("ipv6_payload_len",
 					(ntohs(script_ipv6->payload_len) +
 					 tcp_options_allowance(actual_packet,
@@ -1433,7 +1433,8 @@ static int verify_ipv6(
 			break;
 		} else if (udp_encaps == IPPROTO_SCTP) {
 			break;
-		}
+		} else
+			break;
 	default:
 		if (check_field("ipv6_payload_len",
 				ntohs(script_ipv6->payload_len),
