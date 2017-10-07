@@ -286,8 +286,10 @@ static int unescape_cstring_expression(const char *input_string,
 			switch (*c_in) {
 			case '\\':
 				*c_out = '\\';
+				break;
 			case '"':
 				*c_out = '"';
+				break;
 			case 'f':
 				*c_out = '\f';
 				break;
