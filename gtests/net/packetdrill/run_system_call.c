@@ -3905,10 +3905,12 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	switch (val_expression->type) {
 	case EXPR_LINGER:
-		get_s32(val_expression->value.linger->l_onoff,
-			&linger.l_onoff, error);
-		get_s32(val_expression->value.linger->l_linger,
-			&linger.l_linger, error);
+		if (get_s32(val_expression->value.linger->l_onoff,
+		            &linger.l_onoff, error))
+			return STATUS_ERR;
+		if (get_s32(val_expression->value.linger->l_linger,
+		            &linger.l_linger, error))
+			return STATUS_ERR;
 		optval = &linger;
 		if (!optlen_provided) {
 			optlen = (socklen_t)sizeof(struct linger);
