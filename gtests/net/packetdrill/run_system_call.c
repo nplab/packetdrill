@@ -2030,6 +2030,7 @@ static int syscall_socket(struct state *state, struct syscall_spec *syscall,
 			  struct expression_list *args, char **error)
 {
 	int domain, type, protocol, live_fd, script_fd, result;
+
 	if (check_arg_count(args, 3, error))
 		return STATUS_ERR;
 	if (ellipsis_arg(args, 0, error))
@@ -2055,7 +2056,9 @@ static int syscall_socket(struct state *state, struct syscall_spec *syscall,
 		/* If IPv4-mapped IPv6 addresses are used, disable IPV6_V6ONLY */
 		if (state->config->socket_domain == AF_INET6 &&
 		    state->config->wire_protocol == AF_INET) {
-			setsockopt(live_fd, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(int));
+			if (setsockopt(live_fd, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(int)) < 0) {
+				die_perror("setsockopt IPV6_V6ONLY");
+			};
 		}
 		if (get_s32(syscall->result, &script_fd, error))
 			return STATUS_ERR;
