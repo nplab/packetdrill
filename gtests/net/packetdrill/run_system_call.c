@@ -6247,15 +6247,23 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	if (to_live_fd(state, script_fd, &live_fd, error))
 		return STATUS_ERR;
 	iovec_expr_list = get_arg(args, 1, error);
+	if (iovec_expr_list == NULL)
+		return STATUS_ERR;
 	iovec_new(iovec_expr_list, &iov,  &script_iovec_list_len, error);
 	iovcnt_expr = get_arg(args, 2, error);
+	if (iovcnt_expr == NULL)
+		goto error_out;
 	if (get_s32(iovcnt_expr, &iovlen, error))
-		return STATUS_ERR;
+		goto error_out;
 	fromlen_expr = get_arg(args, 4, error);
+	if (fromlen_expr == NULL)
+		goto error_out;
 	if (get_u32(fromlen_expr, &fromlen, error))
-		return STATUS_ERR;
+		goto error_out;
 
 	info_expr = get_arg(args, 5, error);
+	if (info_expr == NULL)
+		goto error_out;
 	if (info_expr->type == EXPR_NULL) {
 		info = NULL;
 	} else if (info_expr->type == EXPR_SCTP_RCVINFO) {
@@ -6273,9 +6281,9 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 	infotype = 0;
 	flags = 0;
 	addr_expr = get_arg(args, 3, error);
-	if (addr_expr->type == EXPR_NULL) {
-		from = NULL;
-	} else {
+	if (addr_expr == NULL)
+		goto error_out;
+	if (addr_expr->type != EXPR_NULL) {
 		from = malloc(fromlen);
 	}
 
