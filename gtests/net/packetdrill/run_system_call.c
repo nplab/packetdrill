@@ -1388,6 +1388,7 @@ static void msghdr_free(struct msghdr *msg, size_t iov_len)
 	free(msg->msg_name);
 	iovec_free(msg->msg_iov, iov_len);
 	free(msg->msg_control);
+	free(msg);
 }
 
 /* Allocate and fill in a msghdr described by the given expression. */
