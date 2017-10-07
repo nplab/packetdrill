@@ -5551,7 +5551,6 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			goto error_out;
 		info = &sndinfo;
 	} else if (info_expr->type == EXPR_SCTP_PRINFO) {
-		info = malloc(sizeof(struct sctp_prinfo));
 		if (parse_expression_to_sctp_prinfo(info_expr, &prinfo, error))
 			goto error_out;
 		info = &prinfo;
