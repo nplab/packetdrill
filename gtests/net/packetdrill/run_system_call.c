@@ -4448,14 +4448,17 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 
 		if (get_sctp_assoc_t(val_expression->value.sctp_reset_streams->srs_assoc_id,
 				     &reset_streams->srs_assoc_id, error)) {
+			free(reset_streams);
 			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_reset_streams->srs_flags,
 			    &reset_streams->srs_flags, error)) {
+			free(reset_streams);
 			return STATUS_ERR;
 		}
 		if (get_u16(val_expression->value.sctp_reset_streams->srs_number_streams,
 			    &reset_streams->srs_number_streams, error)) {
+			free(reset_streams);
 			return STATUS_ERR;
 		}
 
@@ -4463,7 +4466,14 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			struct expression *expr;
 
 			expr = get_arg(list, i, error);
-			get_u16(expr, &(reset_streams->srs_stream_list[i]), error);
+			if (expr == NULL) {
+				free(reset_streams);
+				return STATUS_ERR;
+			}
+			if (get_u16(expr, &(reset_streams->srs_stream_list[i]), error)) {
+				free(reset_streams);
+				return STATUS_ERR;
+			}
 		}
 		optval = reset_streams;
 		if (!optlen_provided) {
