@@ -1048,10 +1048,12 @@ sctp_heartbeat_ack_chunk_new(s64 flgs, struct sctp_parameter_list_item *info)
 		chunk->flags = (u8)flgs;
 	}
 	chunk->length = htons(chunk_length);
-	memcpy(chunk->value, info->parameter, info->length);
-	memset(chunk->value + info->length, 0, padding_length);
-	free(info->parameter);
-	free(info);
+	if (info != NULL) {
+		memcpy(chunk->value, info->parameter, info->length);
+		memset(chunk->value + info->length, 0, padding_length);
+		free(info->parameter);
+		free(info);
+	}
 	return sctp_chunk_list_item_new((struct sctp_chunk *)chunk,
 	                                chunk_length + padding_length,
 	                                flags, sctp_parameter_list_new(),
