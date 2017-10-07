@@ -2733,9 +2733,9 @@ sctp_unrecognized_chunk_type_cause_new(struct sctp_chunk_list_item *item)
 			flags |= FLAG_CAUSE_LENGTH_NOCHECK;
 		}
 		memcpy(cause->chunk, item->chunk, item->length);
+		memset(cause->chunk + item->length, 0, padding_length);
+		free(item);
 	}
-	memset(cause->chunk + item->length, 0, padding_length);
-	free(item);
 	return sctp_cause_list_item_new((struct sctp_cause *)cause,
 	                                length, flags);
 }
