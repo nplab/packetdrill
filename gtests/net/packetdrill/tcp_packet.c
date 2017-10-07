@@ -157,6 +157,7 @@ struct packet *new_tcp_packet(int address_family,
 		if (direction == DIRECTION_INBOUND) {
 			asprintf(error, "window must be specified"
 				 " for inbound packets");
+			packet_free(packet);
 			return NULL;
 		}
 		packet->tcp->window = 0;
