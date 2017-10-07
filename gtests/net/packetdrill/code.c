@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -474,7 +475,10 @@ static void write_code_file(struct code_state *code)
 {
 	/* mkstemp will fill this in with the actual unique path name. */
 	char path_template[] = "/tmp/code_XXXXXX";
-	int code_fd = mkstemp(path_template);
+	int code_fd;
+
+	umask(S_IRUSR | S_IWUSR);
+	code_fd = mkstemp(path_template);
 	if (code_fd < 0)
 		die_perror("error making temp output file for code: mkstemp");
 
