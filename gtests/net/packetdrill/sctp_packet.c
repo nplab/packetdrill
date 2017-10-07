@@ -2066,8 +2066,8 @@ sctp_supported_extensions_parameter_new(struct sctp_byte_list *list)
 			parameter->chunk_type[i] = item->byte;
 		}
 		assert((i == list->nr_entries) && (item == NULL));
+		memset(parameter->chunk_type + list->nr_entries, 0, padding_length);
 	}
-	memset(parameter->chunk_type + list->nr_entries, 0, padding_length);
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 	                                    parameter_length, flags);
 }
