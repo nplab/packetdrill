@@ -36,6 +36,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
+#if defined(linux)
+#include <linux/types.h>
+#endif
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -72,6 +75,7 @@ typedef signed short s16;
 typedef signed int s32;
 typedef signed long long s64;
 
+#if !defined(linux)
 typedef u8 __u8;
 typedef u16 __u16;
 typedef u32 __u32;
@@ -87,6 +91,7 @@ typedef u64 __be64;
 
 typedef u16 __sum16;
 typedef u32 __wsum;
+#endif
 
 typedef u8 bool;
 enum bool_t {
