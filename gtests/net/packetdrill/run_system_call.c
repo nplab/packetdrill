@@ -4563,8 +4563,6 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
-	return end_syscall(state, syscall, CHECK_EXACT, result, error);
-
 #if defined(SCTP_HMAC_IDENT)
 	free(hmacalgo);
 #endif
@@ -4574,6 +4572,8 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #if defined(SCTP_RESET_STREAMS)
 	free(reset_streams);
 #endif
+
+	return end_syscall(state, syscall, CHECK_EXACT, result, error);
 }
 
 static int syscall_poll(struct state *state, struct syscall_spec *syscall,
