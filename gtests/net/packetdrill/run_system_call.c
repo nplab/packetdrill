@@ -6276,7 +6276,6 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 		if (check_sockaddr(addr_expr, from, error))
 			goto error_out;
 	}
-	free(from);
 
 	infotype_expr = get_arg(args, 7, error);
 	if (infotype_expr->type != EXPR_ELLIPSIS) {
@@ -6343,6 +6342,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 				goto error_out;
 		}
 	}
+	free(from);
 	iovec_free(iov, script_iovec_list_len);
 	return STATUS_OK;
 error_out:
