@@ -3424,7 +3424,7 @@ sctp_initmsg
 : '{' sinit_num_ostreams ',' sinit_max_instreams ',' sinit_max_attempts ',' sinit_max_init_timeo '}'
 {
 	$$ = new_expression(EXPR_SCTP_INITMSG);
-	$$->value.sctp_paddrinfo = calloc(1, sizeof(struct sctp_initmsg_expr));
+	$$->value.sctp_initmsg = calloc(1, sizeof(struct sctp_initmsg_expr));
 	$$->value.sctp_initmsg->sinit_num_ostreams = $2;
 	$$->value.sctp_initmsg->sinit_max_instreams = $4;
 	$$->value.sctp_initmsg->sinit_max_attempts = $6;
@@ -4445,7 +4445,7 @@ nxt_length
 sctp_nxtinfo
 : '{' nxt_sid ',' nxt_flags ',' nxt_ppid ',' nxt_length ',' NXT_ASSOC_ID '=' sctp_assoc_id '}' {
 	$$ = new_expression(EXPR_SCTP_NXTINFO);
-	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_nxtinfo_expr));
+	$$->value.sctp_nxtinfo = calloc(1, sizeof(struct sctp_nxtinfo_expr));
 	$$->value.sctp_nxtinfo->nxt_sid = $2;
 	$$->value.sctp_nxtinfo->nxt_flags = $4;
 	$$->value.sctp_nxtinfo->nxt_ppid = $6;
@@ -4454,7 +4454,7 @@ sctp_nxtinfo
 }
 | '{' nxt_sid ',' nxt_flags ',' nxt_ppid ',' nxt_length '}' {
 	$$ = new_expression(EXPR_SCTP_NXTINFO);
-	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_nxtinfo_expr));
+	$$->value.sctp_nxtinfo = calloc(1, sizeof(struct sctp_nxtinfo_expr));
 	$$->value.sctp_nxtinfo->nxt_sid = $2;
 	$$->value.sctp_nxtinfo->nxt_flags = $4;
 	$$->value.sctp_nxtinfo->nxt_ppid = $6;
@@ -4466,7 +4466,7 @@ sctp_nxtinfo
 sctp_recvv_rn
 : '{' RECVV_RCVINFO '=' expression ',' RECVV_NXTINFO '=' expression '}' {
 	$$ = new_expression(EXPR_SCTP_RECVV_RN);
-	$$->value.sctp_sendv_spa = calloc(1, sizeof(struct sctp_recvv_rn_expr));
+	$$->value.sctp_recvv_rn = calloc(1, sizeof(struct sctp_recvv_rn_expr));
 	$$->value.sctp_recvv_rn->recvv_rcvinfo = $4;
 	$$->value.sctp_recvv_rn->recvv_nxtinfo = $8;
 }
