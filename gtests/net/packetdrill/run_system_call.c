@@ -2156,18 +2156,26 @@ static int syscall_accept(struct state *state, struct syscall_spec *syscall,
 
 	result = accept(live_fd, (struct sockaddr *)&live_addr, &live_addrlen);
 
-	if (end_syscall(state, syscall, CHECK_FD, result, error))
+	if (end_syscall(state, syscall, CHECK_FD, result, error)) {
+		if (result >= 0) {
+			close(result);
+		}
 		return STATUS_ERR;
+	}
 
 	if (result >= 0) {
 		live_accepted_fd = result;
-		if (get_s32(syscall->result, &script_accepted_fd, error))
+		if (get_s32(syscall->result, &script_accepted_fd, error)) {
+			close(live_accepted_fd);
 			return STATUS_ERR;
+		}
 		if (run_syscall_accept(
 			    state, script_accepted_fd, live_accepted_fd,
 			    (struct sockaddr *)&live_addr, live_addrlen,
-			    error))
+			    error)) {
+			close(live_accepted_fd);
 			return STATUS_ERR;
+		}
 	}
 
 	return STATUS_OK;
