@@ -4670,16 +4670,24 @@ static int syscall_open(struct state *state, struct syscall_spec *syscall,
 
 	result = open(name, flags);
 
-	if (end_syscall(state, syscall, CHECK_FD, result, error))
+	if (end_syscall(state, syscall, CHECK_FD, result, error)) {
+		if (result >= 0) {
+			close(result);
+		}
 		return STATUS_ERR;
+	}
 
 	if (result >= 0) {
 		live_fd = result;
-		if (get_s32(syscall->result, &script_fd, error))
+		if (get_s32(syscall->result, &script_fd, error)) {
+			close(live_fd);
 			return STATUS_ERR;
+		}
 		if (!insert_new_socket(state, 0, 0,
-				       script_fd, live_fd, error))
+				       script_fd, live_fd, error)) {
+			close(live_fd);
 			return STATUS_ERR;
+		}
 	}
 
 	return STATUS_OK;
