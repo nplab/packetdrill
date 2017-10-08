@@ -5449,7 +5449,10 @@ static int syscall_sctp_sendx(struct state *state, struct syscall_spec *syscall,
 		   addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV6 ||
 		   addrs_expr->type == EXPR_ELLIPSIS) {
 		addrs = malloc(sizeof(struct sockaddr_storage));
-		get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd);
+		if (get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd)) {
+			asprintf(error, "can't determine addrs");
+			goto error_out;
+		}
 	} else if (addrs_expr->type == EXPR_LIST) {
 		size_t size;
 		if (get_sockaddr_from_list(addrs_expr,  &size, &addrs, error)) {
@@ -5540,7 +5543,10 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 	    addrs_expr->type == EXPR_SOCKET_ADDRESS_IPV6 ||
 	    addrs_expr->type == EXPR_ELLIPSIS) {
 		addrs = malloc(sizeof(struct sockaddr_storage));
-		get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd);
+		if (get_sockstorage_arg(addrs_expr, (struct sockaddr_storage *)addrs, live_fd)) {
+			asprintf(error, "can't determine addrs");
+			goto error_out;
+		}
 	} else if (addrs_expr->type == EXPR_LIST) {
 		size_t size;
 		if (get_sockaddr_from_list(addrs_expr, &size, &addrs, error)) {
