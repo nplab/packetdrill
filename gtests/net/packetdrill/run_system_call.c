@@ -2047,8 +2047,10 @@ static int syscall_socket(struct state *state, struct syscall_spec *syscall,
 
 	result = socket(domain, type, protocol);
 
-	if (end_syscall(state, syscall, CHECK_FD, result, error))
+	if (end_syscall(state, syscall, CHECK_FD, result, error)) {
+		close(result);
 		return STATUS_ERR;
+	}
 
 	if (result >= 0) {
 		const int off = 0;
@@ -2059,13 +2061,17 @@ static int syscall_socket(struct state *state, struct syscall_spec *syscall,
 		    state->config->wire_protocol == AF_INET) {
 			if (setsockopt(live_fd, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(int)) < 0) {
 				die_perror("setsockopt IPV6_V6ONLY");
-			};
+			}
 		}
-		if (get_s32(syscall->result, &script_fd, error))
+		if (get_s32(syscall->result, &script_fd, error)) {
+			close(live_fd);
 			return STATUS_ERR;
+		}
 		if (run_syscall_socket(state, domain, protocol,
-				       script_fd, live_fd, error))
+				       script_fd, live_fd, error)) {
+			close(live_fd);
 			return STATUS_ERR;
+		}
 	}
 
 	return STATUS_OK;
