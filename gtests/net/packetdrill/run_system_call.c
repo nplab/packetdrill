@@ -2048,7 +2048,9 @@ static int syscall_socket(struct state *state, struct syscall_spec *syscall,
 	result = socket(domain, type, protocol);
 
 	if (end_syscall(state, syscall, CHECK_FD, result, error)) {
-		close(result);
+		if (result >= 0) {
+			close(result);
+		}
 		return STATUS_ERR;
 	}
 
