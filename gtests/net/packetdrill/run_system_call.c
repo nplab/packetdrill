@@ -4747,11 +4747,15 @@ static int sf_hdtr_new(struct expression *expression,
 	if (sf_hdtr_expr->headers != NULL) {
 		if (iovec_new(sf_hdtr_expr->headers, &sf_hdtr->headers, &iov_len, error))
 			goto error_out;
+	} else {
+		iov_len = 0;
 	}
 	if (sf_hdtr_expr->hdr_cnt != NULL) {
 		if (get_s32(sf_hdtr_expr->hdr_cnt, &s32_val, error))
 			goto error_out;
 		sf_hdtr->hdr_cnt = s32_val;
+	} else {
+		sf_hdtr->hdr_cnt = 0;
 	}
 	if (sf_hdtr->hdr_cnt != iov_len) {
 		asprintf(error,
@@ -4763,11 +4767,15 @@ static int sf_hdtr_new(struct expression *expression,
 	if (sf_hdtr_expr->trailers != NULL) {
 		if (iovec_new(sf_hdtr_expr->trailers, &sf_hdtr->trailers, &iov_len, error))
 			goto error_out;
+	} else {
+		iov_len = 0;
 	}
 	if (sf_hdtr_expr->trl_cnt != NULL) {
 		if (get_s32(sf_hdtr_expr->trl_cnt, &s32_val, error))
 			goto error_out;
 		sf_hdtr->trl_cnt = s32_val;
+	} else {
+		sf_hdtr->trl_cnt = 0;
 	}
 	if (sf_hdtr->trl_cnt != iov_len) {
 		asprintf(error,
