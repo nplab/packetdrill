@@ -274,7 +274,10 @@ static void bring_up_device(struct local_netdev *netdev)
 
 	assert(strlen(netdev->name) < IFNAMSIZ);
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, netdev->name, IFNAMSIZ);
+	if (strlen(netdev->name) < IFNAMSIZ)
+		strcpy(ifr.ifr_name, netdev->name);
+	else
+		die("interface name %s too long.\n", netdev->name);
 	if (ioctl(netdev->ipv4_control_fd, SIOCGIFFLAGS, &ifr) < 0)
 		die_perror("SIOCGIFFLAGS");
 	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
