@@ -6364,6 +6364,10 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 				 sizeof(struct sctp_rcvinfo), infolen);
 			goto error_out;
 		}
+		if (info == NULL) {
+			asprintf(error, "info is NULL for sctp_rcvinfo.");
+			goto error_out;
+		}
 		if (check_sctp_rcvinfo(info_expr->value.sctp_rcvinfo, info, error))
 			goto error_out;
 		break;
@@ -6373,6 +6377,10 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 				 sizeof(struct sctp_nxtinfo), infolen);
 			goto error_out;
 		}
+		if (info == NULL) {
+			asprintf(error, "info is NULL for sctp_nxtinfo.");
+			goto error_out;
+		}
 		if (check_sctp_nxtinfo(info_expr->value.sctp_nxtinfo, info, error))
 			goto error_out;
 		break;
@@ -6380,6 +6388,10 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 		if (infolen != sizeof(struct sctp_recvv_rn)) {
 			asprintf(error, "infolen returned bad size for sctp_recvv_rn. expected %zu, actual %u",
 				 sizeof(struct sctp_recvv_rn), infolen);
+			goto error_out;
+		}
+		if (info == NULL) {
+			asprintf(error, "info is NULL for sctp_recvv_rn.");
 			goto error_out;
 		}
 		if (check_sctp_recvv_rn(info_expr->value.sctp_recvv_rn, info, error))
