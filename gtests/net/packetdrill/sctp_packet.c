@@ -504,7 +504,7 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 	struct sctp_chunk *chunk;
 	struct sctp_byte_list_item *item;
 	u32 flags;
-	u16 length, padding_length, i;
+	u16 length, size, padding_length, i;
 
 	flags = 0;
 	if (bytes == NULL) {
@@ -516,11 +516,16 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 	} else {
 		length = (u16)len;
 	}
-	padding_length = length % 4;
+	if (bytes != NULL) {
+		size = sizeof(struct sctp_chunk) + bytes->nr_entries;
+	} else {
+		size = length;
+	}
+	padding_length = size % 4;
 	if (padding_length > 0) {
 		padding_length = 4 - padding_length;
 	}
-	chunk = malloc(length + padding_length);
+	chunk = malloc(size + padding_length);
 	assert(chunk != NULL);
 	if (type == -1) {
 		chunk->type = 0;
@@ -544,10 +549,10 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 	} else {
 		memset(chunk->value, 0, length - sizeof(struct sctp_chunk));
 	}
-	memset(chunk->value + (length - sizeof(struct sctp_chunk)),
+	memset(chunk->value + (size - sizeof(struct sctp_chunk)),
 	       0, padding_length);
 	return sctp_chunk_list_item_new(chunk,
-	                                length + padding_length,
+	                                size + padding_length,
 	                                flags,
 	                                sctp_parameter_list_new(),
 	                                sctp_cause_list_new());

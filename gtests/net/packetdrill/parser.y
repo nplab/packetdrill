@@ -1630,7 +1630,7 @@ sctp_generic_chunk_spec
 		semantic_error("length value out of range");
 	}
 	if (($7 != -1) && ($9 != NULL) &&
-	    ($7 != sizeof(struct sctp_chunk) + $9->nr_entries)) {
+	    ($7 < sizeof(struct sctp_chunk) + $9->nr_entries)) {
 		semantic_error("length value incompatible with val");
 	}
 	if (($7 == -1) && ($9 != NULL)) {
