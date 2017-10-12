@@ -1405,7 +1405,7 @@ static int sctp_abort_chunk_to_string(FILE *s,
 {
 	struct sctp_causes_iterator iter;
 	struct sctp_cause *cause;
-	u16 length, index;
+	u16 length;
 	u8 flags;
 	int result = STATUS_OK;
 
@@ -1422,7 +1422,6 @@ static int sctp_abort_chunk_to_string(FILE *s,
 	else
 		if (flags & SCTP_ABORT_CHUNK_T_BIT)
 			fputc('T', s);
-	index = 0;
 	for (cause = sctp_causes_begin((struct sctp_chunk *)chunk,
 				       SCTP_ABORT_CHUNK_CAUSE_OFFSET,
 				       &iter, error);
@@ -1434,7 +1433,6 @@ static int sctp_abort_chunk_to_string(FILE *s,
 		result = sctp_cause_to_string(s, cause, error);
 		if (result != STATUS_OK)
 			break;
-		index++;
 	}
 	fputc(']', s);
 	if (*error != NULL)
@@ -1485,7 +1483,7 @@ static int sctp_error_chunk_to_string(FILE *s,
 {
 	struct sctp_causes_iterator iter;
 	struct sctp_cause *cause;
-	u16 length, index;
+	u16 length;
 	int result = STATUS_OK;
 
 	length = ntohs(chunk->length);
@@ -1495,7 +1493,6 @@ static int sctp_error_chunk_to_string(FILE *s,
 	}
 	fputs("ERROR[", s);
 	fprintf(s, "flgs=0x%02x", chunk->flags);
-	index = 0;
 	for (cause = sctp_causes_begin((struct sctp_chunk *)chunk,
 				       SCTP_ERROR_CHUNK_CAUSE_OFFSET,
 				       &iter, error);
@@ -1507,7 +1504,6 @@ static int sctp_error_chunk_to_string(FILE *s,
 		result = sctp_cause_to_string(s, cause, error);
 		if (result != STATUS_OK)
 			break;
-		index++;
 	}
 	fputc(']', s);
 	if (*error != NULL)
