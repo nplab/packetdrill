@@ -1969,7 +1969,7 @@ sctp_generic_parameter_spec
 		semantic_error("length value out of range");
 	}
 	if (($5 != -1) && ($7 != NULL) &&
-	    ($5 != sizeof(struct sctp_parameter) + $7->nr_entries)) {
+	    ($5 < sizeof(struct sctp_parameter) + $7->nr_entries)) {
 		semantic_error("length value incompatible with val");
 	}
 	if (($5 == -1) && ($7 != NULL)) {
@@ -2199,7 +2199,7 @@ sctp_generic_cause_spec
 		semantic_error("length value out of range");
 	}
 	if (($5 != -1) && ($7 != NULL) &&
-	    ($5 != sizeof(struct sctp_cause) + $7->nr_entries)) {
+	    ($5 < sizeof(struct sctp_cause) + $7->nr_entries)) {
 		semantic_error("length value incompatible with val");
 	}
 	if (($5 == -1) && ($7 != NULL)) {

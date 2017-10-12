@@ -504,28 +504,27 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 	struct sctp_chunk *chunk;
 	struct sctp_byte_list_item *item;
 	u32 flags;
-	u16 length, size, padding_length, i;
+	u16 length, header_length, value_length, padding_length, i;
 
 	flags = 0;
-	if (bytes == NULL) {
-		flags |= FLAG_CHUNK_VALUE_NOCHECK;
-	}
+	header_length = (u16)sizeof(struct sctp_chunk);
 	if (len == -1) {
+		length = header_length;
 		flags |= FLAG_CHUNK_LENGTH_NOCHECK;
-		length = (u16)sizeof(struct sctp_chunk);
 	} else {
 		length = (u16)len;
 	}
 	if (bytes != NULL) {
-		size = sizeof(struct sctp_chunk) + bytes->nr_entries;
+		value_length = bytes->nr_entries;
 	} else {
-		size = length;
+		value_length = length- header_length;
+		flags |= FLAG_CHUNK_VALUE_NOCHECK;
 	}
-	padding_length = size % 4;
+	padding_length = value_length % 4;
 	if (padding_length > 0) {
 		padding_length = 4 - padding_length;
 	}
-	chunk = malloc(size + padding_length);
+	chunk = malloc(header_length + value_length + padding_length);
 	assert(chunk != NULL);
 	if (type == -1) {
 		chunk->type = 0;
@@ -547,12 +546,11 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 			chunk->value[i] = item->byte;
 		}
 	} else {
-		memset(chunk->value, 0, length - sizeof(struct sctp_chunk));
+		memset(chunk->value, 0, value_length);
 	}
-	memset(chunk->value + (size - sizeof(struct sctp_chunk)),
-	       0, padding_length);
+	memset(chunk->value + value_length, 0, padding_length);
 	return sctp_chunk_list_item_new(chunk,
-	                                size + padding_length,
+	                                header_length + value_length + padding_length,
 	                                flags,
 	                                sctp_parameter_list_new(),
 	                                sctp_cause_list_new());
@@ -1758,24 +1756,27 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 	struct sctp_parameter *parameter;
 	struct sctp_byte_list_item *item;
 	u32 flags;
-	u16 parameter_length, value_length, padding_length, i;
+	u16 length, header_length, value_length, padding_length, i;
 
 	flags = 0;
-	if (bytes == NULL) {
-		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
-	}
+	header_length = (u16)sizeof(struct sctp_parameter);
 	if (len == -1) {
-		parameter_length = (u16)sizeof(struct sctp_parameter);
+		length = header_length;
 		flags |= FLAG_PARAMETER_LENGTH_NOCHECK;
 	} else {
-		parameter_length = (u16)len;
+		length = (u16)len;
 	}
-	value_length = parameter_length - sizeof(struct sctp_parameter);
-	padding_length = parameter_length % 4;
+	if (bytes != NULL) {
+		value_length = bytes->nr_entries;
+	} else {
+		value_length = length - header_length;
+		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
+	}
+	padding_length = value_length % 4;
 	if (padding_length > 0) {
 		padding_length = 4 - padding_length;
 	}
-	parameter = malloc(parameter_length + padding_length);
+	parameter = malloc(header_length + value_length + padding_length);
 	assert(parameter != NULL);
 	if (type == -1) {
 		parameter->type = 0;
@@ -1783,7 +1784,7 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 	} else {
 		parameter->type = htons((u16)type);
 	}
-	parameter->length = htons(parameter_length);
+	parameter->length = htons(length);
 	if (bytes != NULL) {
 		for (i = 0, item = bytes->first;
 		     item != NULL;
@@ -1795,7 +1796,7 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 	}
 	/* Clear the padding */
 	memset(parameter->value + value_length, 0, padding_length);
-	return sctp_parameter_list_item_new(parameter, parameter_length, flags);
+	return sctp_parameter_list_item_new(parameter, header_length + value_length, flags);
 }
 
 struct sctp_parameter_list_item *
@@ -2513,24 +2514,27 @@ sctp_generic_cause_new(s64 code, s64 len, struct sctp_byte_list *bytes)
 	struct sctp_cause *cause;
 	struct sctp_byte_list_item *item;
 	u32 flags;
-	u16 cause_length, information_length, padding_length, i;
+	u16 length, header_length, information_length, padding_length, i;
 
 	flags = 0;
-	if (bytes == NULL) {
-		flags |= FLAG_CAUSE_INFORMATION_NOCHECK;
-	}
+	header_length = (u16)sizeof(struct sctp_cause);
 	if (len == -1) {
-		cause_length = (u16)sizeof(struct sctp_cause);
+		length = header_length;
 		flags |= FLAG_CAUSE_LENGTH_NOCHECK;
 	} else {
-		cause_length = (u16)len;
+		length = (u16)len;
 	}
-	information_length = cause_length - sizeof(struct sctp_cause);
-	padding_length = cause_length % 4;
+	if (bytes != NULL) {
+		information_length = bytes->nr_entries;
+	} else {
+		information_length = length - header_length;
+		flags |= FLAG_CAUSE_INFORMATION_NOCHECK;
+	}
+	padding_length = information_length % 4;
 	if (padding_length > 0) {
 		padding_length = 4 - padding_length;
 	}
-	cause = malloc(cause_length + padding_length);
+	cause = malloc(header_length + information_length + padding_length);
 	assert(cause != NULL);
 	if (code == -1) {
 		cause->code = 0;
@@ -2538,7 +2542,7 @@ sctp_generic_cause_new(s64 code, s64 len, struct sctp_byte_list *bytes)
 	} else {
 		cause->code = htons((u16)code);
 	}
-	cause->length = htons(cause_length);
+	cause->length = htons(length);
 	if (bytes != NULL) {
 		for (i = 0, item = bytes->first;
 		     item != NULL;
@@ -2550,7 +2554,7 @@ sctp_generic_cause_new(s64 code, s64 len, struct sctp_byte_list *bytes)
 	}
 	/* Clear the padding */
 	memset(cause->information + information_length, 0, padding_length);
-	return sctp_cause_list_item_new(cause, cause_length, flags);
+	return sctp_cause_list_item_new(cause, header_length + information_length, flags);
 }
 
 struct sctp_cause_list_item *
