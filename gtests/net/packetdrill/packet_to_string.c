@@ -158,6 +158,7 @@ static int sctp_packet_to_string(FILE *s, struct packet *packet, int i,
 		if (*error != NULL)
 			break;
 		result = sctp_chunk_to_string(s, chunk, error);
+		assert(result != STATUS_OK  || *error == NULL);
 		if (result != STATUS_OK)
 			break;
 		index++;
