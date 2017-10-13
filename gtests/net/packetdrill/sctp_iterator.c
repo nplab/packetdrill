@@ -40,16 +40,14 @@ static struct sctp_chunk *get_current_chunk(struct sctp_chunks_iterator *iter,
 		iter->current_chunk = NULL;
 	else if (iter->current_chunk + sizeof(struct sctp_chunk) >
 		 iter->packet_end) {
-		asprintf(error, "Partial SCTP chunk not allowed");
-		iter->current_chunk = NULL;
+		asprintf(error, "CHUNK[too short]");
 	} else {
 		chunk = (struct sctp_chunk *)iter->current_chunk;
 		chunk_length = ntohs(chunk->length);
 		if (iter->current_chunk + chunk_length > iter->packet_end) {
 			asprintf(error,
-				 "Partial SCTP chunk (type 0x%02x, length %u) not allowed",
-				 chunk->type, chunk_length);
-			iter->current_chunk = NULL;
+				 "CHUNK[type=0x%02x, flgs=0x%02x, len=%u (partital!)]",
+				 chunk->type, chunk->type, chunk_length);
 		}
 	}
 	return (struct sctp_chunk *)iter->current_chunk;
@@ -99,16 +97,14 @@ get_current_parameter(struct sctp_parameters_iterator *iter,
 		iter->current_parameter = NULL;
 	else if (iter->current_parameter + sizeof(struct sctp_parameter) >
 		 iter->end) {
-		asprintf(error, "Partial SCTP parameter not allowed");
-		iter->current_parameter = NULL;
+		asprintf(error, "PARAMETER[too short]");
 	} else {
 		parameter = (struct sctp_parameter *)iter->current_parameter;
 		parameter_length = ntohs(parameter->length);
 		if (iter->current_parameter + parameter_length > iter->end) {
 			asprintf(error,
-				 "Partial SCTP parameter (type 0x%04x, length %u) not allowed",
+				 "PARAMETER[type=0x%04x, len=%u (partial!)]",
 				 ntohs(parameter->type), parameter_length);
-			iter->current_parameter = NULL;
 		}
 	}
 	return (struct sctp_parameter *)iter->current_parameter;
@@ -160,16 +156,14 @@ static struct sctp_cause *get_current_cause(struct sctp_causes_iterator *iter,
 		iter->current_cause = NULL;
 	else if (iter->current_cause + sizeof(struct sctp_cause) >
 		 iter->chunk_end) {
-		asprintf(error, "Partial SCTP cause not allowed");
-		iter->current_cause = NULL;
+		asprintf(error, "CAUSE[too short]");
 	} else {
 		cause = (struct sctp_cause *)iter->current_cause;
 		cause_length = ntohs(cause->length);
 		if (iter->current_cause + cause_length > iter->chunk_end) {
 			asprintf(error,
-				 "Partial SCTP cause (code 0x%04x, length %u) not allowed",
+				 "CAUSE[code=0x%04x, len=%u (partial!)]",
 				 ntohs(cause->code), cause_length);
-			iter->current_cause = NULL;
 		}
 	}
 	return (struct sctp_cause *)iter->current_cause;

@@ -679,6 +679,7 @@ static int map_inbound_sctp_packet(
 	bool reflect_v_tag;
 	bool contains_init_chunk;
 
+	assert(*error == NULL);
 	reflect_v_tag = false;
 	contains_init_chunk = false;
 	/* Map the TSNs and the initiate tags in the INIT and INIT-ACK chunk */
@@ -686,7 +687,10 @@ static int map_inbound_sctp_packet(
 	     chunk != NULL;
 	     chunk = sctp_chunks_next(&iter, error)) {
 		if (*error != NULL) {
-			return STATUS_ERR;
+			DEBUGP("Partial chunk detected\n");
+			free(*error);
+			*error = NULL;
+			return STATUS_OK;
 		}
 		DEBUGP("live remote tsn 0x%08x, script remote tsn 0x%08x\n",
 		       socket->live.remote_initial_tsn, socket->script.remote_initial_tsn);
@@ -792,6 +796,12 @@ static int map_inbound_sctp_packet(
 								       &iter, error);
 				     parameter != NULL;
 				     parameter = sctp_parameters_next(&iter, error)) {
+					if (*error != NULL) {
+						DEBUGP("Partial parameter detected\n");
+						free(*error);
+						*error = NULL;
+						break;
+					}
 					switch (htons(parameter->type)) {
 					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_outgoing_ssn_reset_request_parameter *reset;
@@ -1005,12 +1015,15 @@ static int map_outbound_live_sctp_packet(
 	u32 local_diff, remote_diff;
 	u16 nr_gap_blocks, nr_dup_tsns, number_of_nr_gap_blocks, i;
 
+	assert(*error == NULL);
 	/* FIXME: transform v-tag in the common header*/
 	DEBUGP("map_outbound_live_sctp_packet\n");
 	for (chunk = sctp_chunks_begin(actual_packet, &iter, error);
 	     chunk != NULL;
 	     chunk = sctp_chunks_next(&iter, error)) {
 		if (*error != NULL) {
+			free(*error);
+			asprintf(error, "Partial chunk for outbound packet");;
 			return STATUS_ERR;
 		}
 		local_diff = socket->script.local_initial_tsn - socket->live.local_initial_tsn;
@@ -1092,6 +1105,11 @@ static int map_outbound_live_sctp_packet(
 						&iter, error);
 					parameter != NULL;
 					parameter = sctp_parameters_next(&iter, error)) {
+					if (*error != NULL) {
+						free(*error);
+						asprintf(error, "Partial parameter for outbound packet");;
+						return STATUS_ERR;
+					}
 					switch (htons(parameter->type)) {
 					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
 						struct sctp_outgoing_ssn_reset_request_parameter *reset;
@@ -1464,7 +1482,8 @@ static int verify_sctp_parameters(u8 *begin, u16 length,
 	     actual_parameter = sctp_parameters_next(&iter, error),
 	     script_parameter_item = script_parameter_item->next) {
 		if (*error != NULL) {
-			DEBUGP("Error during iteration\n");
+			free(*error);
+			asprintf(error, "Partial parameter for outbound packet");;
 			return STATUS_ERR;
 		}
 		script_parameter = script_parameter_item->parameter;
@@ -1676,7 +1695,8 @@ static int verify_sctp_causes(struct sctp_chunk *chunk, u16 offset,
 	     actual_cause = sctp_causes_next(&iter, error),
 	     script_cause_item = script_cause_item->next) {
 		if (*error != NULL) {
-			DEBUGP("Error during iteration\n");
+			free(*error);
+			asprintf(error, "Partial cause for outbound packet");;
 			return STATUS_ERR;
 		}
 		script_cause = script_cause_item->cause;
@@ -2358,7 +2378,8 @@ static int verify_sctp(
 	     actual_chunk = sctp_chunks_next(&iter, error),
 	     script_chunk_item = script_chunk_item->next) {
 		if (*error != NULL) {
-			DEBUGP("Error during iteration\n");
+			free(*error);
+			asprintf(error, "Partial chunk for outbound packet");;
 			return STATUS_ERR;
 		}
 		script_chunk = script_chunk_item->chunk;
@@ -3079,8 +3100,11 @@ static int do_outbound_script_packet(
 		for (chunk = sctp_chunks_begin(live_packet, &chunk_iter, error);
 		     chunk != NULL;
 		     chunk = sctp_chunks_next(&chunk_iter, error)) {
-			if (*error != NULL)
+			if (*error != NULL) {
+				free(*error);
+				asprintf(error, "Partial chunk for outbound packet");;
 				goto out;
+			}
 			if ((socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) &&
 			    (chunk->type == SCTP_INIT_ACK_CHUNK_TYPE)) {
 				chunk_length = ntohs(chunk->length);
@@ -3096,8 +3120,11 @@ static int do_outbound_script_packet(
 				                                       &param_iter, error);
 				     parameter != NULL;
 				     parameter = sctp_parameters_next(&param_iter, error)) {
-					if (*error != NULL)
+					if (*error != NULL) {
+						free(*error);
+						asprintf(error, "Partial parameter for outbound packet");;
 						goto out;
+					}
 					if (ntohs(parameter->type) == SCTP_STATE_COOKIE_PARAMETER_TYPE) {
 						state_cookie = (struct sctp_state_cookie_parameter *)parameter;
 						parameter_length = ntohs(state_cookie->length);

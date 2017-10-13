@@ -902,8 +902,12 @@ static int sctp_unrecognized_parameters_cause_to_string(
 	     parameter = sctp_parameters_next(&iter, error)) {
 		if (index > 0)
 			fputs(", ", s);
-		if (*error != NULL)
+		if (*error != NULL) {
+			fputs(*error, s);
+			free(*error);
+			*error = NULL;
 			break;
+		}
 		result = sctp_parameter_to_string(s, parameter, error);
 		if (result != STATUS_OK)
 			break;
@@ -977,8 +981,12 @@ static int sctp_restart_with_new_addresses_cause_to_string(
 	     parameter = sctp_parameters_next(&iter, error)) {
 		if (index > 0)
 			fputs(", ", s);
-		if (*error != NULL)
+		if (*error != NULL) {
+			fputs(*error, s);
+			free(*error);
+			*error = NULL;
 			break;
+		}
 		result = sctp_parameter_to_string(s, parameter, error);
 		if (result != STATUS_OK)
 			break;
@@ -1190,8 +1198,12 @@ static int sctp_init_chunk_to_string(FILE *s,
 	     parameter != NULL;
 	     parameter = sctp_parameters_next(&iter, error)) {
 		fputs(", ", s);
-		if (*error != NULL)
+		if (*error != NULL) {
+			fputs(*error, s);
+			free(*error);
+			*error = NULL;
 			break;
+		}
 		result = sctp_parameter_to_string(s, parameter, error);
 		if (result != STATUS_OK)
 			break;
@@ -1231,8 +1243,12 @@ static int sctp_init_ack_chunk_to_string(FILE *s,
 	     parameter != NULL;
 	     parameter = sctp_parameters_next(&iter, error)) {
 		fputs(", ", s);
-		if (*error != NULL)
+		if (*error != NULL) {
+			fputs(*error, s);
+			free(*error);
+			*error = NULL;
 			break;
+		}
 		result = sctp_parameter_to_string(s, parameter, error);
 		if (result != STATUS_OK)
 			break;
@@ -1428,8 +1444,12 @@ static int sctp_abort_chunk_to_string(FILE *s,
 	     cause != NULL;
 	     cause = sctp_causes_next(&iter, error)) {
 		fputs(", ", s);
-		if (*error != NULL)
+		if (*error != NULL) {
+			fputs(*error, s);
+			free(*error);
+			*error = NULL;
 			break;
+		}
 		result = sctp_cause_to_string(s, cause, error);
 		if (result != STATUS_OK)
 			break;
@@ -1499,8 +1519,12 @@ static int sctp_error_chunk_to_string(FILE *s,
 	     cause != NULL;
 	     cause = sctp_causes_next(&iter, error)) {
 		fputs(", ", s);
-		if (*error != NULL)
+		if (*error != NULL) {
+			fputs(*error, s);
+			free(*error);
+			*error = NULL;
 			break;
+		}
 		result = sctp_cause_to_string(s, cause, error);
 		if (result != STATUS_OK)
 			break;
@@ -1694,8 +1718,12 @@ static int sctp_reconfig_chunk_to_string(
 		     parameter != NULL;
 		     parameter = sctp_parameters_next(&iter, error)) {
 			fputs(", ", s);
-			if (*error != NULL)
+			if (*error != NULL) {
+				fputs(*error, s);
+				free(*error);
+				*error = NULL;
 				break;
+			}
 			result = sctp_parameter_to_string(s, parameter, error);
 			if (result != STATUS_OK)
 				break;
