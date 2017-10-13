@@ -1508,7 +1508,7 @@ static int sctp_error_chunk_to_string(FILE *s,
 	fputc(']', s);
 	if (*error != NULL)
 		result = STATUS_ERR;
-	return STATUS_OK;
+	return result;
 }
 
 static int sctp_cookie_echo_chunk_to_string(
