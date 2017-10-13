@@ -261,6 +261,7 @@ sctp_chunk_list_item_new(struct sctp_chunk *chunk, u32 length, u32 flags,
 #define FLAG_CHUNK_FLAGS_NOCHECK                0x00000002
 #define FLAG_CHUNK_LENGTH_NOCHECK               0x00000004
 #define FLAG_CHUNK_VALUE_NOCHECK                0x00000008
+#define FLAG_CHUNK_PARTIAL                      0x00000010
 
 struct sctp_chunk_list_item *
 sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
@@ -400,9 +401,10 @@ sctp_chunk_list_append(struct sctp_chunk_list *list,
 void
 sctp_chunk_list_free(struct sctp_chunk_list *list);
 
-#define FLAG_PARAMETER_TYPE_NOCHECK				0x00000001
-#define FLAG_PARAMETER_LENGTH_NOCHECK				0x00000002
-#define FLAG_PARAMETER_VALUE_NOCHECK				0x00000004
+#define FLAG_PARAMETER_TYPE_NOCHECK                             0x00000001
+#define FLAG_PARAMETER_LENGTH_NOCHECK                           0x00000002
+#define FLAG_PARAMETER_VALUE_NOCHECK                            0x00000004
+#define FLAG_PARAMETER_PARTIAL                                  0x00000008
 
 struct sctp_parameter_list_item *
 sctp_parameter_list_item_new(struct sctp_parameter *parameter,
@@ -498,10 +500,10 @@ struct sctp_cause_list_item *
 sctp_cause_list_item_new(struct sctp_cause *cause,
                          u32 length, u32 flags);
 
-#define FLAG_CAUSE_CODE_NOCHECK					0x00000001
-#define FLAG_CAUSE_LENGTH_NOCHECK				0x00000002
-#define FLAG_CAUSE_INFORMATION_NOCHECK				0x00000004
-
+#define FLAG_CAUSE_CODE_NOCHECK                                 0x00000001
+#define FLAG_CAUSE_LENGTH_NOCHECK                               0x00000002
+#define FLAG_CAUSE_INFORMATION_NOCHECK                          0x00000004
+#define FLAG_CAUSE_PARTIAL                                      0x00000008
 struct sctp_cause_list_item *
 sctp_generic_cause_new(s64 code, s64 len, struct sctp_byte_list *bytes);
 

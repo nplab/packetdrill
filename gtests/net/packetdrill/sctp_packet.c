@@ -516,6 +516,9 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 	}
 	if (bytes != NULL) {
 		value_length = bytes->nr_entries;
+		if (value_length < length - header_length) {
+			flags |= FLAG_CHUNK_PARTIAL;
+		}
 	} else {
 		value_length = length- header_length;
 		flags |= FLAG_CHUNK_VALUE_NOCHECK;
@@ -1768,6 +1771,9 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 	}
 	if (bytes != NULL) {
 		value_length = bytes->nr_entries;
+		if (value_length < length - header_length) {
+			flags |= FLAG_PARAMETER_PARTIAL;
+		}
 	} else {
 		value_length = length - header_length;
 		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
@@ -2526,6 +2532,9 @@ sctp_generic_cause_new(s64 code, s64 len, struct sctp_byte_list *bytes)
 	}
 	if (bytes != NULL) {
 		information_length = bytes->nr_entries;
+		if (information_length < length - header_length) {
+			flags |= FLAG_CAUSE_PARTIAL;
+		}
 	} else {
 		information_length = length - header_length;
 		flags |= FLAG_CAUSE_INFORMATION_NOCHECK;
@@ -3402,6 +3411,33 @@ new_sctp_packet(int address_family,
 			asprintf(error,
 				 "bad CRC32C can only be requested for inbound packets");
 			return NULL;
+		}
+		for (chunk_item = list->first;
+		     chunk_item != NULL;
+		     chunk_item = chunk_item->next) {
+			if (chunk_item->flags & FLAG_CHUNK_PARTIAL) {
+				asprintf(error,
+					 "Partial chunks not supported for outbound packets");
+				return NULL;
+			}
+			for (parameter_item = chunk_item->parameter_list->first;
+			     parameter_item != NULL;
+			     parameter_item = parameter_item->next) {
+				if (parameter_item->flags & FLAG_PARAMETER_PARTIAL) {
+					asprintf(error,
+						 "Partial parameters not supported for outbound packets");
+					return NULL;
+				}
+			}
+			for (cause_item = chunk_item->cause_list->first;
+			     cause_item != NULL;
+			     cause_item = cause_item->next) {
+				if (cause_item->flags & FLAG_CAUSE_PARTIAL) {
+					asprintf(error,
+						 "Partial causes not supported for outbound packets");
+					return NULL;
+				}
+			}
 		}
 	}
 
