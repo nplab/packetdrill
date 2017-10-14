@@ -47,7 +47,7 @@ static struct sctp_chunk *get_current_chunk(struct sctp_chunks_iterator *iter,
 		if (iter->current_chunk + chunk_length > iter->packet_end) {
 			asprintf(error,
 				 "CHUNK[type=0x%02x, flgs=0x%02x, len=%u (partital!)]",
-				 chunk->type, chunk->type, chunk_length);
+				 chunk->type, chunk->flags, chunk_length);
 		}
 	}
 	return (struct sctp_chunk *)iter->current_chunk;
