@@ -690,7 +690,7 @@ static int map_inbound_sctp_packet(
 			DEBUGP("Partial chunk detected\n");
 			free(*error);
 			*error = NULL;
-			return STATUS_OK;
+			break;
 		}
 		DEBUGP("live remote tsn 0x%08x, script remote tsn 0x%08x\n",
 		       socket->live.remote_initial_tsn, socket->script.remote_initial_tsn);
