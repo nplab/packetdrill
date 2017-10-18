@@ -3618,7 +3618,7 @@ new_sctp_generic_packet(int address_family,
 	if (encapsulate) {
 		packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes + udp_header_bytes);
 	} else {
-		packet->sctp = (struct sctp_common_header *) (ip_start(packet) + udp_header_bytes);
+		packet->sctp = (struct sctp_common_header *) (ip_start(packet) + ip_header_bytes);
 	}
 	u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
 
