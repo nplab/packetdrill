@@ -35,10 +35,10 @@
  * option value for sharing TCP experimental options.
  *
  * For a description of experimental options, see:
- *   http://tools.ietf.org/html/draft-ietf-tcpm-experimental-options-00
+ *   https://tools.ietf.org/html/rfc6994
  *
  * For a description of TFO, see:
- *   http://tools.ietf.org/html/draft-cheng-tcpm-fastopen-02
+ *   https://tools.ietf.org/html/rfc7413
  */
 #define TCPOPT_FASTOPEN_MAGIC	0xF989
 
@@ -46,8 +46,15 @@
 #define TCPOLEN_EXP_FASTOPEN_BASE 4	/* smallest legal TFO option size */
 
 /* The TFO option base prefix leaves this amount of space: */
-#define MAX_TCP_FAST_OPEN_COOKIE_BYTES				\
+#define MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES				\
 	(MAX_TCP_OPTION_BYTES - TCPOLEN_EXP_FASTOPEN_BASE)
+
+/* TFO option must have: 1-byte kind, 1-byte length */
+#define TCPOLEN_FASTOPEN_BASE 2	/* smallest legal TFO option size */
+
+/* The TFO option base prefix leaves this amount of space: */
+#define MAX_TCP_FAST_OPEN_COOKIE_BYTES				\
+	(MAX_TCP_OPTION_BYTES - TCPOLEN_FASTOPEN_BASE)
 
 /* Represents a list of TCP options in their wire format. */
 struct tcp_options {
@@ -85,6 +92,14 @@ struct tcp_option {
 		} sack;
 		struct {
 			u16 magic;	/* must be TCPOPT_FASTOPEN_MAGIC */
+			/* The fast open chookie should be 4-16 bytes
+			 * of cookie, multiple of 2 bytes, but we
+			 * allow for larger sizes, so we can test what
+			 * stacks do with illegal options.
+			 */
+			u8 cookie[MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES];
+		} exp_fast_open;
+		struct {
 			/* The fast open chookie should be 4-16 bytes
 			 * of cookie, multiple of 2 bytes, but we
 			 * allow for larger sizes, so we can test what

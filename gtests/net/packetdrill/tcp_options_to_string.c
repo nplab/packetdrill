@@ -26,23 +26,45 @@
 
 #include "tcp_options_iterator.h"
 
+static int tcp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
+{
+	if (option->length < TCPOLEN_FASTOPEN_BASE) {
+		return STATUS_ERR;
+	}
+
+	fputs("FO", s);
+	int cookie_bytes = option->length - TCPOLEN_FASTOPEN_BASE;
+	assert(cookie_bytes >= 0);
+	assert(cookie_bytes <= MAX_TCP_FAST_OPEN_COOKIE_BYTES);
+	if (cookie_bytes > 0) {
+		fputs(" ", s);
+	}
+	int i;
+	for (i = 0; i < cookie_bytes; ++i)
+		fprintf(s, "%02x", option->data.fast_open.cookie[i]);
+	return STATUS_OK;
+}
+
 /* See if the given experimental option is a TFO option, and if so
  * then print the TFO option and return STATUS_OK. Otherwise, return
  * STATUS_ERR.
  */
-static int tcp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
+static int tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
 {
 	if ((option->length < TCPOLEN_EXP_FASTOPEN_BASE) ||
-	    (ntohs(option->data.fast_open.magic) != TCPOPT_FASTOPEN_MAGIC))
+	    (ntohs(option->data.exp_fast_open.magic) != TCPOPT_FASTOPEN_MAGIC))
 		return STATUS_ERR;
 
-	fprintf(s, "FO ");
+	fputs("EXP-FO", s);
 	int cookie_bytes = option->length - TCPOLEN_EXP_FASTOPEN_BASE;
 	assert(cookie_bytes >= 0);
-	assert(cookie_bytes <= MAX_TCP_FAST_OPEN_COOKIE_BYTES);
+	assert(cookie_bytes <= MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES);
+	if (cookie_bytes > 0) {
+		fputs(" ", s);
+	}
 	int i;
 	for (i = 0; i < cookie_bytes; ++i)
-		fprintf(s, "%02x", option->data.fast_open.cookie[i]);
+		fprintf(s, "%02x", option->data.exp_fast_open.cookie[i]);
 	return STATUS_OK;
 }
 
@@ -106,8 +128,16 @@ int tcp_options_to_string(struct packet *packet,
 				ntohl(option->data.time_stamp.ecr));
 			break;
 
-		case TCPOPT_EXP:
+		case TCPOPT_FASTOPEN:
 			if (tcp_fast_open_option_to_string(s, option)) {
+				asprintf(error, "invalid length: %u",
+					 option->length);
+				goto out;
+			}
+			break;
+
+		case TCPOPT_EXP:
+			if (tcp_exp_fast_open_option_to_string(s, option)) {
 				asprintf(error,
 					 "unknown experimental option");
 				goto out;

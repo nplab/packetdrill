@@ -320,6 +320,7 @@ nop				return NOP;
 sack				return SACK;
 sackOK				return SACKOK;
 TS				return TIMESTAMP;
+EXP-FO				return EXP_FAST_OPEN;
 FO				return FAST_OPEN;
 val				return VAL;
 win				return WIN;

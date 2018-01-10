@@ -85,6 +85,7 @@
 #define TCPOPT_SACK		5
 #define TCPOPT_TIMESTAMP	8
 #define TCPOLEN_TIMESTAMP	10
+#define TCPOPT_FASTOPEN		34
 #define TCPOPT_EXP		254	/* Experimental */
 
 /* A portable TCP header definition (Linux and *BSD use different names). */

@@ -399,7 +399,7 @@ static int parse_hex_string(const char *hex, u8 *buf, int buf_len,
 }
 
 static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
-						    char **error)
+						   char **error)
 {
 	int cookie_string_len = strlen(cookie_string);
 	if (cookie_string_len & 1) {
@@ -415,10 +415,9 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 			 cookie_bytes, MAX_TCP_FAST_OPEN_COOKIE_BYTES);
 		return NULL;
 	}
-	u8 option_bytes = TCPOLEN_EXP_FASTOPEN_BASE + cookie_bytes;
+	u8 option_bytes = TCPOLEN_FASTOPEN_BASE + cookie_bytes;
 	struct tcp_option *option;
-	option = tcp_option_new(TCPOPT_EXP, option_bytes);
-	option->data.fast_open.magic = htons(TCPOPT_FASTOPEN_MAGIC);
+	option = tcp_option_new(TCPOPT_FASTOPEN, option_bytes);
 	int parsed_bytes = 0;
 	/* Parse cookie. This should be an ASCII hex string
 	 * representing an even number of bytes (4-16 bytes). But we
@@ -427,6 +426,45 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	 */
 	if (parse_hex_string(cookie_string, option->data.fast_open.cookie,
 			     sizeof(option->data.fast_open.cookie),
+			     &parsed_bytes)) {
+		free(option);
+		asprintf(error,
+			 "TCP fast open cookie is not a valid hex string");
+		return NULL;
+	}
+	assert(parsed_bytes == cookie_bytes);
+	return option;
+}
+
+static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string,
+						       char **error)
+{
+	int cookie_string_len = strlen(cookie_string);
+	if (cookie_string_len & 1) {
+		asprintf(error,
+			 "TCP fast open cookie has an odd number of digits");
+		return NULL;
+	}
+	int cookie_bytes = cookie_string_len / 2;  /* 2 hex chars per byte */
+	if (cookie_bytes > MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES) {
+		asprintf(error, "TCP fast open cookie too long");
+		asprintf(error, "TCP fast open cookie of %d bytes "
+			 "exceeds maximum cookie length of %d bytes",
+			 cookie_bytes, MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES);
+		return NULL;
+	}
+	u8 option_bytes = TCPOLEN_EXP_FASTOPEN_BASE + cookie_bytes;
+	struct tcp_option *option;
+	option = tcp_option_new(TCPOPT_EXP, option_bytes);
+	option->data.exp_fast_open.magic = htons(TCPOPT_FASTOPEN_MAGIC);
+	int parsed_bytes = 0;
+	/* Parse cookie. This should be an ASCII hex string
+	 * representing an even number of bytes (4-16 bytes). But we
+	 * do not enforce this, since we want to allow test cases that
+	 * supply invalid cookies.
+	 */
+	if (parse_hex_string(cookie_string, option->data.exp_fast_open.cookie,
+			     sizeof(option->data.exp_fast_open.cookie),
 			     &parsed_bytes)) {
 		free(option);
 		asprintf(error,
@@ -525,7 +563,7 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
-%token <reserved> FAST_OPEN
+%token <reserved> EXP_FAST_OPEN FAST_OPEN
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
@@ -2745,6 +2783,16 @@ tcp_option
 | FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;
 	$$ = new_tcp_fast_open_option($2, &error);
+	free($2);
+	if ($$ == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+}
+| EXP_FAST_OPEN opt_tcp_fast_open_cookie  {
+	char *error = NULL;
+	$$ = new_tcp_exp_fast_open_option($2, &error);
 	free($2);
 	if ($$ == NULL) {
 		assert(error != NULL);
