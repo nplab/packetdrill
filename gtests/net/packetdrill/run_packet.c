@@ -683,193 +683,195 @@ static int map_inbound_sctp_packet(
 	reflect_v_tag = false;
 	contains_init_chunk = false;
 	/* Map the TSNs and the initiate tags in the INIT and INIT-ACK chunk */
-	for (chunk = sctp_chunks_begin(live_packet, &iter, error);
-	     chunk != NULL;
-	     chunk = sctp_chunks_next(&iter, error)) {
-		if (*error != NULL) {
-			DEBUGP("Partial chunk detected\n");
-			free(*error);
-			*error = NULL;
-			break;
-		}
-		DEBUGP("live remote tsn 0x%08x, script remote tsn 0x%08x\n",
-		       socket->live.remote_initial_tsn, socket->script.remote_initial_tsn);
-		DEBUGP("live local tsn 0x%08x, script local tsn 0x%08x\n",
-		       socket->live.local_initial_tsn, socket->script.local_initial_tsn);
-		remote_diff = socket->live.remote_initial_tsn - socket->script.remote_initial_tsn;
-		local_diff = socket->live.local_initial_tsn - socket->script.local_initial_tsn;
-		switch (chunk->type) {
-		case SCTP_DATA_CHUNK_TYPE:
-			data = (struct sctp_data_chunk *)chunk;
-			data->tsn = htonl(ntohl(data->tsn) + remote_diff);
-			break;
-		case SCTP_INIT_CHUNK_TYPE:
-			init = (struct sctp_init_chunk *)chunk;
-			init->initial_tsn = htonl(ntohl(init->initial_tsn) + remote_diff);
-			/* XXX: Does this work in all cases? */
-			if (ntohl(init->initiate_tag) == socket->script.local_initiate_tag) {
-				init->initiate_tag = htonl(socket->live.local_initiate_tag);
+	if ((live_packet->flags & FLAGS_SCTP_GENERIC_PACKET) == 0) {
+		for (chunk = sctp_chunks_begin(live_packet, &iter, error);
+		     chunk != NULL;
+		     chunk = sctp_chunks_next(&iter, error)) {
+			if (*error != NULL) {
+				DEBUGP("Partial chunk detected\n");
+				free(*error);
+				*error = NULL;
+				break;
 			}
-			contains_init_chunk = true;
-			break;
-		case SCTP_INIT_ACK_CHUNK_TYPE:
-			init_ack = (struct sctp_init_ack_chunk *)chunk;
-			init_ack->initial_tsn = htonl(ntohl(init_ack->initial_tsn) + remote_diff);
-			/* XXX: Does this work in all cases? */
-			if (ntohl(init_ack->initiate_tag) == socket->script.local_initiate_tag) {
-				init_ack->initiate_tag = htonl(socket->live.local_initiate_tag);
-			}
-			break;
-		case SCTP_SACK_CHUNK_TYPE:
-			sack = (struct sctp_sack_chunk *)chunk;
-			DEBUGP("Old SACK cum TSN %d\n", ntohl(sack->cum_tsn));
-			sack->cum_tsn = htonl(ntohl(sack->cum_tsn) + local_diff);
-			DEBUGP("New SACK cum TSN %d\n", ntohl(sack->cum_tsn));
-			nr_gap_blocks = ntohs(sack->nr_gap_blocks);
-			nr_dup_tsns = ntohs(sack->nr_dup_tsns);
+			DEBUGP("live remote tsn 0x%08x, script remote tsn 0x%08x\n",
+			       socket->live.remote_initial_tsn, socket->script.remote_initial_tsn);
+			DEBUGP("live local tsn 0x%08x, script local tsn 0x%08x\n",
+			       socket->live.local_initial_tsn, socket->script.local_initial_tsn);
+			remote_diff = socket->live.remote_initial_tsn - socket->script.remote_initial_tsn;
+			local_diff = socket->live.local_initial_tsn - socket->script.local_initial_tsn;
+			switch (chunk->type) {
+			case SCTP_DATA_CHUNK_TYPE:
+				data = (struct sctp_data_chunk *)chunk;
+				data->tsn = htonl(ntohl(data->tsn) + remote_diff);
+				break;
+			case SCTP_INIT_CHUNK_TYPE:
+				init = (struct sctp_init_chunk *)chunk;
+				init->initial_tsn = htonl(ntohl(init->initial_tsn) + remote_diff);
+				/* XXX: Does this work in all cases? */
+				if (ntohl(init->initiate_tag) == socket->script.local_initiate_tag) {
+					init->initiate_tag = htonl(socket->live.local_initiate_tag);
+				}
+				contains_init_chunk = true;
+				break;
+			case SCTP_INIT_ACK_CHUNK_TYPE:
+				init_ack = (struct sctp_init_ack_chunk *)chunk;
+				init_ack->initial_tsn = htonl(ntohl(init_ack->initial_tsn) + remote_diff);
+				/* XXX: Does this work in all cases? */
+				if (ntohl(init_ack->initiate_tag) == socket->script.local_initiate_tag) {
+					init_ack->initiate_tag = htonl(socket->live.local_initiate_tag);
+				}
+				break;
+			case SCTP_SACK_CHUNK_TYPE:
+				sack = (struct sctp_sack_chunk *)chunk;
+				DEBUGP("Old SACK cum TSN %d\n", ntohl(sack->cum_tsn));
+				sack->cum_tsn = htonl(ntohl(sack->cum_tsn) + local_diff);
+				DEBUGP("New SACK cum TSN %d\n", ntohl(sack->cum_tsn));
+				nr_gap_blocks = ntohs(sack->nr_gap_blocks);
+				nr_dup_tsns = ntohs(sack->nr_dup_tsns);
 
-			if (ntohs(sack->length) == sizeof(struct sctp_sack_chunk) + sizeof(union sctp_sack_block) * (nr_dup_tsns+nr_gap_blocks)) {
-				for (i = 0; i < nr_dup_tsns; i++) {
-					sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
+				if (ntohs(sack->length) == sizeof(struct sctp_sack_chunk) + sizeof(union sctp_sack_block) * (nr_dup_tsns+nr_gap_blocks)) {
+					for (i = 0; i < nr_dup_tsns; i++) {
+						sack->block[i + nr_gap_blocks].tsn = htonl(ntohl(sack->block[i + nr_gap_blocks].tsn) + local_diff);
+					}
 				}
-			}
-			break;
-		case SCTP_NR_SACK_CHUNK_TYPE:
-			nr_sack = (struct sctp_nr_sack_chunk *)chunk;
-			DEBUGP("Old SACK cum TSN %d\n", ntohl(nr_sack->cum_tsn));
-			nr_sack->cum_tsn = htonl(ntohl(nr_sack->cum_tsn) + local_diff);
-			DEBUGP("New SACK cum TSN %d\n", ntohl(nr_sack->cum_tsn));
-			nr_gap_blocks = ntohs(nr_sack->nr_gap_blocks);
-			number_of_nr_gap_blocks = ntohs(nr_sack->nr_of_nr_gap_blocks);
-			nr_dup_tsns = ntohs(nr_sack->nr_dup_tsns);
+				break;
+			case SCTP_NR_SACK_CHUNK_TYPE:
+				nr_sack = (struct sctp_nr_sack_chunk *)chunk;
+				DEBUGP("Old SACK cum TSN %d\n", ntohl(nr_sack->cum_tsn));
+				nr_sack->cum_tsn = htonl(ntohl(nr_sack->cum_tsn) + local_diff);
+				DEBUGP("New SACK cum TSN %d\n", ntohl(nr_sack->cum_tsn));
+				nr_gap_blocks = ntohs(nr_sack->nr_gap_blocks);
+				number_of_nr_gap_blocks = ntohs(nr_sack->nr_of_nr_gap_blocks);
+				nr_dup_tsns = ntohs(nr_sack->nr_dup_tsns);
 
-			if (ntohs(nr_sack->length) == sizeof(struct sctp_nr_sack_chunk) + sizeof(union sctp_nr_sack_block) * (nr_dup_tsns+nr_gap_blocks)) {
-				for (i = 0; i < nr_dup_tsns; i++) {
-					u16 offset = nr_gap_blocks + number_of_nr_gap_blocks;
-					nr_sack->block[i + offset].tsn = htonl(ntohl(nr_sack->block[i + offset].tsn) + local_diff);
-				}
-			}
-			break;
-		case SCTP_ABORT_CHUNK_TYPE:
-			abort = (struct sctp_abort_chunk *)chunk;
-			if (abort->flags & SCTP_ABORT_CHUNK_T_BIT) {
-				reflect_v_tag = true;
-			}
-			break;
-		case SCTP_SHUTDOWN_CHUNK_TYPE:
-			shutdown = (struct sctp_shutdown_chunk *)chunk;
-			shutdown->cum_tsn = htonl(ntohl(shutdown->cum_tsn) + local_diff);
-			break;
-		case SCTP_ECNE_CHUNK_TYPE:
-			ecne = (struct sctp_ecne_chunk *)chunk;
-			ecne->lowest_tsn = htonl(ntohl(ecne->lowest_tsn) + local_diff);
-			break;
-		case SCTP_CWR_CHUNK_TYPE:
-			cwr = (struct sctp_cwr_chunk *)chunk;
-			cwr->lowest_tsn = htonl(ntohl(cwr->lowest_tsn) + local_diff);
-			break;
-		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
-			shutdown_complete = (struct sctp_shutdown_complete_chunk *)chunk;
-			if (shutdown_complete->flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT) {
-				reflect_v_tag = true;
-			}
-			break;
-		case SCTP_I_DATA_CHUNK_TYPE:
-			i_data = (struct sctp_i_data_chunk *)chunk;
-			i_data->tsn = htonl(ntohl(i_data->tsn) + remote_diff);
-			break;
-		case SCTP_FORWARD_TSN_CHUNK_TYPE: 
-			forward_tsn = (struct sctp_forward_tsn_chunk *) chunk;
-			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + remote_diff);
-			break;
-		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
-			i_forward_tsn = (struct sctp_i_forward_tsn_chunk *) chunk;
-			i_forward_tsn->cum_tsn = htonl(ntohl(i_forward_tsn->cum_tsn) + remote_diff);
-			break;
-		case SCTP_RECONFIG_CHUNK_TYPE:
-			reconfig = (struct sctp_reconfig_chunk *)chunk;
-			if (htons(reconfig->length) >= sizeof(struct sctp_reconfig_chunk) + 4) {
-				struct sctp_parameter *parameter;
-				struct sctp_parameters_iterator iter;
-				int parameters_length = ntohs(reconfig->length) - sizeof(struct sctp_reconfig_chunk);
-				for (parameter = sctp_parameters_begin(reconfig->parameter, parameters_length,
-								       &iter, error);
-				     parameter != NULL;
-				     parameter = sctp_parameters_next(&iter, error)) {
-					if (*error != NULL) {
-						DEBUGP("Partial parameter detected\n");
-						free(*error);
-						*error = NULL;
-						break;
-					}
-					switch (htons(parameter->type)) {
-					case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
-						struct sctp_outgoing_ssn_reset_request_parameter *reset;
-						reset = (struct sctp_outgoing_ssn_reset_request_parameter *)parameter;
-						if (htons(reset->length) >= 8) {
-							reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
-						}
-						if (htons(reset->length) >= 12) {
-							reset->respsn = htonl(ntohl(reset->respsn) + local_diff);
-						}
-						if (htons(reset->length) >= 16) {
-							reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
-						}
-						break;
-					}
-					case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
-						struct sctp_incoming_ssn_reset_request_parameter *reset;
-						reset = (struct sctp_incoming_ssn_reset_request_parameter *)parameter;
-						if (htons(reset->length) >= 8) {
-							reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
-						}
-						break;
-					}
-					case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
-						struct sctp_ssn_tsn_reset_request_parameter *reset;
-						reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
-						if (htons(reset->length) >= 8) {
-							reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
-						}
-						break;
-					}
-					case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
-						struct sctp_reconfig_response_parameter *response;
-						response = (struct sctp_reconfig_response_parameter *)parameter;
-						response->respsn = htonl(htonl(response->respsn) + local_diff);
-						if (htons(response->length) >= 16) {
-							response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
-						}
-						if (htons(response->length) >= 20) {
-							response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
-						}
-						break;
-					}
-					case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE: {
-						struct sctp_add_outgoing_streams_request_parameter *request;
-						request = (struct sctp_add_outgoing_streams_request_parameter *)parameter;
-						if (htons(request->length) >= 8) {
-							request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
-						}
-						break;
-					}
-					case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
-						struct sctp_add_incoming_streams_request_parameter *request;
-						request = (struct sctp_add_incoming_streams_request_parameter *)parameter;
-						if (htons(request->length) >= 8) {
-							request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
-						}
-						break;
-					}
-					default:
-						//do nothing
-						break;
+				if (ntohs(nr_sack->length) == sizeof(struct sctp_nr_sack_chunk) + sizeof(union sctp_nr_sack_block) * (nr_dup_tsns+nr_gap_blocks)) {
+					for (i = 0; i < nr_dup_tsns; i++) {
+						u16 offset = nr_gap_blocks + number_of_nr_gap_blocks;
+						nr_sack->block[i + offset].tsn = htonl(ntohl(nr_sack->block[i + offset].tsn) + local_diff);
 					}
 				}
+				break;
+			case SCTP_ABORT_CHUNK_TYPE:
+				abort = (struct sctp_abort_chunk *)chunk;
+				if (abort->flags & SCTP_ABORT_CHUNK_T_BIT) {
+					reflect_v_tag = true;
+				}
+				break;
+			case SCTP_SHUTDOWN_CHUNK_TYPE:
+				shutdown = (struct sctp_shutdown_chunk *)chunk;
+				shutdown->cum_tsn = htonl(ntohl(shutdown->cum_tsn) + local_diff);
+				break;
+			case SCTP_ECNE_CHUNK_TYPE:
+				ecne = (struct sctp_ecne_chunk *)chunk;
+				ecne->lowest_tsn = htonl(ntohl(ecne->lowest_tsn) + local_diff);
+				break;
+			case SCTP_CWR_CHUNK_TYPE:
+				cwr = (struct sctp_cwr_chunk *)chunk;
+				cwr->lowest_tsn = htonl(ntohl(cwr->lowest_tsn) + local_diff);
+				break;
+			case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
+				shutdown_complete = (struct sctp_shutdown_complete_chunk *)chunk;
+				if (shutdown_complete->flags & SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT) {
+					reflect_v_tag = true;
+				}
+				break;
+			case SCTP_I_DATA_CHUNK_TYPE:
+				i_data = (struct sctp_i_data_chunk *)chunk;
+				i_data->tsn = htonl(ntohl(i_data->tsn) + remote_diff);
+				break;
+			case SCTP_FORWARD_TSN_CHUNK_TYPE: 
+				forward_tsn = (struct sctp_forward_tsn_chunk *) chunk;
+				forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + remote_diff);
+				break;
+			case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
+				i_forward_tsn = (struct sctp_i_forward_tsn_chunk *) chunk;
+				i_forward_tsn->cum_tsn = htonl(ntohl(i_forward_tsn->cum_tsn) + remote_diff);
+				break;
+			case SCTP_RECONFIG_CHUNK_TYPE:
+				reconfig = (struct sctp_reconfig_chunk *)chunk;
+				if (htons(reconfig->length) >= sizeof(struct sctp_reconfig_chunk) + 4) {
+					struct sctp_parameter *parameter;
+					struct sctp_parameters_iterator iter;
+					int parameters_length = ntohs(reconfig->length) - sizeof(struct sctp_reconfig_chunk);
+					for (parameter = sctp_parameters_begin(reconfig->parameter, parameters_length,
+									       &iter, error);
+					     parameter != NULL;
+					     parameter = sctp_parameters_next(&iter, error)) {
+						if (*error != NULL) {
+							DEBUGP("Partial parameter detected\n");
+							free(*error);
+							*error = NULL;
+							break;
+						}
+						switch (htons(parameter->type)) {
+						case SCTP_OUTGOING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+							struct sctp_outgoing_ssn_reset_request_parameter *reset;
+							reset = (struct sctp_outgoing_ssn_reset_request_parameter *)parameter;
+							if (htons(reset->length) >= 8) {
+								reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+							}
+							if (htons(reset->length) >= 12) {
+								reset->respsn = htonl(ntohl(reset->respsn) + local_diff);
+							}
+							if (htons(reset->length) >= 16) {
+								reset->last_tsn = htonl(ntohl(reset->last_tsn) + remote_diff);
+							}
+							break;
+						}
+						case SCTP_INCOMING_SSN_RESET_REQUEST_PARAMETER_TYPE: {
+							struct sctp_incoming_ssn_reset_request_parameter *reset;
+							reset = (struct sctp_incoming_ssn_reset_request_parameter *)parameter;
+							if (htons(reset->length) >= 8) {
+								reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+							}
+							break;
+						}
+						case SCTP_SSN_TSN_RESET_REQUEST_PARAMETER_TYPE: {
+							struct sctp_ssn_tsn_reset_request_parameter *reset;
+							reset = (struct sctp_ssn_tsn_reset_request_parameter *)parameter;
+							if (htons(reset->length) >= 8) {
+								reset->reqsn = htonl(ntohl(reset->reqsn) + remote_diff);
+							}
+							break;
+						}
+						case SCTP_RECONFIG_RESPONSE_PARAMETER_TYPE: {
+							struct sctp_reconfig_response_parameter *response;
+							response = (struct sctp_reconfig_response_parameter *)parameter;
+							response->respsn = htonl(htonl(response->respsn) + local_diff);
+							if (htons(response->length) >= 16) {
+								response->receiver_next_tsn = htonl(htonl(response->receiver_next_tsn) + local_diff);
+							}
+							if (htons(response->length) >= 20) {
+								response->sender_next_tsn = htonl(htonl(response->sender_next_tsn) + remote_diff);
+							}
+							break;
+						}
+						case SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE: {
+							struct sctp_add_outgoing_streams_request_parameter *request;
+							request = (struct sctp_add_outgoing_streams_request_parameter *)parameter;
+							if (htons(request->length) >= 8) {
+								request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+							}
+							break;
+						}
+						case SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE: {
+							struct sctp_add_incoming_streams_request_parameter *request;
+							request = (struct sctp_add_incoming_streams_request_parameter *)parameter;
+							if (htons(request->length) >= 8) {
+								request->reqsn = htonl(htonl(request->reqsn) + remote_diff);
+							}
+							break;
+						}
+						default:
+							//do nothing
+							break;
+						}
+					}
+				}
+				break;
+			default:
+				break;
 			}
-			break;
-		default:
-			break;
 		}
 	}
 	/* Map the verification tag in the common header */
