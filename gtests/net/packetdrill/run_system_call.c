@@ -1896,6 +1896,15 @@ static int run_syscall_accept(struct state *state,
 		}
 #endif /* DEBUG */
 		if ((socket->state == SOCKET_PASSIVE_SYNACK_SENT) ||  /* TFO */
+#if defined(__FreeBSD__)
+		/*
+		 * In FreeBSD the accept system call might return after the
+		 * reception of the SYN segment and before sending the
+		 * SYN-ACK segment to allow the user to provide data when
+		 * using TFO.
+		 */
+		    (socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) ||
+#endif
 		    (socket->state == SOCKET_PASSIVE_SYNACK_ACKED) ||
 		    (socket->state == SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED)) {
 			assert(is_equal_ip(&socket->live.remote.ip, &ip));
