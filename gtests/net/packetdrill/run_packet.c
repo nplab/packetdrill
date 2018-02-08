@@ -2339,11 +2339,10 @@ static int verify_i_forward_tsn_chunk(struct sctp_i_forward_tsn_chunk *actual_ch
 		                        ntohs(script_chunk->stream_identifier_blocks[i].reserved),
 		                        ntohs(actual_chunk->stream_identifier_blocks[i].reserved),
 		                        error) == STATUS_ERR ||
-			    check_field("sctp_i_forward_tsn_message_identifier",
-		                        ntohs(script_chunk->stream_identifier_blocks[i].message_identifier),
-		                        ntohs(actual_chunk->stream_identifier_blocks[i].message_identifier),
-		                        error) == STATUS_ERR 
-				) {
+		           check_field("sctp_i_forward_tsn_message_identifier",
+		                        ntohl(script_chunk->stream_identifier_blocks[i].message_identifier),
+		                        ntohl(actual_chunk->stream_identifier_blocks[i].message_identifier),
+		                        error) == STATUS_ERR) {
 				return STATUS_ERR;
 			}
 		}
