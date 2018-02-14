@@ -291,6 +291,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_PR_SCTP_NONE,                "SCTP_PR_SCTP_NONE"               },
 	{ SCTP_PR_SCTP_TTL,                 "SCTP_PR_SCTP_TTL"                },
 	{ SCTP_PR_SCTP_RTX,                 "SCTP_PR_SCTP_RTX"                },
+	{ SCTP_PR_SCTP_PRIO,                "SCTP_PR_SCTP_PRIO"               },
 	{ SCTP_BINDX_ADD_ADDR,              "SCTP_BINDX_ADD_ADDR"             },
 	{ SCTP_BINDX_REM_ADDR,              "SCTP_BINDX_REM_ADDR"             },
 	{ SCTP_SENDV_NOINFO,                "SCTP_SENDV_NOINFO"               },
