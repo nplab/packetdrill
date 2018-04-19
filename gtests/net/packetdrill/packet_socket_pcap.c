@@ -35,7 +35,7 @@
 
 #ifdef USE_LIBPCAP
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <pcap/pcap.h>
 #elif defined(__OpenBSD__) || defined(__NetBSD__)
 #include <pcap.h>
@@ -74,7 +74,7 @@ extern void die_pcap_perror(pcap_t *pcap, char *message)
 
 static void packet_socket_setup(struct packet_socket *psock)
 {
-	int bpf_fd = -1, val = -1;
+	int bpf_fd = -1;
 
 	DEBUGP("calling pcap_create() with %s\n", psock->name);
 	psock->pcap_in = pcap_create(psock->name, psock->pcap_error);
@@ -104,31 +104,23 @@ static void packet_socket_setup(struct packet_socket *psock)
 		die_pcap_perror(psock->pcap_in, "pcap_setdirection");
 	if (pcap_setdirection(psock->pcap_out, PCAP_D_OUT) != 0)
 		die_pcap_perror(psock->pcap_out, "pcap_setdirection");
+	/* By default libpcap with BPF waits until a read buffer fills
+	 * up before returning any packets. We use the immediate mode to
+	 * force the BPF device to return the first packet
+	 * immediately.
+	 */
+	if (pcap_set_immediate_mode(psock->pcap_in, 1) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_set_immediate_mode");
+	if (pcap_set_immediate_mode(psock->pcap_out, 1) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_set_immediate_mode");
 
 	bpf_fd = pcap_get_selectable_fd(psock->pcap_in);
 	if (bpf_fd < 0)
 		die_pcap_perror(psock->pcap_in, "pcap_get_selectable_fd");
 
-	/* By default libpcap with BPF waits until a read buffer fills
-	 * up before returning any packets. We use BIOCIMMEDIATE to
-	 * force the BPF device to return the first packet
-	 * immediately.
-	 */
-	val = 1;
-	if (ioctl(bpf_fd, BIOCIMMEDIATE, &val) < 0)
-		die_perror("ioctl BIOCIMMEDIATE on bpf fd");
 	bpf_fd = pcap_get_selectable_fd(psock->pcap_out);
 	if (bpf_fd < 0)
 		die_pcap_perror(psock->pcap_out, "pcap_get_selectable_fd");
-
-	/* By default libpcap with BPF waits until a read buffer fills
-	 * up before returning any packets. We use BIOCIMMEDIATE to
-	 * force the BPF device to return the first packet
-	 * immediately.
-	 */
-	val = 1;
-	if (ioctl(bpf_fd, BIOCIMMEDIATE, &val) < 0)
-		die_perror("ioctl BIOCIMMEDIATE on bpf fd");
 
 	/* Find data link type. */
 	psock->data_link = pcap_datalink(psock->pcap_in);
@@ -290,7 +282,7 @@ int packet_socket_receive(struct packet_socket *psock,
 	       (u32)pkt_header->ts.tv_sec,
 	       (u32)pkt_header->ts.tv_usec);
 
-#if defined(__FreeBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	packet->time_usecs = timeval_to_usecs(&pkt_header->ts);
 #elif defined(__OpenBSD__)
 	packet->time_usecs = bpf_timeval_to_usecs(&pkt_header->ts);
