@@ -34,11 +34,11 @@
 #include "types.h"
 
 #include <netinet/tcp.h>
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 #include <netinet/tcp_fsm.h>
 #endif
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 #define SOL_TCP IPPROTO_TCP
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
 
@@ -229,6 +229,54 @@ struct _tcp_info {
 };
 
 #endif  /* __FreeBSD__ */
+
+#if defined(__APPLE__)
+
+/* Data returned by the TCP_INFO socket option on MacOS. */
+struct _tcp_info {
+	u_int8_t	tcpi_state;
+	u_int8_t	tcpi_snd_wscale;
+	u_int8_t	tcpi_rcv_wscale;
+	u_int8_t	__pad1;
+	u_int32_t	tcpi_options;
+	u_int32_t	tcpi_flags;
+	u_int32_t	tcpi_rto;
+	u_int32_t	tcpi_maxseg;
+	u_int32_t	tcpi_snd_ssthresh;
+	u_int32_t	tcpi_snd_cwnd;
+	u_int32_t	tcpi_snd_wnd;
+	u_int32_t	tcpi_snd_sbbytes;
+	u_int32_t	tcpi_rcv_wnd;
+	u_int32_t	tcpi_rttcur;
+	u_int32_t	tcpi_srtt;
+	u_int32_t	tcpi_rttvar;
+	u_int32_t
+		tcpi_tfo_cookie_req:1,
+		tcpi_tfo_cookie_rcv:1,
+		tcpi_tfo_syn_loss:1,
+		tcpi_tfo_syn_data_sent:1,
+		tcpi_tfo_syn_data_acked:1,
+		tcpi_tfo_syn_data_rcv:1,
+		tcpi_tfo_cookie_req_rcv:1,
+		tcpi_tfo_cookie_sent:1,
+		tcpi_tfo_cookie_invalid:1,
+		tcpi_tfo_cookie_wrong:1,
+		tcpi_tfo_no_cookie_rcv:1,
+		tcpi_tfo_heuristics_disable:1,
+		tcpi_tfo_send_blackhole:1,
+		tcpi_tfo_recv_blackhole:1,
+		tcpi_tfo_onebyte_proxy:1,
+		__pad2:17;
+	u_int64_t	tcpi_txpackets __attribute__((aligned(8)));
+	u_int64_t	tcpi_txbytes __attribute__((aligned(8)));
+	u_int64_t	tcpi_txretransmitbytes __attribute__((aligned(8)));
+	u_int64_t	tcpi_rxpackets __attribute__((aligned(8)));
+	u_int64_t	tcpi_rxbytes __attribute__((aligned(8)));
+	u_int64_t	tcpi_rxoutoforderbytes __attribute__((aligned(8)));
+	u_int64_t	tcpi_txretransmitpackets __attribute__((aligned(8)));
+};
+
+#endif  /* __APPLE__ */
 
 
 #endif /* __TCP_HEADERS_H__ */

@@ -104,7 +104,7 @@ static void emit_var_end(struct code_state *code)
 static void write_symbols(struct code_state *code)
 {
 	/* tcpi_state */
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	emit_var(code, "TCPI_CLOSED",		TCPS_CLOSED);
 	emit_var(code, "TCPI_LISTEN",		TCPS_LISTEN);
 	emit_var(code, "TCPI_SYN_SENT",		TCPS_SYN_SENT);
@@ -151,6 +151,18 @@ static void write_symbols(struct code_state *code)
 	emit_var(code, "TCPI_OPT_SACK",		TCPI_OPT_SACK);
 	emit_var(code, "TCPI_OPT_WSCALE",	TCPI_OPT_WSCALE);
 	emit_var(code, "TCPI_OPT_ECN",		TCPI_OPT_ECN);
+#endif
+#ifdef __APPLE__
+	emit_var(code, "TCPI_OPT_TIMESTAMPS",	TCPCI_OPT_TIMESTAMPS);
+	emit_var(code, "TCPI_OPT_SACK",		TCPCI_OPT_SACK);
+	emit_var(code, "TCPI_OPT_WSCALE",	TCPCI_OPT_WSCALE);
+	emit_var(code, "TCPI_OPT_ECN",		TCPCI_OPT_ECN);
+#endif
+
+	/* tcpi_flags flags */
+#ifdef __APPLE__
+	emit_var(code, "TCPI_FLAG_LOSSRECOVERY",	TCPCI_FLAG_LOSSRECOVERY);
+	emit_var(code, "TCPI_FLAG_REORDERING_DETECTED",	TCPCI_FLAG_REORDERING_DETECTED);
 #endif
 }
 
@@ -247,6 +259,61 @@ static void write_tcp_info(struct code_state *code,
 }
 
 #endif  /* __FreeBSD__ */
+
+#if defined(__APPLE__)
+
+/* Write out a formatted representation of the given tcp_info buffer. */
+static void write_tcp_info(struct code_state *code,
+				   const struct _tcp_info *info,
+				   int len)
+{
+	assert(len >= sizeof(struct _tcp_info));
+
+	write_symbols(code);
+
+	/* Emit the recorded values of tcpi_foo values. */
+	emit_var(code, "tcpi_state",			info->tcpi_state);
+	emit_var(code, "tcpi_snd_wscale",		info->tcpi_snd_wscale);
+	emit_var(code, "tcpi_rcv_wscale",		info->tcpi_rcv_wscale);
+	emit_var(code, "tcpi_options",			info->tcpi_options);
+	emit_var(code, "tcpi_flags",			info->tcpi_flags);
+	emit_var(code, "tcpi_rto",			info->tcpi_rto);
+	emit_var(code, "tcpi_maxseg",			info->tcpi_maxseg);
+	emit_var(code, "tcpi_snd_ssthresh",		info->tcpi_snd_ssthresh);
+	emit_var(code, "tcpi_snd_cwnd",			info->tcpi_snd_cwnd);
+	emit_var(code, "tcpi_snd_wnd",			info->tcpi_snd_wnd);
+	emit_var(code, "tcpi_snd_sbbytes",		info->tcpi_snd_sbbytes);
+	emit_var(code, "tcpi_rcv_wnd",			info->tcpi_rcv_wnd);
+	emit_var(code, "tcpi_rttcur",			info->tcpi_rttcur);
+	emit_var(code, "tcpi_srtt",			info->tcpi_srtt);
+	emit_var(code, "tcpi_rttvar",			info->tcpi_rttvar);
+	emit_var(code, "tcpi_tfo_cookie_req",		info->tcpi_tfo_cookie_req);
+	emit_var(code, "tcpi_tfo_cookie_rcv",		info->tcpi_tfo_cookie_rcv);
+	emit_var(code, "tcpi_tfo_syn_loss",		info->tcpi_tfo_syn_loss);
+	emit_var(code, "tcpi_tfo_syn_data_sent",	info->tcpi_tfo_syn_data_sent);
+	emit_var(code, "tcpi_tfo_syn_data_acked",	info->tcpi_tfo_syn_data_acked);
+	emit_var(code, "tcpi_tfo_syn_data_rcv",		info->tcpi_tfo_syn_data_rcv);
+	emit_var(code, "tcpi_tfo_cookie_req_rcv",	info->tcpi_tfo_cookie_req_rcv);
+	emit_var(code, "tcpi_tfo_cookie_sent",		info->tcpi_tfo_cookie_sent);
+	emit_var(code, "tcpi_tfo_cookie_invalid",	info->tcpi_tfo_cookie_invalid);
+	emit_var(code, "tcpi_tfo_cookie_wrong",		info->tcpi_tfo_cookie_wrong);
+	emit_var(code, "tcpi_tfo_no_cookie_rcv",	info->tcpi_tfo_no_cookie_rcv);
+	emit_var(code, "tcpi_tfo_heuristics_disable",	info->tcpi_tfo_heuristics_disable);
+	emit_var(code, "tcpi_tfo_send_blackhole",	info->tcpi_tfo_send_blackhole);
+	emit_var(code, "tcpi_tfo_recv_blackhole",	info->tcpi_tfo_recv_blackhole);
+	emit_var(code, "tcpi_tfo_onebyte_proxy",	info->tcpi_tfo_onebyte_proxy);
+	emit_var(code, "tcpi_txpackets",		info->tcpi_txpackets);
+	emit_var(code, "tcpi_txbytes",			info->tcpi_txbytes);
+	emit_var(code, "tcpi_txretransmitbytes",	info->tcpi_txretransmitbytes);
+	emit_var(code, "tcpi_rxpackets",		info->tcpi_rxpackets);
+	emit_var(code, "tcpi_rxbytes",			info->tcpi_rxbytes);
+	emit_var(code, "tcpi_rxoutoforderbytes",	info->tcpi_rxoutoforderbytes);
+	emit_var(code, "tcpi_txretransmitpackets",	info->tcpi_txretransmitpackets);
+
+	emit_var_end(code);
+}
+
+#endif  /* __APPLE__ */
 
 /* Allocate a new empty struct code_text struct. */
 static struct code_text *text_new(void)
@@ -580,7 +647,11 @@ static void *get_data(int fd, enum code_data_t data_type, int *len)
 		break;
 #if HAVE_TCP_INFO
 	case DATA_TCP_INFO:
+#if defined(__APPLE__)
+		opt_name = TCP_CONNECTION_INFO;
+#else
 		opt_name = TCP_INFO;
+#endif
 		data_len = sizeof(struct _tcp_info);
 		min_data_len = data_len;
 		break;
