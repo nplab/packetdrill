@@ -104,7 +104,7 @@ static s64 hextol(const char *s)
 }
 
 enum ifdef_os {
-	Linux_IFDEF = 1, FreeBSD_IFDEF, NetBSD_IFDEF, OpenBSD_IFDEF, Omnet_IFDEF
+	Linux_IFDEF = 1, FreeBSD_IFDEF, NetBSD_IFDEF, OpenBSD_IFDEF, Omnet_IFDEF, Apple_IFDEF
 };
 
 #define MAX_IFDEF_DEPTH 1
@@ -123,34 +123,35 @@ static inline int get_os_name_length(enum ifdef_os os) {
 		return strlen("OpenBSD");
 	case Omnet_IFDEF:
 		return strlen("Omnet");
+	case Apple_IFDEF:
+		return strlen("Apple");
 	default:
 		return -1;
 	}
 }
 
 static inline bool ignore_ifdef(enum ifdef_os os) {
+	switch (os) {
 #ifdef linux
-	if (os == Linux_IFDEF) {
-		return false;
-	}
+	case Linux_IFDEF:
 #endif
 #ifdef __FreeBSD__
-	if (os == FreeBSD_IFDEF) {
-		return false;
-	}
+	case FreeBSD_IFDEF:
 #endif
 #ifdef __OpenBSD__
-	if (os == OpenBSD_IFDEF) {
-		return false;
-	}
+	case OpenBSD_IFDEF:
 #endif
 #ifdef __NetBSD__
-	if (os == NetBSD_IFDEF) {
-		return false;
-	}
+	case NetBSD_IFDEF:
+#endif
+#ifdef __APPLE__
+	case Apple_IFDEF:
 #endif
 	/* no need to handle Omnet here */
-	return true;
+		return false;
+	default:
+		return true;
+	}
 }
 
 static inline char* remove_ifdef_start_and_endtag(char *code, int os_name_length) {
@@ -187,11 +188,11 @@ static void handle_ifdef(enum ifdef_os os, const char *s) {
 	}
 
 	code = strdup(s);
-	
-        // keep track of the current value of yylineno, because we need to restore it later (see EOF-Condition),
-        // otherwise all ifdefs that were interpreted will count twice in yylineno,
-        // which will mess up the value in yylineno.
-        old_yylineno = yylineno;
+
+	// keep track of the current value of yylineno, because we need to restore it later (see EOF-Condition),
+	// otherwise all ifdefs that were interpreted will count twice in yylineno,
+	// which will mess up the value in yylineno.
+	old_yylineno = yylineno;
 
 	code_without_ifdef = remove_ifdef_start_and_endtag(code, os_name_length);
 	ifdef_stack[ifdef_stack_ptr++] = YY_CURRENT_BUFFER;
