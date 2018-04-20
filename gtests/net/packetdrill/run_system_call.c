@@ -203,6 +203,12 @@ static bool is_thread_sleeping(pid_t process_id, int thread_id)
 	procstat_close(procstat);
 	return is_sleeping;
 }
+#elif defined(__APPLE__)
+static bool is_thread_sleeping(pid_t process_id, uint64_t thread_id)
+{
+	die("is_thread_sleeping not implemented on this platform\n");
+	return true;
+}
 #else
 static bool is_thread_sleeping(pid_t process_id, int thread_id)
 {
@@ -6885,7 +6891,10 @@ static int yield(void)
 	return 0;
 #elif defined(__NetBSD__)
 	return sched_yield();
-#endif  /* defined(__NetBSD__) */
+#elif defined(__APPLE__)
+	pthread_yield_np();
+	return 0;
+#endif  /* defined(__APPLE__) */
 }
 
 /* Enqueue the system call for the syscall thread and wake up the thread. */
@@ -6924,6 +6933,8 @@ static void enqueue_system_call(
 		pid_t thread_id;
 #elif defined(__FreeBSD__)
 		int thread_id;
+#elif defined(__APPLE__)
+		uint64_t thread_id;
 #else
 		int thread_id; /* FIXME */
 #endif
@@ -6984,6 +6995,8 @@ static void *system_call_thread(void *arg)
 
 #if defined(__FreeBSD__)
 	pthread_set_name_np(pthread_self(), "syscall thread");
+#elif defined(__APPLE__)
+	pthread_setname_np("syscall thread");
 #endif
 	DEBUGP("syscall thread: starting and locking\n");
 	run_lock(state);
@@ -6994,6 +7007,8 @@ static void *system_call_thread(void *arg)
 		die_perror("gettid");
 #elif defined(__FreeBSD__)
 	state->syscalls->thread_id = pthread_getthreadid_np();
+#elif defined(__APPLE__)
+	pthread_threadid_np(pthread_self(), &state->syscalls->thread_id);
 #else
 	state->syscalls->thread_id = 0;		/* FIXME */
 #endif
