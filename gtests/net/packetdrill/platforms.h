@@ -102,5 +102,16 @@
 
 #endif  /* __NetBSD__ */
 
+/* ------------------------- Darwin --------------------- */
+
+#if defined(__APPLE__)
+
+#define USE_LIBPCAP             1
+#define HAVE_TCP_INFO           1
+#define HAVE_FMEMOPEN           1
+#define HAVE_OPEN_MEMSTREAM     1
+
+#endif  /* __APPLE__ */
+
 
 #endif /* __PLATFORMS_H__ */
