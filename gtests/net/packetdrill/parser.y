@@ -559,7 +559,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
  */
 %token ELLIPSIS
 %token <reserved> SA_FAMILY SIN_PORT SIN_ADDR _HTONS_ _HTONL_ INET_ADDR
-%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL CMSG_LEN CMSG_LEVEL CMSG_TYPE CMSG_DATA
+%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL _CMSG_LEN_ CMSG_LEVEL CMSG_TYPE _CMSG_DATA_
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
@@ -3188,19 +3188,19 @@ cmsg_type
 ;
 
 cmsg_data
-: CMSG_DATA '=' sctp_initmsg     { $$ = $3; }
-| CMSG_DATA '=' sctp_sndrcvinfo  { $$ = $3; }
-| CMSG_DATA '=' sctp_extrcvinfo  { $$ = $3; }
-| CMSG_DATA '=' sctp_sndinfo     { $$ = $3; }
-| CMSG_DATA '=' sctp_rcvinfo     { $$ = $3; }
-| CMSG_DATA '=' sctp_nxtinfo     { $$ = $3; }
-| CMSG_DATA '=' sctp_prinfo      { $$ = $3; }
-| CMSG_DATA '=' sctp_authinfo    { $$ = $3; }
-| CMSG_DATA '=' sockaddr         { $$ = $3; }
+: _CMSG_DATA_ '=' sctp_initmsg     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_sndrcvinfo  { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_extrcvinfo  { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_sndinfo     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_rcvinfo     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_nxtinfo     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_prinfo      { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_authinfo    { $$ = $3; }
+| _CMSG_DATA_ '=' sockaddr         { $$ = $3; }
 ;
 
 cmsghdr
-: '{' CMSG_LEN '=' INTEGER ',' cmsg_level ',' cmsg_type ',' cmsg_data '}' {
+: '{' _CMSG_LEN_ '=' INTEGER ',' cmsg_level ',' cmsg_type ',' cmsg_data '}' {
 	$$ = new_expression(EXPR_CMSGHDR);
 	$$->value.cmsghdr = calloc(1, sizeof(struct cmsghdr_expr));
 	if (!is_valid_s32($4)) {
