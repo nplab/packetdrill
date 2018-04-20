@@ -1,2 +1,3 @@
-packetdrill-ext-libs := -lpthread -lpcap
+packetdrill-ext-libs := -pthread -lpcap
+LDFLAGS =
 include Makefile.common
