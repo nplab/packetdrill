@@ -332,7 +332,7 @@ void wait_for_event(struct state *state)
 		 * that we know has a fine-grained usleep(), then
 		 * usleep() instead of spinning on the CPU.
 		 */
-#if defined(linux)
+#if defined(linux) || defined(__APPLE__)
 		/* Since the scheduler may not wake us up precisely
 		 * when we tell it to, sleep until just before the
 		 * event we're waiting for and then spin.
@@ -439,7 +439,7 @@ void set_scheduling_priority(void)
 	if (num_cpus <= 1)
 		return;
 
-#if !defined(__OpenBSD__)
+#if !defined(__OpenBSD__) && !defined(__APPLE__)
 	/* Chose a real-time policy, but use SCHED_RR instead of
 	 * SCHED_FIFO, so that we round-robin among real-time threads
 	 * of the same priority. In practice this shouldn't matter,
@@ -458,7 +458,7 @@ void set_scheduling_priority(void)
 	param.sched_priority = priority;
 	if (sched_setscheduler(0, policy, &param))
 		die_perror("sched_setscheduler");
-#endif  /* !defined(__OpenBSD__) */
+#endif  /* !defined(__OpenBSD__) && !defined(__APPLE__) */
 }
 
 /* To ensure timing that's as consistent as possible, pull all our
