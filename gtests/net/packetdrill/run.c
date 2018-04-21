@@ -466,8 +466,10 @@ void set_scheduling_priority(void)
  */
 void lock_memory(void)
 {
+#if !defined(__APPLE__)
 	if (mlockall(MCL_CURRENT | MCL_FUTURE))
 		die_perror("lockall(MCL_CURRENT | MCL_FUTURE)");
+#endif
 }
 
 /* Wait for and return the wall time at which we should start the
