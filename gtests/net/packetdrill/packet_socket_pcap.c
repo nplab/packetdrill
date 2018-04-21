@@ -74,7 +74,6 @@ extern void die_pcap_perror(pcap_t *pcap, char *message)
 
 static void packet_socket_setup(struct packet_socket *psock)
 {
-	int bpf_fd = -1;
 
 	DEBUGP("calling pcap_create() with %s\n", psock->name);
 	psock->pcap_in = pcap_create(psock->name, psock->pcap_error);
@@ -115,14 +114,6 @@ static void packet_socket_setup(struct packet_socket *psock)
 		die_pcap_perror(psock->pcap_in, "pcap_setdirection");
 	if (pcap_setdirection(psock->pcap_out, PCAP_D_OUT) != 0)
 		die_pcap_perror(psock->pcap_out, "pcap_setdirection");
-
-	bpf_fd = pcap_get_selectable_fd(psock->pcap_in);
-	if (bpf_fd < 0)
-		die_pcap_perror(psock->pcap_in, "pcap_get_selectable_fd");
-
-	bpf_fd = pcap_get_selectable_fd(psock->pcap_out);
-	if (bpf_fd < 0)
-		die_pcap_perror(psock->pcap_out, "pcap_get_selectable_fd");
 
 	/* Find data link type. */
 	psock->data_link = pcap_datalink(psock->pcap_in);
