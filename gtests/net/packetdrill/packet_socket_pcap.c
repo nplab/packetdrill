@@ -74,7 +74,6 @@ extern void die_pcap_perror(pcap_t *pcap, char *message)
 
 static void packet_socket_setup(struct packet_socket *psock)
 {
-
 	DEBUGP("calling pcap_create() with %s\n", psock->name);
 	psock->pcap_in = pcap_create(psock->name, psock->pcap_error);
 	if (psock->pcap_in == NULL)
