@@ -1,6 +1,6 @@
 all: binaries
 
-CFLAGS = -g -Wall -Werror -Wno-unknown-warning-option -Wno-address-of-packed-member
+CFLAGS += -g -Wall -Werror -Wno-unknown-warning-option -Wno-address-of-packed-member
 LDFLAGS ?= -static
 
 parser.o: parser.y
@@ -20,6 +20,7 @@ packetdrill-lib := \
          symbols_freebsd.o \
          symbols_openbsd.o \
          symbols_netbsd.o \
+         symbols_darwin.o \
          gre_packet.o icmp_packet.o ip_packet.o \
          sctp_packet.o tcp_packet.o udp_packet.o udplite_packet.o \
          mpls_packet.o \

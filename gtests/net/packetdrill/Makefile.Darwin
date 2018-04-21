@@ -1,3 +1,4 @@
 packetdrill-ext-libs := -pthread -lpcap
+CFLAGS = -D__APPLE_USE_RFC_3542
 LDFLAGS =
 include Makefile.common
