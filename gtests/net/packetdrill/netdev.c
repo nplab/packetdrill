@@ -44,7 +44,14 @@
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #include <net/if_tun.h>
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
-
+#if defined(__APPLE__)
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <net/if_utun.h>
+#include <sys/kern_control.h>
+#include <sys/kern_event.h>
+#endif
 #include "ip.h"
 #include "ipv6.h"
 #include "logging.h"
@@ -119,6 +126,52 @@ static void check_remote_address(struct config *config,
 }
 
 /* Create a tun device for the lifetime of this test. */
+#if defined(__APPLE__)
+static void create_device(struct config *config, struct local_netdev *netdev)
+{
+	struct sockaddr_ctl addr;
+	struct ctl_info info;
+	char name[IFNAMSIZ];
+	char *command;
+	socklen_t len;
+	int tun_fd;
+
+	tun_fd = socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL);
+	if (tun_fd < 0) {
+		die_perror("open utun device");
+	}
+	memset(&info, 0, sizeof(struct ctl_info));
+	strncpy(info.ctl_name, UTUN_CONTROL_NAME, MAX_KCTL_NAME);
+	if (ioctl(tun_fd, CTLIOCGINFO, &info) < 0) {
+		die_perror("open utun device");
+	}
+	addr.sc_len = sizeof(struct sockaddr_ctl);
+	addr.sc_family = AF_SYSTEM;
+	addr.ss_sysaddr = AF_SYS_CONTROL;
+	addr.sc_id = info.ctl_id;
+	addr.sc_unit = 0;
+	if (connect(tun_fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_ctl)) < 0) {
+		die_perror("open utun device");
+	}
+	netdev->tun_fd = tun_fd;
+	len = IFNAMSIZ;
+	if (getsockopt(tun_fd, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, name, &len) < 0) {
+		die_perror("open utun device");
+	}
+	netdev->name = strdup(name);
+	DEBUGP("utun name: '%s'\n", netdev->name);
+	netdev->index = if_nametoindex(netdev->name);
+	if (netdev->index == 0)
+		die_perror("if_nametoindex");
+	DEBUGP("utun index: '%d'\n", netdev->index);
+	if (config->mtu != TUN_DRIVER_DEFAULT_MTU) {
+		asprintf(&command, "ifconfig %s mtu %d", netdev->name, config->mtu);
+		if (system(command) < 0)
+			die("Error executing %s\n", command);
+		free(command);
+	}
+}
+#else
 static void create_device(struct config *config, struct local_netdev *netdev)
 {
 	/* Open the tun device, which "clones" it for our purposes. */
@@ -252,6 +305,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	if (netdev->ipv4_control_fd < 0)
 		die_perror("opening AF_INET, SOCK_DGRAM, IPPROTO_IP socket");
 }
+#endif
 
 /* Set the offload flags to be like a typical ethernet device */
 static void set_device_offload_flags(struct local_netdev *netdev)
@@ -267,6 +321,7 @@ static void set_device_offload_flags(struct local_netdev *netdev)
 #endif
 }
 
+#if !defined(__APPLE__)
 /* Bring up the device */
 static void bring_up_device(struct local_netdev *netdev)
 {
@@ -284,13 +339,14 @@ static void bring_up_device(struct local_netdev *netdev)
 	if (ioctl(netdev->ipv4_control_fd, SIOCSIFFLAGS, &ifr) < 0)
 		die_perror("SIOCSIFFLAGS");
 }
+#endif
 
 /* Route traffic destined for our remote IP through this device */
 static void route_traffic_to_device(struct config *config,
 				    struct local_netdev *netdev)
 {
 	char *route_command = NULL;
-#ifdef linux
+#if defined(linux)
 	asprintf(&route_command,
 		 "ip route del %s > /dev/null 2>&1 ; "
 		 "ip route add %s dev %s via %s > /dev/null 2>&1",
@@ -298,8 +354,7 @@ static void route_traffic_to_device(struct config *config,
 		 config->live_remote_prefix_string,
 		 netdev->name,
 		 config->live_gateway_ip_string);
-#endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#else
 	if (config->wire_protocol == AF_INET) {
 		asprintf(&route_command,
 			 "route delete %s > /dev/null 2>&1 ; "
@@ -317,7 +372,7 @@ static void route_traffic_to_device(struct config *config,
 	} else {
 		assert(!"bad wire protocol");
 	}
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#endif /* defined(linux) */
 	int result = system(route_command);
 	if ((result == -1) || (WEXITSTATUS(result) != 0)) {
 		die("error executing route command '%s'\n",
@@ -337,11 +392,14 @@ struct netdev *local_netdev_new(struct config *config)
 	check_remote_address(config, netdev);
 	create_device(config, netdev);
 	set_device_offload_flags(netdev);
+#if !defined(__APPLE__)
 	bring_up_device(netdev);
+#endif
 
 	net_setup_dev_address(netdev->name,
 			      &config->live_local_ip,
-			      config->live_prefix_len);
+			      config->live_prefix_len,
+			      &config->live_gateway_ip);
 
 	route_traffic_to_device(config, netdev);
 	netdev->psock = packet_socket_new(netdev->name);
@@ -379,7 +437,7 @@ static void local_netdev_free(struct netdev *a_netdev)
 	free(netdev);
 }
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 /* According to `man 4 tun` on OpenBSD: "Each packet read or written
  * is prefixed with a tunnel header consisting of a 4-byte network
  * byte order integer containing the address family in the case of
@@ -400,7 +458,7 @@ static void bsd_tun_write(struct local_netdev *netdev,
 	if (writev(netdev->tun_fd, vector, ARRAY_SIZE(vector)) < 0)
 		die_perror("BSD tun write()");
 }
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
 
 #ifdef linux
 static void linux_tun_write(struct local_netdev *netdev,
@@ -425,9 +483,9 @@ static int local_netdev_send(struct netdev *a_netdev,
 
 	DEBUGP("local_netdev_send\n");
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	bsd_tun_write(netdev, packet);
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
 
 #ifdef linux
 	linux_tun_write(netdev, packet);

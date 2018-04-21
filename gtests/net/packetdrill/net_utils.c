@@ -43,13 +43,16 @@ static void verbose_system(const char *command)
 
 /* Configure a local IPv4 address and netmask for the device */
 static void net_add_ipv4_address(const char *dev_name,
-				 const struct ip_address *ip,
-				 int prefix_len)
+				 const struct ip_address *local_ip,
+				 int prefix_len,
+				 const struct ip_address *gateway_ip)
 {
 	char *command = NULL;
-	char ip_string[ADDR_STR_LEN];
+	char local_ip_string[ADDR_STR_LEN];
+	char gateway_ip_string[ADDR_STR_LEN];
 
-	ip_to_string(ip, ip_string);
+	ip_to_string(local_ip, local_ip_string);
+	ip_to_string(gateway_ip, gateway_ip_string);
 
 #ifdef linux
 	asprintf(&command, "ip addr add %s/%d dev %s > /dev/null 2>&1",
@@ -57,33 +60,41 @@ static void net_add_ipv4_address(const char *dev_name,
 #endif
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	asprintf(&command, "/sbin/ifconfig %s %s/%d alias",
-		 dev_name, ip_string, prefix_len);
+		 dev_name, local_ip_string, prefix_len);
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
-
+#if defined(__APPLE__)
+	asprintf(&command, "/sbin/ifconfig %s %s/%d %s alias",
+		 dev_name, local_ip_string, prefix_len, gateway_ip_string);
+#endif /* defined(__APPLE__) */
 	verbose_system(command);
 	free(command);
 }
 
 /* Configure a local IPv6 address and prefix length for the device */
 static void net_add_ipv6_address(const char *dev_name,
-				 const struct ip_address *ip,
-				 int prefix_len)
+				 const struct ip_address *local_ip,
+				 int prefix_len,
+				 const struct ip_address *gateway_ip)
 {
 	char *command = NULL;
-	char ip_string[ADDR_STR_LEN];
+	char local_ip_string[ADDR_STR_LEN];
+	char gateway_ip_string[ADDR_STR_LEN];
 
-	ip_to_string(ip, ip_string);
+	ip_to_string(local_ip, local_ip_string);
+	ip_to_string(gateway_ip, gateway_ip_string);
 
 #ifdef linux
-
 	asprintf(&command, "ip addr add %s/%d dev %s > /dev/null 2>&1",
 		 ip_string, prefix_len, dev_name);
 #endif
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-
 	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d",
-		 dev_name, ip_string, prefix_len);
+		 dev_name, local_ip_string, prefix_len);
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#if defined(__APPLE__)
+	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d %s",
+		 dev_name, local_ip_string, prefix_len, gateway_ip_string);
+#endif /* defined(__APPLE__) */
 
 	verbose_system(command);
 	free(command);
@@ -97,21 +108,22 @@ static void net_add_ipv6_address(const char *dev_name,
 	if (!strstr(dev_name, "tun"))
 		sleep(2);
 #endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	sleep(3);
 #endif
 }
 
-void net_add_dev_address(const char *dev_name,
-			 const struct ip_address *ip,
-			 int prefix_len)
+static void net_add_dev_address(const char *dev_name,
+				const struct ip_address *local_ip,
+				int prefix_len,
+				const struct ip_address *gateway_ip)
 {
-	switch (ip->address_family) {
+	switch (local_ip->address_family) {
 	case AF_INET:
-		net_add_ipv4_address(dev_name, ip, prefix_len);
+		net_add_ipv4_address(dev_name, local_ip, prefix_len, gateway_ip);
 		break;
 	case AF_INET6:
-		net_add_ipv6_address(dev_name, ip, prefix_len);
+		net_add_ipv6_address(dev_name, local_ip, prefix_len, gateway_ip);
 		break;
 	default:
 		assert(!"bad family");
@@ -127,18 +139,15 @@ void net_del_dev_address(const char *dev_name,
 	char ip_string[ADDR_STR_LEN];
 
 	ip_to_string(ip, ip_string);
-
-#ifdef linux
+#if defined(linux)
 	asprintf(&command, "ip addr del %s/%d dev %s > /dev/null 2>&1",
 		 ip_string, prefix_len, dev_name);
-#endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#else
 	asprintf(&command, "/sbin/ifconfig %s %s %s/%d -alias",
 		 dev_name,
 		 ip->address_family ==  AF_INET6 ? "inet6" : "",
 		 ip_string, prefix_len);
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
-
+#endif /* defined(linux) */
 	verbose_system(command);
 	free(command);
 }
@@ -152,12 +161,13 @@ void net_del_dev_address(const char *dev_name,
  * and add it on the newly-requested device.
  */
 void net_setup_dev_address(const char *dev_name,
-			   const struct ip_address *ip,
-			   int prefix_len)
+			   const struct ip_address *local_ip,
+			   int prefix_len,
+			   const struct ip_address *gateway_ip)
 {
 	char cur_dev_name[IFNAMSIZ];
 
-	bool found = get_ip_device(ip, cur_dev_name);
+	bool found = get_ip_device(local_ip, cur_dev_name);
 
 	DEBUGP("net_setup_dev_address: found: %d\n", found);
 
@@ -167,6 +177,6 @@ void net_setup_dev_address(const char *dev_name,
 	}
 
 	if (found)
-		net_del_dev_address(cur_dev_name, ip, prefix_len);
-	net_add_dev_address(dev_name, ip, prefix_len);
+		net_del_dev_address(cur_dev_name, local_ip, prefix_len);
+	net_add_dev_address(dev_name, local_ip, prefix_len, gateway_ip);
 }

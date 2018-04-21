@@ -65,7 +65,7 @@ static void route_traffic_to_wire_server(struct config *config,
 					 struct wire_client_netdev *netdev)
 {
 	char *route_command = NULL;
-#ifdef linux
+#if defined(linux)
 	asprintf(&route_command,
 		 "ip %s route del %s > /dev/null 2>&1 ; "
 		 "ip %s route add %s dev %s via %s > /dev/null 2>&1",
@@ -75,8 +75,7 @@ static void route_traffic_to_wire_server(struct config *config,
 		 config->live_remote_prefix_string,
 		 netdev->name,
 		 config->live_gateway_ip_string);
-#endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#else
 	if (config->wire_protocol == AF_INET) {
 		asprintf(&route_command,
 			 "route delete %s > /dev/null 2>&1 ; "
@@ -94,7 +93,7 @@ static void route_traffic_to_wire_server(struct config *config,
 	} else {
 		assert(!"bad wire protocol");
 	}
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#endif /* defined(linux) */
 
 	/* We intentionally ignore failures and output to stderr,
 	 * since they can happen if there is no previously existing
@@ -121,7 +120,8 @@ struct netdev *wire_client_netdev_new(struct config *config)
 	/* Add the client live local IP to our NIC, so we can send/receive */
 	net_setup_dev_address(netdev->name,
 			      &config->live_local_ip,
-			      config->live_prefix_len);
+			      config->live_prefix_len,
+			      &config->live_gateway_ip);
 
 	route_traffic_to_wire_server(config, netdev);
 
