@@ -89,6 +89,17 @@ static void packet_socket_setup(struct packet_socket *psock)
 	if (pcap_set_snaplen(psock->pcap_out, PACKET_READ_BYTES) != 0)
 		die_pcap_perror(psock->pcap_out, "pcap_set_snaplen");
 
+	/* By default libpcap with BPF waits until a read buffer fills
+	 * up before returning any packets. We use the immediate mode to
+	 * force the BPF device to return the first packet
+	 * immediately.
+	 * Enable this mode before activating the pcap handle.
+	 */
+	if (pcap_set_immediate_mode(psock->pcap_in, 1) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_set_immediate_mode");
+	if (pcap_set_immediate_mode(psock->pcap_out, 1) != 0)
+		die_pcap_perror(psock->pcap_out, "pcap_set_immediate_mode");
+
 	if (pcap_activate(psock->pcap_in) != 0)
 		die_pcap_perror(psock->pcap_in,
 				"pcap_activate "
@@ -104,15 +115,6 @@ static void packet_socket_setup(struct packet_socket *psock)
 		die_pcap_perror(psock->pcap_in, "pcap_setdirection");
 	if (pcap_setdirection(psock->pcap_out, PCAP_D_OUT) != 0)
 		die_pcap_perror(psock->pcap_out, "pcap_setdirection");
-	/* By default libpcap with BPF waits until a read buffer fills
-	 * up before returning any packets. We use the immediate mode to
-	 * force the BPF device to return the first packet
-	 * immediately.
-	 */
-	if (pcap_set_immediate_mode(psock->pcap_in, 1) != 0)
-		die_pcap_perror(psock->pcap_out, "pcap_set_immediate_mode");
-	if (pcap_set_immediate_mode(psock->pcap_out, 1) != 0)
-		die_pcap_perror(psock->pcap_out, "pcap_set_immediate_mode");
 
 	bpf_fd = pcap_get_selectable_fd(psock->pcap_in);
 	if (bpf_fd < 0)
