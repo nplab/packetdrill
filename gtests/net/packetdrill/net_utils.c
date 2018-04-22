@@ -73,28 +73,20 @@ static void net_add_ipv4_address(const char *dev_name,
 /* Configure a local IPv6 address and prefix length for the device */
 static void net_add_ipv6_address(const char *dev_name,
 				 const struct ip_address *local_ip,
-				 int prefix_len,
-				 const struct ip_address *gateway_ip)
+				 int prefix_len)
 {
 	char *command = NULL;
 	char local_ip_string[ADDR_STR_LEN];
-	char gateway_ip_string[ADDR_STR_LEN];
 
 	ip_to_string(local_ip, local_ip_string);
-	ip_to_string(gateway_ip, gateway_ip_string);
 
 #ifdef linux
 	asprintf(&command, "ip addr add %s/%d dev %s > /dev/null 2>&1",
 		 ip_string, prefix_len, dev_name);
-#endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#else
 	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d",
 		 dev_name, local_ip_string, prefix_len);
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
-#if defined(__APPLE__)
-	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d %s",
-		 dev_name, local_ip_string, prefix_len, gateway_ip_string);
-#endif /* defined(__APPLE__) */
+#endif /* defined(linux) */
 
 	verbose_system(command);
 	free(command);
@@ -107,8 +99,7 @@ static void net_add_ipv6_address(const char *dev_name,
 #ifdef linux
 	if (!strstr(dev_name, "tun"))
 		sleep(2);
-#endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#else
 	sleep(3);
 #endif
 }
@@ -123,7 +114,7 @@ static void net_add_dev_address(const char *dev_name,
 		net_add_ipv4_address(dev_name, local_ip, prefix_len, gateway_ip);
 		break;
 	case AF_INET6:
-		net_add_ipv6_address(dev_name, local_ip, prefix_len, gateway_ip);
+		net_add_ipv6_address(dev_name, local_ip, prefix_len);
 		break;
 	default:
 		assert(!"bad family");
