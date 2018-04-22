@@ -65,10 +65,17 @@ static inline s64 bpf_timeval_to_usecs(const struct bpf_timeval *tv)
 
 static void packet_socket_setup(struct packet_socket *psock)
 {
+	char *devname;
 	int result;
 
 	DEBUGP("calling pcap_create() with %s\n", psock->name);
-	psock->pcap = pcap_create(psock->name, psock->pcap_error);
+#if defined(__APPLE__)
+	asprintf(&devname, "pktap,%s", psock->name);
+#else
+	asprintf(&devname, "%s", psock->name);
+#endif
+	psock->pcap = pcap_create(devname, psock->pcap_error);
+	free(devname);
 	if (psock->pcap == NULL)
 		die("%s: %s\n", "pcap_create", psock->pcap_error);
 	/* The following two calls MUST be called before activating
@@ -101,6 +108,10 @@ static void packet_socket_setup(struct packet_socket *psock)
 	case DLT_LOOP:
 	case DLT_NULL:
 		psock->pcap_offset = sizeof(u32);
+		break;
+	case DLT_RAW:
+		/* Used on MacOS when using pktap. */
+		psock->pcap_offset = 0;
 		break;
 	default:
 		die("Unknown data_link type %d (DLT_%s)\n",
@@ -213,6 +224,7 @@ int packet_socket_receive(struct packet_socket *psock,
 	struct pcap_pkthdr *pkt_header = NULL;
 	const u8 *pkt_data = NULL;
 	struct ether_header *ether;
+	u8 version;
 	u32 address_family;
 
 	DEBUGP("calling pcap_next_ex() for direction %s\n",
@@ -295,6 +307,26 @@ int packet_socket_receive(struct packet_socket *psock,
 			break;
 		default:
 			DEBUGP("Unknown address family %d.\n", address_family);
+			return STATUS_ERR;
+		}
+		break;
+	case DLT_RAW:
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+		version = (*pkt_data & 0xf0) >> 4;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+		version = *pkt_data & 0x0f;
+#else
+#error "Please fix endianness defines"
+#endif
+		switch (version) {
+		case 4:
+			*ether_type = ETHERTYPE_IP;
+			break;
+		case 6:
+			*ether_type = ETHERTYPE_IPV6;
+			break;
+		default:
+			DEBUGP("Unknown IP version %u (first byte %u).\n", version, *pkt_data);
 			return STATUS_ERR;
 		}
 		break;
