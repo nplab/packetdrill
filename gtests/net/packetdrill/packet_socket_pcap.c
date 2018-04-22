@@ -87,7 +87,9 @@ static void packet_socket_setup(struct packet_socket *psock)
 			die("%s: %s\n", "pcap_activate", pcap_statustostr(result));
 	}
 	psock->data_link = pcap_datalink(psock->pcap);
-	DEBUGP("data_link: %d\n", psock->data_link);
+	DEBUGP("data_link: %d (DLT_%s)\n",
+	       psock->data_link,
+	       pcap_datalink_val_to_name(psock->data_link));
 
 	/* Based on the data_link type, calculate the offset of the
 	 * packet data in the buffer.
@@ -101,7 +103,9 @@ static void packet_socket_setup(struct packet_socket *psock)
 		psock->pcap_offset = sizeof(u32);
 		break;
 	default:
-		die("Unknown data_link type %d\n", psock->data_link);
+		die("Unknown data_link type %d (DLT_%s)\n",
+		    psock->data_link,
+		    pcap_datalink_val_to_name(psock->data_link));
 		break;
 	}
 }
