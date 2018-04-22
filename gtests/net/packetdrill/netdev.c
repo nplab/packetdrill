@@ -403,6 +403,10 @@ struct netdev *local_netdev_new(struct config *config)
 
 	route_traffic_to_device(config, netdev);
 	netdev->psock = packet_socket_new(netdev->name);
+	/* Make sure we only see packets from the machine under test. */
+	packet_socket_set_filter(netdev->psock,
+				 NULL,
+				 &config->live_local_ip);  /* client IP */
 
 	return (struct netdev *)netdev;
 }
