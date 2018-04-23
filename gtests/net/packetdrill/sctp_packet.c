@@ -2628,6 +2628,7 @@ sctp_missing_mandatory_parameter_cause_new(struct sctp_parameter_type_list *list
 		assert((i == list->nr_entries) && (item == NULL));
 	} else {
 		cause->nr_parameters = htonl(0);
+		i = 0; /* Just to make the compiler on NetBSD happy. */
 	}
 	if (padding_length == 2) {
 		cause->parameter_type[i] = htons(0);
