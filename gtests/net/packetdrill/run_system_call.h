@@ -56,7 +56,7 @@ struct syscalls {
 #elif defined(__FreeBSD__)
 	int thread_id;
 #elif defined(__APPLE__)
-	uint64_t thread_id;
+	mach_port_t thread_id;
 #else
 	int thread_id;			/* FIXME */
 #endif

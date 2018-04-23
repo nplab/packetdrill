@@ -57,6 +57,10 @@
 #if defined(linux)
 #include <sys/sendfile.h>
 #endif
+#if defined(__APPLE__)
+#include <pthread.h>
+#include <mach/mach.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 #include "logging.h"
@@ -204,10 +208,47 @@ static bool is_thread_sleeping(pid_t process_id, int thread_id)
 	return is_sleeping;
 }
 #elif defined(__APPLE__)
-static bool is_thread_sleeping(pid_t process_id, uint64_t thread_id)
+static bool is_thread_sleeping(pid_t process_id, mach_port_t port)
 {
-	die("is_thread_sleeping not implemented on this platform\n");
-	return true;
+	thread_info_data_t thinfo;
+	thread_basic_info_t basic_info_th;
+	mach_msg_type_number_t thread_info_count;
+	kern_return_t kr;
+	bool is_sleeping;
+
+	thread_info_count = THREAD_INFO_MAX;
+	kr = thread_info(port, THREAD_BASIC_INFO, (thread_info_t)thinfo, &thread_info_count);
+	if (kr != KERN_SUCCESS) {
+		die("task_threads(): %s\n", mach_error_string(kr));
+	}
+	basic_info_th = (thread_basic_info_t)thinfo;
+	switch (basic_info_th->run_state) {
+	case TH_STATE_RUNNING:
+		DEBUGP("run_state = TH_STATE_RUNNING\n");
+		is_sleeping = false;
+		break;
+	case TH_STATE_STOPPED:
+		DEBUGP("run_state = TH_STATE_STOPPED\n");
+		is_sleeping = false;
+		break;
+	case TH_STATE_WAITING:
+		DEBUGP("run_state = TH_STATE_WAITING\n");
+		is_sleeping = true;
+		break;
+	case TH_STATE_UNINTERRUPTIBLE:
+		DEBUGP("run_state = TH_STATE_UNINTERRUPTIBLE\n");
+		is_sleeping = true;
+		break;
+	case TH_STATE_HALTED:
+		DEBUGP("run_state = TH_STATE_HALTED\n");
+		is_sleeping = false;
+		break;
+	default:
+		die("Unknown thread state: %d\n", basic_info_th->run_state);
+		is_sleeping = false;
+		break;
+	}
+	return is_sleeping;
 }
 #else
 static bool is_thread_sleeping(pid_t process_id, int thread_id)
@@ -6934,7 +6975,7 @@ static void enqueue_system_call(
 #elif defined(__FreeBSD__)
 		int thread_id;
 #elif defined(__APPLE__)
-		uint64_t thread_id;
+		mach_port_t thread_id;
 #else
 		int thread_id; /* FIXME */
 #endif
@@ -7008,7 +7049,7 @@ static void *system_call_thread(void *arg)
 #elif defined(__FreeBSD__)
 	state->syscalls->thread_id = pthread_getthreadid_np();
 #elif defined(__APPLE__)
-	pthread_threadid_np(pthread_self(), &state->syscalls->thread_id);
+	state->syscalls->thread_id = pthread_mach_thread_np(pthread_self());
 #else
 	state->syscalls->thread_id = 0;		/* FIXME */
 #endif
