@@ -40,7 +40,7 @@
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 #define SOL_TCP IPPROTO_TCP
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
 
 #ifdef linux
 
