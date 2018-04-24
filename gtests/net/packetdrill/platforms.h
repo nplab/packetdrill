@@ -106,6 +106,10 @@
 
 #if defined(__APPLE__)
 
+#if defined(HAVE_SCTP)
+#include <sys/types.h>
+#include <netinet/sctp.h>
+#endif
 #define USE_LIBPCAP             1
 #define HAVE_TCP_INFO           1
 #define HAVE_FMEMOPEN           1
