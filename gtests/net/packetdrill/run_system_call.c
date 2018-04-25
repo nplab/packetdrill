@@ -57,6 +57,10 @@
 #if defined(linux)
 #include <sys/sendfile.h>
 #endif
+#if defined(__APPLE__)
+#include <pthread.h>
+#include <mach/mach.h>
+#endif
 #include <time.h>
 #include <unistd.h>
 #include "logging.h"
@@ -72,7 +76,7 @@ struct sctp_tlv {
         u32 sn_length;
 };
 #endif
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_notification(struct socket *socket, struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
 static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init,
@@ -80,7 +84,7 @@ static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp
 static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct sctp_sndrcvinfo *info,
 					       bool send, char **error);
 #endif
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info,
@@ -96,19 +100,19 @@ static int check_sctp_sndinfo(struct sctp_sndinfo_expr *expr, struct sctp_sndinf
 static int check_sctp_initmsg(struct sctp_initmsg_expr *expr, struct sctp_initmsg *sctp_initmsg,
 			      char **error);
 #endif
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr, struct sctp_extrcvinfo *sctp_info,
 				 char **error);
 #endif
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr, struct sctp_rcvinfo *sctp_rcvinfo,
 				 char** error);
 #endif
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr, struct sctp_nxtinfo *sctp_nxtinfo,
 			      char **error);
 #endif
-#if defined(linux) || defined(__FreeBSD__)
+#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error);
@@ -201,6 +205,49 @@ static bool is_thread_sleeping(pid_t process_id, int thread_id)
 	/* Cleanup the allocated data structures. */
 	procstat_freeprocs(procstat, kinfo_proc);
 	procstat_close(procstat);
+	return is_sleeping;
+}
+#elif defined(__APPLE__)
+static bool is_thread_sleeping(pid_t process_id, mach_port_t port)
+{
+	thread_info_data_t thinfo;
+	thread_basic_info_t basic_info_th;
+	mach_msg_type_number_t thread_info_count;
+	kern_return_t kr;
+	bool is_sleeping;
+
+	thread_info_count = THREAD_INFO_MAX;
+	kr = thread_info(port, THREAD_BASIC_INFO, (thread_info_t)thinfo, &thread_info_count);
+	if (kr != KERN_SUCCESS) {
+		die("task_threads(): %s\n", mach_error_string(kr));
+	}
+	basic_info_th = (thread_basic_info_t)thinfo;
+	switch (basic_info_th->run_state) {
+	case TH_STATE_RUNNING:
+		DEBUGP("run_state = TH_STATE_RUNNING\n");
+		is_sleeping = false;
+		break;
+	case TH_STATE_STOPPED:
+		DEBUGP("run_state = TH_STATE_STOPPED\n");
+		is_sleeping = false;
+		break;
+	case TH_STATE_WAITING:
+		DEBUGP("run_state = TH_STATE_WAITING\n");
+		is_sleeping = true;
+		break;
+	case TH_STATE_UNINTERRUPTIBLE:
+		DEBUGP("run_state = TH_STATE_UNINTERRUPTIBLE\n");
+		is_sleeping = true;
+		break;
+	case TH_STATE_HALTED:
+		DEBUGP("run_state = TH_STATE_HALTED\n");
+		is_sleeping = false;
+		break;
+	default:
+		die("Unknown thread state: %d\n", basic_info_th->run_state);
+		is_sleeping = false;
+		break;
+	}
 	return is_sleeping;
 }
 #else
@@ -304,7 +351,7 @@ static int get_socklen_t(struct expression *expression,
 	return STATUS_OK;
 }
 
-#if defined(linux) || defined(__FreeBSD__)
+#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 /* Sets the value from the expression argument, checking that it is a
  * valid size_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -346,7 +393,7 @@ static int get_off_t(struct expression *expression,
 }
 #endif
 
-#if defined(linux) || defined(__FreeBSD__)
+#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 /* Sets the value from the expression argument, checking that it is a
  * valid sctp_assoc_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -537,7 +584,7 @@ static int s32_bracketed_arg(struct expression_list *args,
 /* Return the value of the argument with the given index, and verify
  * that it has the expected type: a list with a single integer.
  */
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int u32_bracketed_arg(struct expression_list *args,
 			     int index, u32 *value, char **error)
 {
@@ -557,7 +604,9 @@ static int u32_bracketed_arg(struct expression_list *args,
 	}
 	return get_u32(list->expression, value, error);
 }
+#endif
 
+#if defined(__FreeBSD__)
 static int off_t_bracketed_arg(struct expression_list *args,
 			       int index, off_t *value, char **error)
 {
@@ -636,7 +685,7 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *live_addr, char **error) {
 
 	if (sockaddr_expr->type != EXPR_ELLIPSIS) {
@@ -701,7 +750,7 @@ static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *liv
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u8 script_val;
@@ -718,7 +767,7 @@ int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **erro
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 #ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
 int check_u16_htons_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
@@ -799,7 +848,7 @@ int check_u32_expr(struct expression *expr, u32 value, char *val_name, char **er
 	return STATUS_OK;
 }
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 int check_sctp_assoc_t_expr(struct expression *expr, sctp_assoc_t value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		sctp_assoc_t script_val;
@@ -848,7 +897,7 @@ int check_size_t_expr(struct expression *expr, size_t value, char *val_name, cha
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
 	if ( expr_list->type != EXPR_ELLIPSIS) {
 		struct expression *expr = NULL;
@@ -890,7 +939,7 @@ static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t dat
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_u16array_expr(struct expression *expr_list, u16 *data, int data_len, char *val_name, char **error) {
 	if ( expr_list->type != EXPR_ELLIPSIS) {
 		struct expression *expr = NULL;
@@ -2004,7 +2053,7 @@ static int run_syscall_connect(struct state *state,
 	return STATUS_OK;
 }
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int run_syscall_sctp_peeloff(struct state *state,
 				    int script_copy_fd,
 				    int script_new_fd,
@@ -2398,7 +2447,7 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 			 expected_msg_flags, msg->msg_flags);
 		goto error_out;
 	}
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	if (msg->msg_flags & MSG_NOTIFICATION) {
 		struct socket *socket = find_socket_by_script_fd(state, script_fd);
 		if (check_sctp_notification(socket, msg->msg_iov, msg_expression->value.msghdr->msg_iov, error))
@@ -4428,7 +4477,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			    &paddrparams.spp_flags, error)) {
 			return STATUS_ERR;
 		}
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel,
 			    &paddrparams.spp_ipv6_flowlabel, error)) {
 			return STATUS_ERR;
@@ -4885,7 +4934,7 @@ error_out:
 static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int result, script_fd, live_fd;
 	void *msg = NULL;
 	struct sockaddr_storage to;
@@ -4968,7 +5017,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error) {
@@ -5004,7 +5053,7 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr,
 				 struct sctp_extrcvinfo *sctp_extrcvinfo,
 				 char** error) {
@@ -5083,7 +5132,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 				struct expression_list *args,
 				char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int script_fd, live_fd, live_msg_flags = 0, result;
 	void *msg;
 	u32 len;
@@ -5146,7 +5195,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init, char **error) {
 	if (expr->type == EXPR_SCTP_INITMSG) {
 		struct sctp_initmsg_expr *init_expr = expr->value.sctp_initmsg;
@@ -5275,7 +5324,7 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
 	if (expr->type == EXPR_SCTP_SNDINFO) {
 		struct sctp_sndinfo_expr *sndinfo_expr = expr->value.sctp_sndinfo;
@@ -5355,7 +5404,7 @@ static int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sc
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, struct sockaddr **addrs, char **error) {
 	if (expr->type == EXPR_LIST) {
 		struct expression_list *addrs_expr_list = (struct expression_list *)expr->value.list;
@@ -5408,7 +5457,7 @@ static int syscall_sctp_send(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int script_fd, live_fd, flags, result;
 	size_t len;
 	void *msg;
@@ -5463,7 +5512,7 @@ static int syscall_sctp_sendx(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int script_fd, live_fd, flags, addrcnt, result;
 	size_t len;
 	void *msg = NULL;
@@ -5546,7 +5595,7 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int script_fd, live_fd, iovcnt, addrcnt, result, flags;
 	u32 infotype;
 	size_t script_iovec_list_len = 0;
@@ -5666,7 +5715,7 @@ error_out:
 #endif
 }
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 			      struct sctp_rcvinfo *sctp_rcvinfo,
 			      char **error)
@@ -5696,7 +5745,7 @@ static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 			      struct sctp_nxtinfo *sctp_nxtinfo,
 			      char **error)
@@ -5721,7 +5770,7 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 				   struct sctp_assoc_change *sctp_event,
 				   char **error) {
@@ -5757,7 +5806,7 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_paddr_change(struct sctp_paddr_change_expr *expr,
 				   struct sctp_paddr_change *sctp_event,
 				   char **error) {
@@ -5787,7 +5836,7 @@ static int check_sctp_paddr_change(struct sctp_paddr_change_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_remote_error(struct sctp_remote_error_expr *expr,
 				   struct sctp_remote_error *sctp_event,
 				   char **error) {
@@ -5814,7 +5863,7 @@ static int check_sctp_remote_error(struct sctp_remote_error_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_send_failed(struct sctp_send_failed_expr *expr,
 				  struct sctp_send_failed *sctp_event,
 				  char **error) {
@@ -5847,7 +5896,7 @@ static int check_sctp_send_failed(struct sctp_send_failed_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 				     struct sctp_shutdown_event *sctp_event,
 				     char **error) {
@@ -5869,7 +5918,7 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_adaptation_event(struct sctp_adaptation_event_expr *expr,
 				       struct sctp_adaptation_event *sctp_event,
 				       char **error) {
@@ -5894,7 +5943,7 @@ static int check_sctp_adaptation_event(struct sctp_adaptation_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_pdapi_event(struct sctp_pdapi_event_expr *expr,
 				  struct sctp_pdapi_event *sctp_event,
 				  char **error) {
@@ -5939,7 +5988,7 @@ static int check_sctp_pdapi_event(struct sctp_pdapi_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_authkey_event(struct sctp_authkey_event_expr *expr,
 				     struct sctp_authkey_event *sctp_event,
 				     char **error) {
@@ -5967,7 +6016,7 @@ static int check_sctp_authkey_event(struct sctp_authkey_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 				       struct sctp_sender_dry_event *sctp_event,
 				       char **error) {
@@ -5989,7 +6038,7 @@ static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr,
 				       struct sctp_send_failed_event *sctp_event,
 				       char **error) {
@@ -6021,7 +6070,7 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_tlv(struct sctp_tlv_expr *expr, struct sctp_tlv *sctp_tlv, char **error) {
 	if (check_u16_expr(expr->sn_type, sctp_tlv->sn_type,
 			   "sctp_tlv.sn_type", error))
@@ -6036,7 +6085,7 @@ static int check_sctp_tlv(struct sctp_tlv_expr *expr, struct sctp_tlv *sctp_tlv,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_stream_reset_event(struct sctp_stream_reset_event_expr *expr,
 					 struct sctp_stream_reset_event *sctp_stream_reset_event,
 					 char **error) {
@@ -6061,7 +6110,7 @@ static int check_sctp_stream_reset_event(struct sctp_stream_reset_event_expr *ex
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_assoc_reset_event(struct socket *socket, struct sctp_assoc_reset_event_expr *expr,
 					struct sctp_assoc_reset_event *sctp_assoc_reset_event,
 					char **error) {
@@ -6095,7 +6144,7 @@ static int check_sctp_assoc_reset_event(struct socket *socket, struct sctp_assoc
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_stream_change_event(struct sctp_stream_change_event_expr *expr,
 					  struct sctp_stream_change_event *sctp_stream_change_event,
 					  char **error) {
@@ -6122,7 +6171,7 @@ static int check_sctp_stream_change_event(struct sctp_stream_change_event_expr *
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_notification(struct socket *socket,
 				   struct iovec *iov,
 				   struct expression *iovec_expr,
@@ -6195,7 +6244,7 @@ static int check_sctp_notification(struct socket *socket,
 						       error))
 				return STATUS_ERR;
 			break;
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 		case EXPR_SCTP_SEND_FAILED_EVENT:
 			if (check_sctp_send_failed_event(script_iov_base->value.sctp_send_failed_event,
 						        (struct sctp_send_failed_event *) iov[i].iov_base,
@@ -6209,7 +6258,7 @@ static int check_sctp_notification(struct socket *socket,
 					    error))
 				return STATUS_ERR;
 			break;
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 		case EXPR_SCTP_STREAM_RESET_EVENT:
 			if (check_sctp_stream_reset_event(script_iov_base->value.sctp_stream_reset_event,
 						          (struct sctp_stream_reset_event *) iov[i].iov_base,
@@ -6217,7 +6266,7 @@ static int check_sctp_notification(struct socket *socket,
 				return STATUS_ERR;
 			break;
 #endif
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 		case EXPR_SCTP_ASSOC_RESET_EVENT:
 			if (check_sctp_assoc_reset_event(socket, script_iov_base->value.sctp_assoc_reset_event,
 						         (struct sctp_assoc_reset_event *) iov[i].iov_base,
@@ -6225,7 +6274,7 @@ static int check_sctp_notification(struct socket *socket,
 				return STATUS_ERR;
 			break;
 #endif
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 		case EXPR_SCTP_STREAM_CHANGE_EVENT:
 			if (check_sctp_stream_change_event(script_iov_base->value.sctp_stream_change_event,
 						           (struct sctp_stream_change_event *) iov[i].iov_base,
@@ -6248,7 +6297,7 @@ static int check_sctp_notification(struct socket *socket,
 }
 #endif
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 static int check_sctp_recvv_rn(struct sctp_recvv_rn_expr *expr,
 			       struct sctp_recvv_rn *sctp_recvv_rn,
 			       char **error)
@@ -6275,7 +6324,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int flags, iovlen, script_fd, live_fd, result;
 	size_t script_iovec_list_len = 0;
 	unsigned int infotype = 0;
@@ -6442,7 +6491,7 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int live_fd, script_fd, addrcnt, flags, result;
 	struct sockaddr_storage addrs;
 	struct expression *addr_list;
@@ -6487,7 +6536,7 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 static int syscall_sctp_connectx(struct state *state, struct syscall_spec *syscall,
 				 struct expression_list *args, char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int live_fd, script_fd, addrcnt, result;
 	struct sockaddr_storage live_addr;
 	struct expression *addrs_expr, *assoc_expr;
@@ -6541,7 +6590,7 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 			        struct expression_list *args,
 			        char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int live_fd, script_fd, result, script_new_fd;
 	sctp_assoc_t assoc_id;
 	struct expression *expr_assoc;
@@ -6581,7 +6630,7 @@ static int syscall_sctp_getpaddrs(struct state *state, struct syscall_spec *sysc
 				  struct expression_list *args,
 				  char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int live_fd, script_fd, result;
 	sctp_assoc_t assoc_id;
 	struct expression *assoc_expr, *addrs_list_expr;
@@ -6645,7 +6694,7 @@ static int syscall_sctp_freepaddrs(struct state *state, struct syscall_spec *sys
 				   struct expression_list *args,
 				   char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	struct expression *addrs_expr;
 	if (check_arg_count(args, 1, error))
 		return STATUS_ERR;
@@ -6666,7 +6715,7 @@ static int syscall_sctp_getladdrs(struct state *state, struct syscall_spec *sysc
 				  struct expression_list *args,
 				  char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	int live_fd, script_fd, result;
 	sctp_assoc_t assoc_id;
 	struct expression *assoc_expr, *addrs_list_expr;
@@ -6730,7 +6779,7 @@ static int syscall_sctp_freeladdrs(struct state *state, struct syscall_spec *sys
 				   struct expression_list *args,
 				   char **error)
 {
-#if defined(__FreeBSD__) || defined(linux)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
 	struct expression *addrs_expr;
 	if (check_arg_count(args, 1, error))
 		return STATUS_ERR;
@@ -6885,7 +6934,10 @@ static int yield(void)
 	return 0;
 #elif defined(__NetBSD__)
 	return sched_yield();
-#endif  /* defined(__NetBSD__) */
+#elif defined(__APPLE__)
+	pthread_yield_np();
+	return 0;
+#endif  /* defined(__APPLE__) */
 }
 
 /* Enqueue the system call for the syscall thread and wake up the thread. */
@@ -6924,6 +6976,8 @@ static void enqueue_system_call(
 		pid_t thread_id;
 #elif defined(__FreeBSD__)
 		int thread_id;
+#elif defined(__APPLE__)
+		mach_port_t thread_id;
 #else
 		int thread_id; /* FIXME */
 #endif
@@ -6984,6 +7038,8 @@ static void *system_call_thread(void *arg)
 
 #if defined(__FreeBSD__)
 	pthread_set_name_np(pthread_self(), "syscall thread");
+#elif defined(__APPLE__)
+	pthread_setname_np("syscall thread");
 #endif
 	DEBUGP("syscall thread: starting and locking\n");
 	run_lock(state);
@@ -6994,6 +7050,8 @@ static void *system_call_thread(void *arg)
 		die_perror("gettid");
 #elif defined(__FreeBSD__)
 	state->syscalls->thread_id = pthread_getthreadid_np();
+#elif defined(__APPLE__)
+	state->syscalls->thread_id = pthread_mach_thread_np(pthread_self());
 #else
 	state->syscalls->thread_id = 0;		/* FIXME */
 #endif

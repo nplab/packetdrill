@@ -35,7 +35,7 @@
 
 #ifdef USE_LIBPCAP
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <pcap/pcap.h>
 #elif defined(__OpenBSD__) || defined(__NetBSD__)
 #include <pcap.h>
@@ -47,9 +47,8 @@
 struct packet_socket {
 	char *name;	/* malloc-allocated copy of interface name */
 
-	pcap_t *pcap_in;	/* handle for sniffing incoming packets */
-	pcap_t *pcap_out;	/* handle for sniffing outgoing packets */
-				/* also used for sending packets */
+	pcap_t *pcap;	/* handle for sniffing packets sent by the SUT */
+			/* also used for sending packets */
 	char pcap_error[PCAP_ERRBUF_SIZE];	/* for libpcap errors */
 	int pcap_offset;  /* offset of packet data in pcap buffer */
 	int data_link;
@@ -64,75 +63,40 @@ static inline s64 bpf_timeval_to_usecs(const struct bpf_timeval *tv)
 }
 #endif /* defined(__OpenBSD__) */
 
-/* Call pcap_perror() and then exit with a failure status code. */
-extern void die_pcap_perror(pcap_t *pcap, char *message)
-{
-	pcap_perror(pcap, message);
-
-	exit(EXIT_FAILURE);
-}
-
 static void packet_socket_setup(struct packet_socket *psock)
 {
-	int bpf_fd = -1, val = -1;
+	char *devname;
+	int result;
 
 	DEBUGP("calling pcap_create() with %s\n", psock->name);
-	psock->pcap_in = pcap_create(psock->name, psock->pcap_error);
-	if (psock->pcap_in == NULL)
-		die_pcap_perror(psock->pcap_in, "pcap_create");
-	psock->pcap_out = pcap_create(psock->name, psock->pcap_error);
-	if (psock->pcap_out == NULL)
-		die_pcap_perror(psock->pcap_out, "pcap_create");
-
-	if (pcap_set_snaplen(psock->pcap_in, PACKET_READ_BYTES) != 0)
-		die_pcap_perror(psock->pcap_in, "pcap_set_snaplen");
-	if (pcap_set_snaplen(psock->pcap_out, PACKET_READ_BYTES) != 0)
-		die_pcap_perror(psock->pcap_out, "pcap_set_snaplen");
-
-	if (pcap_activate(psock->pcap_in) != 0)
-		die_pcap_perror(psock->pcap_in,
-				"pcap_activate "
-				"(OpenBSD: another process (tcpdump?) "
-				"using bpf0?)");
-	if (pcap_activate(psock->pcap_out) != 0)
-		die_pcap_perror(psock->pcap_out,
-				"pcap_activate "
-				"(OpenBSD: another process (tcpdump?) "
-				"using bpf0?)");
-
-	if (pcap_setdirection(psock->pcap_in, PCAP_D_IN) != 0)
-		die_pcap_perror(psock->pcap_in, "pcap_setdirection");
-	if (pcap_setdirection(psock->pcap_out, PCAP_D_OUT) != 0)
-		die_pcap_perror(psock->pcap_out, "pcap_setdirection");
-
-	bpf_fd = pcap_get_selectable_fd(psock->pcap_in);
-	if (bpf_fd < 0)
-		die_pcap_perror(psock->pcap_in, "pcap_get_selectable_fd");
-
-	/* By default libpcap with BPF waits until a read buffer fills
-	 * up before returning any packets. We use BIOCIMMEDIATE to
-	 * force the BPF device to return the first packet
-	 * immediately.
-	 */
-	val = 1;
-	if (ioctl(bpf_fd, BIOCIMMEDIATE, &val) < 0)
-		die_perror("ioctl BIOCIMMEDIATE on bpf fd");
-	bpf_fd = pcap_get_selectable_fd(psock->pcap_out);
-	if (bpf_fd < 0)
-		die_pcap_perror(psock->pcap_out, "pcap_get_selectable_fd");
-
-	/* By default libpcap with BPF waits until a read buffer fills
-	 * up before returning any packets. We use BIOCIMMEDIATE to
-	 * force the BPF device to return the first packet
-	 * immediately.
-	 */
-	val = 1;
-	if (ioctl(bpf_fd, BIOCIMMEDIATE, &val) < 0)
-		die_perror("ioctl BIOCIMMEDIATE on bpf fd");
-
-	/* Find data link type. */
-	psock->data_link = pcap_datalink(psock->pcap_in);
-	DEBUGP("data_link: %d\n", psock->data_link);
+#if defined(__APPLE__)
+	asprintf(&devname, "pktap,%s", psock->name);
+#else
+	asprintf(&devname, "%s", psock->name);
+#endif
+	psock->pcap = pcap_create(devname, psock->pcap_error);
+	free(devname);
+	if (psock->pcap == NULL)
+		die("%s: %s\n", "pcap_create", psock->pcap_error);
+	/* The following two calls MUST be called before activating
+	 * the handle. Then they are not failing. */
+	result = pcap_set_snaplen(psock->pcap, PACKET_READ_BYTES);
+	if (result != 0)
+		die("%s: %s\n", "pcap_set_snaplen", pcap_statustostr(result));
+	result = pcap_set_immediate_mode(psock->pcap, 1);
+	if (result != 0)
+		die("%s: %s\n", "pcap_set_immediate_mode", pcap_statustostr(result));
+	result = pcap_activate(psock->pcap);
+	if (result != 0) {
+		if (result == PCAP_WARNING || result == PCAP_ERROR)
+			die("%s: %s\n", "pcap_activate", pcap_geterr(psock->pcap));
+		else
+			die("%s: %s\n", "pcap_activate", pcap_statustostr(result));
+	}
+	psock->data_link = pcap_datalink(psock->pcap);
+	DEBUGP("data_link: %d (DLT_%s)\n",
+	       psock->data_link,
+	       pcap_datalink_val_to_name(psock->data_link));
 
 	/* Based on the data_link type, calculate the offset of the
 	 * packet data in the buffer.
@@ -145,8 +109,14 @@ static void packet_socket_setup(struct packet_socket *psock)
 	case DLT_NULL:
 		psock->pcap_offset = sizeof(u32);
 		break;
+	case DLT_RAW:
+		/* Used on MacOS when using pktap. */
+		psock->pcap_offset = 0;
+		break;
 	default:
-		die("Unknown data_link type %d\n", psock->data_link);
+		die("Unknown data_link type %d (DLT_%s)\n",
+		    psock->data_link,
+		    pcap_datalink_val_to_name(psock->data_link));
 		break;
 	}
 }
@@ -163,28 +133,28 @@ void packet_socket_set_filter(struct packet_socket *psock,
 
 	ip_to_string(client_live_ip, client_live_ip_string);
 
-	asprintf(&filter_str,
-		 "ether src %02x:%02x:%02x:%02x:%02x:%02x and %s src %s",
-		 client_ether[0],
-		 client_ether[1],
-		 client_ether[2],
-		 client_ether[3],
-		 client_ether[4],
-		 client_ether[5],
-		 client_live_ip->address_family == AF_INET6 ? "ip6" : "ip",
-		 client_live_ip_string);
-
+	if (client_ether_addr != NULL)
+		asprintf(&filter_str,
+			 "ether src %02x:%02x:%02x:%02x:%02x:%02x and %s src %s",
+			 client_ether[0],
+			 client_ether[1],
+			 client_ether[2],
+			 client_ether[3],
+			 client_ether[4],
+			 client_ether[5],
+			 client_live_ip->address_family == AF_INET6 ? "ip6" : "ip",
+			 client_live_ip_string);
+	else
+		asprintf(&filter_str,
+			 "%s src %s",
+			 client_live_ip->address_family == AF_INET6 ? "ip6" : "ip",
+			 client_live_ip_string);
 	DEBUGP("setting BPF filter: %s\n", filter_str);
 
-	if (pcap_compile(psock->pcap_in, &bpf_code, filter_str, 1, 0) != 0)
-		die_pcap_perror(psock->pcap_in, "pcap_compile");
-	if (pcap_setfilter(psock->pcap_in, &bpf_code) != 0)
-		die_pcap_perror(psock->pcap_in, "pcap_setfilter");
-	pcap_freecode(&bpf_code);
-	if (pcap_compile(psock->pcap_out, &bpf_code, filter_str, 1, 0) != 0)
-		die_pcap_perror(psock->pcap_out, "pcap_compile");
-	if (pcap_setfilter(psock->pcap_out, &bpf_code) != 0)
-		die_pcap_perror(psock->pcap_out, "pcap_setfilter");
+	if (pcap_compile(psock->pcap, &bpf_code, filter_str, 1, 0) != 0)
+		die("%s: %s\n", "pcap_compile", pcap_geterr(psock->pcap));
+	if (pcap_setfilter(psock->pcap, &bpf_code) != 0)
+		die("%s: %s\n", "pcap_setfilter", pcap_geterr(psock->pcap));
 	pcap_freecode(&bpf_code);
 	free(filter_str);
 }
@@ -205,8 +175,7 @@ void packet_socket_free(struct packet_socket *psock)
 	if (psock->name != NULL)
 		free(psock->name);
 
-	pcap_close(psock->pcap_in);
-	pcap_close(psock->pcap_out);
+	pcap_close(psock->pcap);
 
 	memset(psock, 0, sizeof(*psock));	/* paranoia to catch bugs*/
 	free(psock);
@@ -220,7 +189,7 @@ int packet_socket_writev(struct packet_socket *psock,
 	 */
 
 	u8 *buf = NULL, *p = NULL;
-	int len = 0, i = 0;
+	int len = 0, i = 0, result;
 
 	/* Calculate how much space we need. */
 	for (i = 0; i < iovcnt; ++i)
@@ -237,8 +206,11 @@ int packet_socket_writev(struct packet_socket *psock,
 
 	DEBUGP("calling pcap_inject with %d bytes\n", len);
 
-	if (pcap_inject(psock->pcap_out, buf, len) != len)
-		die_pcap_perror(psock->pcap_out, "pcap_inject");
+	result = pcap_inject(psock->pcap, buf, len);
+	if (result == -1)
+		die("%s: %s\n", "pcap_inject", pcap_geterr(psock->pcap));
+	if (result !=len)
+		die("%s: wrote %d bytes instead of %d\n", "pcap_inject", result, len);
 
 	free(buf);
 	return STATUS_OK;
@@ -251,17 +223,12 @@ int packet_socket_receive(struct packet_socket *psock,
 	int status = 0;
 	struct pcap_pkthdr *pkt_header = NULL;
 	const u8 *pkt_data = NULL;
-	pcap_t *pcap;
 	struct ether_header *ether;
+	u8 version;
 	u32 address_family;
 
 	DEBUGP("calling pcap_next_ex() for direction %s\n",
 	       direction == DIRECTION_INBOUND ? "inbound" : "outbound");
-
-	if (direction == DIRECTION_INBOUND)
-		pcap = psock->pcap_in;
-	else
-		pcap = psock->pcap_out;
 
 	/* Something about the way we're doing BIOCIMMEDIATE
 	 * causes libpcap to return 0 if there's no packet
@@ -273,13 +240,13 @@ int packet_socket_receive(struct packet_socket *psock,
 	 * here. TODO(ncardwell): fix this.
 	 */
 	while (1) {
-		status = pcap_next_ex(pcap, &pkt_header, &pkt_data);
+		status = pcap_next_ex(psock->pcap, &pkt_header, &pkt_data);
 		if (status == 1)
 			break;		/* got a packet */
 		else if (status == 0)
 			return STATUS_ERR;	/* no packet yet */
 		else if (status == -1)
-			die_pcap_perror(pcap, "pcap_next_ex");
+			die("%s: %s\n", "pcap_inject", pcap_geterr(psock->pcap));
 		else if (status == -2)
 			die("pcap_next_ex: EOF in save file?!\n");
 		else
@@ -290,7 +257,7 @@ int packet_socket_receive(struct packet_socket *psock,
 	       (u32)pkt_header->ts.tv_sec,
 	       (u32)pkt_header->ts.tv_usec);
 
-#if defined(__FreeBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	packet->time_usecs = timeval_to_usecs(&pkt_header->ts);
 #elif defined(__OpenBSD__)
 	packet->time_usecs = bpf_timeval_to_usecs(&pkt_header->ts);
@@ -340,6 +307,26 @@ int packet_socket_receive(struct packet_socket *psock,
 			break;
 		default:
 			DEBUGP("Unknown address family %d.\n", address_family);
+			return STATUS_ERR;
+		}
+		break;
+	case DLT_RAW:
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+		version = (*pkt_data & 0xf0) >> 4;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+		version = *pkt_data & 0x0f;
+#else
+#error "Please fix endianness defines"
+#endif
+		switch (version) {
+		case 4:
+			*ether_type = ETHERTYPE_IP;
+			break;
+		case 6:
+			*ether_type = ETHERTYPE_IPV6;
+			break;
+		default:
+			DEBUGP("Unknown IP version %u (first byte %u).\n", version, *pkt_data);
 			return STATUS_ERR;
 		}
 		break;

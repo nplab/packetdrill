@@ -102,5 +102,20 @@
 
 #endif  /* __NetBSD__ */
 
+/* ------------------------- Darwin --------------------- */
+
+#if defined(__APPLE__)
+
+#if defined(HAVE_SCTP)
+#include <sys/types.h>
+#include <netinet/sctp.h>
+#endif
+#define USE_LIBPCAP             1
+#define HAVE_TCP_INFO           1
+#define HAVE_FMEMOPEN           1
+#define HAVE_OPEN_MEMSTREAM     1
+
+#endif  /* __APPLE__ */
+
 
 #endif /* __PLATFORMS_H__ */

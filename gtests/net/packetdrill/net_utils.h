@@ -30,13 +30,6 @@
 
 #include "ip_address.h"
 
-/* Add the given IP address, with the given subnet/prefix length,
- * to the given device.
- */
-extern void net_add_dev_address(const char *dev_name,
-				const struct ip_address *ip,
-				int prefix_len);
-
 /* Delete the given IP address, with the given subnet/prefix length,
  * from the given device.
  */
@@ -48,9 +41,12 @@ extern void net_del_dev_address(const char *dev_name,
  * is already on the given device. If so, return without doing
  * anything.  If not, delete it from any device it's currently on, and
  * add it to the given network device.
+ * On some platforms P2P devices are used, so also provide the gateway
+ * address.
  */
 extern void net_setup_dev_address(const char *dev_name,
-				  const struct ip_address *ip,
-				  int prefix_len);
+				  const struct ip_address *local_ip,
+				  int prefix_len,
+				  const struct ip_address *gateway_ip);
 
 #endif /* __NET_UTILS_H__ */

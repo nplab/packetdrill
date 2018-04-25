@@ -559,7 +559,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
  */
 %token ELLIPSIS
 %token <reserved> SA_FAMILY SIN_PORT SIN_ADDR _HTONS_ _HTONL_ INET_ADDR
-%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL CMSG_LEN CMSG_LEVEL CMSG_TYPE CMSG_DATA
+%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL _CMSG_LEN_ CMSG_LEVEL CMSG_TYPE _CMSG_DATA_
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
@@ -3093,7 +3093,7 @@ sockaddr
 		struct sockaddr_in *ipv4 = malloc(sizeof(struct sockaddr_in));
 		memset(ipv4, 0, sizeof(*ipv4));
 		ipv4->sin_family = AF_INET;
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 		ipv4->sin_len = sizeof(*ipv4);
 #endif
 		ipv4->sin_port = htons($10);
@@ -3108,7 +3108,7 @@ sockaddr
 		struct sockaddr_in6 *ipv6 = malloc(sizeof(struct sockaddr_in6));
 		memset(ipv6, 0, sizeof(*ipv6));
 		ipv6->sin6_family = AF_INET6;
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 		ipv6->sin6_len = sizeof(*ipv6);
 #endif
 		ipv6->sin6_port = htons($10);
@@ -3188,19 +3188,19 @@ cmsg_type
 ;
 
 cmsg_data
-: CMSG_DATA '=' sctp_initmsg     { $$ = $3; }
-| CMSG_DATA '=' sctp_sndrcvinfo  { $$ = $3; }
-| CMSG_DATA '=' sctp_extrcvinfo  { $$ = $3; }
-| CMSG_DATA '=' sctp_sndinfo     { $$ = $3; }
-| CMSG_DATA '=' sctp_rcvinfo     { $$ = $3; }
-| CMSG_DATA '=' sctp_nxtinfo     { $$ = $3; }
-| CMSG_DATA '=' sctp_prinfo      { $$ = $3; }
-| CMSG_DATA '=' sctp_authinfo    { $$ = $3; }
-| CMSG_DATA '=' sockaddr         { $$ = $3; }
+: _CMSG_DATA_ '=' sctp_initmsg     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_sndrcvinfo  { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_extrcvinfo  { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_sndinfo     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_rcvinfo     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_nxtinfo     { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_prinfo      { $$ = $3; }
+| _CMSG_DATA_ '=' sctp_authinfo    { $$ = $3; }
+| _CMSG_DATA_ '=' sockaddr         { $$ = $3; }
 ;
 
 cmsghdr
-: '{' CMSG_LEN '=' INTEGER ',' cmsg_level ',' cmsg_type ',' cmsg_data '}' {
+: '{' _CMSG_LEN_ '=' INTEGER ',' cmsg_level ',' cmsg_type ',' cmsg_data '}' {
 	$$ = new_expression(EXPR_CMSGHDR);
 	$$->value.cmsghdr = calloc(1, sizeof(struct cmsghdr_expr));
 	if (!is_valid_s32($4)) {
