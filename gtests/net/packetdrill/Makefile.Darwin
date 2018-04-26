@@ -1,7 +1,7 @@
 packetdrill-ext-libs := -pthread -lpcap
 CFLAGS = -D__APPLE_USE_RFC_3542
 LDFLAGS =
-ifeq ("$(wildcard $(/usr/lib/libsctp.dylib))","")
+ifneq ("$(wildcard /usr/lib/libsctp.dylib)","")
     packetdrill-ext-libs += -lsctp
     CFLAGS += -DHAVE_SCTP
 endif
