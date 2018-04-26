@@ -6909,8 +6909,17 @@ static int await_idle_thread(struct state *state)
 	while (state->syscalls->state != SYSCALL_IDLE) {
 		/* On the first time through the loop, calculate end time. */
 		if (end_time.tv_sec == 0) {
+/* clock_gettime is available in MacOS 10.12 and higher. */
+#if !defined(__APPLE__) || (defined(__APPLE__) && (MAC_OS_X_VERSION_MIN_REQUIRED >= 101200))
 			if (clock_gettime(CLOCK_REALTIME, &end_time) != 0)
 				die_perror("clock_gettime");
+#else
+			struct timeval tv;
+
+			if (gettimeofday(&tv, NULL) != 0)
+				die_perror("gettimeofday");
+			TIMEVAL_TO_TIMESPEC(&tv, &end_time);
+#endif
 			end_time.tv_sec += MAX_WAIT_SECS;
 		}
 		/* Wait for a signal or our timeout end_time to arrive. */

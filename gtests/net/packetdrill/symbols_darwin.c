@@ -97,7 +97,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ IP_RECVTTL,                       "IP_RECVTTL"                      },
 	{ IP_PKTINFO,                       "IP_PKTINFO,"                     },
 	{ IP_RECVPKTINFO,                   "IP_RECVPKTINFO"                  },
+#if defined(IP_RECVTOS)
 	{ IP_RECVTOS,                       "IP_RECVTOS"                      },
+#endif
 
 	/* /usr/include/netinet6/in6.h */
 	{ IPV6_UNICAST_HOPS,                "IPV6_UNICAST_HOPS"               },
@@ -452,9 +454,15 @@ struct int_symbol platform_symbols_table[] = {
 	{ F_ADDFILESIGS_FOR_DYLD_SIM,       "F_ADDFILESIGS_FOR_DYLD_SIM"      },
 	{ F_BARRIERFSYNC,                   "F_BARRIERFSYNC"                  },
 	{ F_ADDFILESIGS_RETURN,             "F_ADDFILESIGS_RETURN"            },
+#if defined(F_CHECK_LV)
 	{ F_CHECK_LV,                       "F_CHECK_LV"                      },
+#endif
+#if defined(F_PUNCHHOLE)
 	{ F_PUNCHHOLE,                      "F_PUNCHHOLE"                     },
+#endif
+#if defined(F_TRIM_ACTIVE_FILE)
 	{ F_TRIM_ACTIVE_FILE,               "F_TRIM_ACTIVE_FILE"              },
+#endif
 	{ FCNTL_FS_SPECIFIC_BASE,           "F_UFCNTL_FS_SPECIFIC_BASENLCK"   },
 	{ F_DUPFD_CLOEXEC,                  "F_DUPFD_CLOEXEC"                 },
 	{ FD_CLOEXEC,                       "FD_CLOEXEC"                      },

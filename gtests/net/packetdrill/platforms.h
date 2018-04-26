@@ -106,14 +106,22 @@
 
 #if defined(__APPLE__)
 
+#include <AvailabilityMacros.h>
+
 #if defined(HAVE_SCTP)
 #include <sys/types.h>
 #include <netinet/sctp.h>
 #endif
 #define USE_LIBPCAP             1
 #define HAVE_TCP_INFO           1
+/* open_memstream() and fmemopen() are available in MacOS 10.13 and higher. */
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
 #define HAVE_FMEMOPEN           1
 #define HAVE_OPEN_MEMSTREAM     1
+#else
+#include "open_memstream.h"
+#include "fmemopen.h"
+#endif
 
 #endif  /* __APPLE__ */
 
