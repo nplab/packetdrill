@@ -372,6 +372,9 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(TCP_CCALGOOPT)
 	{ TCP_CCALGOOPT,                    "TCP_CCALGOOPT"                   },
 #endif
+#if defined(TCP_MAXUNACKTIME)
+	{ TCP_MAXUNACKTIME,                 "TCP_MAXUNACKTIME"                },
+#endif
 	{ TCP_KEEPINIT,                     "TCP_KEEPINIT"                    },
 	{ TCP_KEEPIDLE,                     "TCP_KEEPIDLE"                    },
 	{ TCP_KEEPINTVL,                    "TCP_KEEPINTVL"                   },
