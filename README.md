@@ -6,17 +6,27 @@ A fork of [packetdrill](https://code.google.com/p/packetdrill/) which adds suppo
 * SCTP as specified in [RFC 4960](https://tools.ietf.org/html/rfc4960),  [RFC 4820](https://tools.ietf.org/html/rfc4820) and [RFC 7053](https://tools.ietf.org/html/rfc7053)
 
 and generic bugfixes, espcially several fixes required to get packetdrill working on FreeBSD.
+MacOS (El Capitan and higher) is also supported.
 
 ## Information
 There are some papers ([;login: October 2013](https://www.usenix.org/system/files/login/articles/10_cardwell-online.pdf), [USENIX ATC '13](https://www.usenix.org/system/files/conference/atc13/atc13-cardwell.pdf)) and a presentation ([ICCRG IETF87](https://www.ietf.org/proceedings/87/slides/slides-87-iccrg-1.pdf)) describing packetdrill.
 
 ## Installation
+### MacOS (El Capitan and higer)
+Download the sources, compile them and install the binary:
+```
+git clone https://github.com/nplab/packetdrill.git
+cd packetdrill/gtests/net/packetdrill/
+./configure
+make
+sudo cp packetdrill /usr/bin
+```
 ### Linux (Ubuntu)
 For installing the required packages run:
 ```
 sudo apt-get install make git libsctp-dev bison flex
 ```
-Then download the sources, compile them and install the files:
+Then download the sources, compile them and install the binary:
 ```
 git clone https://github.com/nplab/packetdrill.git
 cd packetdrill/gtests/net/packetdrill/
@@ -29,7 +39,7 @@ For installing the required packages run:
 ```
 sudo pkg install git bison
 ```
-Then download the sources, compile them and install the files:
+Then download the sources, compile them and install the binary:
 ```
 git clone https://github.com/nplab/packetdrill.git
 cd packetdrill/gtests/net/packetdrill/
