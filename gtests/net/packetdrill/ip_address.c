@@ -168,7 +168,7 @@ static void ipv4_to_sockaddr(const struct ip_address *ipv4, u16 port,
 {
 	struct sockaddr_in sa_v4;
 	memset(&sa_v4, 0, sizeof(sa_v4));
-#ifndef linux
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	sa_v4.sin_len = sizeof(sa_v4);
 #endif
 	sa_v4.sin_family = AF_INET;
@@ -186,7 +186,7 @@ static void ipv6_to_sockaddr(const struct ip_address *ipv6, u16 port,
 {
 	struct sockaddr_in6 sa_v6;
 	memset(&sa_v6, 0, sizeof(sa_v6));
-#ifndef linux
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	sa_v6.sin6_len = sizeof(sa_v6);
 #endif
 	sa_v6.sin6_family = AF_INET6;
