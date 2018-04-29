@@ -125,7 +125,7 @@ void wire_conn_bind_listen(struct wire_conn *listen_conn, u16 port)
 	}
 
 	memset(&sa_v4, 0, sizeof(sa_v4));
-#ifndef linux
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 	sa_v4.sin_len = sizeof(sa_v4);
 #endif
 	sa_v4.sin_family = AF_INET;
