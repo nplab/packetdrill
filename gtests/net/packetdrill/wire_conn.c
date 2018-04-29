@@ -179,7 +179,7 @@ static int write_bytes(struct wire_conn *conn,
 		}
 		assert(bytes_written <= buf_len);
 		buf_len -= bytes_written;
-		buf += bytes_written;
+		buf = (char *)buf + bytes_written;
 	}
 	return STATUS_OK;
 }
@@ -223,7 +223,7 @@ static int read_bytes(struct wire_conn *conn,
 		}
 		assert(bytes_read <= buf_len);
 		buf_len -= bytes_read;
-		buf += bytes_read;
+		buf = (char *)buf + bytes_read;
 	}
 	return STATUS_OK;
 }

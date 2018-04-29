@@ -227,7 +227,7 @@ static void wire_client_receive_packets_done(struct wire_client *wire_client)
 		/* Die with the error message from the server, which
 		 * is a C string following the fixed "done" message.
 		 */
-		die("%s", (char *)(buf + sizeof(done)));
+		die("%s", (char *)buf + sizeof(done));
 	} else if (ntohl(done.num_events) != wire_client->num_events) {
 		char *msg = NULL;
 		asprintf(&msg, "bad wire server: bad message count: "
