@@ -215,9 +215,9 @@ void checksum_packet(struct packet *packet)
 {
 	int address_family = packet_address_family(packet);
 	if (address_family == AF_INET)
-		return checksum_ipv4_packet(packet);
+		checksum_ipv4_packet(packet);
 	else if (address_family == AF_INET6)
-		return checksum_ipv6_packet(packet);
+		checksum_ipv6_packet(packet);
 	else
 		assert(!"bad ip version");
 }
