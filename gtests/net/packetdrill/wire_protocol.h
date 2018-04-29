@@ -60,7 +60,7 @@ struct wire_packets_start {
 struct wire_packets_done {
 	__be32 result;		/* STATUS_OK or TCPEST_ERR (network order) */
 	__be32 num_events;	/* total events executed (network order) */
-	char error_message[0];	/* '\0'-teriminated error message, or empty */
+	char error_message[];	/* '\0'-teriminated error message, or empty */
 };
 
 #endif /* __WIRE_PROTOCOL_H__ */
