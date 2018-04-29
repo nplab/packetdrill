@@ -1,2 +1,2 @@
-packetdrill-ext-libs := -lpthread -lrt -lsctp
+packetdrill-ext-libs := -lpthread -lrt -ldl -lsctp -static
 include Makefile.common

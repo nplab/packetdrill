@@ -1,7 +1,6 @@
 all: binaries
 
 CFLAGS += -g -Wall -Werror -Wno-unknown-warning-option -Wno-address-of-packed-member
-LDFLAGS ?= -static
 
 parser.o: parser.y
 	bison --output=parser.c --defines=parser.h --report=state parser.y
@@ -37,7 +36,7 @@ packetdrill-lib := \
 packetdrill-objs := packetdrill.o $(packetdrill-lib)
 
 packetdrill: $(packetdrill-objs)
-	$(CC) -o packetdrill -g $(LDFLAGS) $(packetdrill-objs) $(packetdrill-ext-libs)
+	$(CC) -o packetdrill -g $(packetdrill-objs) $(packetdrill-ext-libs)
 
 test-bins := checksum_test packet_parser_test packet_to_string_test
 tests: $(test-bins)
