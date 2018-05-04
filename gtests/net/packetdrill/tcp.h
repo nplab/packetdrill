@@ -38,9 +38,9 @@
 #include <netinet/tcp_fsm.h>
 #endif
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#if !defined(linux)
 #define SOL_TCP IPPROTO_TCP
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
+#endif /* !defined(linux) */
 
 #ifdef linux
 
