@@ -125,5 +125,21 @@
 
 #endif  /* __APPLE__ */
 
+/* ------------------------- Solaris --------------------- */
+
+#if defined(__SunOS_5_11)
+
+#define IPPROTO_IPIP            IPPROTO_ENCAP
+#define IPPROTO_GRE             47
+#include <sys/types.h>
+#include <sys/socket.h>
+//#include <netinet/sctp.h>
+#define USE_LIBPCAP             1
+#define HAVE_TCP_INFO           1
+#define HAVE_FMEMOPEN           1
+#define HAVE_OPEN_MEMSTREAM     1
+
+#endif  /* __SunOS_5_11 */
+
 
 #endif /* __PLATFORMS_H__ */
