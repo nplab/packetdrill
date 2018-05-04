@@ -136,6 +136,7 @@
 //#include <netinet/sctp.h>
 #define USE_LIBPCAP             1
 #define HAVE_TCP_INFO           1
+/* open_memstream() and fmemopen() are available in Solaris 11.4 and higher. */
 #define HAVE_FMEMOPEN           1
 #define HAVE_OPEN_MEMSTREAM     1
 
