@@ -1,2 +1,3 @@
 packetdrill-ext-libs := -lsocket -lnsl -lsctp -lpcap
+CFLAGS += -D_XPG4_2 -D__EXTENSIONS__
 include Makefile.common
