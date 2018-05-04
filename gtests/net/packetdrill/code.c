@@ -104,7 +104,7 @@ static void emit_var_end(struct code_state *code)
 static void write_symbols(struct code_state *code)
 {
 	/* tcpi_state */
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__SunOS_5_11)
 	emit_var(code, "TCPI_CLOSED",		TCPS_CLOSED);
 	emit_var(code, "TCPI_LISTEN",		TCPS_LISTEN);
 	emit_var(code, "TCPI_SYN_SENT",		TCPS_SYN_SENT);
@@ -158,7 +158,13 @@ static void write_symbols(struct code_state *code)
 	emit_var(code, "TCPI_OPT_WSCALE",	TCPCI_OPT_WSCALE);
 	emit_var(code, "TCPI_OPT_ECN",		TCPCI_OPT_ECN);
 #endif
-
+#ifdef __SunOS_5_11
+	emit_var(code, "TCPI_OPT_TIMESTAMPS",	TCPI_OPT_TIMESTAMPS);
+	emit_var(code, "TCPI_OPT_SACK",		TCPI_OPT_SACK);
+	emit_var(code, "TCPI_OPT_WSCALE",	TCPI_OPT_WSCALE);
+	emit_var(code, "TCPI_OPT_ECN",		TCPI_OPT_ECN);
+	emit_var(code, "TCPI_OPT_TOE",		TCPI_OPT_TOE);
+#endif
 	/* tcpi_flags flags */
 #ifdef __APPLE__
 	emit_var(code, "TCPI_FLAG_LOSSRECOVERY",	TCPCI_FLAG_LOSSRECOVERY);
@@ -314,6 +320,56 @@ static void write_tcp_info(struct code_state *code,
 }
 
 #endif  /* __APPLE__ */
+
+#if defined(__SunOS_5_11)
+
+/* Write out a formatted representation of the given tcp_info buffer. */
+static void write_tcp_info(struct code_state *code,
+				   const struct _tcp_info *info,
+				   int len)
+{
+	assert(len >= sizeof(struct _tcp_info));
+
+	write_symbols(code);
+
+	/* Emit the recorded values of tcpi_foo values. */
+	emit_var(code, "tcpi_state",			info->tcpi_state);
+	emit_var(code, "tcpi_ca_state",			info->tcpi_ca_state);
+	emit_var(code, "tcpi_retransmits",		info->tcpi_retransmits);
+	emit_var(code, "tcpi_probes",			info->tcpi_probes);
+	emit_var(code, "tcpi_backoff",			info->tcpi_backoff);
+	emit_var(code, "tcpi_options",			info->tcpi_options);
+	emit_var(code, "tcpi_snd_wscale",		info->tcpi_snd_wscale);
+	emit_var(code, "tcpi_rcv_wscale",		info->tcpi_rcv_wscale);
+	emit_var(code, "tcpi_rto",			info->tcpi_rto);
+	emit_var(code, "tcpi_ato",			info->tcpi_ato);
+	emit_var(code, "tcpi_snd_mss",			info->tcpi_snd_mss);
+	emit_var(code, "tcpi_rcv_mss",			info->tcpi_rcv_mss);
+	emit_var(code, "tcpi_unacked",			info->tcpi_unacked);
+	emit_var(code, "tcpi_sacked",			info->tcpi_sacked);
+	emit_var(code, "tcpi_lost",			info->tcpi_lost);
+	emit_var(code, "tcpi_retrans",			info->tcpi_retrans);
+	emit_var(code, "tcpi_fackets",			info->tcpi_fackets);
+	emit_var(code, "tcpi_last_data_sent",		info->tcpi_last_data_sent);
+	emit_var(code, "tcpi_last_ack_sent",		info->tcpi_last_ack_sent);
+	emit_var(code, "tcpi_last_data_recv",		info->tcpi_last_data_recv);
+	emit_var(code, "tcpi_last_ack_recv",		info->tcpi_last_ack_recv);
+	emit_var(code, "tcpi_pmtu",			info->tcpi_pmtu);
+	emit_var(code, "tcpi_rcv_ssthresh",		info->tcpi_rcv_ssthresh);
+	emit_var(code, "tcpi_rtt",			info->tcpi_rtt);
+	emit_var(code, "tcpi_rttvar",			info->tcpi_rttvar);
+	emit_var(code, "tcpi_snd_ssthresh",		info->tcpi_snd_ssthresh);
+	emit_var(code, "tcpi_snd_cwnd",			info->tcpi_snd_cwnd);
+	emit_var(code, "tcpi_advmss",			info->tcpi_advmss);
+	emit_var(code, "tcpi_reordering",		info->tcpi_reordering);
+	emit_var(code, "tcpi_rcv_rtt",			info->tcpi_rcv_rtt);
+	emit_var(code, "tcpi_rcv_space",		info->tcpi_rcv_space);
+	emit_var(code, "tcpi_total_retrans",		info->tcpi_total_retrans);
+
+	emit_var_end(code);
+}
+
+#endif  /* __SunOS_5_11 */
 
 /* Allocate a new empty struct code_text struct. */
 static struct code_text *text_new(void)
