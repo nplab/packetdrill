@@ -20,6 +20,7 @@ packetdrill-lib := \
          symbols_openbsd.o \
          symbols_netbsd.o \
          symbols_darwin.o \
+         symbols_solaris.o \
          gre_packet.o icmp_packet.o ip_packet.o \
          sctp_packet.o tcp_packet.o udp_packet.o udplite_packet.o \
          mpls_packet.o \
