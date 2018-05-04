@@ -6934,6 +6934,7 @@ static int await_idle_thread(struct state *state)
 	return STATUS_OK;
 }
 
+#if !defined(__SunOS_5_11)
 static int yield(void)
 {
 #if defined(linux)
@@ -6948,6 +6949,7 @@ static int yield(void)
 	return 0;
 #endif  /* defined(__APPLE__) */
 }
+#endif
 
 /* Enqueue the system call for the syscall thread and wake up the thread. */
 static void enqueue_system_call(
@@ -6997,8 +6999,12 @@ static void enqueue_system_call(
 		DEBUGP("main thread: unlocking and yielding\n");
 		thread_id = state->syscalls->thread_id;
 		run_unlock(state);
+#if defined(__SunOS_5_11)
+		yield();
+#else
 		if (yield() != 0)
 			die_perror("yield");
+#endif
 
 		DEBUGP("main thread: checking syscall thread state\n");
 		if (is_thread_sleeping(getpid(), thread_id))

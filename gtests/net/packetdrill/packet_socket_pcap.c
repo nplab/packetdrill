@@ -35,7 +35,7 @@
 
 #ifdef USE_LIBPCAP
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__SunOS_5_11)
 #include <pcap/pcap.h>
 #elif defined(__OpenBSD__) || defined(__NetBSD__)
 #include <pcap.h>
@@ -257,7 +257,7 @@ int packet_socket_receive(struct packet_socket *psock,
 	       (u32)pkt_header->ts.tv_sec,
 	       (u32)pkt_header->ts.tv_usec);
 
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__SunOS_5_11)
 	packet->time_usecs = timeval_to_usecs(&pkt_header->ts);
 #elif defined(__OpenBSD__)
 	packet->time_usecs = bpf_timeval_to_usecs(&pkt_header->ts);
