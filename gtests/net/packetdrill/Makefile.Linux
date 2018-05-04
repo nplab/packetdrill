@@ -1,2 +1,3 @@
 packetdrill-ext-libs := -lpthread -lrt -ldl -lsctp -static
+CFLAGS = -Wall -Werror -Wno-unknown-warning-option -Wno-address-of-packed-member
 include Makefile.common

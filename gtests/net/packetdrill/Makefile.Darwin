@@ -1,5 +1,5 @@
 packetdrill-ext-libs := -lpcap
-CFLAGS = -D__APPLE_USE_RFC_3542
+CFLAGS = -D__APPLE_USE_RFC_3542 -Wall -Werror -Wno-unknown-warning-option -Wno-address-of-packed-member
 LDFLAGS =
 ifneq ("$(wildcard /usr/lib/libsctp.dylib)","")
     packetdrill-ext-libs += -lsctp
