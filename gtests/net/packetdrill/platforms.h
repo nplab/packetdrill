@@ -133,8 +133,9 @@
 #define IPPROTO_GRE             47
 #include <sys/types.h>
 #include <sys/socket.h>
-//#include <netinet/sctp.h>
+#include <netinet/sctp.h>
 #define USE_LIBPCAP             1
+#define TUN_DIR                 "/dev"
 #define HAVE_TCP_INFO           1
 /* open_memstream() and fmemopen() are available in Solaris 11.4 and higher. */
 #define HAVE_FMEMOPEN           1

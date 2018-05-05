@@ -76,7 +76,7 @@ struct sctp_tlv {
         u32 sn_length;
 };
 #endif
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_notification(struct socket *socket, struct iovec *iov, struct expression *iovec_expr,
 				   char **error);
 static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init,
@@ -84,7 +84,7 @@ static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp
 static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr, struct sctp_sndrcvinfo *info,
 					       bool send, char **error);
 #endif
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info,
 				            char **error);
 static int parse_expression_to_sctp_prinfo(struct expression *expr, struct sctp_prinfo *info,
@@ -104,15 +104,15 @@ static int check_sctp_initmsg(struct sctp_initmsg_expr *expr, struct sctp_initms
 static int check_sctp_extrcvinfo(struct sctp_extrcvinfo_expr *expr, struct sctp_extrcvinfo *sctp_info,
 				 char **error);
 #endif
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr, struct sctp_rcvinfo *sctp_rcvinfo,
 				 char** error);
 #endif
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr, struct sctp_nxtinfo *sctp_nxtinfo,
 			      char **error);
 #endif
-#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error);
@@ -351,7 +351,7 @@ static int get_socklen_t(struct expression *expression,
 	return STATUS_OK;
 }
 
-#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 /* Sets the value from the expression argument, checking that it is a
  * valid size_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -393,7 +393,7 @@ static int get_off_t(struct expression *expression,
 }
 #endif
 
-#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(linux) || defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 /* Sets the value from the expression argument, checking that it is a
  * valid sctp_assoc_t, and matches the expected type. Returns STATUS_OK on
  * success; on failure returns STATUS_ERR and sets error message.
@@ -584,7 +584,7 @@ static int s32_bracketed_arg(struct expression_list *args,
 /* Return the value of the argument with the given index, and verify
  * that it has the expected type: a list with a single integer.
  */
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int u32_bracketed_arg(struct expression_list *args,
 			     int index, u32 *value, char **error)
 {
@@ -685,7 +685,7 @@ static int get_sockstorage_arg(struct expression *arg, struct sockaddr_storage *
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *live_addr, char **error) {
 
 	if (sockaddr_expr->type != EXPR_ELLIPSIS) {
@@ -750,7 +750,7 @@ static int check_sockaddr(struct expression *sockaddr_expr, struct sockaddr *liv
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		u8 script_val;
@@ -767,7 +767,7 @@ int check_u8_expr(struct expression *expr, u8 value, char *val_name, char **erro
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 #ifdef SCTP_REMOTE_UDP_ENCAPS_PORT
 int check_u16_htons_expr(struct expression *expr, u16 value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
@@ -848,7 +848,7 @@ int check_u32_expr(struct expression *expr, u32 value, char *val_name, char **er
 	return STATUS_OK;
 }
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 int check_sctp_assoc_t_expr(struct expression *expr, sctp_assoc_t value, char *val_name, char **error) {
 	if (expr->type != EXPR_ELLIPSIS) {
 		sctp_assoc_t script_val;
@@ -897,7 +897,7 @@ int check_size_t_expr(struct expression *expr, size_t value, char *val_name, cha
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t data_len, char *val_name, char **error) {
 	if ( expr_list->type != EXPR_ELLIPSIS) {
 		struct expression *expr = NULL;
@@ -939,7 +939,7 @@ static int check_u8array_expr(struct expression *expr_list, u8 *data, size_t dat
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_u16array_expr(struct expression *expr_list, u16 *data, int data_len, char *val_name, char **error) {
 	if ( expr_list->type != EXPR_ELLIPSIS) {
 		struct expression *expr = NULL;
@@ -1375,8 +1375,17 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 #endif
 #ifdef SCTP_AUTHINFO
 			case SCTP_AUTHINFO:
+				/*
+				 * Solaris 10.4 uses the wrong name: auth_keyid instead
+				 * of auth_keynumber as specified in
+				 * https://tools.ietf.org/html/rfc6458#section-5.3.8
+				 */
 				if (check_u16_expr(expr->cmsg_data->value.sctp_authinfo->auth_keynumber,
+#if defined(__SunOS_5_11)
+					   ((struct sctp_authinfo *)CMSG_DATA(cmsg_ptr))->auth_keyid,
+#else
 					   ((struct sctp_authinfo *)CMSG_DATA(cmsg_ptr))->auth_keynumber,
+#endif
 					   "authinfo.auth_keynumber", error)) {
 					return STATUS_ERR;
 				}
@@ -2053,7 +2062,7 @@ static int run_syscall_connect(struct state *state,
 	return STATUS_OK;
 }
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int run_syscall_sctp_peeloff(struct state *state,
 				    int script_copy_fd,
 				    int script_new_fd,
@@ -2447,7 +2456,7 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 			 expected_msg_flags, msg->msg_flags);
 		goto error_out;
 	}
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	if (msg->msg_flags & MSG_NOTIFICATION) {
 		struct socket *socket = find_socket_by_script_fd(state, script_fd);
 		if (check_sctp_notification(socket, msg->msg_iov, msg_expression->value.msghdr->msg_iov, error))
@@ -2983,8 +2992,13 @@ static int check_sctp_paddrparams(struct sctp_paddrparams_expr *expr,
 		asprintf(error, "linux doesn't support sctp_paddrparams.spp_dscp");
 		return STATUS_ERR;
 #else
+#if defined(__SunOS_5_11)
+		if (check_u8_expr(expr->spp_dscp, sctp_paddrparams->spp_ipv4_tos,
+				  "sctp_paddrparams.spp_dscp", error))
+#else
 		if (check_u8_expr(expr->spp_dscp, sctp_paddrparams->spp_dscp,
-				   "sctp_paddrparams.spp_dscp", error))
+				  "sctp_paddrparams.spp_dscp", error))
+#endif
 			return STATUS_ERR;
 #endif
 	}
@@ -3100,13 +3114,14 @@ static int check_sctp_event_subscribe(struct sctp_event_subscribe_expr *expr,
 	if (check_u8_expr(expr->sctp_adaptation_layer_event, sctp_events->sctp_adaptation_layer_event,
 			   "sctp_event_subscribe.sctp_adaptation_layer_event", error))
 		return STATUS_ERR;
+#if !defined(__SunOS_5_11)
 	if (check_u8_expr(expr->sctp_authentication_event, sctp_events->sctp_authentication_event,
 			   "sctp_event_subscribe.sctp_authentication_event", error))
 		return STATUS_ERR;
 	if (check_u8_expr(expr->sctp_sender_dry_event, sctp_events->sctp_sender_dry_event,
 			   "sctp_event_subscribe.sctp_sender_dry_event", error))
 		return STATUS_ERR;
-
+#endif
 	return STATUS_OK;
 }
 #endif
@@ -3194,7 +3209,7 @@ static int check_sctp_setadaptation(struct sctp_setadaptation_expr *expr,
 }
 #endif
 
-#ifdef SCTP_HMAC_IDENT
+#if defined(SCTP_HMAC_IDENT) && !defined(__SunOS_5_11)
 static int check_sctp_hamcalgo(struct sctp_hmacalgo_expr *expr,
 			       struct sctp_hmacalgo *sctp_hmacalgo,
 			       char **error) {
@@ -3498,7 +3513,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optlen = (socklen_t)sizeof(struct sctp_assoc_value);
 		break;
 #endif
-#ifdef SCTP_HMAC_IDENT
+#if defined(SCTP_HMAC_IDENT) && !defined(__SunOS_5_11)
 	case EXPR_SCTP_HMACALGO:
 		live_optval = malloc(sizeof(struct sctp_hmacalgo));
 		live_optlen = (socklen_t)sizeof(struct sctp_hmacalgo);
@@ -3764,7 +3779,7 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_sctp_assoc_value(val_expression->value.sctp_assoc_value, live_optval, error);
 		break;
 #endif
-#ifdef SCTP_HMAC_IDENT
+#if defined(SCTP_HMAC_IDENT) && !defined(__SunOS_5_11)
 	case EXPR_SCTP_HMACALGO:
 		result = check_sctp_hamcalgo(val_expression->value.sctp_hmacalgo, live_optval, error);
 		break;
@@ -3881,7 +3896,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #if defined(SCTP_MAXSEG) || defined(SCTP_MAX_BURST) || defined(SCTP_INTERLEAVING_SUPPORTED) || defined(SCTP_ENABLE_STREAM_RESET)
 	struct sctp_assoc_value assoc_value;
 #endif
-#ifdef SCTP_HMAC_IDENT
+#if defined(SCTP_HMAC_IDENT) && !defined(__SunOS_5_11)
 	struct sctp_hmacalgo *hmacalgo = NULL;
 #endif
 #ifdef SCTP_AUTH_ACTIVE_KEY
@@ -4093,7 +4108,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		break;
 #endif
-#ifdef SCTP_HMAC_IDENT
+#if defined(SCTP_HMAC_IDENT) && !defined(__SunOS_5_11)
 	case EXPR_SCTP_HMACALGO: {
 		struct expression_list *list;
 		size_t size;
@@ -4229,45 +4244,47 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #ifdef SCTP_EVENTS
 	case EXPR_SCTP_EVENT_SUBSCRIBE:
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_data_io_event,
-			    &event_subscribe.sctp_data_io_event, error)) {
+		           &event_subscribe.sctp_data_io_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_association_event,
-			    &event_subscribe.sctp_association_event, error)) {
+		           &event_subscribe.sctp_association_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_address_event,
-			    &event_subscribe.sctp_address_event, error)) {
+		           &event_subscribe.sctp_address_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_send_failure_event,
-			    &event_subscribe.sctp_send_failure_event, error)) {
+		           &event_subscribe.sctp_send_failure_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_peer_error_event,
-			    &event_subscribe.sctp_peer_error_event, error)) {
+		           &event_subscribe.sctp_peer_error_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_shutdown_event,
-			    &event_subscribe.sctp_shutdown_event, error)) {
+		           &event_subscribe.sctp_shutdown_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_partial_delivery_event,
-			    &event_subscribe.sctp_partial_delivery_event, error)) {
+		           &event_subscribe.sctp_partial_delivery_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_adaptation_layer_event,
-			    &event_subscribe.sctp_adaptation_layer_event, error)) {
+		           &event_subscribe.sctp_adaptation_layer_event, error)) {
 			return STATUS_ERR;
 		}
+#if !defined(__SunOS_5_11)
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_authentication_event,
-			    &event_subscribe.sctp_authentication_event, error)) {
+			   &event_subscribe.sctp_authentication_event, error)) {
 			return STATUS_ERR;
 		}
 		if (get_u8(val_expression->value.sctp_event_subscribe->sctp_sender_dry_event,
-			    &event_subscribe.sctp_sender_dry_event, error)) {
+			   &event_subscribe.sctp_sender_dry_event, error)) {
 			return STATUS_ERR;
 		}
+#endif
 		optval = &event_subscribe;
 		if (!optlen_provided) {
 			optlen = (socklen_t)sizeof(struct sctp_event_subscribe);
@@ -4477,13 +4494,18 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			    &paddrparams.spp_flags, error)) {
 			return STATUS_ERR;
 		}
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 		if (get_u32(val_expression->value.sctp_paddrparams->spp_ipv6_flowlabel,
 			    &paddrparams.spp_ipv6_flowlabel, error)) {
 			return STATUS_ERR;
 		}
+#if defined(__SunOS_5_11)
+		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
+			   &paddrparams.spp_ipv4_tos, error)) {
+#else
 		if (get_u8(val_expression->value.sctp_paddrparams->spp_dscp,
 			   &paddrparams.spp_dscp, error)) {
+#endif
 			return STATUS_ERR;
 		}
 #endif
@@ -4655,7 +4677,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 
 	result = setsockopt(live_fd, level, optname, optval, optlen);
 
-#if defined(SCTP_HMAC_IDENT)
+#if defined(SCTP_HMAC_IDENT) && !defined(__SunOS_5_11)
 	free(hmacalgo);
 #endif
 #if defined(SCTP_AUTH_KEY)
@@ -4934,7 +4956,7 @@ error_out:
 static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscall,
 			struct expression_list *args, char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int result, script_fd, live_fd;
 	void *msg = NULL;
 	struct sockaddr_storage to;
@@ -5017,7 +5039,7 @@ static int syscall_sctp_sendmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error) {
@@ -5132,7 +5154,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 				struct expression_list *args,
 				char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int script_fd, live_fd, live_msg_flags = 0, result;
 	void *msg;
 	u32 len;
@@ -5195,7 +5217,7 @@ static int syscall_sctp_recvmsg(struct state *state, struct syscall_spec *syscal
 #endif
 }
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int parse_expression_to_sctp_initmsg(struct expression *expr, struct sctp_initmsg *init, char **error) {
 	if (expr->type == EXPR_SCTP_INITMSG) {
 		struct sctp_initmsg_expr *init_expr = expr->value.sctp_initmsg;
@@ -5324,7 +5346,7 @@ static int parse_expression_to_sctp_sndrcvinfo(struct expression *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int parse_expression_to_sctp_sndinfo(struct expression *expr, struct sctp_sndinfo *info, char **error) {
 	if (expr->type == EXPR_SCTP_SNDINFO) {
 		struct sctp_sndinfo_expr *sndinfo_expr = expr->value.sctp_sndinfo;
@@ -5353,7 +5375,16 @@ static int parse_expression_to_sctp_authinfo(struct expression *expr, struct sct
 	if (expr->type == EXPR_SCTP_AUTHINFO) {
 		struct sctp_authinfo_expr *auth_expr = expr->value.sctp_authinfo;
 
+		/*
+		 * Solaris 10.4 uses the wrong name: auth_keyid instead
+		 * of auth_keynumber as specified in
+		 * https://tools.ietf.org/html/rfc6458#section-5.3.8
+		 */
+#if defined(__SunOS_5_11)
+		if (get_u16(auth_expr->auth_keynumber, &info->auth_keyid, error)) {
+#else
 		if (get_u16(auth_expr->auth_keynumber, &info->auth_keynumber, error)) {
+#endif
 			return STATUS_ERR;
 		}
 	} else {
@@ -5404,7 +5435,7 @@ static int parse_expression_to_sctp_sendv_spa(struct expression *expr, struct sc
 }
 #endif
 
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int get_sockaddr_from_list(struct expression *expr, size_t *addr_size, struct sockaddr **addrs, char **error) {
 	if (expr->type == EXPR_LIST) {
 		struct expression_list *addrs_expr_list = (struct expression_list *)expr->value.list;
@@ -5457,7 +5488,7 @@ static int syscall_sctp_send(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int script_fd, live_fd, flags, result;
 	size_t len;
 	void *msg;
@@ -5595,7 +5626,7 @@ static int syscall_sctp_sendv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int script_fd, live_fd, iovcnt, addrcnt, result, flags;
 	u32 infotype;
 	size_t script_iovec_list_len = 0;
@@ -5715,7 +5746,7 @@ error_out:
 #endif
 }
 
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 			      struct sctp_rcvinfo *sctp_rcvinfo,
 			      char **error)
@@ -5745,7 +5776,7 @@ static int check_sctp_rcvinfo(struct sctp_rcvinfo_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 			      struct sctp_nxtinfo *sctp_nxtinfo,
 			      char **error)
@@ -5770,7 +5801,7 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 				   struct sctp_assoc_change *sctp_event,
 				   char **error) {
@@ -5798,15 +5829,20 @@ static int check_sctp_assoc_change(struct sctp_assoc_change_expr *expr,
 	if (check_sctp_assoc_t_expr(expr->sac_assoc_id, sctp_event->sac_assoc_id,
 			   "sctp_assoc_change.sac_assoc_id", error))
 		return STATUS_ERR;
+#if defined(__SunOS_5_11)
+	if (check_u8array_expr(expr->sac_info, (u8 *)(&sctp_event->sac_assoc_id + 1), sctp_event->sac_length - sizeof(struct sctp_assoc_change),
+			       "sctp_assoc_change.sac_info", error))
+#else
 	if (check_u8array_expr(expr->sac_info, sctp_event->sac_info, sctp_event->sac_length - sizeof(struct sctp_assoc_change),
 			       "sctp_assoc_change.sac_info", error))
+#endif
 			return STATUS_ERR;
 
 	return STATUS_OK;
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_paddr_change(struct sctp_paddr_change_expr *expr,
 				   struct sctp_paddr_change *sctp_event,
 				   char **error) {
@@ -5836,7 +5872,7 @@ static int check_sctp_paddr_change(struct sctp_paddr_change_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_remote_error(struct sctp_remote_error_expr *expr,
 				   struct sctp_remote_error *sctp_event,
 				   char **error) {
@@ -5855,15 +5891,20 @@ static int check_sctp_remote_error(struct sctp_remote_error_expr *expr,
 	if (check_sctp_assoc_t_expr(expr->sre_assoc_id, sctp_event->sre_assoc_id,
 			   "sctp_remote_error.sre_assoc_id", error))
 		return STATUS_ERR;
+#if defined(__SunOS_5_11)
+	if (check_u8array_expr(expr->sre_data, (u8 *)(&sctp_event->sre_assoc_id + 1), sctp_event->sre_length - sizeof(struct sctp_remote_error),
+			       "sctp_remote_error.sre_data", error))
+#else
 	if (check_u8array_expr(expr->sre_data, sctp_event->sre_data, sctp_event->sre_length - sizeof(struct sctp_remote_error),
 			       "sctp_remote_error.sre_data", error))
+#endif
 			return STATUS_ERR;
 
 	return STATUS_OK;
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_send_failed(struct sctp_send_failed_expr *expr,
 				  struct sctp_send_failed *sctp_event,
 				  char **error) {
@@ -5888,15 +5929,20 @@ static int check_sctp_send_failed(struct sctp_send_failed_expr *expr,
 	if (check_sctp_assoc_t_expr(expr->ssf_assoc_id, sctp_event->ssf_assoc_id,
 			   "sctp_send_failed.ssf_assoc_id", error))
 		return STATUS_ERR;
+#if defined(__SunOS_5_11)
+	if (check_u8array_expr(expr->ssf_data, (u8 *)(&sctp_event->ssf_assoc_id + 1), sctp_event->ssf_length - sizeof(struct sctp_send_failed),
+			       "sctp_send_failed.ssf_data", error))
+#else
 	if (check_u8array_expr(expr->ssf_data, sctp_event->ssf_data, sctp_event->ssf_length - sizeof(struct sctp_send_failed),
 			       "sctp_send_failed.ssf_data", error))
+#endif
 			return STATUS_ERR;
 
 	return STATUS_OK;
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 				     struct sctp_shutdown_event *sctp_event,
 				     char **error) {
@@ -5918,7 +5964,7 @@ static int check_sctp_shutdown_event(struct sctp_shutdown_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_adaptation_event(struct sctp_adaptation_event_expr *expr,
 				       struct sctp_adaptation_event *sctp_event,
 				       char **error) {
@@ -5943,7 +5989,7 @@ static int check_sctp_adaptation_event(struct sctp_adaptation_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_pdapi_event(struct sctp_pdapi_event_expr *expr,
 				  struct sctp_pdapi_event *sctp_event,
 				  char **error) {
@@ -6016,7 +6062,7 @@ static int check_sctp_authkey_event(struct sctp_authkey_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 				       struct sctp_sender_dry_event *sctp_event,
 				       char **error) {
@@ -6038,7 +6084,7 @@ static int check_sctp_sender_dry_event(struct sctp_sender_dry_event_expr *expr,
 }
 #endif
 
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr,
 				       struct sctp_send_failed_event *sctp_event,
 				       char **error) {
@@ -6070,7 +6116,7 @@ static int check_sctp_send_failed_event(struct sctp_send_failed_event_expr *expr
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_tlv(struct sctp_tlv_expr *expr, struct sctp_tlv *sctp_tlv, char **error) {
 	if (check_u16_expr(expr->sn_type, sctp_tlv->sn_type,
 			   "sctp_tlv.sn_type", error))
@@ -6171,7 +6217,7 @@ static int check_sctp_stream_change_event(struct sctp_stream_change_event_expr *
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_notification(struct socket *socket,
 				   struct iovec *iov,
 				   struct expression *iovec_expr,
@@ -6233,10 +6279,15 @@ static int check_sctp_notification(struct socket *socket,
 				return STATUS_ERR;
 			break;
 		case EXPR_SCTP_AUTHKEY_EVENT:
+#if defined(__SunOS_5_11)
+			asprintf(error, "Solaris does not support SCTP_AUTHKEY_EVENT");
+			return STATUS_ERR;
+#else
 			if (check_sctp_authkey_event(script_iov_base->value.sctp_authkey_event,
 						     (struct sctp_authkey_event *) iov[i].iov_base,
 						     error))
 				return STATUS_ERR;
+#endif
 			break;
 		case EXPR_SCTP_SENDER_DRY_EVENT:
 			if (check_sctp_sender_dry_event(script_iov_base->value.sctp_sender_dry_event,
@@ -6244,7 +6295,7 @@ static int check_sctp_notification(struct socket *socket,
 						       error))
 				return STATUS_ERR;
 			break;
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 		case EXPR_SCTP_SEND_FAILED_EVENT:
 			if (check_sctp_send_failed_event(script_iov_base->value.sctp_send_failed_event,
 						        (struct sctp_send_failed_event *) iov[i].iov_base,
@@ -6297,7 +6348,7 @@ static int check_sctp_notification(struct socket *socket,
 }
 #endif
 
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 static int check_sctp_recvv_rn(struct sctp_recvv_rn_expr *expr,
 			       struct sctp_recvv_rn *sctp_recvv_rn,
 			       char **error)
@@ -6324,7 +6375,7 @@ static int syscall_sctp_recvv(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int flags, iovlen, script_fd, live_fd, result;
 	size_t script_iovec_list_len = 0;
 	unsigned int infotype = 0;
@@ -6491,7 +6542,7 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args,
 			      char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int live_fd, script_fd, addrcnt, flags, result;
 	struct sockaddr_storage addrs;
 	struct expression *addr_list;
@@ -6536,7 +6587,7 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 static int syscall_sctp_connectx(struct state *state, struct syscall_spec *syscall,
 				 struct expression_list *args, char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int live_fd, script_fd, addrcnt, result;
 	struct sockaddr_storage live_addr;
 	struct expression *addrs_expr, *assoc_expr;
@@ -6590,7 +6641,7 @@ static int syscall_sctp_peeloff(struct state *state, struct syscall_spec *syscal
 			        struct expression_list *args,
 			        char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int live_fd, script_fd, result, script_new_fd;
 	sctp_assoc_t assoc_id;
 	struct expression *expr_assoc;
@@ -6630,11 +6681,19 @@ static int syscall_sctp_getpaddrs(struct state *state, struct syscall_spec *sysc
 				  struct expression_list *args,
 				  char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int live_fd, script_fd, result;
 	sctp_assoc_t assoc_id;
 	struct expression *assoc_expr, *addrs_list_expr;
+	/*
+	 * Solaris uses a signature for sctp_paddrs() different from what is specified
+	 * in https://tools.ietf.org/html/rfc6458#section-9.3.
+	 */
+#if defined(__SunOS_5_11)
+	void *live_addrs;
+#else
 	struct sockaddr *live_addrs;
+#endif
 
 	if (check_arg_count(args, 3, error))
 		return STATUS_ERR;
@@ -6655,7 +6714,12 @@ static int syscall_sctp_getpaddrs(struct state *state, struct syscall_spec *sysc
 	addrs_list_expr = get_arg(args, 2, error);
 	if (addrs_list_expr->type != EXPR_ELLIPSIS) {
 		int list_length = 0, i = 0;
+#if defined(__SunOS_5_11)
+		struct sockaddr *live_addr = (struct sockaddr *)live_addrs;
+#else
 		struct sockaddr *live_addr = live_addrs;
+#endif
+
 		if (check_type(addrs_list_expr, EXPR_LIST, error)) {
 			goto error_out;
 		}
@@ -6694,7 +6758,7 @@ static int syscall_sctp_freepaddrs(struct state *state, struct syscall_spec *sys
 				   struct expression_list *args,
 				   char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	struct expression *addrs_expr;
 	if (check_arg_count(args, 1, error))
 		return STATUS_ERR;
@@ -6715,11 +6779,19 @@ static int syscall_sctp_getladdrs(struct state *state, struct syscall_spec *sysc
 				  struct expression_list *args,
 				  char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int live_fd, script_fd, result;
 	sctp_assoc_t assoc_id;
 	struct expression *assoc_expr, *addrs_list_expr;
+	/*
+	 * Solaris uses a signature for sctp_laddrs() different from what is specified
+	 * in https://tools.ietf.org/html/rfc6458#section-9.5.
+	 */
+#if defined(__SunOS_5_11)
+	void *live_addrs;
+#else
 	struct sockaddr *live_addrs;
+#endif
 
 	if (check_arg_count(args, 3, error))
 		return STATUS_ERR;
@@ -6740,7 +6812,12 @@ static int syscall_sctp_getladdrs(struct state *state, struct syscall_spec *sysc
 	addrs_list_expr = get_arg(args, 2, error);
 	if (addrs_list_expr->type != EXPR_ELLIPSIS) {
 		int list_length = 0, i = 0;
+#if defined(__SunOS_5_11)
+		struct sockaddr *live_addr = (struct sockaddr *)live_addrs;
+#else
 		struct sockaddr *live_addr = live_addrs;
+#endif
+
 		if (check_type(addrs_list_expr, EXPR_LIST, error)) {
 			goto error_out;
 		}
@@ -6779,7 +6856,7 @@ static int syscall_sctp_freeladdrs(struct state *state, struct syscall_spec *sys
 				   struct expression_list *args,
 				   char **error)
 {
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP))
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	struct expression *addrs_expr;
 	if (check_arg_count(args, 1, error))
 		return STATUS_ERR;
