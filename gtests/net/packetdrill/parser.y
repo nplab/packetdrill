@@ -1690,7 +1690,7 @@ sctp_generic_chunk_spec
 sctp_data_chunk_spec
 : DATA '[' opt_data_flags ',' opt_len ',' opt_tsn ',' opt_sid ',' opt_ssn ',' opt_ppid ']' {
 	if (($5 != -1) &&
-	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_data_chunk)))) {
+	    (!is_valid_u16($5) || ($5 < sizeof(struct _sctp_data_chunk)))) {
 		semantic_error("length value out of range");
 	}
 	$$ = sctp_data_chunk_new($3, $5, $7, $9, $11, $13);
@@ -1750,11 +1750,11 @@ sctp_error_chunk_spec
 sctp_cookie_echo_chunk_spec
 : COOKIE_ECHO '[' opt_flags ',' opt_len ',' opt_val ']' {
 	if (($5 != -1) &&
-	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_cookie_echo_chunk)))) {
+	    (!is_valid_u16($5) || ($5 < sizeof(struct _sctp_cookie_echo_chunk)))) {
 		semantic_error("length value out of range");
 	}
 	if (($5 != -1) && ($7 != NULL) &&
-	    ($5 != sizeof(struct sctp_cookie_echo_chunk) + $7->nr_entries)) {
+	    ($5 != sizeof(struct _sctp_cookie_echo_chunk) + $7->nr_entries)) {
 		semantic_error("length value incompatible with val");
 	}
 	if (($5 == -1) && ($7 != NULL)) {
@@ -1786,14 +1786,14 @@ sctp_shutdown_complete_chunk_spec
 sctp_i_data_chunk_spec
 : I_DATA '[' opt_i_data_flags ',' opt_len ',' opt_tsn ',' opt_sid ',' opt_mid ',' opt_ppid ']' {
 	if (($5 != -1) &&
-	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_i_data_chunk)))) {
+	    (!is_valid_u16($5) || ($5 < sizeof(struct _sctp_i_data_chunk)))) {
 		semantic_error("length value out of range");
 	}
 	$$ = sctp_i_data_chunk_new($3, $5, $7, $9, 0, $11, $13, -1);
 }
 | I_DATA '[' opt_i_data_flags ',' opt_len ',' opt_tsn ',' opt_sid ',' opt_mid ',' opt_fsn ']' {
 	if (($5 != -1) &&
-	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_i_data_chunk)))) {
+	    (!is_valid_u16($5) || ($5 < sizeof(struct _sctp_i_data_chunk)))) {
 		semantic_error("length value out of range");
 	}
 	$$ = sctp_i_data_chunk_new($3, $5, $7, $9, 0, $11, -1, $13);
@@ -1802,7 +1802,7 @@ sctp_i_data_chunk_spec
 sctp_pad_chunk_spec
 : PAD '[' opt_flags ',' opt_len ',' VAL '=' ELLIPSIS ']' {
 	if (($5 != -1) &&
-	    (!is_valid_u16($5) || ($5 < sizeof(struct sctp_pad_chunk)))) {
+	    (!is_valid_u16($5) || ($5 < sizeof(struct _sctp_pad_chunk)))) {
 		semantic_error("length value out of range");
 	}
 	$$ = sctp_pad_chunk_new($3, $5, NULL);

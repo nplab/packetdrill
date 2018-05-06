@@ -77,7 +77,7 @@ struct sctp_chunk {
 #define SCTP_DATA_CHUNK_B_BIT				0x02
 #define SCTP_DATA_CHUNK_E_BIT				0x01
 
-struct sctp_data_chunk {
+struct _sctp_data_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -90,7 +90,7 @@ struct sctp_data_chunk {
 
 #define SCTP_INIT_CHUNK_PARAMETER_OFFSET		20
 
-struct sctp_init_chunk {
+struct _sctp_init_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -102,7 +102,7 @@ struct sctp_init_chunk {
 	__u8 parameter[];
 } __packed;
 
-struct sctp_init_ack_chunk {
+struct _sctp_init_ack_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -122,7 +122,7 @@ union sctp_sack_block {
 	u32 tsn;
 } __packed;
 
-struct sctp_sack_chunk {
+struct _sctp_sack_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -145,7 +145,7 @@ union sctp_nr_sack_block {
 	u32 tsn;
 } __packed;
 
-struct sctp_nr_sack_chunk {
+struct _sctp_nr_sack_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -158,14 +158,14 @@ struct sctp_nr_sack_chunk {
 	union sctp_nr_sack_block block[];
 } __packed;
 
-struct sctp_heartbeat_chunk {
+struct _sctp_heartbeat_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 	__u8 value[];
 } __packed;
 
-struct sctp_heartbeat_ack_chunk {
+struct _sctp_heartbeat_ack_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -175,21 +175,21 @@ struct sctp_heartbeat_ack_chunk {
 #define SCTP_ABORT_CHUNK_T_BIT				0x01
 #define SCTP_ABORT_CHUNK_CAUSE_OFFSET			4
 
-struct sctp_abort_chunk {
+struct _sctp_abort_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 	__u8 cause[];
 } __packed;
 
-struct sctp_shutdown_chunk {
+struct _sctp_shutdown_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 	__be32 cum_tsn;
 } __packed;
 
-struct sctp_shutdown_ack_chunk {
+struct _sctp_shutdown_ack_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -197,34 +197,34 @@ struct sctp_shutdown_ack_chunk {
 
 #define SCTP_ERROR_CHUNK_CAUSE_OFFSET			4
 
-struct sctp_error_chunk {
+struct _sctp_error_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 	__u8 cause[];
 } __packed;
 
-struct sctp_cookie_echo_chunk {
+struct _sctp_cookie_echo_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 	__u8 cookie[];
 } __packed;
 
-struct sctp_cookie_ack_chunk {
+struct _sctp_cookie_ack_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 } __packed;
 
-struct sctp_ecne_chunk {
+struct _sctp_ecne_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 	__be32 lowest_tsn;
 } __packed;
 
-struct sctp_cwr_chunk {
+struct _sctp_cwr_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -233,7 +233,7 @@ struct sctp_cwr_chunk {
 
 #define SCTP_SHUTDOWN_COMPLETE_CHUNK_T_BIT		0x01
 
-struct sctp_shutdown_complete_chunk {
+struct _sctp_shutdown_complete_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -244,7 +244,7 @@ struct sctp_shutdown_complete_chunk {
 #define SCTP_I_DATA_CHUNK_B_BIT				0x02
 #define SCTP_I_DATA_CHUNK_E_BIT				0x01
 
-struct sctp_i_data_chunk {
+struct _sctp_i_data_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -259,14 +259,14 @@ struct sctp_i_data_chunk {
 	__u8 data[];
 } __packed;
 
-struct sctp_pad_chunk {
+struct _sctp_pad_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
 	__u8 padding_data[];
 } __packed;
 
-struct sctp_reconfig_chunk {
+struct _sctp_reconfig_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -278,7 +278,7 @@ struct sctp_stream_identifier_block {
 	__u16 stream_sequence;
 } __packed;
 
-struct sctp_forward_tsn_chunk {
+struct _sctp_forward_tsn_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;
@@ -292,7 +292,7 @@ struct sctp_i_forward_tsn_identifier_block {
 	__u32 message_identifier;
 };
 
-struct sctp_i_forward_tsn_chunk {
+struct _sctp_i_forward_tsn_chunk {
 	__u8 type;
 	__u8 flags;
 	__be16 length;

@@ -1131,7 +1131,7 @@ static int sctp_cause_to_string(FILE *s, struct sctp_cause *cause, char **error)
 }
 
 static int sctp_data_chunk_to_string(FILE *s,
-				     struct sctp_data_chunk *chunk,
+				     struct _sctp_data_chunk *chunk,
 				     char **error)
 {
 	u16 length;
@@ -1139,7 +1139,7 @@ static int sctp_data_chunk_to_string(FILE *s,
 
 	flags = chunk->flags;
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_data_chunk)) {
+	if (length < sizeof(struct _sctp_data_chunk)) {
 		asprintf(error, "DATA chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1170,7 +1170,7 @@ static int sctp_data_chunk_to_string(FILE *s,
 }
 
 static int sctp_init_chunk_to_string(FILE *s,
-				     struct sctp_init_chunk *chunk,
+				     struct _sctp_init_chunk *chunk,
 				     char **error)
 {
 	struct sctp_parameters_iterator iter;
@@ -1180,11 +1180,11 @@ static int sctp_init_chunk_to_string(FILE *s,
 
 	assert(*error == NULL);
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_init_chunk)) {
+	if (length < sizeof(struct _sctp_init_chunk)) {
 		asprintf(error, "INIT chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
-	parameters_length = length - sizeof(struct sctp_init_chunk);
+	parameters_length = length - sizeof(struct _sctp_init_chunk);
 	fputs("INIT[", s);
 	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "tag=%u, ", ntohl(chunk->initiate_tag));
@@ -1215,7 +1215,7 @@ static int sctp_init_chunk_to_string(FILE *s,
 }
 
 static int sctp_init_ack_chunk_to_string(FILE *s,
-					 struct sctp_init_ack_chunk *chunk,
+					 struct _sctp_init_ack_chunk *chunk,
 					 char **error)
 {
 	struct sctp_parameters_iterator iter;
@@ -1225,11 +1225,11 @@ static int sctp_init_ack_chunk_to_string(FILE *s,
 
 	assert(*error == NULL);
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_init_ack_chunk)) {
+	if (length < sizeof(struct _sctp_init_ack_chunk)) {
 		asprintf(error, "INIT_ACK chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
-	parameters_length = length - sizeof(struct sctp_init_ack_chunk);
+	parameters_length = length - sizeof(struct _sctp_init_ack_chunk);
 	fputs("INIT_ACK[", s);
 	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "tag=%u, ", ntohl(chunk->initiate_tag));
@@ -1260,7 +1260,7 @@ static int sctp_init_ack_chunk_to_string(FILE *s,
 }
 
 static int sctp_sack_chunk_to_string(FILE *s,
-				     struct sctp_sack_chunk *chunk,
+				     struct _sctp_sack_chunk *chunk,
 				     char **error)
 {
 	u16 length;
@@ -1268,13 +1268,13 @@ static int sctp_sack_chunk_to_string(FILE *s,
 	u16 i;
 
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_sack_chunk)) {
+	if (length < sizeof(struct _sctp_sack_chunk)) {
 		asprintf(error, "SACK chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
 	nr_gaps = ntohs(chunk->nr_gap_blocks);
 	nr_dups = ntohs(chunk->nr_dup_tsns);
-	if (length != sizeof(struct sctp_sack_chunk) +
+	if (length != sizeof(struct _sctp_sack_chunk) +
 		      (nr_gaps + nr_dups) * sizeof(u32)) {
 		asprintf(error, "SACK chunk length inconsistent");
 		return STATUS_ERR;
@@ -1299,7 +1299,7 @@ static int sctp_sack_chunk_to_string(FILE *s,
 }
 
 static int sctp_nr_sack_chunk_to_string(FILE *s,
-				     struct sctp_nr_sack_chunk *chunk,
+				     struct _sctp_nr_sack_chunk *chunk,
 				     char **error)
 {
 	u16 length;
@@ -1307,14 +1307,14 @@ static int sctp_nr_sack_chunk_to_string(FILE *s,
 	u16 i;
 
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_nr_sack_chunk)) {
+	if (length < sizeof(struct _sctp_nr_sack_chunk)) {
 		asprintf(error, "NR-SACK chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
 	nr_gaps = ntohs(chunk->nr_gap_blocks);
 	nr_of_nr_gaps = ntohs(chunk->nr_of_nr_gap_blocks);
 	nr_dups = ntohs(chunk->nr_dup_tsns);
-	if (length != sizeof(struct sctp_nr_sack_chunk) +
+	if (length != sizeof(struct _sctp_nr_sack_chunk) +
 		      (nr_gaps + nr_of_nr_gaps +  nr_dups) * sizeof(u32)) {
 		asprintf(error, "NR-SACK chunk length inconsistent");
 		return STATUS_ERR;
@@ -1345,7 +1345,7 @@ static int sctp_nr_sack_chunk_to_string(FILE *s,
 }
 
 static int sctp_heartbeat_chunk_to_string(FILE *s,
-					  struct sctp_heartbeat_chunk *chunk,
+					  struct _sctp_heartbeat_chunk *chunk,
 					  char **error)
 {
 	u16 chunk_length, parameter_length, chunk_padding, parameter_padding;
@@ -1353,7 +1353,7 @@ static int sctp_heartbeat_chunk_to_string(FILE *s,
 	int result;
 
 	chunk_length = ntohs(chunk->length);
-	if (chunk_length < sizeof(struct sctp_heartbeat_chunk) +
+	if (chunk_length < sizeof(struct _sctp_heartbeat_chunk) +
 	                   sizeof(struct sctp_heartbeat_information_parameter)) {
 		asprintf(error, "HEARTBEAT chunk too short");
 		return STATUS_ERR;
@@ -1367,7 +1367,7 @@ static int sctp_heartbeat_chunk_to_string(FILE *s,
 	if (parameter_padding != 0)
 		parameter_padding = 4 - parameter_padding;
 	if (chunk_length + chunk_padding !=
-	    sizeof(struct sctp_heartbeat_chunk) +
+	    sizeof(struct _sctp_heartbeat_chunk) +
 	    parameter_length + parameter_padding) {
 		asprintf(error, "HEARTBEAT chunk inconsistent");
 		return STATUS_ERR;
@@ -1381,7 +1381,7 @@ static int sctp_heartbeat_chunk_to_string(FILE *s,
 
 static int sctp_heartbeat_ack_chunk_to_string(
 	FILE *s,
-	struct sctp_heartbeat_ack_chunk *chunk,
+	struct _sctp_heartbeat_ack_chunk *chunk,
 	char **error)
 {
 	u16 chunk_length, parameter_length, chunk_padding, parameter_padding;
@@ -1389,7 +1389,7 @@ static int sctp_heartbeat_ack_chunk_to_string(
 	int result;
 
 	chunk_length = ntohs(chunk->length);
-	if (chunk_length < sizeof(struct sctp_heartbeat_ack_chunk) +
+	if (chunk_length < sizeof(struct _sctp_heartbeat_ack_chunk) +
 	                   sizeof(struct sctp_heartbeat_information_parameter)) {
 		asprintf(error, "HEARTBEAT_ACK chunk too short");
 		return STATUS_ERR;
@@ -1403,7 +1403,7 @@ static int sctp_heartbeat_ack_chunk_to_string(
 	if (parameter_padding != 0)
 		parameter_padding = 4 - parameter_padding;
 	if (chunk_length + chunk_padding !=
-	    sizeof(struct sctp_heartbeat_chunk) +
+	    sizeof(struct _sctp_heartbeat_chunk) +
 	    parameter_length + parameter_padding) {
 		asprintf(error, "HEARTBEAT_ACK chunk inconsistent");
 		return STATUS_ERR;
@@ -1416,7 +1416,7 @@ static int sctp_heartbeat_ack_chunk_to_string(
 }
 
 static int sctp_abort_chunk_to_string(FILE *s,
-				      struct sctp_abort_chunk *chunk,
+				      struct _sctp_abort_chunk *chunk,
 				      char **error)
 {
 	struct sctp_causes_iterator iter;
@@ -1427,7 +1427,7 @@ static int sctp_abort_chunk_to_string(FILE *s,
 
 	flags = chunk->flags;
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_abort_chunk)) {
+	if (length < sizeof(struct _sctp_abort_chunk)) {
 		asprintf(error, "ABORT chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1461,13 +1461,13 @@ static int sctp_abort_chunk_to_string(FILE *s,
 }
 
 static int sctp_shutdown_chunk_to_string(FILE *s,
-					 struct sctp_shutdown_chunk *chunk,
+					 struct _sctp_shutdown_chunk *chunk,
 					 char **error)
 {
 	u16 length;
 
 	length = ntohs(chunk->length);
-	if (length != sizeof(struct sctp_shutdown_chunk)) {
+	if (length != sizeof(struct _sctp_shutdown_chunk)) {
 		asprintf(error, "SHUTDOWN chunk illegal (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1480,13 +1480,13 @@ static int sctp_shutdown_chunk_to_string(FILE *s,
 
 static int sctp_shutdown_ack_chunk_to_string(
 	FILE *s,
-	struct sctp_shutdown_ack_chunk *chunk,
+	struct _sctp_shutdown_ack_chunk *chunk,
 	char **error)
 {
 	u16 length;
 
 	length = ntohs(chunk->length);
-	if (length != sizeof(struct sctp_shutdown_ack_chunk)) {
+	if (length != sizeof(struct _sctp_shutdown_ack_chunk)) {
 		asprintf(error, "SHUTDOWN_ACK chunk too long (length=%u)",
 			 length);
 		return STATUS_ERR;
@@ -1498,7 +1498,7 @@ static int sctp_shutdown_ack_chunk_to_string(
 }
 
 static int sctp_error_chunk_to_string(FILE *s,
-				      struct sctp_error_chunk *chunk,
+				      struct _sctp_error_chunk *chunk,
 				      char **error)
 {
 	struct sctp_causes_iterator iter;
@@ -1507,7 +1507,7 @@ static int sctp_error_chunk_to_string(FILE *s,
 	int result = STATUS_OK;
 
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_abort_chunk)) {
+	if (length < sizeof(struct _sctp_abort_chunk)) {
 		asprintf(error, "ERROR chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1537,7 +1537,7 @@ static int sctp_error_chunk_to_string(FILE *s,
 
 static int sctp_cookie_echo_chunk_to_string(
 	FILE *s,
-	struct sctp_cookie_echo_chunk *chunk,
+	struct _sctp_cookie_echo_chunk *chunk,
 	char **error)
 {
 	u16 length;
@@ -1551,13 +1551,13 @@ static int sctp_cookie_echo_chunk_to_string(
 }
 
 static int sctp_cookie_ack_chunk_to_string(FILE *s,
-					   struct sctp_cookie_ack_chunk *chunk,
+					   struct _sctp_cookie_ack_chunk *chunk,
 					   char **error)
 {
 	u16 length;
 
 	length = ntohs(chunk->length);
-	if (length != sizeof(struct sctp_cookie_ack_chunk)) {
+	if (length != sizeof(struct _sctp_cookie_ack_chunk)) {
 		asprintf(error, "COOKIE_ACK chunk too long (length=%u)",
 			 length);
 		return STATUS_ERR;
@@ -1569,13 +1569,13 @@ static int sctp_cookie_ack_chunk_to_string(FILE *s,
 }
 
 static int sctp_ecne_chunk_to_string(FILE *s,
-				     struct sctp_ecne_chunk *chunk,
+				     struct _sctp_ecne_chunk *chunk,
 				     char **error)
 {
 	u16 length;
 
 	length = ntohs(chunk->length);
-	if (length != sizeof(struct sctp_ecne_chunk)) {
+	if (length != sizeof(struct _sctp_ecne_chunk)) {
 		asprintf(error, "ECNE chunk illegal (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1587,13 +1587,13 @@ static int sctp_ecne_chunk_to_string(FILE *s,
 }
 
 static int sctp_cwr_chunk_to_string(FILE *s,
-				    struct sctp_cwr_chunk *chunk,
+				    struct _sctp_cwr_chunk *chunk,
 				    char **error)
 {
 	u16 length;
 
 	length = ntohs(chunk->length);
-	if (length != sizeof(struct sctp_cwr_chunk)) {
+	if (length != sizeof(struct _sctp_cwr_chunk)) {
 		asprintf(error, "CWR chunk illegal (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1606,7 +1606,7 @@ static int sctp_cwr_chunk_to_string(FILE *s,
 
 static int sctp_shutdown_complete_chunk_to_string(
 	FILE *s,
-	struct sctp_shutdown_complete_chunk *chunk,
+	struct _sctp_shutdown_complete_chunk *chunk,
 	char **error)
 {
 	u8 flags;
@@ -1614,7 +1614,7 @@ static int sctp_shutdown_complete_chunk_to_string(
 
 	flags = chunk->flags;
 	length = ntohs(chunk->length);
-	if (length != sizeof(struct sctp_shutdown_complete_chunk)) {
+	if (length != sizeof(struct _sctp_shutdown_complete_chunk)) {
 		asprintf(error, "SHUTDOWN_COMPLETE chunk too long (length=%u)",
 			 length);
 		return STATUS_ERR;
@@ -1631,7 +1631,7 @@ static int sctp_shutdown_complete_chunk_to_string(
 }
 
 static int sctp_i_data_chunk_to_string(FILE *s,
-				       struct sctp_i_data_chunk *chunk,
+				       struct _sctp_i_data_chunk *chunk,
 				       char **error)
 {
 	u16 length;
@@ -1639,7 +1639,7 @@ static int sctp_i_data_chunk_to_string(FILE *s,
 
 	flags = chunk->flags;
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_i_data_chunk)) {
+	if (length < sizeof(struct _sctp_i_data_chunk)) {
 		asprintf(error, "I-DATA chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1675,7 +1675,7 @@ static int sctp_i_data_chunk_to_string(FILE *s,
 
 static int sctp_pad_chunk_to_string(
 	FILE *s,
-	struct sctp_pad_chunk *chunk,
+	struct _sctp_pad_chunk *chunk,
 	char **error)
 {
 	u16 length;
@@ -1690,7 +1690,7 @@ static int sctp_pad_chunk_to_string(
 
 static int sctp_reconfig_chunk_to_string(
 	FILE *s,
-	struct sctp_reconfig_chunk *chunk,
+	struct _sctp_reconfig_chunk *chunk,
 	char **error)
 {
 	u16 length;
@@ -1700,18 +1700,18 @@ static int sctp_reconfig_chunk_to_string(
 	struct sctp_parameters_iterator iter;
 	
 	length = ntohs(chunk->length);
-	if (length < sizeof(struct sctp_reconfig_chunk) || 
-	    (length > sizeof(struct sctp_reconfig_chunk) && 
-	     length < sizeof(struct sctp_reconfig_chunk) + 4)) {
+	if (length < sizeof(struct _sctp_reconfig_chunk) || 
+	    (length > sizeof(struct _sctp_reconfig_chunk) && 
+	     length < sizeof(struct _sctp_reconfig_chunk) + 4)) {
 		asprintf(error, "RECONFIG chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
-	parameters_length = length - sizeof(struct sctp_reconfig_chunk);
+	parameters_length = length - sizeof(struct _sctp_reconfig_chunk);
 	fputs("RECONFIG[", s);
 	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "len=%u", length);
 	
-	if (length >= sizeof(struct sctp_reconfig_chunk) + 4) {
+	if (length >= sizeof(struct _sctp_reconfig_chunk) + 4) {
 		for (parameter = sctp_parameters_begin(chunk->parameter,
 						       parameters_length,
 						       &iter, error);
@@ -1734,19 +1734,19 @@ static int sctp_reconfig_chunk_to_string(
 }
 
 static u16 get_num_id_blocks (u16 packet_length) {
-	return (packet_length - sizeof(struct sctp_forward_tsn_chunk)) / sizeof(struct sctp_stream_identifier_block);
+	return (packet_length - sizeof(struct _sctp_forward_tsn_chunk)) / sizeof(struct sctp_stream_identifier_block);
 }
 
 static int sctp_forward_tsn_chunk_to_string(
 	FILE *s,
-	struct sctp_forward_tsn_chunk *chunk,
+	struct _sctp_forward_tsn_chunk *chunk,
 	char **error)
 {
 	u16 length, i;
 	length = ntohs(chunk->length);
 	u16 num_id_blocks = get_num_id_blocks(length);
 	
-	if (length < sizeof(struct sctp_forward_tsn_chunk)) {
+	if (length < sizeof(struct _sctp_forward_tsn_chunk)) {
 		asprintf(error, "FORWARD_TSN chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1773,19 +1773,19 @@ static int sctp_forward_tsn_chunk_to_string(
 }
 
 static u16 get_num_id_blocks_for_i_forward_tsn (u16 packet_length) {
-	return (packet_length - sizeof(struct sctp_i_forward_tsn_chunk)) / sizeof(struct sctp_i_forward_tsn_identifier_block);
+	return (packet_length - sizeof(struct _sctp_i_forward_tsn_chunk)) / sizeof(struct sctp_i_forward_tsn_identifier_block);
 }
 
 static int sctp_i_forward_tsn_chunk_to_string(
 	FILE *s,
-	struct sctp_i_forward_tsn_chunk *chunk,
+	struct _sctp_i_forward_tsn_chunk *chunk,
 	char **error)
 {
 	u16 length, i;
 	length = ntohs(chunk->length);
 	u16 num_id_blocks = get_num_id_blocks_for_i_forward_tsn(length);
 	
-	if (length < sizeof(struct sctp_i_forward_tsn_chunk)) {
+	if (length < sizeof(struct _sctp_i_forward_tsn_chunk)) {
 		asprintf(error, "I_FORWARD_TSN chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
@@ -1838,87 +1838,87 @@ int sctp_chunk_to_string(FILE *s, struct sctp_chunk *chunk, char **error)
 	switch (chunk->type) {
 	case SCTP_DATA_CHUNK_TYPE:
 		result = sctp_data_chunk_to_string(s,
-			(struct sctp_data_chunk *)chunk, error);
+			(struct _sctp_data_chunk *)chunk, error);
 		break;
 	case SCTP_INIT_CHUNK_TYPE:
 		result = sctp_init_chunk_to_string(s,
-			(struct sctp_init_chunk *)chunk, error);
+			(struct _sctp_init_chunk *)chunk, error);
 		break;
 	case SCTP_INIT_ACK_CHUNK_TYPE:
 		result = sctp_init_ack_chunk_to_string(s,
-			(struct sctp_init_ack_chunk *)chunk, error);
+			(struct _sctp_init_ack_chunk *)chunk, error);
 		break;
 	case SCTP_SACK_CHUNK_TYPE:
 		result = sctp_sack_chunk_to_string(s,
-			(struct sctp_sack_chunk *)chunk, error);
+			(struct _sctp_sack_chunk *)chunk, error);
 		break;
 	case SCTP_NR_SACK_CHUNK_TYPE:
 		result = sctp_nr_sack_chunk_to_string(s,
-			(struct sctp_nr_sack_chunk *)chunk, error);
+			(struct _sctp_nr_sack_chunk *)chunk, error);
 		break;
 	case SCTP_HEARTBEAT_CHUNK_TYPE:
 		result = sctp_heartbeat_chunk_to_string(s,
-			(struct sctp_heartbeat_chunk *)chunk, error);
+			(struct _sctp_heartbeat_chunk *)chunk, error);
 		break;
 	case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
 		result = sctp_heartbeat_ack_chunk_to_string(s,
-			(struct sctp_heartbeat_ack_chunk *)chunk, error);
+			(struct _sctp_heartbeat_ack_chunk *)chunk, error);
 		break;
 	case SCTP_ABORT_CHUNK_TYPE:
 		result = sctp_abort_chunk_to_string(s,
-			(struct sctp_abort_chunk *)chunk, error);
+			(struct _sctp_abort_chunk *)chunk, error);
 		break;
 	case SCTP_SHUTDOWN_CHUNK_TYPE:
 		result = sctp_shutdown_chunk_to_string(s,
-			(struct sctp_shutdown_chunk *)chunk, error);
+			(struct _sctp_shutdown_chunk *)chunk, error);
 		break;
 	case SCTP_SHUTDOWN_ACK_CHUNK_TYPE:
 		result = sctp_shutdown_ack_chunk_to_string(s,
-			(struct sctp_shutdown_ack_chunk *)chunk, error);
+			(struct _sctp_shutdown_ack_chunk *)chunk, error);
 		break;
 	case SCTP_ERROR_CHUNK_TYPE:
 		result = sctp_error_chunk_to_string(s,
-			(struct sctp_error_chunk *)chunk, error);
+			(struct _sctp_error_chunk *)chunk, error);
 		break;
 	case SCTP_COOKIE_ECHO_CHUNK_TYPE:
 		result = sctp_cookie_echo_chunk_to_string(s,
-			(struct sctp_cookie_echo_chunk *)chunk, error);
+			(struct _sctp_cookie_echo_chunk *)chunk, error);
 		break;
 	case SCTP_COOKIE_ACK_CHUNK_TYPE:
 		result = sctp_cookie_ack_chunk_to_string(s,
-			(struct sctp_cookie_ack_chunk *)chunk, error);
+			(struct _sctp_cookie_ack_chunk *)chunk, error);
 		break;
 	case SCTP_ECNE_CHUNK_TYPE:
 		result = sctp_ecne_chunk_to_string(s,
-			(struct sctp_ecne_chunk *)chunk, error);
+			(struct _sctp_ecne_chunk *)chunk, error);
 		break;
 	case SCTP_CWR_CHUNK_TYPE:
 		result = sctp_cwr_chunk_to_string(s,
-			(struct sctp_cwr_chunk *)chunk, error);
+			(struct _sctp_cwr_chunk *)chunk, error);
 		break;
 	case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
 		result = sctp_shutdown_complete_chunk_to_string(s,
-			(struct sctp_shutdown_complete_chunk *)chunk, error);
+			(struct _sctp_shutdown_complete_chunk *)chunk, error);
 		break;
 	case SCTP_I_DATA_CHUNK_TYPE:
 		result = sctp_i_data_chunk_to_string(s,
-			(struct sctp_i_data_chunk *)chunk, error);
+			(struct _sctp_i_data_chunk *)chunk, error);
 		break;
 	case SCTP_PAD_CHUNK_TYPE:
 		result = sctp_pad_chunk_to_string(s,
-			(struct sctp_pad_chunk *)chunk, error);
+			(struct _sctp_pad_chunk *)chunk, error);
 		break;
 	case SCTP_RECONFIG_CHUNK_TYPE:
 		result = sctp_reconfig_chunk_to_string(s,
-			(struct sctp_reconfig_chunk *)chunk, error);
+			(struct _sctp_reconfig_chunk *)chunk, error);
 		break;
 	case SCTP_FORWARD_TSN_CHUNK_TYPE:
 		result = sctp_forward_tsn_chunk_to_string(s,
-			(struct sctp_forward_tsn_chunk *)chunk, error);
+			(struct _sctp_forward_tsn_chunk *)chunk, error);
 		break;
 	case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
 		result = sctp_i_forward_tsn_chunk_to_string(s,
-			(struct sctp_i_forward_tsn_chunk *)chunk, error);
+			(struct _sctp_i_forward_tsn_chunk *)chunk, error);
 		break;
 	default:
 		result = sctp_unknown_chunk_to_string(s, chunk, error);
