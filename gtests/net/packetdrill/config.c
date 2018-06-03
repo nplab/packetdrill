@@ -245,6 +245,26 @@ void set_default_config(struct config *config)
 	config->wire_client_device	= "eth0";
 	config->wire_server_device	= "eth0";
 #endif
+
+	/* Enter a flag for the OS we are running on */
+#ifdef __APPLE__
+	definition_set(&config->defines, strdup("Apple"), NULL);
+#endif
+#ifdef linux
+	definition_set(&config->defines, strdup("Linux"), NULL);
+#endif
+#ifdef __FreeBSD__
+	definition_set(&config->defines, strdup("FreeBSD"), NULL);
+#endif
+#ifdef __NetBSD__
+	definition_set(&config->defines, strdup("NetBSD"), NULL);
+#endif
+#ifdef __OpenBSD__
+	definition_set(&config->defines, strdup("OpenBSD"), NULL);
+#endif
+#ifdef __SunOS_5_11
+	definition_set(&config->defines, strdup("Solaris"), NULL);
+#endif
 }
 
 static void set_remote_ip_and_prefix(struct config *config)
