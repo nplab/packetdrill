@@ -49,6 +49,8 @@
 #include <stdio.h>
 #include "script.h"
 #include "tcp_options.h"
+#include "parse.h"
+#include "config.h"
 
 /* This include of the bison-generated .h file must go last so that we
  * can first include all of the declarations on which it depends.
@@ -73,6 +75,33 @@ static char *quoted(const char *s)
 {
 	const int delim_len = 1;
 	return strndup(s + delim_len, strlen(s) - 2*delim_len);
+}
+
+/* Check to see if the word in yytext is a user-defined symbol, and if so then
+ * return its value. Otherwise return the word itself.
+ */
+int word(void)
+{
+	char *word = yytext;
+	char *value = NULL;
+
+	/* Look in symbol table for matching user-defined symbol->value map. */
+	value = definition_get(in_config->defines, word);
+	if (value) {
+		if (value[0] == '"') {
+			yylval.string = quoted(value);		/* SYM="val" */
+			return STRING;
+		} else if (value[0] == '`') {
+			yylval.string = quoted(value);		/* SYM=`val` */
+			return BACK_QUOTED;
+		} else {
+			yylval.string = strdup(value);		/* SYM=val */
+			return WORD;
+		}
+	}
+	/* A literal word (e.g. system call name or socket option name). */
+	yylval.string = strdup(word);
+	return WORD;
 }
 
 /* Copy the code inside a code snippet that is enclosed in %{ }% after
@@ -655,7 +684,7 @@ NULL				return NULL_;
 [-]?[0-9]*[.][0-9]+		yylval.floating	= atof(yytext);   return FLOAT;
 [-]?[0-9]+			yylval.integer	= atoll(yytext);  return INTEGER;
 0x[0-9a-fA-F]+			yylval.integer	= hextol(yytext); return HEX_INTEGER;
-[a-zA-Z0-9_]+			yylval.string	= strdup(yytext); return WORD;
+[a-zA-Z0-9_]+			return word();
 \"(\\.|[^"])*\"			yylval.string	= quoted(yytext); return STRING;
 \`(\\.|[^`])*\`			yylval.string	= quoted(yytext); return BACK_QUOTED;
 [^ \t\n]			return (int) yytext[0];

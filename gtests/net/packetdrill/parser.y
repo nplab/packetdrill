@@ -141,7 +141,7 @@ static int current_script_line = -1;
  * We uses this object to look up configuration info needed during
  * parsing (such as whether packets are IPv4 or IPv6).
  */
-static const struct config *in_config = NULL;
+struct config *in_config = NULL;
 
 /* The output of the parser: an output script containing
  * 1) a linked list of options
@@ -228,9 +228,9 @@ void read_script(const char *script_path, struct script *script)
  * text script file with the given path name and fills in the script
  * object with the parsed representation.
  */
-int parse_script(const struct config *config,
-			 struct script *script,
-			 struct invocation *callback_invocation)
+int parse_script(struct config *config,
+		 struct script *script,
+		 struct invocation *callback_invocation)
 {
 	/* This bison-generated parser is not multi-thread safe, so we
 	 * have a lock to prevent more than one thread using the

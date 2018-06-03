@@ -40,6 +40,52 @@
 
 extern struct option options[];
 
+/* A linked list of symbol->value (FOO=bar) definitions from command line. */
+struct definition {
+	char *symbol;	/* name of the symbol; owns the string */
+	char *value;	/* value of the symbol; owns the string */
+	struct definition *next;	/* link for linked list */
+};
+
+/* Return the definition in the linked list with a matching symbol, or NULL */
+static inline struct definition *definition_find(struct definition *defs,
+						 char *symbol)
+{
+	struct definition *def = NULL;
+
+	for (def = defs; def != NULL; def = def->next) {
+		if (strcmp(def->symbol, symbol) == 0)
+			return def;
+	}
+	return NULL;
+}
+
+/* Set the value of the given symbol to the given value. */
+static inline void definition_set(struct definition **defs,
+				  char *symbol, char *value)
+{
+	struct definition *def = definition_find(*defs, symbol);
+
+	if (def) {
+		free(def->value);
+		def->value = value;
+	} else {
+		def = calloc(1, sizeof(struct definition));
+		def->symbol = symbol;
+		def->value = value;
+		def->next = *defs;	/* link to existing entries */
+		*defs = def;	/* insert at head of linked list */
+	}
+}
+
+/* Return the value of the given symbol, or NULL if not found. */
+static inline char *definition_get(struct definition *defs, char *symbol)
+{
+	struct definition *def = definition_find(defs, symbol);
+
+	return def ? def->value : NULL;
+}
+
 struct config {
 	const char **argv;			/* a copy of process argv */
 
@@ -112,6 +158,9 @@ struct config {
 	char *tun_device;
 	bool persistent_tun_device;
 #endif
+
+	/* List of FOO=bar definitions from command line. */
+	struct definition *defines;
 };
 
 /* Top-level info about the invocation of a test script */

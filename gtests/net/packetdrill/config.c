@@ -58,13 +58,14 @@ enum option_codes {
 	OPT_TCP_TS_TICK_USECS,
 	OPT_NON_FATAL,
 	OPT_DRY_RUN,
-	OPT_VERBOSE = 'v',	/* our only single-letter option */
 	OPT_DEBUG,
 	OPT_UDP_ENCAPS,
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	OPT_TUN_DEV,
 	OPT_PERSISTENT_TUN_DEV,
 #endif
+	OPT_DEFINE = 'D',	/* a '-D' single-letter option */
+	OPT_VERBOSE = 'v',	/* a '-v' single-letter option */
 };
 
 /* Specification of command line options for getopt_long(). */
@@ -92,6 +93,7 @@ struct option options[] = {
 	{ "tcp_ts_tick_usecs",	.has_arg = true,  NULL, OPT_TCP_TS_TICK_USECS },
 	{ "non_fatal",		.has_arg = true,  NULL, OPT_NON_FATAL },
 	{ "dry_run",		.has_arg = false, NULL, OPT_DRY_RUN },
+	{ "define",		.has_arg = true,  NULL, OPT_DEFINE },
 	{ "verbose",		.has_arg = false, NULL, OPT_VERBOSE },
 	{ "debug",		.has_arg = false, NULL, OPT_DEBUG },
 	{ "udp_encapsulation",	.has_arg = true,  NULL, OPT_UDP_ENCAPS },
@@ -128,6 +130,7 @@ void show_usage(void)
 		"\t[--wire_client_dev=<eth_dev_name>]\n"
 		"\t[--wire_server_dev=<eth_dev_name>]\n"
 		"\t[--dry_run]\n"
+		"\t[--define symbol1=val1 --define symbol2=val2 ...]\n"
 		"\t[--verbose|-v]\n"
 		"\t[--debug] * requires compilation with DEBUG *\n"
 		"\t[--udp_encapsulation=[sctp,tcp]]\n"
@@ -391,7 +394,7 @@ static void process_option(int opt, char *optarg, struct config *config,
 			   char *where)
 {
 	int port = 0;
-	char *end = NULL;
+	char *end = NULL, *equals = NULL, *symbol = NULL, *value = NULL;
 	unsigned long speed = 0;
 
 	DEBUGP("process_option %d = %s\n", opt, optarg);
@@ -494,6 +497,14 @@ static void process_option(int opt, char *optarg, struct config *config,
 	case OPT_DRY_RUN:
 		config->dry_run = true;
 		break;
+	case OPT_DEFINE:
+		equals = strstr(optarg, "=");
+		if (equals == optarg || equals == NULL)
+			die("%s: bad definition: %s\n", where, optarg);
+		symbol = strndup(optarg, equals - optarg);
+		value = strdup(equals + 1);
+		definition_set(&config->defines, symbol, value);
+		break;
 	case OPT_VERBOSE:
 		config->verbose = true;
 		break;
@@ -550,7 +561,7 @@ char **parse_command_line_options(int argc, char *argv[],
 
 	/* Parse the arguments. */
 	optind = 0;
-	while ((c = getopt_long(argc, argv, "v", options, NULL)) > 0)
+	while ((c = getopt_long(argc, argv, "vD:", options, NULL)) > 0)
 		process_option(c, optarg, config, "Command Line");
 	return argv + optind;
 }
@@ -560,6 +571,7 @@ static void parse_script_options(struct config *config,
 {
 	struct option_list *opt = option_list;
 	while (opt != NULL) {
+printf("opt->name = %s\n", opt->name);
 		int i;
 		int c = 0;
 		for (i = 0; options[i].name != NULL; i++) {
@@ -568,15 +580,21 @@ static void parse_script_options(struct config *config,
 				break;
 			}
 		}
-		if (c != 0) {
-			process_option(options[i].val,
-				       opt->value, config,
-				       config->script_path);
-		} else {
-			die("%s: option '%s' unknown in file: %s\n",
-			    config->script_path, opt->name,
-			    config->script_path);
-		}
+
+		if (!c)
+			die("%s: option '%s' unknown\n",
+			    config->script_path, opt->name);
+		if (opt->value && !options[i].has_arg)
+			die("%s: option '%s' forbids an argument\n",
+			    config->script_path, opt->name);
+		if (!opt->value && options[i].has_arg)
+			die("%s: option '%s' requires an argument\n",
+			    config->script_path, opt->name);
+
+		process_option(options[i].val,
+			       opt->value, config,
+			       config->script_path);
+
 		opt = opt->next;
 	}
 }
