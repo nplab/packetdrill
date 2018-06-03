@@ -133,7 +133,7 @@ static s64 hextol(const char *s)
 }
 
 enum ifdef_os {
-	Linux_IFDEF = 1, FreeBSD_IFDEF, NetBSD_IFDEF, OpenBSD_IFDEF, Omnet_IFDEF, Apple_IFDEF
+	Linux_IFDEF = 1, FreeBSD_IFDEF, NetBSD_IFDEF, OpenBSD_IFDEF, Omnet_IFDEF, Apple_IFDEF, Solaris_IFDEF
 };
 
 #define MAX_IFDEF_DEPTH 1
@@ -154,6 +154,8 @@ static inline int get_os_name_length(enum ifdef_os os) {
 		return strlen("Omnet");
 	case Apple_IFDEF:
 		return strlen("Apple");
+	case Solaris_IFDEF:
+		return strlen("Solaris");
 	default:
 		return -1;
 	}
@@ -175,6 +177,9 @@ static inline bool ignore_ifdef(enum ifdef_os os) {
 #endif
 #ifdef __APPLE__
 	case Apple_IFDEF:
+#endif
+#ifdef __SunOS_5_11
+	case Solaris_IFDEF:
 #endif
 	/* no need to handle Omnet here */
 		return false;
@@ -255,6 +260,8 @@ c_comment	\/\*(([^*])|(\*[^\/]))*\*\/
  *   #ifdef NetBSD  => Code that only NetBSD hosts should execute
  *   #ifdef OpenBSD => Code that only OpenBSD hosts should execute
  *   #ifdef Omnet   => Code that only an Omnet based simulation should execute
+ *   #ifdef Apple   => Code that only Apple hosts should execute
+ *   #ifdef Solaris => Code that only Solaris hosts should execute
  *
  *   the pattern for using #ifdef is like this:
  *   #ifdef Linux
@@ -273,6 +280,8 @@ ifdef_linux	{ifdef_begin}(?i:Linux){end_matcher}{ifdef_end}
 ifdef_netbsd	{ifdef_begin}(?i:NetBSD){end_matcher}{ifdef_end}
 ifdef_openbsd	{ifdef_begin}(?i:OpenBSD){end_matcher}{ifdef_end}
 ifdef_omnet	{ifdef_begin}(?i:Omnet){end_matcher}{ifdef_end}
+ifdef_apple	{ifdef_begin}(?i:Apple){end_matcher}{ifdef_end}
+ifdef_solaris	{ifdef_begin}(?i:Solaris){end_matcher}{ifdef_end}
 
 /* The regexp for code snippets is analogous to that for C comments.
  * Here is a summary of the regexp for code snippets:
@@ -696,6 +705,8 @@ NULL				return NULL_;
 {ifdef_netbsd}			handle_ifdef(NetBSD_IFDEF, yytext);
 {ifdef_openbsd}			handle_ifdef(OpenBSD_IFDEF, yytext);
 {ifdef_omnet}			handle_ifdef(Omnet_IFDEF, yytext);
+{ifdef_apple}			handle_ifdef(Apple_IFDEF, yytext);
+{ifdef_solaris}			handle_ifdef(Solaris_IFDEF, yytext);
 {code}				yylval.string = code(yytext);   return CODE;
 {ipv4_addr}			yylval.string = strdup(yytext); return IPV4_ADDR;
 {ipv6_addr}			yylval.string = strdup(yytext); return IPV6_ADDR;
