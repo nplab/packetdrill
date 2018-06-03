@@ -128,7 +128,7 @@ extern int yywrap(void);
 pthread_mutex_t parser_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* The input to the parser: the path name of the script file to parse. */
-static const char* current_script_path = NULL;
+const char* current_script_path = NULL;
 
 /* The starting line number of the input script statement that we're
  * currently parsing. This may be different than yylineno if bison had

@@ -51,6 +51,7 @@
 #include "tcp_options.h"
 #include "parse.h"
 #include "config.h"
+#include "logging.h"
 
 /* This include of the bison-generated .h file must go last so that we
  * can first include all of the declarations on which it depends.
@@ -131,110 +132,6 @@ static s64 hextol(const char *s)
 {
 	return strtol(yytext + 2, NULL, 16);
 }
-
-enum ifdef_os {
-	Linux_IFDEF = 1, FreeBSD_IFDEF, NetBSD_IFDEF, OpenBSD_IFDEF, Omnet_IFDEF, Apple_IFDEF, Solaris_IFDEF
-};
-
-#define MAX_IFDEF_DEPTH 1
-YY_BUFFER_STATE ifdef_stack[MAX_IFDEF_DEPTH];
-int ifdef_stack_ptr = 0;
-
-static inline int get_os_name_length(enum ifdef_os os) {
-	switch (os) {
-	case Linux_IFDEF:
-		return strlen("Linux");
-	case FreeBSD_IFDEF:
-		return strlen("FreeBSD");
-	case NetBSD_IFDEF:
-		return strlen("NetBSD");
-	case OpenBSD_IFDEF:
-		return strlen("OpenBSD");
-	case Omnet_IFDEF:
-		return strlen("Omnet");
-	case Apple_IFDEF:
-		return strlen("Apple");
-	case Solaris_IFDEF:
-		return strlen("Solaris");
-	default:
-		return -1;
-	}
-}
-
-static inline bool ignore_ifdef(enum ifdef_os os) {
-	switch (os) {
-#ifdef linux
-	case Linux_IFDEF:
-#endif
-#ifdef __FreeBSD__
-	case FreeBSD_IFDEF:
-#endif
-#ifdef __OpenBSD__
-	case OpenBSD_IFDEF:
-#endif
-#ifdef __NetBSD__
-	case NetBSD_IFDEF:
-#endif
-#ifdef __APPLE__
-	case Apple_IFDEF:
-#endif
-#ifdef __SunOS_5_11
-	case Solaris_IFDEF:
-#endif
-	/* no need to handle Omnet here */
-		return false;
-	default:
-		return true;
-	}
-}
-
-static inline char* remove_ifdef_start_and_endtag(char *code, int os_name_length) {
-	unsigned int ifdef_length = strlen("#ifdef ");
-	unsigned int endif_length = strlen("#endif");
-	unsigned int newline_before_endif = 0;
-	char *code_without_ifdef = NULL;
-
-	code_without_ifdef = code + ifdef_length + os_name_length;
-	newline_before_endif = strlen(code_without_ifdef) - endif_length;
-	code_without_ifdef[newline_before_endif] = (char) 0;
-	return code_without_ifdef;
-}
-
-static int old_yylineno = 0;
-
-static void handle_ifdef(enum ifdef_os os, const char *s) {
-	char *code = NULL;
-	char *code_without_ifdef = NULL;
-	int os_name_length = get_os_name_length(os);
-
-	if (os_name_length == -1) {
-		fprintf(stderr, "handle_ifdef with unknown os called.\n");
-		exit(1);
-	}
-
-	if (ignore_ifdef(os)) {
-		return;
-	}
-
-	if (ifdef_stack_ptr >= MAX_IFDEF_DEPTH) {
-		fprintf(stderr, "Ifdefs nested too deeply");
-		exit(1);
-	}
-
-	code = strdup(s);
-
-	// keep track of the current value of yylineno, because we need to restore it later (see EOF-Condition),
-	// otherwise all ifdefs that were interpreted will count twice in yylineno,
-	// which will mess up the value in yylineno.
-	old_yylineno = yylineno;
-
-	code_without_ifdef = remove_ifdef_start_and_endtag(code, os_name_length);
-	ifdef_stack[ifdef_stack_ptr++] = YY_CURRENT_BUFFER;
-	yy_switch_to_buffer(yy_scan_string(code_without_ifdef));
-
-	free(code);
-}
-
 %}
 
 %{
@@ -253,35 +150,6 @@ cpp_comment	\/\/[^\n]*\n
  *   close comment
  */
 c_comment	\/\*(([^*])|(\*[^\/]))*\*\/
-
-/* This matches the following platform specific #ifdef-forms:
- *   #ifdef Linux   => Code that only Linux hosts should execute
- *   #ifdef FreeBSD => Code that only FreeBSD hosts should execute
- *   #ifdef NetBSD  => Code that only NetBSD hosts should execute
- *   #ifdef OpenBSD => Code that only OpenBSD hosts should execute
- *   #ifdef Omnet   => Code that only an Omnet based simulation should execute
- *   #ifdef Apple   => Code that only Apple hosts should execute
- *   #ifdef Solaris => Code that only Solaris hosts should execute
- *
- *   the pattern for using #ifdef is like this:
- *   #ifdef Linux
- *   (specific code only for linux)
- *   #endif
- */
-
-/* these are the tags that identify the start and ending of an ifdef block */
-ifdef_begin #ifdef[ ]
-ifdef_end   #endif
-/* end_matcher actually matches everything except the "#endif" tag. */
-end_matcher (([^#])|(#[^e])|(#e[^n])|(#en[^d])|(#end[^i])|(#endi[^f]))*
-
-ifdef_freebsd	{ifdef_begin}(?i:FreeBSD){end_matcher}{ifdef_end}
-ifdef_linux	{ifdef_begin}(?i:Linux){end_matcher}{ifdef_end}
-ifdef_netbsd	{ifdef_begin}(?i:NetBSD){end_matcher}{ifdef_end}
-ifdef_openbsd	{ifdef_begin}(?i:OpenBSD){end_matcher}{ifdef_end}
-ifdef_omnet	{ifdef_begin}(?i:Omnet){end_matcher}{ifdef_end}
-ifdef_apple	{ifdef_begin}(?i:Apple){end_matcher}{ifdef_end}
-ifdef_solaris	{ifdef_begin}(?i:Solaris){end_matcher}{ifdef_end}
 
 /* The regexp for code snippets is analogous to that for C comments.
  * Here is a summary of the regexp for code snippets:
@@ -318,6 +186,13 @@ v11	[:][:]ffff[:](0){1,4}[:]{ipv4_addr}
 /* IPv4-embedded IPv6 addresses: */
 v12	({seg}[:]){1,4}[:]{ipv4_addr}
 ipv6_addr ({v0}|{v1}|{v2}|{v3}|{v4}|{v5}|{v6}|{v7}|{v8}|{v9}|{v10}|{v11}|{v12})
+
+%{
+static int last_ifdef_yylineno = 0;
+extern const char* current_script_path;
+%}
+
+%x IFDEF_VARIABLE IFDEF_COMMENT
 
 %%
 sa_family			return SA_FAMILY;
@@ -700,24 +575,46 @@ NULL				return NULL_;
 [ \t\n]+			/* ignore whitespace */;
 {cpp_comment}			/* ignore C++-style comment */;
 {c_comment}			/* ignore C-style comment */;
-{ifdef_freebsd}			handle_ifdef(FreeBSD_IFDEF, yytext);
-{ifdef_linux}			handle_ifdef(Linux_IFDEF, yytext);
-{ifdef_netbsd}			handle_ifdef(NetBSD_IFDEF, yytext);
-{ifdef_openbsd}			handle_ifdef(OpenBSD_IFDEF, yytext);
-{ifdef_omnet}			handle_ifdef(Omnet_IFDEF, yytext);
-{ifdef_apple}			handle_ifdef(Apple_IFDEF, yytext);
-{ifdef_solaris}			handle_ifdef(Solaris_IFDEF, yytext);
+#ifdef				{
+					if (last_ifdef_yylineno != 0) {
+						die("%s:%d: #ifdef already seen in line %d\n",
+						    current_script_path, yylineno, last_ifdef_yylineno);
+					} else {
+						last_ifdef_yylineno = yylineno;
+						BEGIN(IFDEF_VARIABLE);
+					}
+				}
+<IFDEF_VARIABLE>[ \t\n]+	;
+<IFDEF_VARIABLE>[a-zA-Z][a-zA-Z0-9_]+ {
+					if (definition_find(in_config->defines, yytext) != NULL) {
+						BEGIN(INITIAL);
+					} else {
+						BEGIN(IFDEF_COMMENT);
+					}
+				}
+<IFDEF_VARIABLE>[^a-zA-Z]	{
+					die("%s:%d: #ifdef must be followed by name\n",
+					    current_script_path, yylineno);
+				}
+<IFDEF_COMMENT>(.|\n) 		;
+<INITIAL,IFDEF_COMMENT>#endif	{
+					if (last_ifdef_yylineno == 0) {
+						die("%s:%d: missing #ifdef for #endif\n",
+						    current_script_path, yylineno);
+					} else {
+						last_ifdef_yylineno = 0;
+						BEGIN(INITIAL);
+					}
+				}
 {code}				yylval.string = code(yytext);   return CODE;
 {ipv4_addr}			yylval.string = strdup(yytext); return IPV4_ADDR;
 {ipv6_addr}			yylval.string = strdup(yytext); return IPV6_ADDR;
 <<EOF>>				{
-					if ( --ifdef_stack_ptr < 0 ) {
-						yyterminate();
+					if (last_ifdef_yylineno != 0) {
+						die("%s:%d: unterminated #ifdef in line %d\n",
+						    current_script_path, yylineno, last_ifdef_yylineno);
 					} else {
-						// here we need to restore the saved correct value of yylineno
-						yylineno = old_yylineno;
-						yy_delete_buffer(YY_CURRENT_BUFFER);
-						yy_switch_to_buffer(ifdef_stack[ifdef_stack_ptr]);
+						yyterminate();
 					}
 				}
 %%
