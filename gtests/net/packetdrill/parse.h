@@ -27,7 +27,7 @@
 
 #include "types.h"
 
-#include <assert.h>
+#include "assert.h"
 #include "config.h"
 #include "script.h"
 

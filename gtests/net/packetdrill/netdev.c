@@ -26,7 +26,6 @@
 #include "netdev.h"
 
 #include <arpa/inet.h>
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <net/if.h>
@@ -52,6 +51,7 @@
 #include <sys/kern_control.h>
 #include <sys/kern_event.h>
 #endif
+#include "assert.h"
 #include "ip.h"
 #include "ipv6.h"
 #include "logging.h"

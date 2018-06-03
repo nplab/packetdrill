@@ -25,9 +25,9 @@
 
 #include "packet.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "assert.h"
 #include "ethernet.h"
 #include "gre_packet.h"
 #include "ip_packet.h"

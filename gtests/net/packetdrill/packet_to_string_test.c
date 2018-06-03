@@ -24,9 +24,9 @@
 
 #include "packet_to_string.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "assert.h"
 #include "ethernet.h"
 #include "packet_parser.h"
 #include "logging.h"

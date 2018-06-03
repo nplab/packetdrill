@@ -28,8 +28,8 @@
 
 #include "types.h"
 
-#include <assert.h>
 #include <sys/time.h>
+#include "assert.h"
 #include "gre.h"
 #include "header.h"
 #include "icmp.h"

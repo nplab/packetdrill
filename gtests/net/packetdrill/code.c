@@ -25,7 +25,6 @@
 
 #include "code.h"
 
-#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -36,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "assert.h"
 #include "run.h"
 #include "tcp.h"
 

@@ -25,7 +25,6 @@
 #include "packet_parser.h"
 
 #include <arpa/inet.h>
-#include <assert.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -35,6 +34,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "assert.h"
 #include "checksum.h"
 #include "ethernet.h"
 #include "gre.h"

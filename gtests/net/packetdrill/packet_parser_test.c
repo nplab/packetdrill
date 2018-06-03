@@ -22,10 +22,10 @@
  * Test for parsing IP packets.
  */
 
+#include "assert.h"
 #include "ethernet.h"
 #include "packet_parser.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 

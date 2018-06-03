@@ -31,7 +31,6 @@
  * convention of including types.h first, before everything else.
  */
 #define _GNU_SOURCE		/* for asprintf */
-#include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,6 +42,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
+#include "assert.h"
 #include "platforms.h"
 
 /* We use some unconventional formatting here to avoid checkpatch.pl

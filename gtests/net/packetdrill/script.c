@@ -24,11 +24,11 @@
 
 #include "script.h"
 
-#include <assert.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <stdlib.h>
 
+#include "assert.h"
 #include "symbols.h"
 
 /* Fill in a value representing the given expression in

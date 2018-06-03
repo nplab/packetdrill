@@ -25,7 +25,6 @@
 #include "run_system_call.h"
 
 #include <arpa/inet.h>
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -63,6 +62,7 @@
 #endif
 #include <time.h>
 #include <unistd.h>
+#include "assert.h"
 #include "logging.h"
 #include "run.h"
 #include "script.h"
