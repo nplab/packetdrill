@@ -842,6 +842,9 @@ option
 : option_flag '=' option_value {
 	$$ = new_option($1, $3);
 }
+| option_flag {
+	$$ = new_option($1, NULL);
+}
 
 option_flag
 : OPTION	{ $$ = $1; }
@@ -855,6 +858,38 @@ option_value
 | IPV6_ADDR	{ $$ = $1; }
 | IPV4		{ $$ = strdup("ipv4"); }
 | IPV6		{ $$ = strdup("ipv6"); }
+| WORD '=' INTEGER {
+	/* For consistency, allow syntax like: --define=PROTO=132 */
+	char *lhs = $1;
+	s64 rhs = $3;
+
+	asprintf(&($$), "%s=%lld", lhs, rhs);
+	free(lhs);
+}
+| WORD '=' WORD {
+	/* For consistency, allow syntax like: --define=PROTO=IPPROTO_TCP */
+	char *lhs = $1, *rhs = $3;
+
+	asprintf(&($$), "%s=%s", lhs, rhs);
+	free(lhs);
+	free(rhs);
+}
+| WORD '=' STRING {
+	/* For consistency, allow syntax like: --define=CC="reno" */
+	char *lhs = $1, *rhs = $3;
+
+	asprintf(&($$), "%s=\"%s\"", lhs, rhs);
+	free(lhs);
+	free(rhs);
+}
+| WORD '=' BACK_QUOTED {
+	/* For consistency, allow syntax like: --define=SCRIPT=`cleanup` */
+	char *lhs = $1, *rhs = $3;
+
+	asprintf(&($$), "%s=`%s`", lhs, rhs);
+	free(lhs);
+	free(rhs);
+}
 ;
 
 opt_init_command
