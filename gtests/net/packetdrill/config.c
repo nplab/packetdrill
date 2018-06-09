@@ -591,7 +591,6 @@ static void parse_script_options(struct config *config,
 {
 	struct option_list *opt = option_list;
 	while (opt != NULL) {
-printf("opt->name = %s\n", opt->name);
 		int i;
 		int c = 0;
 		for (i = 0; options[i].name != NULL; i++) {
