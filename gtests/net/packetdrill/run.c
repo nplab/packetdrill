@@ -68,6 +68,15 @@ const int MAX_SPIN_USECS = 100;
 const int MAX_SPIN_USECS = 20;
 #endif
 
+/* Global bool init_cmd_exed */
+bool init_cmd_exed = false;
+
+/* Final command to always execute at end of script, in order to clean up: */
+const char *cleanup_cmd;
+
+/* Path of currently-executing script, for use in cleanup command errors: */
+const char *script_path;
+
 static struct state *state = NULL;
 
 struct state *state_new(struct config *config,
@@ -514,7 +523,8 @@ static s64 schedule_start_time_usecs(void)
 #endif
 }
 
-void signal_handler(int signal_number) {
+void signal_handler(int signal_number)
+{
 	if (state != NULL) {
 		close_all_sockets(state);
 		if (state->netdev != NULL) {
@@ -523,6 +533,28 @@ void signal_handler(int signal_number) {
 	}
 	die("Handled signal %d\n", signal_number);
 }
+
+/* Run final command we always execute at end of script, to clean up.  If there
+ * is a cleanup command at the end of a packetdrill script, we execute that no
+ * matter whether the test passes or fails. This makes the cleanup command a
+ * good place to undo any sysctl settings the script changed, for example.
+ */
+int run_cleanup_command(void)
+{
+	if (cleanup_cmd != NULL && init_cmd_exed) {
+		char *error = NULL;
+
+		if (safe_system(cleanup_cmd, &error)) {
+			fprintf(stderr,
+				"%s: error executing cleanup command: %s\n",
+				 script_path, error);
+			free(error);
+			return STATUS_ERR;
+		}
+	}
+	return STATUS_OK;
+}
+
 
 void run_script(struct config *config, struct script *script)
 {
@@ -548,6 +580,8 @@ void run_script(struct config *config, struct script *script)
 	/* This interpreter loop runs for local mode or wire client mode. */
 	assert(!config->is_wire_server);
 
+	script_path = config->script_path;
+
 	/* How we use the network is of course a little different in
 	 * each of the two cases....
 	 */
@@ -563,12 +597,16 @@ void run_script(struct config *config, struct script *script)
 		wire_client_init(state->wire_client, config, script, state);
 	}
 
+	init_cmd_exed = false;
 	if (script->init_command != NULL) {
 		if (safe_system(script->init_command->command_line,
 				&error)) {
-			die("%s: error executing init command: %s\n",
-			    config->script_path, error);
+			asprintf(&error, "%s: error executing init command: %s\n",
+				 config->script_path, error);
+			free(error);
+			exit(EXIT_FAILURE);
 		}
+		init_cmd_exed = true;
 	}
 
 	signal(SIGPIPE, SIG_IGN);	/* ignore EPIPE */
@@ -629,6 +667,9 @@ void run_script(struct config *config, struct script *script)
 	/* Wait for any outstanding packet events we requested on the server. */
 	if (state->wire_client != NULL)
 		wire_client_next_event(state->wire_client, NULL);
+
+	if (run_cleanup_command() == STATUS_ERR)
+		exit(EXIT_FAILURE);
 
 	if (code_execute(state->code, &error)) {
 		char *script_path = strdup(state->config->script_path);

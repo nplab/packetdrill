@@ -763,9 +763,13 @@ struct script {
 	struct option_list *option_list;    /* linked list of options */
 	struct command_spec *init_command;  /* untimed initialization command */
 	struct event	*event_list;	    /* linked list of all events */
+	struct command_spec *cleanup_command;  /* untimed cleanup command */
 	char		*buffer;	    /* raw input text of the script */
 	int		length;		    /* number of bytes in the script */
 };
+
+/* Global pointer for final command we always execute at end of script: */
+extern const char *cleanup_cmd;
 
 /* A table entry mapping a bit mask to its human-readable name.
  * A table of such mappings must be terminated with a struct with a

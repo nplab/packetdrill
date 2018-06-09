@@ -123,6 +123,7 @@ extern char *yytext;
 extern int yylex(void);
 extern int yyparse(void);
 extern int yywrap(void);
+extern const char *cleanup_cmd;
 
 /* This mutex guards all parser global variables declared in this file. */
 pthread_mutex_t parser_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -811,7 +812,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %%  /* The grammar follows. */
 
 script
-: opt_options opt_init_command events {
+: opt_options opt_init_command events opt_cleanup_command {
 	$$ = NULL;		/* The parser output is in out_script */
 }
 ;
@@ -5849,5 +5850,17 @@ code_spec
 null
 : NULL_ {
 	$$ = new_expression(EXPR_NULL);
+}
+;
+
+opt_cleanup_command
+:			{ }
+| cleanup_command	{ }
+;
+
+cleanup_command
+: command_spec {
+	out_script->cleanup_command = $1;
+	cleanup_cmd = out_script->cleanup_command->command_line;
 }
 ;

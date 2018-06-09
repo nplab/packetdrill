@@ -184,4 +184,7 @@ extern void set_scheduling_priority(void);
 /* Try to pin our pages into RAM. */
 extern void lock_memory(void);
 
+/* Run final command we always execute at end of script, to clean up. */
+extern int run_cleanup_command(void);
+
 #endif /* __RUN_H__ */
