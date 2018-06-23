@@ -68,6 +68,26 @@
 #include "open_memstream.h"
 #endif
 
+/*
+ * Very old compilers like gcc 4.2.1 do not define the endian
+ * macros. gcc 4.2.1 is used as the default compiler on
+ * PowerPC and PowerPC64 for FreeBSD. So define the macros
+ * for these platform.
+ */
+
+#if !defined(__ORDER_LITTLE_ENDIAN__)
+#define __ORDER_LITTLE_ENDIAN__ 1234
+#endif
+#if !defined(__ORDER_BIG_ENDIAN__)
+#define __ORDER_BIG_ENDIAN__ 4321
+#endif
+#if !defined(__BYTE_ORDER__)
+#if defined(__PPC__) || defined(__PPC64__)
+#define __BYTE_ORDER__ __ORDER_BIG_ENDIAN__
+#else
+#define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__
+#endif
+
 #endif  /* __FreeBSD__ */
 
 /* ------------------------- OpenBSD --------------------- */
