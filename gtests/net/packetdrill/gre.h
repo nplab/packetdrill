@@ -35,7 +35,7 @@
 
 /* GRE header. See RFC 1701. */
 struct gre {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	__u16	recursion_control:3,
 		strict_route:1,
 		has_seq:1,
@@ -45,7 +45,7 @@ struct gre {
 		version:3,
 		reserved:4,
 		ack:1;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 	__u16	has_checksum:1,
 		has_routing:1,
 		has_key:1,

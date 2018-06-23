@@ -32,13 +32,13 @@
 #include <netinet/in.h>
 
 struct ipv6 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	__u8			traffic_class_hi:4,
 				version:4;
 	__u8			flow_label_hi:4,
 				traffic_class_lo:4;
 	__u16			flow_label_lo;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 	__u8			version:4,
 				traffic_class_hi:4;
 	__u8			traffic_class_lo:4,

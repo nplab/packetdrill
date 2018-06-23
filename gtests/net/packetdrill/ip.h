@@ -30,10 +30,10 @@
 #include "types.h"
 
 struct ipv4 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	__u8	ihl:4,
 		version:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 	__u8	version:4,
 		ihl:4;
 #else

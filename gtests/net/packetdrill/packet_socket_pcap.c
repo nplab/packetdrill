@@ -311,9 +311,9 @@ int packet_socket_receive(struct packet_socket *psock,
 		}
 		break;
 	case DLT_RAW:
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 		version = (*pkt_data & 0xf0) >> 4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 		version = *pkt_data & 0x0f;
 #else
 #error "Please fix endianness defines"

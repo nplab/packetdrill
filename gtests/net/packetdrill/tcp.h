@@ -94,7 +94,7 @@ struct tcp {
 	__be16	dst_port;
 	__be32	seq;
 	__be32	ack_seq;
-#  if __BYTE_ORDER == __LITTLE_ENDIAN
+#  if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	__u16	res1:2,
 		res2:2,
 		doff:4,
@@ -106,7 +106,7 @@ struct tcp {
 		urg:1,
 		ece:1,
 		cwr:1;
-#  elif __BYTE_ORDER == __BIG_ENDIAN
+#  elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 	__u16	doff:4,
 		res2:2,
 		res1:2,
