@@ -87,6 +87,7 @@
 #else
 #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__
 #endif
+#endif
 
 #endif  /* __FreeBSD__ */
 
