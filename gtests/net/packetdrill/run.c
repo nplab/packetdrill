@@ -71,6 +71,9 @@ const int MAX_SPIN_USECS = 20;
 /* Global bool init_cmd_exed */
 bool init_cmd_exed = false;
 
+/* Global bool init_cmd_exists */
+bool init_cmd_exists = false;
+
 /* Final command to always execute at end of script, in order to clean up: */
 const char *cleanup_cmd;
 
@@ -541,7 +544,7 @@ void signal_handler(int signal_number)
  */
 int run_cleanup_command(void)
 {
-	if (cleanup_cmd != NULL && init_cmd_exed) {
+	if (cleanup_cmd != NULL && (!init_cmd_exists || init_cmd_exed)) {
 		char *error = NULL;
 
 		if (safe_system(cleanup_cmd, &error)) {
@@ -561,6 +564,10 @@ void run_script(struct config *config, struct script *script)
 	char *error = NULL;
 	struct netdev *netdev = NULL;
 	struct event *event = NULL;
+
+	init_cmd_exed = false;
+	if (script->init_command != NULL)
+		init_cmd_exists = true;
 
 	if (signal(SIGINT, signal_handler) == SIG_ERR) {
 		die("could not set up signal handler for SIGINT!");
@@ -597,7 +604,6 @@ void run_script(struct config *config, struct script *script)
 		wire_client_init(state->wire_client, config, script, state);
 	}
 
-	init_cmd_exed = false;
 	if (script->init_command != NULL) {
 		if (safe_system(script->init_command->command_line,
 				&error)) {
