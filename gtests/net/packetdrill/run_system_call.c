@@ -2758,7 +2758,8 @@ static int syscall_ioctl(struct state *state, struct syscall_spec *syscall,
 static int syscall_close(struct state *state, struct syscall_spec *syscall,
 			 struct expression_list *args, char **error)
 {
-	int live_fd, script_fd, result;
+	int live_fd, script_fd, result, status;
+
 	if (check_arg_count(args, 1, error))
 		return STATUS_ERR;
 	if (s32_arg(args, 0, &script_fd, error))
@@ -2770,13 +2771,13 @@ static int syscall_close(struct state *state, struct syscall_spec *syscall,
 
 	result = close(live_fd);
 
-	if (end_syscall(state, syscall, CHECK_EXACT, result, error))
-		return STATUS_ERR;
+	status = end_syscall(state, syscall, CHECK_EXACT, result, error);
+	if (result == 0) {
+		if (run_syscall_close(state, script_fd, live_fd, error))
+			status = STATUS_ERR;
+	}
 
-	if (run_syscall_close(state, script_fd, live_fd, error))
-		return STATUS_ERR;
-
-	return STATUS_OK;
+	return status;
 }
 
 static int syscall_shutdown(struct state *state, struct syscall_spec *syscall,
