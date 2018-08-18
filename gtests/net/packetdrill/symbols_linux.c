@@ -85,7 +85,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_SNDLOWAT,                      "SO_SNDLOWAT"                     },
 	{ SO_SNDTIMEO,                      "SO_SNDTIMEO"                     },
 	{ SO_TIMESTAMP,                     "SO_TIMESTAMP"                    },
+	{ SO_DOMAIN,                        "SO_DOMAIN"                       },
 	{ SO_TYPE,                          "SO_TYPE"                         },
+	{ SO_PROTOCOL,                      "SO_PROTOCOL"                     },
 
 	{ IP_TOS,                           "IP_TOS"                          },
 	{ IP_MTU_DISCOVER,                  "IP_MTU_DISCOVER"                 },
