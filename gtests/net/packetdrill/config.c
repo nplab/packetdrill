@@ -423,7 +423,8 @@ static void process_option(int opt, char *optarg, struct config *config,
 	case OPT_IP_VERSION:
 		if (strcmp(optarg, "ipv4") == 0)
 			config->ip_version = IP_VERSION_4;
-		else if (strcmp(optarg, "ipv4_mapped_ipv6") == 0)
+		else if ((strcmp(optarg, "ipv4-mapped-ipv6") == 0) ||
+		         (strcmp(optarg, "ipv4_mapped_ipv6") == 0))
 			config->ip_version = IP_VERSION_4_MAPPED_6;
 		else if (strcmp(optarg, "ipv6") == 0)
 			config->ip_version = IP_VERSION_6;
