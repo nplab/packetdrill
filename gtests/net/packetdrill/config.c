@@ -107,7 +107,7 @@ struct option options[] = {
 void show_usage(void)
 {
 	fprintf(stderr, "Usage: packetdrill\n"
-		"\t[--ip_version=[ipv4,ipv4-mapped-ipv6,ipv6]]\n"
+		"\t[--ip_version=[ipv4,ipv4_mapped_ipv6,ipv6]]\n"
 		"\t[--bind_port=bind_port]\n"
 		"\t[--code_command=code_command]\n"
 		"\t[--code_format=code_format]\n"
@@ -423,7 +423,7 @@ static void process_option(int opt, char *optarg, struct config *config,
 	case OPT_IP_VERSION:
 		if (strcmp(optarg, "ipv4") == 0)
 			config->ip_version = IP_VERSION_4;
-		else if (strcmp(optarg, "ipv4-mapped-ipv6") == 0)
+		else if (strcmp(optarg, "ipv4_mapped_ipv6") == 0)
 			config->ip_version = IP_VERSION_4_MAPPED_6;
 		else if (strcmp(optarg, "ipv6") == 0)
 			config->ip_version = IP_VERSION_6;
