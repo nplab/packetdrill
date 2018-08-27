@@ -480,7 +480,7 @@ void lock_memory(void)
 {
 #if !defined(__APPLE__)
 	if (mlockall(MCL_CURRENT | MCL_FUTURE))
-		die_perror("lockall(MCL_CURRENT | MCL_FUTURE)");
+		die_perror("mlockall(MCL_CURRENT | MCL_FUTURE)");
 #endif
 }
 
