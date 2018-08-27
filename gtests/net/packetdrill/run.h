@@ -115,15 +115,19 @@ void state_free(struct state *state, int about_to_die);
 /* Grab the global lock for all global state. */
 static inline void run_lock(struct state *state)
 {
-	if (pthread_mutex_lock(&state->mutex) != 0)
-		die_perror("pthread_mutex_lock");
+	int err;
+
+	if ((err = pthread_mutex_lock(&state->mutex)) != 0)
+		die_strerror("pthread_mutex_lock", err);
 }
 
 /* Release the global lock for all global state. */
 static inline void run_unlock(struct state *state)
 {
-	if (pthread_mutex_unlock(&state->mutex) != 0)
-		die_perror("pthread_mutex_unlock");
+	int err;
+
+	if ((err = pthread_mutex_unlock(&state->mutex)) != 0)
+		die_strerror("pthread_mutex_unlock", err);
 }
 
 /* Get the wall clock time of day in microseconds. */

@@ -49,3 +49,12 @@ void __attribute__((noreturn)) die_perror(char *message)
 
 	exit(EXIT_FAILURE);
 }
+
+void __attribute__((noreturn)) die_strerror(char *message, int err)
+{
+	fprintf(stderr, "%s: %s", message, strerror(err));
+
+	run_cleanup_command();
+
+	exit(EXIT_FAILURE);
+}

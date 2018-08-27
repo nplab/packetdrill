@@ -47,4 +47,6 @@ extern void __attribute__((noreturn)) die(char *format, ...);
 /* Call perror() with message and then exit with a failure status code. */
 extern void __attribute__((noreturn)) die_perror(char *message);
 
+/* Call strerror with with err and then exit with a failure status code. */
+extern void __attribute__((noreturn)) die_strerror(char *message, int err);
 #endif /* __LOGGING_H__ */

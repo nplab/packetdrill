@@ -1647,13 +1647,15 @@ static int pollfds_check(struct expression *fds_expression,
  */
 static void begin_syscall(struct state *state, struct syscall_spec *syscall)
 {
+	int err;
+
 	if (is_blocking_syscall(syscall)) {
 		assert(state->syscalls->state == SYSCALL_ENQUEUED);
 		state->syscalls->state = SYSCALL_RUNNING;
 		run_unlock(state);
 		DEBUGP("syscall thread: begin_syscall signals dequeued\n");
-		if (pthread_cond_signal(&state->syscalls->dequeued) != 0)
-			die_perror("pthread_cond_signal");
+		if ((err = pthread_cond_signal(&state->syscalls->dequeued)) != 0)
+			die_strerror("pthread_cond_signal", err);
 	}
 }
 
@@ -7002,12 +7004,12 @@ static int await_idle_thread(struct state *state)
 		}
 		/* Wait for a signal or our timeout end_time to arrive. */
 		DEBUGP("main thread: awaiting idle syscall thread\n");
-		int status = pthread_cond_timedwait(&state->syscalls->idle,
-						    &state->mutex, &end_time);
-		if (status == ETIMEDOUT)
+		int err = pthread_cond_timedwait(&state->syscalls->idle,
+						 &state->mutex, &end_time);
+		if (err == ETIMEDOUT)
 			return STATUS_ERR;
-		else if (status != 0)
-			die_perror("pthread_cond_timedwait");
+		else if (err != 0)
+			die_strerror("pthread_cond_timedwait", err);
 	}
 	return STATUS_OK;
 }
@@ -7034,6 +7036,7 @@ static void enqueue_system_call(
 	struct state *state, struct event *event, struct syscall_spec *syscall)
 {
 	char *error = NULL, *script_path = NULL;
+	int err;
 	bool done = false;
 
 	/* Wait if there are back-to-back blocking system calls. */
@@ -7046,16 +7049,16 @@ static void enqueue_system_call(
 	/* Enqueue the system call info and wake up the syscall thread. */
 	DEBUGP("main thread: signal enqueued\n");
 	state->syscalls->state = SYSCALL_ENQUEUED;
-	if (pthread_cond_signal(&state->syscalls->enqueued) != 0)
-		die_perror("pthread_cond_signal");
+	if ((err = pthread_cond_signal(&state->syscalls->enqueued)) != 0)
+		die_strerror("pthread_cond_signal", err);
 
 	/* Wait for the syscall thread to dequeue and start the system call. */
 	while (state->syscalls->state == SYSCALL_ENQUEUED) {
 		DEBUGP("main thread: waiting for dequeued signal; "
 		       "state: %d\n", state->syscalls->state);
-		if (pthread_cond_wait(&state->syscalls->dequeued,
-				      &state->mutex) != 0) {
-			die_perror("pthread_cond_wait");
+		if ((err = pthread_cond_wait(&state->syscalls->dequeued,
+					     &state->mutex)) != 0) {
+			die_strerror("pthread_cond_wait", err);
 		}
 	}
 
@@ -7127,6 +7130,7 @@ static void *system_call_thread(void *arg)
 	char *error = NULL;
 	struct event *event = NULL;
 	struct syscall_spec *syscall = NULL;
+	int err;
 	bool done = false;
 
 #if defined(__FreeBSD__)
@@ -7156,9 +7160,9 @@ static void *system_call_thread(void *arg)
 		switch (state->syscalls->state) {
 		case SYSCALL_IDLE:
 			DEBUGP("syscall thread: waiting\n");
-			if (pthread_cond_wait(&state->syscalls->enqueued,
-					      &state->mutex)) {
-				die_perror("pthread_cond_wait");
+			if ((err = pthread_cond_wait(&state->syscalls->enqueued,
+						     &state->mutex))) {
+				die_strerror("pthread_cond_wait", err);
 			}
 			break;
 
@@ -7209,8 +7213,8 @@ static void *system_call_thread(void *arg)
 			state->syscalls->event = NULL;
 			state->syscalls->live_end_usecs = -1;
 			DEBUGP("syscall thread: now idle\n");
-			if (pthread_cond_signal(&state->syscalls->idle) != 0)
-				die_perror("pthread_cond_signal");
+			if ((err = pthread_cond_signal(&state->syscalls->idle)) != 0)
+				die_strerror("pthread_cond_signal", err);
 			break;
 
 		case SYSCALL_EXITING:
@@ -7228,18 +7232,19 @@ static void *system_call_thread(void *arg)
 struct syscalls *syscalls_new(struct state *state)
 {
 	struct syscalls *syscalls = calloc(1, sizeof(struct syscalls));
+	int err;
 
 	syscalls->state = SYSCALL_IDLE;
 
-	if (pthread_create(&syscalls->thread, NULL, system_call_thread,
-			   state) != 0) {
-		die_perror("pthread_create");
+	if ((err = pthread_create(&syscalls->thread, NULL, system_call_thread,
+				  state)) != 0) {
+		die_strerror("pthread_create", err);
 	}
 
-	if ((pthread_cond_init(&syscalls->idle, NULL) != 0) ||
-	    (pthread_cond_init(&syscalls->enqueued, NULL) != 0) ||
-	    (pthread_cond_init(&syscalls->dequeued, NULL) != 0)) {
-		die_perror("pthread_cond_init");
+	if (((err= pthread_cond_init(&syscalls->idle, NULL)) != 0) ||
+	    ((err = pthread_cond_init(&syscalls->enqueued, NULL)) != 0) ||
+	    ((err = pthread_cond_init(&syscalls->dequeued, NULL)) != 0)) {
+		die_strerror("pthread_cond_init", err);
 	}
 
 	return syscalls;
@@ -7247,7 +7252,7 @@ struct syscalls *syscalls_new(struct state *state)
 
 void syscalls_free(struct state *state, struct syscalls *syscalls, int about_to_die)
 {
-	int status;
+	int status, err;
 
 	/* Wait a bit for the thread to go idle. */
 	status = await_idle_thread(state);
@@ -7266,21 +7271,21 @@ void syscalls_free(struct state *state, struct syscalls *syscalls, int about_to_
 		/* Send a request to terminate the thread. */
 		DEBUGP("main thread: signaling syscall thread to exit\n");
 		syscalls->state = SYSCALL_EXITING;
-		if (pthread_cond_signal(&syscalls->enqueued) != 0)
-			die_perror("pthread_cond_signal");
+		if ((err = pthread_cond_signal(&syscalls->enqueued)) != 0)
+			die_strerror("pthread_cond_signal", err);
 	}
 	/* Release the lock briefly and wait for syscall thread to finish. */
 	run_unlock(state);
 	DEBUGP("main thread: unlocking, waiting for syscall thread exit\n");
 	void *thread_result = NULL;
-	if (pthread_join(syscalls->thread, &thread_result) != 0)
-		die_perror("pthread_cancel");
+	if ((err = pthread_join(syscalls->thread, &thread_result)) != 0)
+		die_strerror("pthread_join", err);
 	DEBUGP("main thread: joined syscall thread; relocking\n");
 	run_lock(state);
-	if ((pthread_cond_destroy(&syscalls->idle) != 0) ||
-	    (pthread_cond_destroy(&syscalls->enqueued) != 0) ||
-	    (pthread_cond_destroy(&syscalls->dequeued) != 0)) {
-		die_perror("pthread_cond_destroy");
+	if (((err = pthread_cond_destroy(&syscalls->idle)) != 0) ||
+	    ((err = pthread_cond_destroy(&syscalls->enqueued)) != 0) ||
+	    ((err = pthread_cond_destroy(&syscalls->dequeued)) != 0)) {
+		die_strerror("pthread_cond_destroy", err);
 	}
 
 	memset(syscalls, 0, sizeof(*syscalls));  /* to help catch bugs */

@@ -504,12 +504,13 @@ error_done:
 
 static void start_wire_server_thread(struct wire_server *wire_server)
 {
-	DEBUGP("start_wire_server_thread\n");
-
 	pthread_t thread;		/* pthread thread handle */
-	if (pthread_create(&thread, NULL, wire_server_thread,
-			   wire_server) != 0) {
-		die_perror("pthread_create");
+	int err;
+
+	DEBUGP("start_wire_server_thread\n");
+	if ((err = pthread_create(&thread, NULL, wire_server_thread,
+				  wire_server)) != 0) {
+		die_strerror("pthread_create", err);
 	}
 }
 
