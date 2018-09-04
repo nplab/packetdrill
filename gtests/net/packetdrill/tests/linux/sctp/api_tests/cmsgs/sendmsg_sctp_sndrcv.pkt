@@ -25,7 +25,7 @@
 							 spp_dscp=0}, 152) = 0
 +0.0 sendmsg(3, {msg_name(...)=...,
 		 msg_iov(1)=[{iov_base=..., iov_len=1000}],
-		 msg_control(44)=[{cmsg_len=44,
+		 msg_control(48)=[{cmsg_len=48,
 				    cmsg_level=IPPROTO_SCTP,
 				    cmsg_type=SCTP_SNDRCV,
 				    cmsg_data={sinfo_stream=3,
@@ -44,7 +44,7 @@
 //test for sndrcvinfo
 +0.0 sendmsg(3, {msg_name(...)=...,
 		 msg_iov(1)=[{iov_base=..., iov_len=1000}],
-		 msg_control(44)=[{cmsg_len=44,
+		 msg_control(48)=[{cmsg_len=48,
 				    cmsg_level=IPPROTO_SCTP,
 				    cmsg_type=SCTP_SNDRCV,
 				    cmsg_data={sinfo_stream=3,
@@ -62,7 +62,7 @@
 
 +0.0 sendmsg(3, {msg_name(...)=...,
 		 msg_iov(1)=[{iov_base=..., iov_len=1000}],
-		 msg_control(44)=[{cmsg_len=44,
+		 msg_control(48)=[{cmsg_len=48,
 				    cmsg_level=IPPROTO_SCTP,
 				    cmsg_type=SCTP_SNDRCV,
 				    cmsg_data={sinfo_stream=3,
@@ -80,7 +80,7 @@
 
 +0.0 sendmsg(3, {msg_name(...)=...,
 		 msg_iov(1)=[{iov_base=..., iov_len=1000}],
-		 msg_control(44)=[{cmsg_len=44,
+		 msg_control(48)=[{cmsg_len=48,
 				    cmsg_level=IPPROTO_SCTP,
 				    cmsg_type=SCTP_SNDRCV,
 				    cmsg_data={sinfo_stream=3,

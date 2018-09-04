@@ -8,7 +8,7 @@
 
 +0.0 sendmsg(3, {msg_name(...)=...,
 		 msg_iov(1)=[{iov_base=..., iov_len=1000}],
-		 msg_control(20)=[{cmsg_len=20,
+		 msg_control(24)=[{cmsg_len=24,
 				   cmsg_level=IPPROTO_SCTP,
 				   cmsg_type=SCTP_INIT,
 				   cmsg_data={sinit_num_ostreams=1,
