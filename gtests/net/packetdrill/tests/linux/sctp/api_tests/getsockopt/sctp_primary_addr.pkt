@@ -13,19 +13,19 @@
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_PRIMARY_ADDR, {ssp_assoc_id=...,
 						   ssp_addr={sa_family=AF_INET,
 							     sin_port=htons(8080),
-							     sin_addr=inet_addr("192.0.2.1")}}, 136) = 0
+							     sin_addr=inet_addr("192.0.2.1")}}, 132) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PRIMARY_ADDR, {ssp_assoc_id=...,
 						   ssp_addr={sa_family=AF_INET,
 						   sin_port=htons(8080),
-						   sin_addr=inet_addr("192.0.2.1")}}, [136]) = 0
+						   sin_addr=inet_addr("192.0.2.1")}}, [132]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PRIMARY_ADDR, {ssp_assoc_id=...,
-						   ssp_addr=...}, [136]) = 0
+						   ssp_addr=...}, [132]) = 0
 
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_PRIMARY_ADDR, {ssp_addr={sa_family=AF_INET,
 							     sin_port=htons(8080),
-							     sin_addr=inet_addr("192.0.2.1")}}, 136) = 0
+							     sin_addr=inet_addr("192.0.2.1")}}, 132) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PRIMARY_ADDR, {ssp_addr={sa_family=AF_INET,
 						   sin_port=htons(8080),
-						   sin_addr=inet_addr("192.0.2.1")}}, [136]) = 0
+						   sin_addr=inet_addr("192.0.2.1")}}, [132]) = 0
 
 +0 close(3) = 0
