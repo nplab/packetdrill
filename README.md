@@ -37,7 +37,7 @@ sudo cp packetdrill /usr/bin
 ### FreeBSD
 For installing the required packages run:
 ```
-sudo pkg install git bison
+sudo pkg install git bison python
 ```
 Then download the sources, compile them and install the binary:
 ```
