@@ -24,7 +24,7 @@ sudo cp packetdrill /usr/bin
 ### Linux (Ubuntu)
 For installing the required packages run:
 ```
-sudo apt-get install make git libsctp-dev bison flex
+sudo apt-get install make git libsctp-dev bison flex python
 ```
 Then download the sources, compile them and install the binary:
 ```
@@ -37,7 +37,7 @@ sudo cp packetdrill /usr/bin
 ### FreeBSD
 For installing the required packages run:
 ```
-sudo pkg install git bison
+sudo pkg install git bison python
 ```
 Then download the sources, compile them and install the binary:
 ```
