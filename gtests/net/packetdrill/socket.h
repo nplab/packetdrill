@@ -113,6 +113,7 @@ struct socket {
 	 * order to induce the kernel to free the socket.
 	 */
 	struct tcp last_outbound_tcp_header;
+	u32 last_outbound_tcp_payload_len;
 	struct tcp last_injected_tcp_header;
 	u32 last_injected_tcp_payload_len;
 

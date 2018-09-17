@@ -3211,6 +3211,7 @@ static int do_outbound_script_packet(
 	/* Save the TCP header so we can reset the connection at the end. */
 	if (live_packet->tcp) {
 		socket->last_outbound_tcp_header = *(live_packet->tcp);
+		socket->last_outbound_tcp_payload_len = packet_payload_len(live_packet);
 		if (live_packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			struct udp *udp = (struct udp *)(live_packet->tcp) - 1;
 
@@ -3508,12 +3509,12 @@ int reset_connection(struct state *state, struct socket *socket)
 {
 	char *error = NULL;
 	u32 seq = 0, ack_seq = 0;
-	u16 window = 0;
 	struct packet *packet = NULL;
 	struct tuple live_inbound;
 	int result = STATUS_OK;
 	u16 udp_src_port;
 	u16 udp_dst_port;
+	bool ack_bit;
 
 	if (socket->last_outbound_udp_encaps_src_port != 0 ||
 	    socket->last_outbound_udp_encaps_dst_port != 0) {
@@ -3524,38 +3525,35 @@ int reset_connection(struct state *state, struct socket *socket)
 		udp_dst_port = socket->last_injected_udp_encaps_dst_port;
 	}
 	/* Pick TCP header fields to be something the kernel will accept. */
-	if (socket->last_injected_tcp_header.ack) {
-		/* If we've already injected something, then use a sequence
-		 * number right after the last one we injected, and ACK
-		 * the last thing we ACKed, and offer the same receive
-		 * window we last offered.
-		 */
-		seq	= (ntohl(socket->last_injected_tcp_header.seq) +
-			   (socket->last_injected_tcp_header.syn ? 1 : 0) +
-			   (socket->last_injected_tcp_header.fin ? 1 : 0) +
-			   socket->last_injected_tcp_payload_len);
-		ack_seq	= ntohl(socket->last_injected_tcp_header.ack_seq);
-		window	= ntohs(socket->last_injected_tcp_header.window);
-	} else if (socket->last_outbound_tcp_header.ack) {
-		/* If the kernel ACKed something, then just make sure
-		 * we use the sequence number it ACKed, which will be
-		 * something it expects.
-		 */
-		seq = ntohl(socket->last_outbound_tcp_header.ack_seq);
-		ack_seq = ntohl(socket->last_outbound_tcp_header.seq);
+	if (socket->last_outbound_tcp_header.doff > 0) {
+		/* The kernel has sent something. */
+		if (socket->last_outbound_tcp_header.ack) {
+			seq = ntohl(socket->last_outbound_tcp_header.ack_seq);
+			ack_seq = 0;
+			ack_bit = false;
+		} else {
+			seq = 0;
+			ack_seq = (ntohl(socket->last_outbound_tcp_header.seq) +
+			           (socket->last_outbound_tcp_header.syn ? 1 : 0) +
+			           (socket->last_outbound_tcp_header.fin ? 1 : 0) +
+			           socket->last_outbound_tcp_payload_len);
+			ack_bit = true;
+		}
+	} else if (socket->last_injected_tcp_header.doff > 0) {
+		/* The kernel hasn't sent anything, but a packet was injected */
+		seq = (ntohl(socket->last_injected_tcp_header.seq) +
+		       (socket->last_injected_tcp_header.syn ? 1 : 0) +
+		       (socket->last_injected_tcp_header.fin ? 1 : 0) +
+		       socket->last_injected_tcp_payload_len);
+		ack_seq = 0;
+		ack_bit = false;
 	} else {
-		/* If the kernel didn't ACK anything, then it probably
-		 * sent only an initial SYN. So we get to send any
-		 * sequence number we want, but should send an ACK
-		 * suggesting we've seen the kernel's SYN.
-		 */
-		seq = 0;
-		ack_seq = ntohl(socket->last_outbound_tcp_header.seq) + 1;
+		return result;
 	}
 
 	packet = new_tcp_packet(socket->address_family,
 				DIRECTION_INBOUND, ECN_NONE,
-				"R.", seq, 0, ack_seq, window, NULL, false, false,
+				ack_bit ? "R." : "R", seq, 0, ack_seq, 0, NULL, false, false,
 				false, false, udp_src_port, udp_dst_port, &error);
 	if (packet == NULL)
 		die("%s", error);
