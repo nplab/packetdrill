@@ -6933,14 +6933,13 @@ struct system_call_entry system_call_table[] = {
 static void invoke_system_call(
 	struct state *state, struct event *event, struct syscall_spec *syscall)
 {
-	DEBUGP("%d: invoke call: %s\n", event->line_number, syscall->name);
-
 	char *error = NULL, *script_path = NULL;
 	const char *name = syscall->name;
 	struct expression_list *args = NULL;
 	int i = 0;
 	int result = 0;
 
+	DEBUGP("%d: invoke call: %s\n", event->line_number, syscall->name);
 	/* Wait for the right time before firing off this event. */
 	wait_for_event(state);
 
@@ -7039,6 +7038,8 @@ static void enqueue_system_call(
 	int err;
 	bool done = false;
 
+	/* This MUST NOT be called from the syscalls thread. */
+	assert(!pthread_equal(pthread_self(), state->syscalls->thread));
 	/* Wait if there are back-to-back blocking system calls. */
 	if (await_idle_thread(state)) {
 		asprintf(&error, "blocking system call while another blocking "
@@ -7194,10 +7195,10 @@ static void *system_call_thread(void *arg)
 			/* Check end time for the blocking system call. */
 			assert(state->syscalls->live_end_usecs >= 0);
 			if (verify_time(state,
-						event->time_type,
-						syscall->end_usecs, 0,
-						state->syscalls->live_end_usecs,
-						"system call return", &error)) {
+					event->time_type,
+					syscall->end_usecs, 0,
+					state->syscalls->live_end_usecs,
+					"system call return", &error)) {
 				die("%s:%d: %s\n",
 				    state->config->script_path,
 				    event->line_number,
@@ -7241,7 +7242,7 @@ struct syscalls *syscalls_new(struct state *state)
 		die_strerror("pthread_create", err);
 	}
 
-	if (((err= pthread_cond_init(&syscalls->idle, NULL)) != 0) ||
+	if (((err = pthread_cond_init(&syscalls->idle, NULL)) != 0) ||
 	    ((err = pthread_cond_init(&syscalls->enqueued, NULL)) != 0) ||
 	    ((err = pthread_cond_init(&syscalls->dequeued, NULL)) != 0)) {
 		die_strerror("pthread_cond_init", err);

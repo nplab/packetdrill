@@ -149,6 +149,8 @@ void state_free(struct state *state, int about_to_die)
 {
 	int err;
 
+	/* This MUST NOT be called from the syscalls thread. */
+	assert(!pthread_equal(pthread_self(), state->syscalls->thread));
 	/* We have to stop the system call thread first, since it's using
 	 * sockets that we want to close and reset.
 	 */
