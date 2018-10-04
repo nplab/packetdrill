@@ -126,7 +126,7 @@ void packet_socket_set_filter(struct packet_socket *psock,
 			      const struct ether_addr *client_ether_addr,
 			      const struct ip_address *client_live_ip)
 {
-	const u8 *client_ether = client_ether_addr->ether_addr_octet;
+	const u8 *client_ether;
 	struct bpf_program bpf_code;
 	char *filter_str = NULL;
 	char client_live_ip_string[ADDR_STR_LEN];
@@ -134,6 +134,7 @@ void packet_socket_set_filter(struct packet_socket *psock,
 	ip_to_string(client_live_ip, client_live_ip_string);
 
 	if (client_ether_addr != NULL)
+		client_ether = client_ether_addr->ether_addr_octet;
 		asprintf(&filter_str,
 			 "ether src %02x:%02x:%02x:%02x:%02x:%02x and %s src %s",
 			 client_ether[0],
