@@ -239,7 +239,7 @@ static u32 crc_c[256] = {
 __be32 sctp_crc32c(const void *packet, u32 len)
 {
 	u32 i, crc32c;
-	u8 byte0, byte1, byte2, byte3;
+	u32 byte0, byte1, byte2, byte3;
 	const u8 *buf = (const u8 *)packet;
 
 	crc32c = ~0;

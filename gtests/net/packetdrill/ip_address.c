@@ -309,7 +309,7 @@ extern int netmask_to_prefix(const char *netmask)
 	int prefix_len = 0;
 
 	for (pos = 31; pos >= 0; --pos) {
-		if (!(mask_addr & (1<<pos)))
+		if (!(mask_addr & (1U<<pos)))
 			break;
 		++prefix_len;
 	}
