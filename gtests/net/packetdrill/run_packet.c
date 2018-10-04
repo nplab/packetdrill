@@ -114,10 +114,10 @@ static void add_packet_dump(char **error, const char *type,
 				 old_error, type, usecs_to_secs(time_usecs), dump,
 				 dump_error ? "\n" : "",
 				 dump_error ? dump_error : "");
+			free(old_error);
 		}
 		free(dump);
 		free(dump_error);
-		free(old_error);
 	}
 }
 
