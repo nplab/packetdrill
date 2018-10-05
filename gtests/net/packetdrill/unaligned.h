@@ -29,7 +29,10 @@
 
 static inline u32 __get_unaligned_be32(const u8 *p)
 {
-	return p[0] << 24 | p[1] << 16 | p[2] << 8 | p[3];
+	return (u32)p[0] << 24 |
+	       (u32)p[1] << 16 |
+	       (u32)p[2] <<  8 |
+	       (u32)p[3];
 }
 
 static inline void __put_unaligned_be32(u32 val, u8 *p)
