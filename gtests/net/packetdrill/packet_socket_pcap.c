@@ -133,7 +133,7 @@ void packet_socket_set_filter(struct packet_socket *psock,
 
 	ip_to_string(client_live_ip, client_live_ip_string);
 
-	if (client_ether_addr != NULL)
+	if (client_ether_addr != NULL) {
 		client_ether = client_ether_addr->ether_addr_octet;
 		asprintf(&filter_str,
 			 "ether src %02x:%02x:%02x:%02x:%02x:%02x and %s src %s",
@@ -145,7 +145,7 @@ void packet_socket_set_filter(struct packet_socket *psock,
 			 client_ether[5],
 			 client_live_ip->address_family == AF_INET6 ? "ip6" : "ip",
 			 client_live_ip_string);
-	else
+	} else
 		asprintf(&filter_str,
 			 "%s src %s",
 			 client_live_ip->address_family == AF_INET6 ? "ip6" : "ip",
