@@ -168,12 +168,12 @@ void packet_socket_set_filter(struct packet_socket *psock,
 	}
 
 	/* Fill in the client-side ethernet address to look for. */
-	bpfcode.filter[1].k = ((client_ether[2] << 24) |
-			       (client_ether[3] << 16) |
-			       (client_ether[4] << 8)  |
-			       (client_ether[5]));
-	bpfcode.filter[3].k = ((client_ether[0] << 8)  |
-			       (client_ether[1]));
+	bpfcode.filter[1].k = (((u32)client_ether[2] << 24) |
+			       ((u32)client_ether[3] << 16) |
+			       ((u32)client_ether[4] << 8)  |
+			       ((u32)client_ether[5]));
+	bpfcode.filter[3].k = (((u32)client_ether[0] << 8)  |
+			       ((u32(client_ether[1]));
 
 	if (debug_logging) {
 		int i;
