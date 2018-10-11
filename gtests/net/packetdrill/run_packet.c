@@ -3527,7 +3527,7 @@ int run_packet_event(
 	} else {
 		assert(!"bad direction");  /* internal bug */
 	}
-
+	free(err);
 	return STATUS_OK;	 /* everything went fine */
 
 out:
