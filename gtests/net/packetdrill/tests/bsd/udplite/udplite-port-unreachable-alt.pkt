@@ -7,7 +7,7 @@
 +0.000 > udplite(1000, 0)
 +0.000 < [udplite(1000, 0)] icmp unreachable port_unreachable
 // Check if applications get notified.
-//+0.050 getsockopt(3, SOL_SOCKET, SO_ERROR, [ECONNREFUSED], [4]) = 0
++0.050 getsockopt(3, SOL_SOCKET, SO_ERROR, [ECONNREFUSED], [4]) = 0
 +0.050 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 // Termination of the test.
 +0.000 close(3) = 0
