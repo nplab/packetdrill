@@ -1345,6 +1345,7 @@ opt_data_flags
 			break;
 		}
 	}
+	free($3);
 	$$ = flags;
 }
 ;
@@ -1382,6 +1383,7 @@ opt_abort_flags
 			break;
 		}
 	}
+	free($3);
 	$$ = flags;
 }
 ;
@@ -1419,6 +1421,7 @@ opt_shutdown_complete_flags
 			break;
 		}
 	}
+	free($3);
 	$$ = flags;
 }
 ;
@@ -1477,6 +1480,7 @@ opt_i_data_flags
 			break;
 		}
 	}
+	free($3);
 	$$ = flags;
 }
 ;
@@ -2088,6 +2092,7 @@ sctp_ipv4_address_parameter_spec
 	if (inet_pton(AF_INET, $5, &addr) != 1) {
 		semantic_error("Invalid address");
 	}
+	free($5);
 	$$ = sctp_ipv4_address_parameter_new(&addr);
 }
 | IPV4_ADDRESS '[' ADDR '=' ELLIPSIS ']' {
@@ -2101,6 +2106,7 @@ sctp_ipv6_address_parameter_spec
 	if (inet_pton(AF_INET6, $5, &addr) != 1) {
 		semantic_error("Invalid address");
 	}
+	free($5);
 	$$ = sctp_ipv6_address_parameter_new(&addr);
 }
 | IPV6_ADDRESS '[' ADDR '=' ELLIPSIS ']' {
