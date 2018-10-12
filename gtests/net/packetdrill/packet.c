@@ -178,11 +178,12 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 	packet->udplite	= offset_ptr(old_base, new_base, old_packet->udplite);
 	packet->icmpv4	= offset_ptr(old_base, new_base, old_packet->icmpv4);
 	packet->icmpv6	= offset_ptr(old_base, new_base, old_packet->icmpv6);
-        
-        if (old_packet->chunk_list == NULL) {
+
+	if (old_packet->chunk_list == NULL) {
+		sctp_chunk_list_free(packet->chunk_list);
 		packet->chunk_list = NULL;
 		return packet;
-        }
+	}
 
 	/* Go through the SCTP specific lists */
 	for (old_chunk_item = old_packet->chunk_list->first;
