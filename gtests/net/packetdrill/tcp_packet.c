@@ -58,7 +58,7 @@ struct packet *new_tcp_packet(int address_family,
 			       u16 tcp_payload_bytes,
 			       u32 ack_sequence,
 			       s32 window,
-			       const struct tcp_options *tcp_options,
+			       struct tcp_options *tcp_options,
 			       bool ignore_ts_val,
 			       bool abs_ts_ecr,
 			       bool abs_seq,
@@ -182,6 +182,7 @@ struct packet *new_tcp_packet(int address_family,
 		/* Copy TCP options into packet */
 		memcpy(tcp_option_start, tcp_options->data,
 		       tcp_options->length);
+		free(tcp_options);
 	}
 
 	if (ignore_ts_val) {
