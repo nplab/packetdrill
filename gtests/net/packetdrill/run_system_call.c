@@ -402,7 +402,7 @@ static int get_sctp_assoc_t(struct expression *expression,
 			    sctp_assoc_t *value, char **error)
 {
 	if (expression->type == EXPR_ELLIPSIS) {
-		value = 0;
+		*value = 0;
 	} else {
 		if (check_type(expression, EXPR_INTEGER, error))
 			return STATUS_ERR;
