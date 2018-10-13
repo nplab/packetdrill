@@ -336,12 +336,14 @@ void free_expression(struct expression *expression)
 		assert(expression->value.linger);
 		free_expression(expression->value.linger->l_onoff);
 		free_expression(expression->value.linger->l_linger);
+		free(expression->value.linger);
 		break;
 #if defined(__FreeBSD__) || defined(__NetBSD__)
 	case EXPR_ACCEPT_FILTER_ARG:
 		assert(expression->value.accept_filter_arg);
 		free_expression(expression->value.accept_filter_arg->af_name);
 		free_expression(expression->value.accept_filter_arg->af_arg);
+		free(expression->value.accept_filter_arg);
 		break;
 #endif
 #if defined(__FreeBSD__)
@@ -349,6 +351,7 @@ void free_expression(struct expression *expression)
 		assert(expression->value.tcp_function_set);
 		free_expression(expression->value.tcp_function_set->function_set_name);
 		free_expression(expression->value.tcp_function_set->pcbcnt);
+		free(expression->value.tcp_function_set);
 		break;
 #endif
 	case EXPR_SCTP_RTOINFO:
@@ -357,16 +360,19 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_rtoinfo->srto_initial);
 		free_expression(expression->value.sctp_rtoinfo->srto_max);
 		free_expression(expression->value.sctp_rtoinfo->srto_min);
+		free(expression->value.sctp_rtoinfo);
 		break;
 	case EXPR_SCTP_HMACALGO:
 		assert(expression->value.sctp_hmacalgo);
 		free_expression(expression->value.sctp_hmacalgo->shmac_number_of_idents);
 		free_expression(expression->value.sctp_hmacalgo->shmac_idents);
+		free(expression->value.sctp_hmacalgo);
 		break;
 	case EXPR_SCTP_ASSOC_VALUE:
 		assert(expression->value.sctp_assoc_value);
 		free_expression(expression->value.sctp_assoc_value->assoc_id);
 		free_expression(expression->value.sctp_assoc_value->assoc_value);
+		free(expression->value.sctp_assoc_value);
 		break;
 	case EXPR_SCTP_INITMSG:
 		assert(expression->value.sctp_initmsg);
@@ -374,17 +380,20 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_initmsg->sinit_max_instreams);
 		free_expression(expression->value.sctp_initmsg->sinit_max_attempts);
 		free_expression(expression->value.sctp_initmsg->sinit_max_init_timeo);
+		free(expression->value.sctp_initmsg);
 		break;
 	case EXPR_SCTP_AUTHKEYID:
 		assert(expression->value.sctp_authkeyid);
 		free_expression(expression->value.sctp_authkeyid->scact_assoc_id);
 		free_expression(expression->value.sctp_authkeyid->scact_keynumber);
+		free(expression->value.sctp_authkeyid);
 		break;
 	case EXPR_SCTP_SACKINFO:
 		assert(expression->value.sctp_sack_info);
 		free_expression(expression->value.sctp_sack_info->sack_assoc_id);
 		free_expression(expression->value.sctp_sack_info->sack_delay);
 		free_expression(expression->value.sctp_sack_info->sack_freq);
+		free(expression->value.sctp_sack_info);
 		break;
 	case EXPR_SCTP_PADDRINFO:
 		assert(expression->value.sctp_paddrinfo);
@@ -395,6 +404,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_paddrinfo->spinfo_srtt);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_rto);
 		free_expression(expression->value.sctp_paddrinfo->spinfo_mtu);
+		free(expression->value.sctp_paddrinfo);
 		break;
 	case EXPR_SCTP_STATUS:
 		assert(expression->value.sctp_status);
@@ -407,6 +417,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_status->sstat_outstrms);
 		free_expression(expression->value.sctp_status->sstat_fragmentation_point);
 		free_expression(expression->value.sctp_status->sstat_primary);
+		free(expression->value.sctp_status);
 		break;
 	case EXPR_SCTP_PEER_ADDR_PARAMS:
 		assert(expression->value.sctp_paddrparams);
@@ -418,26 +429,33 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_paddrparams->spp_flags);
 		free_expression(expression->value.sctp_paddrparams->spp_ipv6_flowlabel);
 		free_expression(expression->value.sctp_paddrparams->spp_dscp);
+		free(expression->value.sctp_paddrparams);
 		break;
 	case EXPR_SCTP_STREAM_VALUE:
 		assert(expression->value.sctp_stream_value);
 		free_expression(expression->value.sctp_stream_value->stream_id);
 		free_expression(expression->value.sctp_stream_value->stream_value);
+		free(expression->value.sctp_stream_value);
 		break;
 	case EXPR_SCTP_ASSOCPARAMS:
+		assert(expression->value.sctp_assocparams);
 		free_expression(expression->value.sctp_assocparams->sasoc_assoc_id);
 		free_expression(expression->value.sctp_assocparams->sasoc_asocmaxrxt);
 		free_expression(expression->value.sctp_assocparams->sasoc_number_peer_destinations);
 		free_expression(expression->value.sctp_assocparams->sasoc_peer_rwnd);
 		free_expression(expression->value.sctp_assocparams->sasoc_local_rwnd);
 		free_expression(expression->value.sctp_assocparams->sasoc_cookie_life);
+		free(expression->value.sctp_assocparams);
 		break;
 	case EXPR_SCTP_EVENT:
+		assert(expression->value.sctp_event);
 		free_expression(expression->value.sctp_event->se_assoc_id);
 		free_expression(expression->value.sctp_event->se_type);
 		free_expression(expression->value.sctp_event->se_on);
+		free(expression->value.sctp_event);
 		break;
 	case EXPR_SCTP_EVENT_SUBSCRIBE:
+		assert(expression->value.sctp_event_subscribe);
 		free_expression(expression->value.sctp_event_subscribe->sctp_data_io_event);
 		free_expression(expression->value.sctp_event_subscribe->sctp_association_event);
 		free_expression(expression->value.sctp_event_subscribe->sctp_address_event);
@@ -448,22 +466,30 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_event_subscribe->sctp_adaptation_layer_event);
 		free_expression(expression->value.sctp_event_subscribe->sctp_authentication_event);
 		free_expression(expression->value.sctp_event_subscribe->sctp_sender_dry_event);
+		free(expression->value.sctp_event_subscribe);
 		break;
 	case EXPR_SCTP_SNDINFO:
+		assert(expression->value.sctp_sndinfo);
 		free_expression(expression->value.sctp_sndinfo->snd_sid);
 		free_expression(expression->value.sctp_sndinfo->snd_flags);
 		free_expression(expression->value.sctp_sndinfo->snd_ppid);
 		free_expression(expression->value.sctp_sndinfo->snd_context);
 		free_expression(expression->value.sctp_sndinfo->snd_assoc_id);
+		free(expression->value.sctp_sndinfo);
 		break;
 	case EXPR_SCTP_SETPRIM:
+		assert(expression->value.sctp_setprim);
 		free_expression(expression->value.sctp_setprim->ssp_assoc_id);
 		free_expression(expression->value.sctp_setprim->ssp_addr);
+		free(expression->value.sctp_setprim);
 		break;
 	case EXPR_SCTP_SETADAPTATION:
+		assert(expression->value.sctp_setadaptation);
 		free_expression(expression->value.sctp_setadaptation->ssb_adaptation_ind);
+		free(expression->value.sctp_setadaptation);
 		break;
 	case EXPR_SCTP_SNDRCVINFO:
+		assert(expression->value.sctp_sndrcvinfo);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_stream);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_ssn);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_flags);
@@ -473,26 +499,36 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_tsn);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_cumtsn);
 		free_expression(expression->value.sctp_sndrcvinfo->sinfo_assoc_id);
+		free(expression->value.sctp_sndrcvinfo);
 		break;
 	case EXPR_SCTP_PRINFO:
+		assert(expression->value.sctp_prinfo);
 		free_expression(expression->value.sctp_prinfo->pr_policy);
 		free_expression(expression->value.sctp_prinfo->pr_value);
-		break;		
+		free(expression->value.sctp_prinfo);
+		break;
 	case EXPR_SCTP_DEFAULT_PRINFO:
+		assert(expression->value.sctp_default_prinfo);
 		free_expression(expression->value.sctp_default_prinfo->pr_policy);
 		free_expression(expression->value.sctp_default_prinfo->pr_value);
 		free_expression(expression->value.sctp_default_prinfo->pr_assoc_id);
+		free(expression->value.sctp_default_prinfo);
 		break;
 	case EXPR_SCTP_AUTHINFO:
+		assert(expression->value.sctp_authinfo);
 		free_expression(expression->value.sctp_authinfo->auth_keynumber);
+		free(expression->value.sctp_authinfo);
 		break;
 	case EXPR_SCTP_SENDV_SPA:
+		assert(expression->value.sctp_sendv_spa);
 		free_expression(expression->value.sctp_sendv_spa->sendv_flags);
 		free_expression(expression->value.sctp_sendv_spa->sendv_sndinfo);
 		free_expression(expression->value.sctp_sendv_spa->sendv_prinfo);
 		free_expression(expression->value.sctp_sendv_spa->sendv_authinfo);
+		free(expression->value.sctp_sendv_spa);
 		break;
 	case EXPR_SCTP_RCVINFO:
+		assert(expression->value.sctp_rcvinfo);
 		free_expression(expression->value.sctp_rcvinfo->rcv_sid);
 		free_expression(expression->value.sctp_rcvinfo->rcv_ssn);
 		free_expression(expression->value.sctp_rcvinfo->rcv_flags);
@@ -501,19 +537,25 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_rcvinfo->rcv_cumtsn);
 		free_expression(expression->value.sctp_rcvinfo->rcv_context);
 		free_expression(expression->value.sctp_rcvinfo->rcv_assoc_id);
+		free(expression->value.sctp_rcvinfo);
 		break;
 	case EXPR_SCTP_NXTINFO:
+		assert(expression->value.sctp_nxtinfo);
 		free_expression(expression->value.sctp_nxtinfo->nxt_sid);
 		free_expression(expression->value.sctp_nxtinfo->nxt_flags);
 		free_expression(expression->value.sctp_nxtinfo->nxt_ppid);
 		free_expression(expression->value.sctp_nxtinfo->nxt_length);
 		free_expression(expression->value.sctp_nxtinfo->nxt_assoc_id);
+		free(expression->value.sctp_nxtinfo);
 		break;
 	case EXPR_SCTP_RECVV_RN:
+		assert(expression->value.sctp_recvv_rn);
 		free_expression(expression->value.sctp_recvv_rn->recvv_rcvinfo);
 		free_expression(expression->value.sctp_recvv_rn->recvv_nxtinfo);
+		free(expression->value.sctp_recvv_rn);
 		break;
 	case EXPR_SCTP_ASSOC_CHANGE:
+		assert(expression->value.sctp_assoc_change);
 		free_expression(expression->value.sctp_assoc_change->sac_type);
 		free_expression(expression->value.sctp_assoc_change->sac_flags);
 		free_expression(expression->value.sctp_assoc_change->sac_length);
@@ -523,8 +565,10 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_assoc_change->sac_inbound_streams);
 		free_expression(expression->value.sctp_assoc_change->sac_assoc_id);
 		free_expression(expression->value.sctp_assoc_change->sac_info);
+		free(expression->value.sctp_assoc_change);
 		break;
 	case EXPR_SCTP_PADDR_CHANGE:
+		assert(expression->value.sctp_paddr_change);
 		free_expression(expression->value.sctp_paddr_change->spc_type);
 		free_expression(expression->value.sctp_paddr_change->spc_flags);
 		free_expression(expression->value.sctp_paddr_change->spc_length);
@@ -532,16 +576,20 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_paddr_change->spc_state);
 		free_expression(expression->value.sctp_paddr_change->spc_error);
 		free_expression(expression->value.sctp_paddr_change->spc_assoc_id);
+		free(expression->value.sctp_paddr_change);
 		break;
 	case EXPR_SCTP_REMOTE_ERROR:
+		assert(expression->value.sctp_remote_error);
 		free_expression(expression->value.sctp_remote_error->sre_type);
 		free_expression(expression->value.sctp_remote_error->sre_flags);
 		free_expression(expression->value.sctp_remote_error->sre_length);
 		free_expression(expression->value.sctp_remote_error->sre_error);
 		free_expression(expression->value.sctp_remote_error->sre_assoc_id);
 		free_expression(expression->value.sctp_remote_error->sre_data);
+		free(expression->value.sctp_remote_error);
 		break;
 	case EXPR_SCTP_SEND_FAILED:
+		assert(expression->value.sctp_send_failed);
 		free_expression(expression->value.sctp_send_failed->ssf_type);
 		free_expression(expression->value.sctp_send_failed->ssf_flags);
 		free_expression(expression->value.sctp_send_failed->ssf_length);
@@ -549,21 +597,27 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_send_failed->ssf_info);
 		free_expression(expression->value.sctp_send_failed->ssf_assoc_id);
 		free_expression(expression->value.sctp_send_failed->ssf_data);
+		free(expression->value.sctp_send_failed);
 		break;
 	case EXPR_SCTP_SHUTDOWN_EVENT:
+		assert(expression->value.sctp_shutdown_event);
 		free_expression(expression->value.sctp_shutdown_event->sse_type);
 		free_expression(expression->value.sctp_shutdown_event->sse_flags);
 		free_expression(expression->value.sctp_shutdown_event->sse_length);
 		free_expression(expression->value.sctp_shutdown_event->sse_assoc_id);
+		free(expression->value.sctp_shutdown_event);
 		break;
 	case EXPR_SCTP_ADAPTATION_EVENT:
+		assert(expression->value.sctp_adaptation_event);
 		free_expression(expression->value.sctp_adaptation_event->sai_type);
 		free_expression(expression->value.sctp_adaptation_event->sai_flags);
 		free_expression(expression->value.sctp_adaptation_event->sai_length);
 		free_expression(expression->value.sctp_adaptation_event->sai_adaptation_ind);
 		free_expression(expression->value.sctp_adaptation_event->sai_assoc_id);
+		free(expression->value.sctp_adaptation_event);
 		break;
 	case EXPR_SCTP_PDAPI_EVENT:
+		assert(expression->value.sctp_pdapi_event);
 		free_expression(expression->value.sctp_pdapi_event->pdapi_type);
 		free_expression(expression->value.sctp_pdapi_event->pdapi_flags);
 		free_expression(expression->value.sctp_pdapi_event->pdapi_length);
@@ -571,22 +625,28 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_pdapi_event->pdapi_stream);
 		free_expression(expression->value.sctp_pdapi_event->pdapi_seq);
 		free_expression(expression->value.sctp_pdapi_event->pdapi_assoc_id);
+		free(expression->value.sctp_pdapi_event);
 		break;
 	case EXPR_SCTP_AUTHKEY_EVENT:
+		assert(expression->value.sctp_authkey_event);
 		free_expression(expression->value.sctp_authkey_event->auth_type);
 		free_expression(expression->value.sctp_authkey_event->auth_flags);
 		free_expression(expression->value.sctp_authkey_event->auth_length);
 		free_expression(expression->value.sctp_authkey_event->auth_keynumber);
 		free_expression(expression->value.sctp_authkey_event->auth_indication);
 		free_expression(expression->value.sctp_authkey_event->auth_assoc_id);
+		free(expression->value.sctp_authkey_event);
 		break;
 	case EXPR_SCTP_SENDER_DRY_EVENT:
+		assert(expression->value.sctp_sender_dry_event);
 		free_expression(expression->value.sctp_sender_dry_event->sender_dry_type);
 		free_expression(expression->value.sctp_sender_dry_event->sender_dry_flags);
 		free_expression(expression->value.sctp_sender_dry_event->sender_dry_length);
 		free_expression(expression->value.sctp_sender_dry_event->sender_dry_assoc_id);
+		free(expression->value.sctp_sender_dry_event);
 		break;
 	case EXPR_SCTP_SEND_FAILED_EVENT:
+		assert(expression->value.sctp_send_failed_event);
 		free_expression(expression->value.sctp_send_failed_event->ssfe_type);
 		free_expression(expression->value.sctp_send_failed_event->ssfe_flags);
 		free_expression(expression->value.sctp_send_failed_event->ssfe_length);
@@ -594,13 +654,17 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_send_failed_event->ssfe_info);
 		free_expression(expression->value.sctp_send_failed_event->ssfe_assoc_id);
 		free_expression(expression->value.sctp_send_failed_event->ssfe_data);
+		free(expression->value.sctp_send_failed_event);
 		break;
 	case EXPR_SCTP_TLV:
+		assert(expression->value.sctp_tlv);
 		free_expression(expression->value.sctp_tlv->sn_type);
 		free_expression(expression->value.sctp_tlv->sn_flags);
 		free_expression(expression->value.sctp_tlv->sn_length);
+		free(expression->value.sctp_tlv);
 		break;
 	case EXPR_SCTP_EXTRCVINFO:
+		assert(expression->value.sctp_extrcvinfo);
 		free_expression(expression->value.sctp_extrcvinfo->sinfo_stream);
 		free_expression(expression->value.sctp_extrcvinfo->sinfo_ssn);
 		free_expression(expression->value.sctp_extrcvinfo->sinfo_flags);
@@ -615,67 +679,90 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_length);
 		free_expression(expression->value.sctp_extrcvinfo->serinfo_next_ppid);
 		free_expression(expression->value.sctp_extrcvinfo->sinfo_assoc_id);
+		free(expression->value.sctp_extrcvinfo);
 		break;
 	case EXPR_SCTP_ASSOC_IDS:
+		assert(expression->value.sctp_assoc_ids);
 		free_expression(expression->value.sctp_assoc_ids->gaids_number_of_ids);
 		free_expression(expression->value.sctp_assoc_ids->gaids_assoc_id);
+		free(expression->value.sctp_assoc_ids);
 		break;
 	case EXPR_SCTP_AUTHCHUNKS:
+		assert(expression->value.sctp_authchunks);
 		free_expression(expression->value.sctp_authchunks->gauth_assoc_id);
 		free_expression(expression->value.sctp_authchunks->gauth_number_of_chunks);
 		free_expression(expression->value.sctp_authchunks->gauth_chunks);
+		free(expression->value.sctp_authchunks);
 		break;
 	case EXPR_SCTP_SETPEERPRIM:
+		assert(expression->value.sctp_setpeerprim);
 		free_expression(expression->value.sctp_setpeerprim->sspp_assoc_id);
 		free_expression(expression->value.sctp_setpeerprim->sspp_addr);
+		free(expression->value.sctp_setpeerprim);
 		break;
 	case EXPR_SCTP_AUTHCHUNK:
+		assert(expression->value.sctp_authchunk);
 		free_expression(expression->value.sctp_authchunk->sauth_chunk);
+		free(expression->value.sctp_authchunk);
 		break;
 	case EXPR_SCTP_AUTHKEY:
+		assert(expression->value.sctp_authkey);
 		free_expression(expression->value.sctp_authkey->sca_assoc_id);
 		free_expression(expression->value.sctp_authkey->sca_keynumber);
 		free_expression(expression->value.sctp_authkey->sca_keylength);
 		free_expression(expression->value.sctp_authkey->sca_key);
+		free(expression->value.sctp_authkey);
 		break;
 	case EXPR_SCTP_RESET_STREAMS:
+		assert(expression->value.sctp_reset_streams);
 		free_expression(expression->value.sctp_reset_streams->srs_assoc_id);
 		free_expression(expression->value.sctp_reset_streams->srs_flags);
 		free_expression(expression->value.sctp_reset_streams->srs_number_streams);
 		free_expression(expression->value.sctp_reset_streams->srs_stream_list);
+		free(expression->value.sctp_reset_streams);
 		break;
 	case EXPR_SCTP_ADD_STREAMS:
+		assert(expression->value.sctp_add_streams);
 		free_expression(expression->value.sctp_add_streams->sas_assoc_id);
 		free_expression(expression->value.sctp_add_streams->sas_instrms);
 		free_expression(expression->value.sctp_add_streams->sas_outstrms);
+		free(expression->value.sctp_add_streams);
 		break;
 	case EXPR_SCTP_STREAM_RESET_EVENT:
+		assert(expression->value.sctp_stream_reset_event);
 		free_expression(expression->value.sctp_stream_reset_event->strreset_type);
 		free_expression(expression->value.sctp_stream_reset_event->strreset_flags);
 		free_expression(expression->value.sctp_stream_reset_event->strreset_length);
 		free_expression(expression->value.sctp_stream_reset_event->strreset_assoc_id);
 		free_expression(expression->value.sctp_stream_reset_event->strreset_stream_list);
+		free(expression->value.sctp_stream_reset_event);
 		break;
 	case EXPR_SCTP_ASSOC_RESET_EVENT:
+		assert(expression->value.sctp_assoc_reset_event);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_type);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_flags);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_length);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_assoc_id);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_local_tsn);
 		free_expression(expression->value.sctp_assoc_reset_event->assocreset_remote_tsn);
+		free(expression->value.sctp_assoc_reset_event);
 		break;
 	case EXPR_SCTP_STREAM_CHANGE_EVENT:
+		assert(expression->value.sctp_stream_change_event);
 		free_expression(expression->value.sctp_stream_change_event->strchange_type);
 		free_expression(expression->value.sctp_stream_change_event->strchange_flags);
 		free_expression(expression->value.sctp_stream_change_event->strchange_length);
 		free_expression(expression->value.sctp_stream_change_event->strchange_assoc_id);
 		free_expression(expression->value.sctp_stream_change_event->strchange_instrms);
 		free_expression(expression->value.sctp_stream_change_event->strchange_outstrms);
+		free(expression->value.sctp_stream_change_event);
 		break;
 	case EXPR_SCTP_UDPENCAPS:
+		assert(expression->value.sctp_udpencaps);
 		free_expression(expression->value.sctp_udpencaps->sue_assoc_id);
 		free_expression(expression->value.sctp_udpencaps->sue_address);
 		free_expression(expression->value.sctp_udpencaps->sue_port);
+		free(expression->value.sctp_udpencaps);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -707,6 +794,7 @@ void free_expression(struct expression *expression)
 		assert(expression->value.iovec);
 		free_expression(expression->value.iovec->iov_base);
 		free_expression(expression->value.iovec->iov_len);
+		free(expression->value.iovec);
 		break;
 	case EXPR_MSGHDR:
 		assert(expression->value.msghdr);
@@ -717,18 +805,22 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.msghdr->msg_control);
 		free_expression(expression->value.msghdr->msg_controllen);
 		free_expression(expression->value.msghdr->msg_flags);
+		free(expression->value.msghdr);
 		break;
 	case EXPR_CMSGHDR:
+		assert(expression->value.cmsghdr);
 		free_expression(expression->value.cmsghdr->cmsg_len);
 		free_expression(expression->value.cmsghdr->cmsg_level);
 		free_expression(expression->value.cmsghdr->cmsg_type);
 		free_expression(expression->value.cmsghdr->cmsg_data);
+		free(expression->value.cmsghdr);
 		break;
 	case EXPR_POLLFD:
 		assert(expression->value.pollfd);
 		free_expression(expression->value.pollfd->fd);
 		free_expression(expression->value.pollfd->events);
 		free_expression(expression->value.pollfd->revents);
+		free(expression->value.pollfd);
 		break;
 #if defined(__FreeBSD__)
 	case EXPR_SF_HDTR:
@@ -737,6 +829,7 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sf_hdtr->hdr_cnt);
 		free_expression(expression->value.sf_hdtr->trailers);
 		free_expression(expression->value.sf_hdtr->trl_cnt);
+		free(expression->value.sf_hdtr);
 		break;
 #endif
 	case EXPR_NONE:
