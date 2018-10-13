@@ -248,7 +248,7 @@ sctp_forward_tsn_ids_list_new () {
 
 void
 sctp_forward_tsn_ids_list_append(struct sctp_forward_tsn_ids_list *list,
-			          struct sctp_forward_tsn_ids_list_item *item) {
+			         struct sctp_forward_tsn_ids_list_item *item) {
 	assert(item->next == NULL);
 	if (list->last == NULL) {
 		assert(list->first == NULL);
@@ -548,6 +548,7 @@ sctp_generic_chunk_new(s64 type, s64 flgs, s64 len,
 		     i++, item = item->next) {
 			chunk->value[i] = item->byte;
 		}
+		sctp_byte_list_free(bytes);
 	} else {
 		memset(chunk->value, 0, value_length);
 	}
@@ -1274,6 +1275,7 @@ sctp_cookie_echo_chunk_new(s64 flgs, s64 len, struct sctp_byte_list *cookie)
 		     i++, item = item->next) {
 			chunk->cookie[i] = item->byte;
 		}
+		sctp_byte_list_free(cookie);
 	} else {
 		flags |= FLAG_CHUNK_VALUE_NOCHECK;
 		memset(chunk->cookie, 'A', cookie_length);
@@ -1797,6 +1799,7 @@ sctp_generic_parameter_new(s64 type, s64 len, struct sctp_byte_list *bytes)
 		     i++, item = item->next) {
 			parameter->value[i] = item->byte;
 		}
+		sctp_byte_list_free(bytes);
 	} else {
 		memset(parameter->value, 0, value_length);
 	}
@@ -1928,6 +1931,8 @@ sctp_unrecognized_parameters_parameter_new(struct sctp_parameter_list *list)
 				padding_length = 4 - padding_length;
 			}
 			memcpy(parameter->value + offset, item->parameter, item->length + padding_length);
+			free(item->parameter);
+			item->parameter = NULL;
 			if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
 				flags |= FLAG_PARAMETER_LENGTH_NOCHECK;
 			}
@@ -1936,6 +1941,7 @@ sctp_unrecognized_parameters_parameter_new(struct sctp_parameter_list *list)
 			}
 			offset += item->length + padding_length;
 		}
+		sctp_parameter_list_free(list);
 	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 	                                    parameter_length, flags);
@@ -1996,6 +2002,7 @@ sctp_hostname_address_parameter_new(char *hostname)
 		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
 	} else {
 		strcpy(parameter->hostname, hostname);
+		free(hostname);
 	}
 	memset(parameter->hostname + name_length, 0, padding_length);
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
@@ -2037,9 +2044,10 @@ sctp_supported_address_types_parameter_new(struct sctp_address_type_list *list)
 			parameter->address_type[i] = htons(item->address_type);
 		}
 		assert((i == list->nr_entries) && (item == NULL));
-	}
-	if (padding_length == 2) {
-		parameter->address_type[list->nr_entries] = htons(0);
+		if (padding_length == 2) {
+			parameter->address_type[list->nr_entries] = htons(0);
+		}
+		sctp_address_type_list_free(list);
 	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 	                                    parameter_length, flags);
@@ -2080,6 +2088,7 @@ sctp_supported_extensions_parameter_new(struct sctp_byte_list *list)
 			parameter->chunk_type[i] = item->byte;
 		}
 		assert((i == list->nr_entries) && (item == NULL));
+		sctp_byte_list_free(list);
 		memset(parameter->chunk_type + list->nr_entries, 0, padding_length);
 	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
@@ -2193,6 +2202,7 @@ sctp_outgoing_ssn_reset_request_parameter_new(s64 reqsn, s64 respsn, s64 last_ts
 		for (item = sids->first; item != NULL; item = item->next) {
 			parameter->sids[i++] = htons(item->value);
 		}
+		sctp_u16_list_free(sids);
 	}
 
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
@@ -2229,6 +2239,7 @@ sctp_incoming_ssn_reset_request_parameter_new(s64 reqsn, struct sctp_u16_list *s
 		for (item = sids->first; item != NULL; item = item->next) {
 			parameter->sids[i++] = htons(item->value);
 		}
+		sctp_u16_list_free(sids);
 	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 					    parameter_length, flags);
@@ -2413,6 +2424,7 @@ sctp_generic_reconfig_request_parameter_new(s32 type, s32 len, s64 reqsn, struct
 		for (i = 0, item = payload->first; item != NULL; i++, item = item->next) {
 			parameter->value[i] = item->byte;
 		}
+		sctp_byte_list_free(payload);
 	}
 
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
@@ -2558,6 +2570,7 @@ sctp_generic_cause_new(s64 code, s64 len, struct sctp_byte_list *bytes)
 		     i++, item = item->next) {
 			cause->information[i] = item->byte;
 		}
+		sctp_byte_list_free(bytes);
 	} else {
 		memset(cause->information, 0, information_length);
 	}
@@ -2626,6 +2639,7 @@ sctp_missing_mandatory_parameter_cause_new(struct sctp_parameter_type_list *list
 			cause->parameter_type[i] = htons(item->parameter_type);
 		}
 		assert((i == list->nr_entries) && (item == NULL));
+		sctp_parameter_type_list_free(list);
 	} else {
 		cause->nr_parameters = htonl(0);
 		i = 0; /* Just to make the compiler on NetBSD happy. */
@@ -2710,6 +2724,7 @@ sctp_unresolvable_address_cause_new(struct sctp_parameter_list_item *item)
 		}
 		memcpy(cause->parameter, item->parameter, item->length);
 		memset(cause->parameter + item->length, 0, padding_length);
+		free(item->parameter);
 		free(item);
 	}
 	return sctp_cause_list_item_new((struct sctp_cause *)cause,
@@ -2753,6 +2768,9 @@ sctp_unrecognized_chunk_type_cause_new(struct sctp_chunk_list_item *item)
 		}
 		memcpy(cause->chunk, item->chunk, item->length);
 		memset(cause->chunk + item->length, 0, padding_length);
+		sctp_parameter_list_free(item->parameter_list);
+		sctp_cause_list_free(item->cause_list);
+		free(item->chunk);
 		free(item);
 	}
 	return sctp_cause_list_item_new((struct sctp_cause *)cause,
@@ -2808,6 +2826,8 @@ sctp_unrecognized_parameters_cause_new(struct sctp_parameter_list *list)
 				padding_length = 4 - padding_length;
 			}
 			memcpy(cause->parameters + offset, item->parameter, item->length + padding_length);
+			free(item->parameter);
+			item->parameter = NULL;
 			if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
 				flags |= FLAG_CAUSE_LENGTH_NOCHECK;
 			}
@@ -2816,6 +2836,7 @@ sctp_unrecognized_parameters_cause_new(struct sctp_parameter_list *list)
 			}
 			offset += item->length + padding_length;
 		}
+		sctp_parameter_list_free(list);
 	}
 	return sctp_cause_list_item_new((struct sctp_cause *)cause,
 	                                cause_length, flags);
@@ -2893,6 +2914,8 @@ sctp_restart_with_new_addresses_cause_new(struct sctp_parameter_list *list)
 				padding_length = 4 - padding_length;
 			}
 			memcpy(cause->addresses + offset, item->parameter, item->length + padding_length);
+			free(item->parameter);
+			item->parameter = NULL;
 			if (item->flags & FLAG_PARAMETER_LENGTH_NOCHECK) {
 				flags |= FLAG_CAUSE_LENGTH_NOCHECK;
 			}
@@ -2901,6 +2924,7 @@ sctp_restart_with_new_addresses_cause_new(struct sctp_parameter_list *list)
 			}
 			offset += item->length + padding_length;
 		}
+		sctp_parameter_list_free(list);
 	}
 	return sctp_cause_list_item_new((struct sctp_cause *)cause,
 	                                cause_length, flags);
@@ -3632,7 +3656,8 @@ new_sctp_generic_packet(int address_family,
 	for (i = 0, item = bytes->first; item != NULL; i++, item = item->next) {
 		sctp_chunk_start[i] = item->byte;
 	}
-
+	sctp_byte_list_free(bytes);
+	sctp_chunk_list_free(packet->chunk_list);
 	packet->chunk_list = NULL;
 	packet->ip_bytes = ip_bytes;
 
