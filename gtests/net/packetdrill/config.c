@@ -210,7 +210,7 @@ static void set_ipv6_defaults(struct config *config)
 /* Set default configuration before we begin parsing. */
 void set_default_config(struct config *config)
 {
-	memset(config, 0, sizeof(*config));
+	cleanup_config(config);
 #if defined(__FreeBSD__)
 	config->code_command_line	= "/usr/local/bin/python";
 #else
@@ -385,6 +385,32 @@ void finalize_config(struct config *config)
 		}
 	}
 #endif
+}
+
+void cleanup_config(struct config *config)
+{
+	struct definition *cur_def, *next_def;
+	int i;
+
+	if (config->argv != NULL) {
+		for (i = 0; config->argv[i] != NULL; i++) {
+			free(config->argv[i]);
+		}
+	}
+	free(config->argv);
+	free(config->script_path);
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+	free(config->tun_device);
+#endif
+	cur_def = config->defines;
+	while (cur_def != NULL) {
+		next_def = cur_def->next;
+		free(cur_def->symbol);
+		free(cur_def->value);
+		free(cur_def);
+		cur_def = next_def;
+	}
+	memset(config, 0, sizeof(struct config));
 }
 
 /* Expect that arg is comma-delimited, allowing for spaces. */

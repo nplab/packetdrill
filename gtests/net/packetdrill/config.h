@@ -69,6 +69,7 @@ static inline void definition_set(struct definition **defs,
 	if (def) {
 		free(def->value);
 		def->value = value;
+		free(symbol);
 	} else {
 		def = calloc(1, sizeof(struct definition));
 		def->symbol = symbol;
@@ -87,7 +88,7 @@ static inline char *definition_get(struct definition *defs, char *symbol)
 }
 
 struct config {
-	const char **argv;			/* a copy of process argv */
+	char **argv;			/* a copy of process argv */
 
 	enum ip_version_t ip_version;		/* v4, v4-mapped-v6, v6 */
 	int socket_domain;			/* AF_INET or AF_INET6 */
@@ -186,6 +187,8 @@ extern void parse_non_fatal_arg(char *arg, struct config *config);
  * ipv6. Call this after all options have been parsed.
  */
 extern void finalize_config(struct config *config);
+
+extern void cleanup_config(struct config *config);
 
 extern void show_usage(void);
 

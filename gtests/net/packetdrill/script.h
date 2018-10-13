@@ -666,8 +666,8 @@ struct sctp_udpencaps_expr {
 
 /* The errno-related info from strace to summarize a system call error */
 struct errno_spec {
-	const char *errno_macro;	/* errno symbol (C macro name) */
-	const char *strerror;		/* strerror translation of errno */
+	char *errno_macro;	/* errno symbol (C macro name) */
+	char *strerror;		/* strerror translation of errno */
 };
 
 /* A system call and its expected result. System calls that should
@@ -677,7 +677,7 @@ struct errno_spec {
  * return.
  */
 struct syscall_spec {
-	const char *name;			/* name of system call */
+	char *name;				/* name of system call */
 	struct expression_list *arguments;	/* arguments to system call */
 	struct expression *result;		/* expected result from call */
 	struct errno_spec *error;		/* errno symbol or NULL */
@@ -693,7 +693,7 @@ static inline bool is_blocking_syscall(struct syscall_spec *syscall)
 
 /* A shell command line to execute using system(3) */
 struct command_spec {
-	const char *command_line;	/* executed with /bin/sh */
+	char *command_line;	/* executed with /bin/sh */
 };
 
 /* An ASCII text snippet of code to insert in the post-processing
@@ -782,6 +782,9 @@ struct flag_name {
 
 /* Initialize a script object */
 extern void init_script(struct script *script);
+
+/* Free resources used by a script object */
+extern void free_script(struct script *script);
 
 /* Look up the value of the given symbol, and fill it in. On success,
  * return STATUS_OK; if the symbol cannot be found, return

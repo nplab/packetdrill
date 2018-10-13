@@ -53,7 +53,7 @@ static void wire_client_die(struct wire_client *wire_client,
  * characters between args. We do not send the -wire_client argument,
  * since we don't want to give the server an identity crisis.
  */
-static void wire_client_serialize_argv(const char **argv, char **args_ptr,
+static void wire_client_serialize_argv(char **argv, char **args_ptr,
 				       int *args_len_ptr)
 {
 	int i;

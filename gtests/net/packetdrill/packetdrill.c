@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
 	pthread_set_name_np(pthread_self(), "main thread");
 #endif
 
+	memset(&config, 0, sizeof(struct config));
 	set_default_config(&config);
 	/* Get command line options and list of test scripts. */
 	arg = parse_command_line_options(argc, argv, &config);
@@ -98,6 +99,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		run_wire_server(&config);
+		cleanup_config(&config);
 		return 0;
 	}
 
@@ -126,7 +128,9 @@ int main(int argc, char *argv[])
 
 		run_init_scripts(&config);
 		run_script(&config, &script);
+		free_script(&script);
 	}
 
+	cleanup_config(&config);
 	return 0;
 }

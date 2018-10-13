@@ -47,6 +47,56 @@ void init_script(struct script *script)
 	script->event_list = NULL;
 }
 
+/* Free resources used by a script object */
+void free_script(struct script *script)
+{
+	struct option_list *cur_option, *next_option;
+	struct event *cur_event, *next_event;
+
+	cur_option = script->option_list;
+	while (cur_option != NULL) {
+		next_option = cur_option->next;
+		free(cur_option->name);
+		free(cur_option->value);
+		free(cur_option);
+		cur_option = next_option;
+	}
+	cur_event = script->event_list;
+	while (cur_event != NULL) {
+		next_event = cur_event->next;
+		switch (cur_event->type) {
+		case PACKET_EVENT:
+			packet_free(cur_event->event.packet);
+			break;
+		case SYSCALL_EVENT:
+			free(cur_event->event.syscall->name);
+			free_expression_list(cur_event->event.syscall->arguments);
+			free_expression(cur_event->event.syscall->result);
+			if (cur_event->event.syscall->error != NULL) {
+				free(cur_event->event.syscall->error->errno_macro);
+				free(cur_event->event.syscall->error->strerror);
+			}
+			free(cur_event->event.syscall->error);
+			free(cur_event->event.syscall->note);
+			free(cur_event->event.syscall);
+			break;
+		case COMMAND_EVENT:
+			free(cur_event->event.command->command_line);
+			free(cur_event->event.command);
+			break;
+		case CODE_EVENT:
+			free(cur_event->event.code);
+			break;
+		default:
+			assert(!"bad event type");
+			break;
+		}
+		free(cur_event);
+		cur_event = next_event;
+	}
+	free(script->buffer);
+}
+
 /* This table maps expression types to human-readable strings */
 struct expression_type_entry {
 	enum expression_t type;
