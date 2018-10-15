@@ -182,7 +182,6 @@ struct packet *new_tcp_packet(int address_family,
 		/* Copy TCP options into packet */
 		memcpy(tcp_option_start, tcp_options->data,
 		       tcp_options->length);
-		free(tcp_options);
 	}
 
 	if (ignore_ts_val) {
