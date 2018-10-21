@@ -3417,6 +3417,7 @@ static int do_inbound_script_packet(
 						if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 							struct udp *udp;
 
+							assert(i + 2 < PACKET_MAX_HEADERS);
 							assert(packet->headers[i + 1].type == HEADER_UDP);
 							assert(packet->headers[i + 2].type == HEADER_SCTP);
 							packet->headers[i].total_bytes += temp_offset;
@@ -3425,6 +3426,7 @@ static int do_inbound_script_packet(
 							udp = ((struct udp *)packet->sctp) - 1;
 							udp->len = htons(ntohs(udp->len) + temp_offset);
 						} else {
+							assert(i + 1 < PACKET_MAX_HEADERS);
 							assert(packet->headers[i + 1].type == HEADER_SCTP);
 							packet->headers[i].total_bytes += temp_offset;
 							packet->headers[i + 1].total_bytes += temp_offset;
