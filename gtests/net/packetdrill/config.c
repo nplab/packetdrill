@@ -447,6 +447,7 @@ static void process_option(int opt, char *optarg, struct config *config,
 
 	switch (opt) {
 	case OPT_IP_VERSION:
+		assert(optarg != NULL);
 		if (strcmp(optarg, "ipv4") == 0)
 			config->ip_version = IP_VERSION_4;
 		else if ((strcmp(optarg, "ipv4-mapped-ipv6") == 0) ||
@@ -458,61 +459,76 @@ static void process_option(int opt, char *optarg, struct config *config,
 			die("%s: bad --ip_version: %s\n", where, optarg);
 		break;
 	case OPT_BIND_PORT:
+		assert(optarg != NULL);
 		port = atoi(optarg);
 		if ((port <= 0) || (port > 0xffff))
 			die("%s: bad --bind_port: %s\n", where, optarg);
 		config->live_bind_port = port;
 		break;
 	case OPT_CODE_COMMAND:
+		assert(optarg != NULL);
 		config->code_command_line = optarg;
 		break;
 	case OPT_CODE_FORMAT:
+		assert(optarg != NULL);
 		config->code_format = optarg;
 		break;
 	case OPT_CODE_SOCKOPT:
+		assert(optarg != NULL);
 		config->code_sockopt = optarg;
 		break;
 	case OPT_CONNECT_PORT:
+		assert(optarg != NULL);
 		port = atoi(optarg);
 		if ((port <= 0) || (port > 0xffff))
 			die("%s: bad --connect_port: %s\n", where, optarg);
 		config->live_connect_port = port;
 		break;
 	case OPT_REMOTE_IP:
+		assert(optarg != NULL);
 		strncpy(config->live_remote_ip_string, optarg, ADDR_STR_LEN-1);
 		break;
 	case OPT_LOCAL_IP:
+		assert(optarg != NULL);
 		strncpy(config->live_local_ip_string, optarg, ADDR_STR_LEN-1);
 		break;
 	case OPT_GATEWAY_IP:
+		assert(optarg != NULL);
 		strncpy(config->live_gateway_ip_string, optarg, ADDR_STR_LEN-1);
 		break;
 	case OPT_MTU:
+		assert(optarg != NULL);
 		config->mtu = atoi(optarg);
 		if (config->mtu < 0)
 			die("%s: bad --mtu: %s\n", where, optarg);
 		break;
 	case OPT_NETMASK_IP:
+		assert(optarg != NULL);
 		strncpy(config->live_netmask_ip_string, optarg,	ADDR_STR_LEN-1);
 		break;
 	case OPT_INIT_SCRIPTS:
+		assert(optarg != NULL);
 		config->init_scripts = optarg;
 		break;
 	case OPT_NON_FATAL:
+		assert(optarg != NULL);
 		parse_non_fatal_arg(optarg, config);
 		break;
 	case OPT_SPEED:
+		assert(optarg != NULL);
 		speed = strtoul(optarg, &end, 10);
 		if (end == optarg || *end || !is_valid_u32(speed))
 			die("%s: bad --speed: %s\n", where, optarg);
 		config->speed = speed;
 		break;
 	case OPT_TOLERANCE_USECS:
+		assert(optarg != NULL);
 		config->tolerance_usecs = atoi(optarg);
 		if (config->tolerance_usecs <= 0)
 			die("%s: bad --tolerance_usecs: %s\n", where, optarg);
 		break;
 	case OPT_TCP_TS_TICK_USECS:
+		assert(optarg != NULL);
 		config->tcp_ts_tick_usecs = atoi(optarg);
 		if (config->tcp_ts_tick_usecs < 0 ||
 		    config->tcp_ts_tick_usecs > 1000000)
@@ -525,26 +541,31 @@ static void process_option(int opt, char *optarg, struct config *config,
 		config->is_wire_server = true;
 		break;
 	case OPT_WIRE_SERVER_IP:
+		assert(optarg != NULL);
 		config->wire_server_ip_string = strdup(optarg);
 		config->wire_server_ip	=
 			ipv4_parse(config->wire_server_ip_string);
 		break;
 	case OPT_WIRE_SERVER_PORT:
+		assert(optarg != NULL);
 		port = atoi(optarg);
 		if ((port <= 0) || (port > 0xffff))
 			die("%s: bad --wire_server_port: %s\n", where, optarg);
 		config->wire_server_port = port;
 		break;
 	case OPT_WIRE_CLIENT_DEV:
+		assert(optarg != NULL);
 		config->wire_client_device = strdup(optarg);
 		break;
 	case OPT_WIRE_SERVER_DEV:
+		assert(optarg != NULL);
 		config->wire_server_device = strdup(optarg);
 		break;
 	case OPT_DRY_RUN:
 		config->dry_run = true;
 		break;
 	case OPT_DEFINE:
+		assert(optarg != NULL);
 		equals = strstr(optarg, "=");
 		if (equals == optarg || equals == NULL)
 			die("%s: bad definition: %s\n", where, optarg);
@@ -562,6 +583,7 @@ static void process_option(int opt, char *optarg, struct config *config,
 		debug_logging = true;
 		break;
 	case OPT_UDP_ENCAPS:
+		assert(optarg != NULL);
 		if (strcmp(optarg, "sctp") == 0)
 			config->udp_encaps = IPPROTO_SCTP;
 		else if (strcmp(optarg, "tcp") == 0)
@@ -571,9 +593,11 @@ static void process_option(int opt, char *optarg, struct config *config,
 		break;
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	case OPT_TUN_DEV:
+		assert(optarg != NULL);
 		config->tun_device = strdup(optarg);
 		break;
 	case OPT_PERSISTENT_TUN_DEV:
+		assert(optarg != NULL);
 		config->persistent_tun_device = true;
 		break;
 #endif
