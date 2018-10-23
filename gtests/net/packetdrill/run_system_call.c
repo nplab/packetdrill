@@ -4632,7 +4632,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		if (check_type(val_expression->value.accept_filter_arg->af_name, EXPR_STRING, error)) {
 			return STATUS_ERR;
 		}
-		strncpy(accept_filter_arg.af_name,
+		strlcpy(accept_filter_arg.af_name,
 			val_expression->value.accept_filter_arg->af_name->value.string,
 			offsetof(struct accept_filter_arg, af_arg));
 		if (val_expression->value.accept_filter_arg->af_arg != NULL &&
@@ -4640,7 +4640,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			if (check_type(val_expression->value.accept_filter_arg->af_arg, EXPR_STRING, error)) {
 				return STATUS_ERR;
 			}
-			strncpy(accept_filter_arg.af_arg,
+			strlcpy(accept_filter_arg.af_arg,
 				val_expression->value.accept_filter_arg->af_arg->value.string,
 				sizeof(struct accept_filter_arg) - offsetof(struct accept_filter_arg, af_arg));
 		}
@@ -4655,7 +4655,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		if (check_type(val_expression->value.tcp_function_set->function_set_name, EXPR_STRING, error)) {
 			return STATUS_ERR;
 		}
-		strncpy(tcp_function_set.function_set_name,
+		strlcpy(tcp_function_set.function_set_name,
 		        val_expression->value.tcp_function_set->function_set_name->value.string,
 		        TCP_FUNCTION_NAME_LEN_MAX);
 		if (get_u32(val_expression->value.tcp_function_set->pcbcnt,
