@@ -597,7 +597,6 @@ static void process_option(int opt, char *optarg, struct config *config,
 		config->tun_device = strdup(optarg);
 		break;
 	case OPT_PERSISTENT_TUN_DEV:
-		assert(optarg != NULL);
 		config->persistent_tun_device = true;
 		break;
 #endif
