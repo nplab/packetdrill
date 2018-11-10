@@ -7038,7 +7038,7 @@ static void enqueue_system_call(
 	int err;
 	bool done = false;
 
-	/* This MUST NOT be called from the syscalls thread. */
+	/* This MUST NOT be called from the system call thread. */
 	assert(!pthread_equal(pthread_self(), state->syscalls->thread));
 	/* Wait if there are back-to-back blocking system calls. */
 	if (await_idle_thread(state)) {
