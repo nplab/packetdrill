@@ -475,11 +475,17 @@ static int sctp_chunks_parameter_to_string(
 		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
 			fputs("SHUTDOWN_COMPLETE", s);
 			break;
+		case SCTP_AUTHENTICATION_CHUNK_TYPE:
+			fputs("AUTH", s);
+			break;
 		case SCTP_NR_SACK_CHUNK_TYPE:
 			fputs("NR_SACK", s);
 			break;
 		case SCTP_I_DATA_CHUNK_TYPE:
 			fputs("I_DATA", s);
+			break;
+		case SCTP_ASCONF_ACK_CHUNK_TYPE:
+			fputs("ASCONF_ACK", s);
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			fputs("RECONFIG", s);
@@ -489,6 +495,9 @@ static int sctp_chunks_parameter_to_string(
 			break;
 		case SCTP_FORWARD_TSN_CHUNK_TYPE:
 			fputs("FORWARD_TSN", s);
+			break;
+		case SCTP_ASCONF_CHUNK_TYPE:
+			fputs("ASCONF", s);
 			break;
 		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
 			fputs("I_FORWARD_TSN", s);
@@ -567,11 +576,17 @@ static int sctp_supported_extensions_parameter_to_string(
 		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
 			fputs("SHUTDOWN_COMPLETE", s);
 			break;
+		case SCTP_AUTHENTICATION_CHUNK_TYPE:
+			fputs("AUTH", s);
+			break;
 		case SCTP_NR_SACK_CHUNK_TYPE:
 			fputs("NR_SACK", s);
 			break;
 		case SCTP_I_DATA_CHUNK_TYPE:
 			fputs("I_DATA", s);
+			break;
+		case SCTP_ASCONF_ACK_CHUNK_TYPE:
+			fputs("ASCONF_ACK", s);
 			break;
 		case SCTP_RECONFIG_CHUNK_TYPE:
 			fputs("RECONFIG", s);
@@ -581,6 +596,9 @@ static int sctp_supported_extensions_parameter_to_string(
 			break;
 		case SCTP_FORWARD_TSN_CHUNK_TYPE:
 			fputs("FORWARD_TSN", s);
+			break;
+		case SCTP_ASCONF_CHUNK_TYPE:
+			fputs("ASCONF", s);
 			break;
 		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
 			fputs("I_FORWARD_TSN", s);
