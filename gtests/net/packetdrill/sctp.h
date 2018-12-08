@@ -380,27 +380,11 @@ struct sctp_supported_address_types_parameter {
 	__be16 address_type[];
 } __packed;
 
-struct sctp_ecn_capable_parameter {
+struct sctp_reconfig_generic_request_parameter {
 	__be16 type;
 	__be16 length;
-} __packed;
-
-struct sctp_supported_extensions_parameter {
-	__be16 type;
-	__be16 length;
-	__u8 chunk_type[];
-} __packed;
-
-struct sctp_pad_parameter {
-	__be16 type;
-	__be16 length;
-	__be16 padding_data[];
-} __packed;
-
-struct sctp_adaptation_indication_parameter {
-	__be16 type;
-	__be16 length;
-	__be32 adaptation_code_point;
+	__be32 reqsn;
+	__u8 value[];
 } __packed;
 
 struct sctp_outgoing_ssn_reset_request_parameter {
@@ -450,11 +434,27 @@ struct sctp_add_incoming_streams_request_parameter {
 	__be16 reserved;
 } __packed;
 
-struct sctp_reconfig_generic_request_parameter {
+struct sctp_ecn_capable_parameter {
 	__be16 type;
 	__be16 length;
-	__be32 reqsn;
-	__u8 value[];
+} __packed;
+
+struct sctp_supported_extensions_parameter {
+	__be16 type;
+	__be16 length;
+	__u8 chunk_type[];
+} __packed;
+
+struct sctp_pad_parameter {
+	__be16 type;
+	__be16 length;
+	__be16 padding_data[];
+} __packed;
+
+struct sctp_adaptation_indication_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 adaptation_code_point;
 } __packed;
 
 struct sctp_forward_tsn_supported_parameter {
