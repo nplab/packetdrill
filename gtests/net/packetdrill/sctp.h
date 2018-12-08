@@ -439,6 +439,12 @@ struct sctp_ecn_capable_parameter {
 	__be16 length;
 } __packed;
 
+struct sctp_chunks_parameter {
+	__be16 type;
+	__be16 length;
+	__u8 chunk_type[];
+} __packed;
+
 struct sctp_supported_extensions_parameter {
 	__be16 type;
 	__be16 length;

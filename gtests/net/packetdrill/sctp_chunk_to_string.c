@@ -410,6 +410,98 @@ static int sctp_ecn_capable_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_chunks_parameter_to_string(
+	FILE *s,
+	struct sctp_chunks_parameter *parameter,
+	char **error)
+{
+	u16 length, nr_chunk_types, i;
+
+	length = ntohs(parameter->length);
+	if (length < sizeof(struct sctp_chunks_parameter)) {
+		asprintf(error,
+			 "CHUNKS parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
+	nr_chunk_types = length - sizeof(struct sctp_chunks_parameter);
+	fputs("CHUNKS[types=[", s);
+	for (i = 0; i < nr_chunk_types; i++) {
+		if (i > 0)
+			fputs(", ", s);
+		switch (parameter->chunk_type[i]) {
+		case SCTP_DATA_CHUNK_TYPE:
+			fputs("DATA", s);
+			break;
+		case SCTP_INIT_CHUNK_TYPE:
+			fputs("INIT", s);
+			break;
+		case SCTP_INIT_ACK_CHUNK_TYPE:
+			fputs("INIT_ACK", s);
+			break;
+		case SCTP_SACK_CHUNK_TYPE:
+			fputs("SACK", s);
+			break;
+		case SCTP_HEARTBEAT_CHUNK_TYPE:
+			fputs("HEARTBEAT", s);
+			break;
+		case SCTP_HEARTBEAT_ACK_CHUNK_TYPE:
+			fputs("HEARTBEAT_ACK", s);
+			break;
+		case SCTP_ABORT_CHUNK_TYPE:
+			fputs("ABORT", s);
+			break;
+		case SCTP_SHUTDOWN_CHUNK_TYPE:
+			fputs("SHUTDOWN", s);
+			break;
+		case SCTP_SHUTDOWN_ACK_CHUNK_TYPE:
+			fputs("SHUTDOWN_ACK", s);
+			break;
+		case SCTP_ERROR_CHUNK_TYPE:
+			fputs("ERROR", s);
+			break;
+		case SCTP_COOKIE_ECHO_CHUNK_TYPE:
+			fputs("COOKIE_ECHO", s);
+			break;
+		case SCTP_COOKIE_ACK_CHUNK_TYPE:
+			fputs("COOKIE_ACK", s);
+			break;
+		case SCTP_ECNE_CHUNK_TYPE:
+			fputs("ECNE", s);
+			break;
+		case SCTP_CWR_CHUNK_TYPE:
+			fputs("CWR", s);
+			break;
+		case SCTP_SHUTDOWN_COMPLETE_CHUNK_TYPE:
+			fputs("SHUTDOWN_COMPLETE", s);
+			break;
+		case SCTP_NR_SACK_CHUNK_TYPE:
+			fputs("NR_SACK", s);
+			break;
+		case SCTP_I_DATA_CHUNK_TYPE:
+			fputs("I_DATA", s);
+			break;
+		case SCTP_RECONFIG_CHUNK_TYPE:
+			fputs("RECONFIG", s);
+			break;
+		case SCTP_PAD_CHUNK_TYPE:
+			fputs("PAD", s);
+			break;
+		case SCTP_FORWARD_TSN_CHUNK_TYPE:
+			fputs("FORWARD_TSN", s);
+			break;
+		case SCTP_I_FORWARD_TSN_CHUNK_TYPE:
+			fputs("I_FORWARD_TSN", s);
+			break;
+		default:
+			fprintf(s, "0x%02x", parameter->chunk_type[i]);
+			break;
+		}
+	}
+	fputs("]]", s);
+	return STATUS_OK;
+}
+
 static int sctp_supported_extensions_parameter_to_string(
 	FILE *s,
 	struct sctp_supported_extensions_parameter *parameter,
@@ -649,6 +741,11 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_ECN_CAPABLE_PARAMETER_TYPE:
 		result = sctp_ecn_capable_parameter_to_string(s,
 			(struct sctp_ecn_capable_parameter *)parameter, error);
+		break;
+	case SCTP_CHUNKS_PARAMETER_TYPE:
+		result = sctp_chunks_parameter_to_string(s,
+			(struct sctp_chunks_parameter *)parameter,
+			error);
 		break;
 	case SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE:
 		result = sctp_supported_extensions_parameter_to_string(s,
