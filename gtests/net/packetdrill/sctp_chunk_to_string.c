@@ -529,7 +529,7 @@ static int sctp_hmac_algo_parameter_to_string(
 	nr_hmac_algos =
 		(length - sizeof(struct sctp_hmac_algo_parameter))
 		/ sizeof(u16);
-	fputs("HMAC_ALGO[types=[", s);
+	fputs("HMAC_ALGO[ids=[", s);
 	for (i = 0; i < nr_hmac_algos; i++) {
 		if (i > 0)
 			fputs(", ", s);
