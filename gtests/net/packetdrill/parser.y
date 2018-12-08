@@ -5459,12 +5459,9 @@ sctp_setpeerprim
 };
 
 sctp_authchunk
-: '{' SAUTH_CHUNK '=' INTEGER '}' {
+: '{' SAUTH_CHUNK '=' chunk_type '}' {
 	$$ = new_expression(EXPR_SCTP_AUTHCHUNK);
 	$$->value.sctp_authchunk = calloc(1, sizeof(struct sctp_authchunk_expr));
-	if (!is_valid_u8($4)) {
-		semantic_error("sauth_chunk out of range");
-	}
 	$$->value.sctp_authchunk->sauth_chunk = new_integer_expression($4, "%hhu");
 };
 
