@@ -445,6 +445,15 @@ struct sctp_chunks_parameter {
 	__u8 chunk_type[];
 } __packed;
 
+#define SCTP_HMAC_ID_SHA_1	1
+#define SCTP_HMAC_ID_SHA_256	3
+
+struct sctp_hmac_algo_parameter {
+	__be16 type;
+	__be16 length;
+	__be16 hmac_id[];
+} __packed;
+
 struct sctp_supported_extensions_parameter {
 	__be16 type;
 	__be16 length;

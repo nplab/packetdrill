@@ -511,6 +511,44 @@ static int sctp_chunks_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_hmac_algo_parameter_to_string(
+	FILE *s,
+	struct sctp_hmac_algo_parameter *parameter,
+	char **error)
+{
+	u16 i, length, nr_hmac_algos;
+
+	length = ntohs(parameter->length);
+	if ((length < sizeof(struct sctp_hmac_algo_parameter)) ||
+	    ((length & 0x0001) != 0)) {
+		asprintf(error,
+			 "HMAC_ALGO parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
+	nr_hmac_algos =
+		(length - sizeof(struct sctp_hmac_algo_parameter))
+		/ sizeof(u16);
+	fputs("HMAC_ALGO[types=[", s);
+	for (i = 0; i < nr_hmac_algos; i++) {
+		if (i > 0)
+			fputs(", ", s);
+		switch (ntohs(parameter->hmac_id[i])) {
+		case SCTP_HMAC_ID_SHA_1:
+			fputs("SHA-1", s);
+			break;
+		case SCTP_HMAC_ID_SHA_256:
+			fputs("SHA-256", s);
+			break;
+		default:
+			fprintf(s, "0x%04x", ntohs(parameter->hmac_id[i]));
+			break;
+		}
+	}
+	fputs("]]", s);
+	return STATUS_OK;
+}
+
 static int sctp_supported_extensions_parameter_to_string(
 	FILE *s,
 	struct sctp_supported_extensions_parameter *parameter,
@@ -763,6 +801,11 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_CHUNKS_PARAMETER_TYPE:
 		result = sctp_chunks_parameter_to_string(s,
 			(struct sctp_chunks_parameter *)parameter,
+			error);
+		break;
+	case SCTP_HMAC_ALGO_PARAMETER_TYPE:
+		result = sctp_hmac_algo_parameter_to_string(s,
+			(struct sctp_hmac_algo_parameter *)parameter,
 			error);
 		break;
 	case SCTP_SUPPORTED_EXTENSIONS_PARAMETER_TYPE:
