@@ -1052,7 +1052,93 @@ static int evaluate_pollfd_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_linger_expression(struct expression *in,
+				      struct expression *out,
+				      char **error)
+{
+	struct linger_expr *in_linger;
+	struct linger_expr *out_linger;
+
+	assert(in->type == EXPR_LINGER);
+	assert(in->value.accept_filter_arg);
+	assert(out->type == EXPR_LINGER);
+
+	out->value.linger = calloc(1, sizeof(struct linger_expr));
+
+	in_linger = in->value.linger;
+	out_linger = out->value.linger;
+
+	if (evaluate(in_linger->l_onoff,
+		     &out_linger->l_onoff,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_linger->l_linger,
+		     &out_linger->l_linger,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
+#if defined(__FreeBSD__) | defined(__NetBSD__)
+static int evaluate_accept_filter_arg_expression(struct expression *in,
+						 struct expression *out,
+						 char **error)
+{
+	struct accept_filter_arg_expr *in_accept_filter_arg;
+	struct accept_filter_arg_expr *out_accept_filter_arg;
+
+	assert(in->type == EXPR_TCP_FUNCTION_SET);
+	assert(in->value.accept_filter_arg);
+	assert(out->type == EXPR_TCP_FUNCTION_SET);
+
+	out->value.accept_filter_arg = calloc(1, sizeof(struct accept_filter_arg_expr));
+
+	in_accept_filter_arg = in->value.accept_filter_arg;
+	out_accept_filter_arg = out->value.accept_filter_arg;
+
+	if (evaluate(in_accept_filter_arg->af_name,
+		     &out_accept_filter_arg->af_name,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_accept_filter_arg->af_arg,
+		     &out_accept_filter_arg->af_arg,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+#endif
+
 #if defined(__FreeBSD__)
+static int evaluate_tcp_function_set_expression(struct expression *in,
+						struct expression *out,
+						char **error)
+{
+	struct tcp_function_set_expr *in_tcp_function_set;
+	struct tcp_function_set_expr *out_tcp_function_set;
+
+	assert(in->type == EXPR_TCP_FUNCTION_SET);
+	assert(in->value.tcp_function_set);
+	assert(out->type == EXPR_TCP_FUNCTION_SET);
+
+	out->value.sf_hdtr = calloc(1, sizeof(struct tcp_function_set_expr));
+
+	in_tcp_function_set = in->value.tcp_function_set;
+	out_tcp_function_set = out->value.tcp_function_set;
+
+	if (evaluate(in_tcp_function_set->function_set_name,
+		     &out_tcp_function_set->function_set_name,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_tcp_function_set->pcbcnt,
+		     &out_tcp_function_set->pcbcnt,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sf_hdtr_expression(struct expression *in,
 				       struct expression *out, char **error)
 {
@@ -2918,20 +3004,17 @@ static int evaluate(struct expression *in,
 	case EXPR_INTEGER:		/* copy as-is */
 		out->value.num = in->value.num;
 		break;
-	case EXPR_LINGER:		/* copy as-is */
-		memcpy(&out->value.linger, &in->value.linger,
-		       sizeof(in->value.linger));
+	case EXPR_LINGER:
+		result = evaluate_linger_expression(in, out, error);
 		break;
 #if defined(__FreeBSD__) | defined(__NetBSD__)
-	case EXPR_ACCEPT_FILTER_ARG:		/* copy as-is */
-		memcpy(&out->value.accept_filter_arg, &in->value.accept_filter_arg,
-		       sizeof(in->value.accept_filter_arg));
+	case EXPR_ACCEPT_FILTER_ARG:
+		result = evaluate_accept_filter_arg_expression(in, out, error);
 		break;
 #endif
 #if defined(__FreeBSD__)
-	case EXPR_TCP_FUNCTION_SET:		/* copy as-is */
-		memcpy(&out->value.tcp_function_set, &in->value.tcp_function_set,
-		       sizeof(in->value.tcp_function_set));
+	case EXPR_TCP_FUNCTION_SET:
+		result = evaluate_tcp_function_set_expression(in, out, error);
 		break;
 #endif
 	case EXPR_SCTP_RTOINFO:
