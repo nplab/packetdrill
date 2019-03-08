@@ -1060,7 +1060,7 @@ static int evaluate_linger_expression(struct expression *in,
 	struct linger_expr *out_linger;
 
 	assert(in->type == EXPR_LINGER);
-	assert(in->value.accept_filter_arg);
+	assert(in->value.linger);
 	assert(out->type == EXPR_LINGER);
 
 	out->value.linger = calloc(1, sizeof(struct linger_expr));
