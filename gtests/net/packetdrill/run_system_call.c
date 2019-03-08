@@ -6222,7 +6222,7 @@ static int check_sctp_stream_change_event(struct sctp_stream_change_event_expr *
 }
 #endif
 
-#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
+#if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP) && defined(MSG_NOTIFICATION)) || defined(__SunOS_5_11)
 static int check_sctp_notification(struct socket *socket,
 				   struct iovec *iov,
 				   struct expression *iovec_expr,
