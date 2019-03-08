@@ -495,7 +495,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ MSG_HAVEMORE,                     "MSG_HAVEMORE"                    },
 	{ MSG_RCVMORE,                      "MSG_RCVMORE"                     },
 	{ MSG_NEEDSA,                       "MSG_NEEDSA"                      },
-
+#if defined(MSG_NOTIFICATION)
+	{ MSG_NOTIFICATION,                 "MSG_NOTIFICATION"                },
+#endif
 	/* /usr/include/sys/filio.h */
 	{ FIOCLEX,                          "FIOCLEX"                         },
 	{ FIONCLEX,                         "FIONCLEX"                        },
