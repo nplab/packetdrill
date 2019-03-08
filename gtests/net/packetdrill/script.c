@@ -1088,9 +1088,9 @@ static int evaluate_accept_filter_arg_expression(struct expression *in,
 	struct accept_filter_arg_expr *in_accept_filter_arg;
 	struct accept_filter_arg_expr *out_accept_filter_arg;
 
-	assert(in->type == EXPR_TCP_FUNCTION_SET);
+	assert(in->type == EXPR_ACCEPT_FILTER_ARG);
 	assert(in->value.accept_filter_arg);
-	assert(out->type == EXPR_TCP_FUNCTION_SET);
+	assert(out->type == EXPR_ACCEPT_FILTER_ARG);
 
 	out->value.accept_filter_arg = calloc(1, sizeof(struct accept_filter_arg_expr));
 
