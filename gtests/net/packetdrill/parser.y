@@ -3348,7 +3348,7 @@ accept_filter_arg
 	$$ = new_expression(EXPR_ACCEPT_FILTER_ARG);
 	$$->value.accept_filter_arg = calloc(1, sizeof(struct accept_filter_arg_expr));
 	$$->value.accept_filter_arg->af_name = $2;
-	$$->value.accept_filter_arg->af_arg = NULL;
+	$$->value.accept_filter_arg->af_arg = new_expression(EXPR_ELLIPSIS);
 #else
 	$$ = NULL;
 #endif
