@@ -1122,7 +1122,7 @@ static int evaluate_tcp_function_set_expression(struct expression *in,
 	assert(in->value.tcp_function_set);
 	assert(out->type == EXPR_TCP_FUNCTION_SET);
 
-	out->value.sf_hdtr = calloc(1, sizeof(struct tcp_function_set_expr));
+	out->value.tcp_function_set = calloc(1, sizeof(struct tcp_function_set_expr));
 
 	in_tcp_function_set = in->value.tcp_function_set;
 	out_tcp_function_set = out->value.tcp_function_set;
