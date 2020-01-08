@@ -122,7 +122,7 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 
 #if defined(linux)
 /* Provide a wrapper for the Linux gettid() system call (glibc does not). */
-static pid_t gettid(void)
+pid_t gettid(void)
 {
 	return syscall(__NR_gettid);
 }
