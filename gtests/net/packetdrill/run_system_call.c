@@ -121,11 +121,15 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 #endif
 
 #if defined(linux)
-/* Provide a wrapper for the Linux gettid() system call (glibc does not). */
+/* Provide a wrapper for the Linux gettid() system call
+ * (glibc only provides it in version 2.30 or higher).
+ */
+#if (__GLIBC__ < 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 30))
 static pid_t gettid(void)
 {
 	return syscall(__NR_gettid);
 }
+#endif
 
 /* Read a whole file into the given buffer of the given length. */
 static void read_whole_file(const char *path, char *buffer, int max_bytes)
