@@ -57,4 +57,4 @@ vm.old_mlock=1
 ```
 to `/etc/sysctl.conf` and reboot.
 ##  Continous Integration
-The status of continous integration testing is available from [console](http://212.201.121.110:38010/#/console).
+The status of continous integration testing is available from [Buildbot](http://212.201.121.110:38010/#/console).
