@@ -1207,7 +1207,7 @@ static int cmsg_new(struct expression *expression,
 			break;
 		}
 #endif
-#if defined(SCTP_SNDINFO)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11) || (defined(linux) && defined(HAVE_SCTP_SENDV))
 		case EXPR_SCTP_SNDINFO: {
 			struct sctp_sndinfo info;
 			if (parse_expression_to_sctp_sndinfo(cmsg_expr->cmsg_data, &info, error)) {
@@ -1228,7 +1228,7 @@ static int cmsg_new(struct expression *expression,
 			cmsg = (struct cmsghdr *) ((caddr_t)cmsg + CMSG_SPACE(sizeof(struct sctp_nxtinfo)));
 			break;
 #endif
-#if defined(SCTP_PRINFO)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11) || (defined(linux) && defined(HAVE_SCTP_SENDV))
 		case EXPR_SCTP_PRINFO: {
 			struct sctp_prinfo info;
 			if (parse_expression_to_sctp_prinfo(cmsg_expr->cmsg_data, &info, error)) {
@@ -1239,7 +1239,7 @@ static int cmsg_new(struct expression *expression,
 			break;
 		}
 #endif
-#if defined(SCTP_AUTHINFO)
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11) || (defined(linux) && defined(HAVE_SCTP_SENDV))
 		case EXPR_SCTP_AUTHINFO: {
 			struct sctp_authinfo info;
 			if (parse_expression_to_sctp_authinfo(cmsg_expr->cmsg_data, &info, error)) {
@@ -1347,7 +1347,7 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 				}
 				break;
 #endif
-#ifdef SCTP_RCVINFO
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11) || (defined(linux) && defined(HAVE_SCTP_SENDV))
 			case SCTP_RCVINFO:
 				if (check_sctp_rcvinfo(expr->cmsg_data->value.sctp_rcvinfo,
 						       (struct sctp_rcvinfo *) CMSG_DATA(cmsg_ptr),
@@ -1356,7 +1356,7 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 				}
 				break;
 #endif
-#ifdef SCTP_NXTINFO
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11) || (defined(linux) && defined(HAVE_SCTP_SENDV))
 			case SCTP_NXTINFO:
 				if (check_sctp_nxtinfo(expr->cmsg_data->value.sctp_nxtinfo,
 						       (struct sctp_nxtinfo *) CMSG_DATA(cmsg_ptr),
