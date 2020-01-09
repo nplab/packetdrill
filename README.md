@@ -57,5 +57,4 @@ vm.old_mlock=1
 ```
 to `/etc/sysctl.conf` and reboot.
 ##  Continous Integration
-The status of continous integration testing is available from [grid](http://212.201.121.110:38010/grid) and [waterfall](http://212.201.121.110:38010/waterfall).
-If you are only interested in a single branch, just append `?branch=BRANCHNAME` to the URL, for example [waterfall](http://212.201.121.110:38010/waterfall?branch=master).
+The status of continous integration testing is available from [Buildbot](http://buildbot.nplab.de:38010/#/console).
