@@ -670,7 +670,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <mpls_stack_entry> mpls_stack_entry
 %type <integer> opt_mpls_stack_bottom
 %type <integer> opt_icmp_mtu
-%type <string> icmp_type opt_icmp_code flags
+%type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
 %type <string> opt_note note word_list
 %type <string> option_flag option_value script
@@ -2677,10 +2677,34 @@ ip_ecn
 | CE		{ $$ = ECN_CE; }
 ;
 
+opt_ack_flag
+:		{
+ 	$$ = strdup("");
+}
+| '.'		{
+	$$ = strdup(".");
+}
+;
+
+opt_word
+:		{
+	$$ = strdup("");
+}
+| WORD		{
+	$$ = $1;
+}
+;
+
+ack_and_ace
+: FLOAT     {
+	$$ = strdup(yytext);
+}
+;
+
 flags
-: WORD         { $$ = $1; }
+: WORD opt_ack_flag    { asprintf(&($$), "%s%s", $1, $2); free($1); free($2); }
+| opt_word ack_and_ace { asprintf(&($$), "%s%s", $1, $2); free($1); free($2); }
 | '.'          { $$ = strdup("."); }
-| WORD '.'     { asprintf(&($$), "%s.", $1); free($1); }
 | '-'          { $$ = strdup(""); }  /* no TCP flags set in segment */
 ;
 

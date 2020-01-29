@@ -116,6 +116,7 @@ struct packet {
 #define FLAGS_UDP_ENCAPSULATED    0x80 /* TCP/UDP or SCTP/UDP encapsulated */
 #define FLAG_IGNORE_TS_VAL        0x100 /* set to ignore processing of TS val */
 #define FLAG_IGNORE_SEQ           0x200 /* set to ignore processing of sequence numbers */
+#define FLAG_PARSE_ACE            0x400 /* output parsed AccECN ACE field */
 
 	enum ip_ecn_t ecn;	/* IPv4/IPv6 ECN treatment for packet */
 
