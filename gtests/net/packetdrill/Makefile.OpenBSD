@@ -1,3 +1,3 @@
 packetdrill-ext-libs := -lpthread -lpcap
-CFLAGS = -Wall -Werror -Wno-unknown-warning-option -Wno-address-of-packed-member
+CFLAGS = -Wall -Werror -Wno-unknown-warning-option
 .include "Makefile.common"

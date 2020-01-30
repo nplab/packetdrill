@@ -26,9 +26,11 @@
 #ifndef __PACKET_H__
 #define __PACKET_H__
 
+#include <stddef.h>
+#include <sys/time.h>
+
 #include "types.h"
 
-#include <sys/time.h>
 #include "assert.h"
 #include "gre.h"
 #include "header.h"
@@ -422,7 +424,7 @@ static inline u32 *packet_echoed_sctp_v_tag(struct packet *packet, bool encapsul
 {
 	struct sctp_common_header *echoed_sctp = packet_echoed_sctp_header(packet, encapsulated);
 	assert(echoed_sctp);
-	u32 *v_tag = &(echoed_sctp->v_tag);
+	u32 *v_tag = (u32 *)((char *)echoed_sctp + offsetof(struct sctp_common_header, v_tag));
 	/* Check that the v_tag field is actually in the space we
 	 * reserved for the echoed prefix of the SCTP common header.
 	 */
