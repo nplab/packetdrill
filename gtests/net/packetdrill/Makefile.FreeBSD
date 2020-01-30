@@ -1,7 +1,3 @@
-ARCH != uname -p
 packetdrill-ext-libs := -lprocstat -lutil -lkvm -lelf -lpthread -lpcap
 CFLAGS = -Wall -Werror
-.if ${ARCH} != "powerpc" && ${ARCH} != "powerpc64"
-  CFLAGS += -Wno-unknown-warning-option
-.endif
 .include "Makefile.common"
