@@ -107,7 +107,7 @@ struct tcp {
 		ece:1,
 		cwr:1;
 #  elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-	__u16	doff:4
+	__u16	doff:4,
 		res1:3,
 		ae:1,
 		cwr:1,
