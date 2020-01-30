@@ -26,10 +26,10 @@
 #ifndef __PACKET_H__
 #define __PACKET_H__
 
+#include "types.h"
+
 #include <stddef.h>
 #include <sys/time.h>
-
-#include "types.h"
 
 #include "assert.h"
 #include "gre.h"
