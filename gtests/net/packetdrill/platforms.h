@@ -100,8 +100,8 @@
 
 #define HAVE_TCP_INFO           0
 
+#define HAVE_FMEMOPEN           1
 #include "open_memstream.h"
-#include "fmemopen.h"
 
 #define __always_inline __attribute__((__always_inline__))
 
