@@ -186,7 +186,11 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	if (config->tun_device != NULL) {
 		asprintf(&tun_path, "%s/%s", TUN_DIR, config->tun_device);
 	} else {
+#if defined(__FreeBSD__)
 		asprintf(&tun_path, "%s/%s", TUN_DIR, "tun");
+#else
+		asprintf(&tun_path, "%s/%s", TUN_DIR, "tun0");
+#endif
 	}
 #endif
 #if defined(linux)
