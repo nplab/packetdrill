@@ -68,6 +68,9 @@ static void net_add_ipv4_address(const char *dev_name,
 #endif /* defined(__APPLE__) */
 	verbose_system(command);
 	free(command);
+#if defined(__FreeBSD__)
+	usleep(50000);
+#endif
 }
 
 /* Configure a local IPv6 address and prefix length for the device */
