@@ -6977,6 +6977,12 @@ static void invoke_system_call(
 
 error_out:
 	script_path = strdup(state->config->script_path);
+	/*
+	 * To free resources, we need to free the state. But this can only
+	 * be done from the main thread, but this is the syscall thread.
+	 *
+	 * So not calling state_free(state, 1);
+	 */
 	state_free(state, 1);
 	die("%s:%d: runtime error in %s call: %s\n",
 	    script_path, event->line_number,
