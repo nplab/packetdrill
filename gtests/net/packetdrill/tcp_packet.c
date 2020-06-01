@@ -96,6 +96,7 @@ struct packet *new_tcp_packet(int address_family,
 			       u16 tcp_payload_bytes,
 			       u32 ack_sequence,
 			       s32 window,
+			       u16 urg_ptr,
 			       struct tcp_options *tcp_options,
 			       bool ignore_ts_val,
 			       bool abs_ts_ecr,
@@ -205,13 +206,13 @@ struct packet *new_tcp_packet(int address_family,
 		packet->tcp->window = htons(window);
 	}
 	packet->tcp->check = 0;
-	packet->tcp->urg_ptr = 0;
+	packet->tcp->urg_ptr = htons(urg_ptr);
 	packet->tcp->fin = is_tcp_flag_set('F', flags);
 	packet->tcp->syn = is_tcp_flag_set('S', flags);
 	packet->tcp->rst = is_tcp_flag_set('R', flags);
 	packet->tcp->psh = is_tcp_flag_set('P', flags);
 	packet->tcp->ack = is_tcp_flag_set('.', flags);
-	packet->tcp->urg = 0;
+	packet->tcp->urg = is_tcp_flag_set('U', flags);
 
 	ace = tcp_flag_ace_count(flags);
 	if (ace != 0) {

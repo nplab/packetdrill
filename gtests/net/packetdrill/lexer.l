@@ -238,6 +238,7 @@ EXP-FO				return EXP_FAST_OPEN;
 FO				return FAST_OPEN;
 val				return VAL;
 win				return WIN;
+urg				return URG;
 wscale				return WSCALE;
 ect01				return ECT01;
 ect0				return ECT0;

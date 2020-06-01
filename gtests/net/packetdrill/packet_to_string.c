@@ -231,6 +231,9 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 	if (!(packet->flags & FLAG_WIN_NOCHECK))
 		fprintf(s, " win %u", ntohs(packet->tcp->window));
 
+	if (packet->tcp->urg)
+		fprintf(s, " ack %u", ntohs(packet->tcp->urg_ptr));
+
 	if (packet_tcp_options_len(packet) > 0) {
 		char *tcp_options = NULL;
 		if (tcp_options_to_string(packet, &tcp_options, error))

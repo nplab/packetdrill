@@ -497,6 +497,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 	struct mpls mpls_stack_entry;
 	u16 port;
 	s32 window;
+	u16 urg_ptr;
 	u32 sequence_number;
 	struct {
 		u32 start_sequence;
@@ -564,7 +565,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
-%token <reserved> EXP_FAST_OPEN FAST_OPEN
+%token <reserved> URG EXP_FAST_OPEN FAST_OPEN
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
@@ -675,6 +676,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <string> opt_note note word_list
 %type <string> option_flag option_value script
 %type <window> opt_window
+%type <urg_ptr> opt_urg_ptr
 %type <sequence_number> opt_ack
 %type <tcp_sequence_info> seq
 %type <transport_info> opt_icmp_echoed
@@ -2418,13 +2420,13 @@ sctp_protocol_violation_cause_spec
 }
 
 tcp_packet_spec
-: packet_prefix opt_ip_info flags seq opt_ack opt_window opt_tcp_options opt_udp_encaps_info {
+: packet_prefix opt_ip_info flags seq opt_ack opt_window opt_urg_ptr opt_tcp_options opt_udp_encaps_info {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if (($7 == NULL) && (direction != DIRECTION_OUTBOUND)) {
-		yylineno = @7.first_line;
+	if (($8 == NULL) && (direction != DIRECTION_OUTBOUND)) {
+		yylineno = @8.first_line;
 		semantic_error("<...> for TCP options can only be used with "
 			       "outbound packets");
 	}
@@ -2432,17 +2434,17 @@ tcp_packet_spec
 	inner = new_tcp_packet(in_config->wire_protocol,
 			       direction, $2, $3,
 			       $4.start_sequence, $4.payload_bytes,
-			       $5, $6, $7,
+			       $5, $6, $7, $8,
 			       ignore_ts_val,
 			       absolute_ts_ecr,
 			       $4.absolute,
 			       $4.ignore,
-			       $8.udp_src_port, $8.udp_dst_port,
+			       $9.udp_src_port, $9.udp_dst_port,
 			       &error);
 	ignore_ts_val = false;
 	absolute_ts_ecr = false;
 	free($3);
-	free($7);
+	free($8);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
@@ -2770,6 +2772,16 @@ opt_window
 | WIN INTEGER	{
 	if (!is_valid_u16($2)) {
 		semantic_error("TCP window value out of range");
+	}
+	$$ = $2;
+}
+;
+
+opt_urg_ptr
+:		{ $$ = 0; }
+| URG INTEGER	{
+	if (!is_valid_u16($2)) {
+		semantic_error("urg_ptr value out of range");
 	}
 	$$ = $2;
 }
