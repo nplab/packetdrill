@@ -62,6 +62,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_BINTIME,                       "SO_BINTIME"                      },
 	{ SO_NO_OFFLOAD,                    "SO_NO_OFFLOAD"                   },
 	{ SO_NO_DDP,                        "SO_NO_DDP"                       },
+#ifdef SO_REUSEPORT_LB
+	{ SO_REUSEPORT_LB,                  "SO_REUSEPORT_LB"                 },
+#endif
 	{ SO_SNDBUF,                        "SO_SNDBUF"                       },
 	{ SO_RCVBUF,                        "SO_RCVBUF"                       },
 	{ SO_SNDLOWAT,                      "SO_SNDLOWAT"                     },
