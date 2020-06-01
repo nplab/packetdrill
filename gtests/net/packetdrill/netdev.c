@@ -566,8 +566,11 @@ int netdev_receive_loop(struct packet_socket *psock,
 
 		/* Sniff the next outbound packet from the kernel under test. */
 		if (packet_socket_receive(psock, direction, &ether_type,
-					  *packet, &in_bytes))
+					  *packet, &in_bytes)) {
+			packet_free(*packet);
+			*packet = NULL;
 			continue;
+		}
 
 		++*num_packets;
 		result = parse_packet(*packet, in_bytes, ether_type, udp_encaps,
