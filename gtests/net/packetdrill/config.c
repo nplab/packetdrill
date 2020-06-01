@@ -64,6 +64,7 @@ enum option_codes {
 	OPT_TUN_DEV,
 	OPT_PERSISTENT_TUN_DEV,
 #endif
+	OPT_NO_CLEANUP,
 	OPT_DEFINE = 'D',	/* a '-D' single-letter option */
 	OPT_VERBOSE = 'v',	/* a '-v' single-letter option */
 };
@@ -101,6 +102,7 @@ struct option options[] = {
 	{ "tun_dev",		.has_arg = true,  NULL, OPT_TUN_DEV },
 	{ "persistent_tun_dev",	.has_arg = false, NULL, OPT_PERSISTENT_TUN_DEV },
 #endif
+	{ "no_cleanup",		.has_arg = false, NULL, OPT_NO_CLEANUP },
 	{ NULL },
 };
 
@@ -138,6 +140,7 @@ void show_usage(void)
 		"\t[--tun_dev=<tun_dev_name>]\n"
 		"\t[--persistent_tun_dev]\n"
 #endif
+		"\t[-no-cleanup]\n"
 		"\tscript_path ...\n");
 }
 
@@ -600,6 +603,9 @@ static void process_option(int opt, char *optarg, struct config *config,
 		config->persistent_tun_device = true;
 		break;
 #endif
+	case OPT_NO_CLEANUP:
+		config->no_cleanup = true;
+		break;
 	default:
 		show_usage();
 		exit(EXIT_FAILURE);

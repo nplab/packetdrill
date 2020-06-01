@@ -153,6 +153,9 @@ struct config {
 	struct ip_address wire_server_ip;  /* IP of on-the-wire server */
 	char *wire_server_ip_string;	   /* malloc-ed server IP string */
 	u16 wire_server_port;		   /* the port the server listens on */
+	bool no_cleanup;		   /* do not try to terminate
+					    * connections when exiting
+					    */
 
 	/* For local testing using a tun interface. */
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
