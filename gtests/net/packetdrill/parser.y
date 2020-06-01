@@ -1185,7 +1185,7 @@ chunk_type
 }
 | PAD {
 	$$ = SCTP_PAD_CHUNK_TYPE;
-} 
+}
 | RECONFIG {
 	$$ = SCTP_RECONFIG_CHUNK_TYPE;
 }
@@ -1905,7 +1905,7 @@ opt_sender_next_tsn
 	}
 	$$ = $3;
 }
-| SENDER_NEXT_TSN '=' HEX_INTEGER { 
+| SENDER_NEXT_TSN '=' HEX_INTEGER {
 	if (!is_valid_u32($3)) {
 		semantic_error("sender_next_tsn out of range");
 	}
@@ -1921,7 +1921,7 @@ opt_receiver_next_tsn
 	}
 	$$ = $3;
 }
-| RECEIVER_NEXT_TSN '=' HEX_INTEGER { 
+| RECEIVER_NEXT_TSN '=' HEX_INTEGER {
 	if (!is_valid_u32($3)) {
 		semantic_error("receiver_next_tsn out of range");
 	}
@@ -3614,7 +3614,7 @@ sctp_authkeyid
 	$$->value.sctp_authkeyid->scact_assoc_id = $4;
 	$$->value.sctp_authkeyid->scact_keynumber = $6;
 }
-| '{' scact_keynumber '}'{ 
+| '{' scact_keynumber '}'{
 	$$ = new_expression(EXPR_SCTP_AUTHKEYID);
 	$$->value.sctp_authkeyid = calloc(1, sizeof(struct sctp_authkeyid_expr));
 	$$->value.sctp_authkeyid->scact_assoc_id = new_expression(EXPR_ELLIPSIS);

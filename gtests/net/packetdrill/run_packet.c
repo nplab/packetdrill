@@ -179,9 +179,9 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 	 */
 	struct config *config = state->config;
 	struct socket *socket;	/* shortcut */
-	
+
 	DEBUGP("creating new child_socket!\n");
-	
+
 	socket = socket_new(state);
 	state->socket_under_test = socket;
 	assert(socket->state == SOCKET_INIT);
@@ -195,7 +195,7 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 	socket->script.remote		= tuple.src;
 	socket->script.local		= tuple.dst;
 	socket->script.fd		= -1;
-	
+
 	/* Set up the live info for this socket based
 	 * on the script packet and our overall config.
 	 */
@@ -209,23 +209,23 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 
 static inline bool sctp_is_init_packet(const struct packet *packet) {
 	struct sctp_chunk_list_item *item;
-	
+
 	if (packet->chunk_list != NULL) {
 		item = packet->chunk_list->first;
-		if ((item != NULL) && 
+		if ((item != NULL) &&
 		    (item->chunk->type == SCTP_INIT_CHUNK_TYPE)) {
 			return true;
 		}
 	} else {
 		if (packet->flags & FLAGS_SCTP_GENERIC_PACKET) {
 			u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
-			if ((sctp_chunk_start != NULL) && 
+			if ((sctp_chunk_start != NULL) &&
 				(sctp_chunk_start[0] == SCTP_INIT_CHUNK_TYPE)) {
 				return true;
 			}
 		}
 	}
-	
+
 	return false;
 }
 
@@ -238,7 +238,7 @@ static inline void sctp_socket_set_initial_tsn(struct socket *socket, u32 initia
 	socket->script.remote_initial_tsn = initial_tsn;
 	socket->live.remote_initial_tsn = initial_tsn;
 }
-	
+
 
 /* See if the socket under test is listening and is willing to receive
  * this incoming SYN packet. If so, create a new child socket, anoint
@@ -683,7 +683,7 @@ static int map_inbound_sctp_packet(
 	struct _sctp_reconfig_chunk *reconfig;
 	struct _sctp_forward_tsn_chunk *forward_tsn;
 	struct _sctp_i_forward_tsn_chunk *i_forward_tsn;
-	
+
 	u32 local_diff, remote_diff;
 	u32 v_tag;
 	u16 nr_gap_blocks, number_of_nr_gap_blocks, nr_dup_tsns, i;
@@ -814,7 +814,7 @@ static int map_inbound_sctp_packet(
 					i_data->tsn = htonl(ntohl(i_data->tsn) + remote_diff);
 				}
 				break;
-			case SCTP_FORWARD_TSN_CHUNK_TYPE: 
+			case SCTP_FORWARD_TSN_CHUNK_TYPE:
 				if (chunk_length >= sizeof(struct _sctp_forward_tsn_chunk)) {
 					forward_tsn = (struct _sctp_forward_tsn_chunk *) chunk;
 					forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + remote_diff);
@@ -1129,7 +1129,7 @@ static int map_outbound_live_sctp_packet(
 			i_data = (struct _sctp_i_data_chunk *)chunk;
 			i_data->tsn = htonl(ntohl(i_data->tsn) + local_diff);
 			break;
-		case SCTP_FORWARD_TSN_CHUNK_TYPE: 
+		case SCTP_FORWARD_TSN_CHUNK_TYPE:
 			forward_tsn = (struct _sctp_forward_tsn_chunk *) chunk;
 			forward_tsn->cum_tsn = htonl(ntohl(forward_tsn->cum_tsn) + local_diff);
 			break;
@@ -2001,7 +2001,7 @@ static int verify_nr_sack_chunk(struct _sctp_nr_sack_chunk *actual_chunk,
 	script_nr_gap_blocks = ntohs(script_chunk->nr_gap_blocks);
 	script_nr_of_nr_gap_blocks = ntohs(script_chunk->nr_of_nr_gap_blocks);
 	script_nr_dup_tsns = ntohs(script_chunk->nr_dup_tsns);
-	
+
 	script_base = 0;
 
 	if ((flags & FLAG_NR_SACK_CHUNK_CUM_TSN_NOCHECK ? STATUS_OK :
@@ -2047,7 +2047,7 @@ static int verify_nr_sack_chunk(struct _sctp_nr_sack_chunk *actual_chunk,
 		}
 		script_base += actual_nr_gap_blocks;
 	}
-	
+
 	if ((flags & FLAG_NR_SACK_CHUNK_NR_GAP_BLOCKS_NOCHECK) == 0) {
 		actual_base = actual_nr_gap_blocks;
 		for (i = 0; i < script_nr_of_nr_gap_blocks; i++) {
@@ -2064,8 +2064,8 @@ static int verify_nr_sack_chunk(struct _sctp_nr_sack_chunk *actual_chunk,
 		}
 		script_base += script_nr_of_nr_gap_blocks;
 	}
-	
-	
+
+
 	if ((flags & FLAG_NR_SACK_CHUNK_DUP_TSNS_NOCHECK) == 0) {
 		actual_base = actual_nr_gap_blocks + actual_nr_of_nr_gap_blocks;
 		for (i = 0; i < script_nr_dup_tsns; i++) {
@@ -2285,7 +2285,7 @@ static int verify_reconfig_chunk(struct _sctp_reconfig_chunk *actual_chunk,
 {
 	struct _sctp_init_chunk *script_chunk;
 	int parameter_length;
-	
+
 	script_chunk = (struct _sctp_init_chunk *)script_chunk_item->chunk;
 	parameter_length = ntohs(actual_chunk->length) - sizeof(struct _sctp_reconfig_chunk);
 	if ((flags & FLAG_CHUNK_FLAGS_NOCHECK ? STATUS_OK :
@@ -2314,7 +2314,7 @@ static int verify_forward_tsn_chunk(struct _sctp_forward_tsn_chunk *actual_chunk
 	u16 actual_nr_id_blocks = get_num_id_blocks(actual_packet_length);
 	u16 script_nr_id_blocks = get_num_id_blocks(script_packet_length);
 	u16 i;
-	
+
 	if ((flags & FLAG_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK) == 0) {
 		if (check_field("sctp_forward_tsn_cum_tsn",
 				 ntohl(script_chunk->cum_tsn),
@@ -2323,7 +2323,7 @@ static int verify_forward_tsn_chunk(struct _sctp_forward_tsn_chunk *actual_chunk
 			return STATUS_ERR;
 		}
 	}
-	
+
 	if ((flags & FLAG_FORWARD_TSN_CHUNK_IDS_NOCHECK) == 0) {
 		if (check_field("nr_sid_blocks",
 				 actual_nr_id_blocks,
@@ -2331,7 +2331,7 @@ static int verify_forward_tsn_chunk(struct _sctp_forward_tsn_chunk *actual_chunk
 				 error) == STATUS_ERR) {
 			return STATUS_ERR;
 		}
-		
+
 		for (i = 0; i < script_nr_id_blocks; i++) {
 			if (check_field("sctp_forward_tsn_stream_identifier",
 		                        ntohs(script_chunk->stream_identifier_blocks[i].stream),
@@ -2345,7 +2345,7 @@ static int verify_forward_tsn_chunk(struct _sctp_forward_tsn_chunk *actual_chunk
 			}
 		}
 	}
-	
+
 	return STATUS_OK;
 }
 
@@ -2361,7 +2361,7 @@ static int verify_i_forward_tsn_chunk(struct _sctp_i_forward_tsn_chunk *actual_c
 	u16 actual_nr_id_blocks = get_num_id_blocks_for_i_forward_tsn(actual_packet_length);
 	u16 script_nr_id_blocks = get_num_id_blocks_for_i_forward_tsn(script_packet_length);
 	u16 i;
-	
+
 	if ((flags & FLAG_I_FORWARD_TSN_CHUNK_CUM_TSN_NOCHECK) == 0) {
 		if (check_field("sctp_i_forward_tsn_cum_tsn",
 				 ntohl(script_chunk->cum_tsn),
@@ -2370,7 +2370,7 @@ static int verify_i_forward_tsn_chunk(struct _sctp_i_forward_tsn_chunk *actual_c
 			return STATUS_ERR;
 		}
 	}
-	
+
 	if ((flags & FLAG_I_FORWARD_TSN_CHUNK_IDS_NOCHECK) == 0) {
 		if (check_field("nr_id_blocks",
 				 actual_nr_id_blocks,
@@ -2378,7 +2378,7 @@ static int verify_i_forward_tsn_chunk(struct _sctp_i_forward_tsn_chunk *actual_c
 				 error) == STATUS_ERR) {
 			return STATUS_ERR;
 		}
-		
+
 		for (i = 0; i < script_nr_id_blocks; i++) {
 			if (check_field("sctp_i_forward_tsn_stream_identifier",
 		                        ntohs(script_chunk->stream_identifier_blocks[i].stream_identifier),
@@ -2396,7 +2396,7 @@ static int verify_i_forward_tsn_chunk(struct _sctp_i_forward_tsn_chunk *actual_c
 			}
 		}
 	}
-	
+
 	return STATUS_OK;
 }
 
