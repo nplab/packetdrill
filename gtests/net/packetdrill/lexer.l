@@ -254,6 +254,8 @@ af_name				return AF_NAME;
 af_arg				return AF_ARG;
 function_set_name		return FUNCTION_SET_NAME;
 pcbcnt				return PCBCNT;
+enable				return ENABLE;
+psk				return PSK;
 assoc_id			return ASSOC_ID;
 assoc_value			return ASSOC_VALUE;
 shmac_number_of_idents		return SHMAC_NUMBER_OF_IDENTS;

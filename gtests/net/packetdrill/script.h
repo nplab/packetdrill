@@ -38,6 +38,7 @@ enum expression_t {
 	EXPR_INTEGER,		  /* integer in 'num' */
 	EXPR_LINGER,		  /* struct linger for SO_LINGER */
 	EXPR_WORD,		  /* unquoted word in 'string' */
+	EXPR_HEX_WORD,		  /* unquoted hex word in 'string' */
 	EXPR_STRING,		  /* double-quoted string in 'string' */
 	EXPR_SOCKET_ADDRESS_IPV4, /* sockaddr_in in 'socket_address_ipv4' */
 	EXPR_SOCKET_ADDRESS_IPV6, /* sockaddr_in6 in 'socket_address_ipv6' */
@@ -53,6 +54,7 @@ enum expression_t {
 #if defined(__FreeBSD__)
 	EXPR_SF_HDTR,		  /* struct sf_hdtr for sendfile */
 	EXPR_TCP_FUNCTION_SET,	  /* struct tcp_function_set */
+	EXPR_TCP_FASTOPEN,	  /* struct tcp_fastopen */
 #endif
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
@@ -127,6 +129,7 @@ struct expression {
 #if defined(__FreeBSD__)
 		struct sf_hdtr_expr *sf_hdtr;
 		struct tcp_function_set_expr *tcp_function_set;
+		struct tcp_fastopen_expr *tcp_fastopen;
 #endif
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 		struct sctp_initmsg_expr *sctp_initmsg;
@@ -251,6 +254,11 @@ struct sf_hdtr_expr {
 struct tcp_function_set_expr {
 	struct expression *function_set_name;
 	struct expression *pcbcnt;
+};
+
+struct tcp_fastopen_expr {
+	struct expression *enable;
+	struct expression *psk;
 };
 #endif
 

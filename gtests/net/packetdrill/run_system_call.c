@@ -3362,6 +3362,39 @@ static int check_tcp_function_set(struct tcp_function_set_expr *expr,
 }
 #endif
 
+#ifdef __FreeBSD__
+static int check_tcp_fastopen(struct tcp_fastopen_expr *expr,
+			      struct tcp_fastopen *tcp_fastopen,
+			      char **error) {
+	unsigned int i;
+
+	if (check_s32_expr(expr->enable, tcp_fastopen->enable,
+	                   "tcp_fastopen.enable", error))
+		return STATUS_ERR;
+	if (expr->psk->type != EXPR_ELLIPSIS) {
+		if (strlen(expr->psk->value.string) != 2 * TCP_FASTOPEN_PSK_LEN) {
+			asprintf(error, "tcp_fastopen.psk: expected length: %zd, actual length: %d\n",
+			         strlen(expr->psk->value.string),
+			         TCP_FASTOPEN_PSK_LEN);
+			return STATUS_ERR;
+		}
+		for (i = 0; i < TCP_FASTOPEN_PSK_LEN; i++) {
+			char buf[3];
+
+			buf[0] = expr->psk->value.string[2 * i];
+			buf[1] = expr->psk->value.string[2 * i + 1];
+			buf[2] = '\0';
+			if (tcp_fastopen->psk[i] != (uint8_t)strtoul(buf, NULL, 16)) {
+				asprintf(error, "tcp_fastopen.psk[%u]: expected: 0x%s, actual: 0x%02x\n",
+					 i, buf, tcp_fastopen->psk[i]);
+				return STATUS_ERR;
+			}
+		}
+	}
+	return STATUS_OK;
+}
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -3706,6 +3739,16 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 	}
 #endif
+#ifdef __FreeBSD__
+	case EXPR_TCP_FASTOPEN: {
+		struct tcp_fastopen *live_tcp_fastopen = malloc(sizeof(struct tcp_fastopen));
+
+		memset(live_tcp_fastopen, 0, sizeof(struct tcp_fastopen));
+		live_optval = live_tcp_fastopen;
+		live_optlen = (socklen_t)sizeof(struct tcp_fastopen);
+		break;
+	}
+#endif
 	case EXPR_LIST:
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -3868,6 +3911,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_tcp_function_set(val_expression->value.tcp_function_set, live_optval, error);
 		break;
 #endif
+#ifdef __FreeBSD__
+	case EXPR_TCP_FASTOPEN:
+		result = check_tcp_fastopen(val_expression->value.tcp_fastopen, live_optval, error);
+		break;
+#endif
 	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "optval: expected: %d actual: %d",
@@ -3974,6 +4022,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef TCP_FUNCTION_BLK
 	struct tcp_function_set tcp_function_set;
+#endif
+#ifdef __FreeBSD__
+	struct tcp_fastopen tcp_fastopen;
 #endif
 
 	if (check_arg_count(args, 5, error))
@@ -4673,6 +4724,39 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 			optlen = (socklen_t)sizeof(struct tcp_function_set);
 		}
 		break;
+#endif
+#ifdef __FreeBSD__
+	case EXPR_TCP_FASTOPEN: {
+		unsigned int i, len;
+		const char *hexstring = val_expression->value.tcp_fastopen->psk->value.string;
+
+		memset(&tcp_fastopen, 0, sizeof(struct tcp_fastopen));
+		if (get_s32(val_expression->value.tcp_fastopen->enable,
+			    &tcp_fastopen.enable, error)) {
+			return STATUS_ERR;
+		}
+		if (check_type(val_expression->value.tcp_fastopen->psk, EXPR_HEX_WORD, error)) {
+			return STATUS_ERR;
+		}
+		len = (unsigned int)strlen(hexstring) / 2;
+		if (len > TCP_FASTOPEN_PSK_LEN) {
+			asprintf(error, "psk too long: %s", hexstring);
+			return STATUS_ERR;
+		}
+		for (i = 0; i < len; i ++) {
+			char buf[3];
+
+			buf[0] = hexstring[2 * i];
+			buf[1] = hexstring[2 * i + 1];
+			buf[2] = '\0';
+			tcp_fastopen.psk[i] = (uint8_t)strtoul(buf, NULL, 16);
+		}
+		optval = &tcp_fastopen;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct tcp_fastopen);
+		}
+		break;
+	}
 #endif
 	default:
 		asprintf(error, "unsupported value type: %s",

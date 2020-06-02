@@ -573,6 +573,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> OPTION
 %token <reserved> AF_NAME AF_ARG
 %token <reserved> FUNCTION_SET_NAME PCBCNT
+%token <reserved> ENABLE PSK
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
@@ -691,6 +692,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <expression> linger l_onoff l_linger
 %type <expression> accept_filter_arg af_name af_arg
 %type <expression> tcp_function_set function_set_name pcbcnt
+%type <expression> tcp_fastopen enable psk
 %type <udp_encaps_info> opt_udp_encaps_info
 %type <sctp_header_spec> sctp_header_spec
 %type <expression> sctp_assoc_id
@@ -3017,6 +3019,9 @@ expression
 | tcp_function_set  {
 	$$ = $1;
 }
+| tcp_fastopen      {
+	$$ = $1;
+}
 | sf_hdtr           {
 	$$ = $1;
 }
@@ -3436,6 +3441,48 @@ tcp_function_set
 }
 ;
 
+enable
+: ENABLE '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("linger out of range");
+	}
+	$$ = new_integer_expression($3, "%lu");
+}
+| ENABLE '=' HEX_INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("linger out of range");
+	}
+	$$ = new_integer_expression($3, "%lu");
+}
+| ENABLE '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+psk
+: PSK '=' WORD {
+	$$ = new_expression(EXPR_HEX_WORD);
+	$$->value.string = $3;
+}
+| PSK '=' ELLIPSIS {
+	$$ = new_expression(EXPR_ELLIPSIS);
+}
+;
+
+
+tcp_fastopen
+: '{' enable ',' psk '}' {
+#if defined(__FreeBSD__)
+	$$ = new_expression(EXPR_TCP_FASTOPEN);
+	$$->value.tcp_fastopen = calloc(1, sizeof(struct tcp_fastopen_expr));
+	$$->value.tcp_fastopen->enable = $2;
+	$$->value.tcp_fastopen->psk = $4;
+#else
+	$$ = NULL;
+#endif
+}
+;
+
 sf_hdtr
 : '{' SF_HDTR_HEADERS '(' decimal_integer ')' '=' array ','
       SF_HDTR_TRAILERS '('decimal_integer ')' '=' array '}' {
@@ -3458,7 +3505,7 @@ srto_initial
 	if (!is_valid_u32($3)){
 		semantic_error("srto_initial out of range");
 	}
-        $$ = new_integer_expression($3, "%u");
+	$$ = new_integer_expression($3, "%u");
 }
 | SRTO_INITIAL '=' ELLIPSIS { $$ = new_expression(EXPR_ELLIPSIS); }
 ;

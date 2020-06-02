@@ -24,6 +24,7 @@
 
 #include "script.h"
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <stdlib.h>
@@ -108,6 +109,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_ELLIPSIS,                    "ellipsis"                        },
 	{ EXPR_INTEGER,                     "integer"                         },
 	{ EXPR_WORD,                        "word"                            },
+	{ EXPR_HEX_WORD,                    "hex word"                        },
 	{ EXPR_STRING,                      "string"                          },
 	{ EXPR_SOCKET_ADDRESS_IPV4,         "sockaddr_in"                     },
 	{ EXPR_SOCKET_ADDRESS_IPV6,         "sockaddr_in6"                    },
@@ -124,6 +126,7 @@ struct expression_type_entry expression_type_table[] = {
 #if defined(__FreeBSD__)
 	{ EXPR_SF_HDTR,                     "sf_hdtr"                         },
 	{ EXPR_TCP_FUNCTION_SET,            "tcp_function_set"                },
+	{ EXPR_TCP_FASTOPEN,                "tcp_fastopen"                    },
 #endif
 	{ EXPR_SCTP_RTOINFO,                "sctp_rtoinfo"                    },
 	{ EXPR_SCTP_INITMSG,                "sctp_initmsg"                    },
@@ -370,6 +373,34 @@ static int unescape_cstring_expression(const char *input_string,
 	return STATUS_OK;
 }
 
+static int hex_word_expression(const char *input_string,
+			       struct expression *out, char **error)
+{
+	size_t bytes = strlen(input_string) + 1;
+	out->type = EXPR_HEX_WORD;
+	out->value.string = (char *)malloc(bytes);
+	const char *c_in = input_string;
+	char *c_out = out->value.string;
+
+	if ((bytes - 1)% 2) {
+		asprintf(error, "odd number of hexadecimal digits: %zu", bytes);
+		return STATUS_ERR;
+	}
+	while (*c_in != '\0') {
+		if (isxdigit(*c_in)) {
+			*c_out = toupper(*c_in);
+		} else {
+			asprintf(error, "unsupported hexadecimal digit: '%c'",
+				 *c_in);
+			return STATUS_ERR;
+		}
+		++c_in;
+		++c_out;
+	}
+	*c_out = *c_in;
+	return STATUS_OK;
+}
+
 void free_expression(struct expression *expression)
 {
 	if (expression == NULL)
@@ -402,6 +433,12 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.tcp_function_set->function_set_name);
 		free_expression(expression->value.tcp_function_set->pcbcnt);
 		free(expression->value.tcp_function_set);
+		break;
+	case EXPR_TCP_FASTOPEN:
+		assert(expression->value.tcp_fastopen);
+		free_expression(expression->value.tcp_fastopen->enable);
+		free_expression(expression->value.tcp_fastopen->psk);
+		free(expression->value.tcp_fastopen);
 		break;
 #endif
 	case EXPR_SCTP_RTOINFO:
@@ -818,6 +855,10 @@ void free_expression(struct expression *expression)
 		assert(expression->value.string);
 		free(expression->value.string);
 		break;
+	case EXPR_HEX_WORD:
+		assert(expression->value.string);
+		free(expression->value.string);
+		break;
 	case EXPR_STRING:
 		assert(expression->value.string);
 		free(expression->value.string);
@@ -1133,6 +1174,34 @@ static int evaluate_tcp_function_set_expression(struct expression *in,
 		return STATUS_ERR;
 	if (evaluate(in_tcp_function_set->pcbcnt,
 		     &out_tcp_function_set->pcbcnt,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
+static int evaluate_tcp_fastopen_expression(struct expression *in,
+						struct expression *out,
+						char **error)
+{
+	struct tcp_fastopen_expr *in_tcp_fastopen;
+	struct tcp_fastopen_expr *out_tcp_fastopen;
+
+	assert(in->type == EXPR_TCP_FASTOPEN);
+	assert(in->value.tcp_fastopen);
+	assert(out->type == EXPR_TCP_FASTOPEN);
+
+	out->value.tcp_fastopen = calloc(1, sizeof(struct tcp_fastopen_expr));
+
+	in_tcp_fastopen = in->value.tcp_fastopen;
+	out_tcp_fastopen = out->value.tcp_fastopen;
+
+	if (evaluate(in_tcp_fastopen->enable,
+		     &out_tcp_fastopen->enable,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_tcp_fastopen->psk,
+		     &out_tcp_fastopen->psk,
 		     error))
 		return STATUS_ERR;
 
@@ -3016,6 +3085,9 @@ static int evaluate(struct expression *in,
 	case EXPR_TCP_FUNCTION_SET:
 		result = evaluate_tcp_function_set_expression(in, out, error);
 		break;
+	case EXPR_TCP_FASTOPEN:
+		result = evaluate_tcp_fastopen_expression(in, out, error);
+		break;
 #endif
 	case EXPR_SCTP_RTOINFO:
 		result = evaluate_sctp_rtoinfo_expression(in, out, error);
@@ -3162,6 +3234,10 @@ static int evaluate(struct expression *in,
 		out->type = EXPR_INTEGER;
 		if (symbol_to_int(in->value.string,
 				  &out->value.num, error))
+			return STATUS_ERR;
+		break;
+	case EXPR_HEX_WORD:
+		if (hex_word_expression(in->value.string, out, error))
 			return STATUS_ERR;
 		break;
 	case EXPR_STRING:
