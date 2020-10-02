@@ -1466,7 +1466,7 @@ static int sctp_nr_sack_chunk_to_string(FILE *s,
 
 	length = ntohs(chunk->length);
 	if (length < sizeof(struct _sctp_nr_sack_chunk)) {
-		asprintf(error, "NR-SACK chunk too short (length=%u)", length);
+		asprintf(error, "NR_SACK chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
 	nr_gaps = ntohs(chunk->nr_gap_blocks);
@@ -1474,10 +1474,10 @@ static int sctp_nr_sack_chunk_to_string(FILE *s,
 	nr_dups = ntohs(chunk->nr_dup_tsns);
 	if (length != sizeof(struct _sctp_nr_sack_chunk) +
 		      (nr_gaps + nr_of_nr_gaps +  nr_dups) * sizeof(u32)) {
-		asprintf(error, "NR-SACK chunk length inconsistent");
+		asprintf(error, "NR_SACK chunk length inconsistent");
 		return STATUS_ERR;
 	}
-	fputs("NR-SACK[", s);
+	fputs("NR_SACK[", s);
 	fprintf(s, "flgs=0x%02x, ", chunk->flags);
 	fprintf(s, "cum_tsn=%u, ", ntohl(chunk->cum_tsn));
 	fprintf(s, "a_rwnd=%u, ", ntohl(chunk->a_rwnd));
@@ -1798,10 +1798,10 @@ static int sctp_i_data_chunk_to_string(FILE *s,
 	flags = chunk->flags;
 	length = ntohs(chunk->length);
 	if (length < sizeof(struct _sctp_i_data_chunk)) {
-		asprintf(error, "I-DATA chunk too short (length=%u)", length);
+		asprintf(error, "I_DATA chunk too short (length=%u)", length);
 		return STATUS_ERR;
 	}
-	fputs("I-DATA[", s);
+	fputs("I_DATA[", s);
 	fputs("flgs=", s);
 	if ((flags & ~(SCTP_I_DATA_CHUNK_I_BIT |
 		       SCTP_I_DATA_CHUNK_U_BIT |

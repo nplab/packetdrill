@@ -172,7 +172,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0x00, 0x05, 0x00, 0x0f,
 		0x10, 0x00, 0x10, 0x14,
 		0x01, 0x02, 0x03, 0x04,
-		/* SCTP NR-SACK Chunk*/
+		/* SCTP NR_SACK Chunk*/
 		0x10, 0x00, 0x00, 0x24,
 		0x01, 0x02, 0x03, 0x04,
 		0x00, 0x01, 0x00, 0x00,
@@ -186,7 +186,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0x04, 0x00, 0x00, 0x0a,
 		0x00, 0x01, 0x00, 0x06,
 		0x01, 0x02, 0x00, 0x00,
-		/* SCTP HEARTBEAT-ACK Chunk */
+		/* SCTP HEARTBEAT_ACK Chunk */
 		0x05, 0x00, 0x00, 0x0a,
 		0x00, 0x01, 0x00, 0x06,
 		0x01, 0x02, 0x00, 0x00,
@@ -255,14 +255,14 @@ static void test_sctp_ipv6_packet_to_string(void)
 		0xb5, 0xaa, 0xaf, 0x0f,
 		0x00, 0x01, 0x00, 0x01,
 		0x00, 0x00, 0x01, 0x00,
-		/* SCTP I-DATA Chunk */
+		/* SCTP I_DATA Chunk */
 		0x40, 0x0f, 0x00, 0x17,
 		0x00, 0x00, 0x00, 0x04,
 		0x00, 0xff, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x01,
 		0x00, 0x00, 0x00, 0x00,
 		0x00, 0x01, 0x02, 0x00,
-		/* SCTP I-DATA Chunk */
+		/* SCTP I_DATA Chunk */
 		0x40, 0x0d, 0x00, 0x17,
 		0x00, 0x00, 0x00, 0x04,
 		0x00, 0xff, 0x00, 0x00,
@@ -323,7 +323,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 			   "PARAMETER[type=0x8001, value=[]]]]]; "
 		"SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
 		     "gaps=[1:3, 5:15, 4096:4116], dups=[16909060]]; "
-		"NR-SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
+		"NR_SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
 		     "gaps=[5:15, 4096:4116], nr-gaps=[4116:4117], dups=[16909060]]; "
 		"HEARTBEAT[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
 		"HEARTBEAT_ACK[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
@@ -355,8 +355,8 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"SHUTDOWN_COMPLETE[flgs=T]; "
 		"FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,2},{3,4}]]; "
 		"I_FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,1,256}]]; "
-		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
-		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
+		"I_DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
+		"I_DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]";
 	assert(strcmp(dump, expected) == 0);
 	free(dump);
@@ -386,7 +386,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 			   "PARAMETER[type=0x8001, value=[]]]]]; "
 		"SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
 		     "gaps=[1:3, 5:15, 4096:4116], dups=[16909060]]; "
-		"NR-SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
+		"NR_SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
 		     "gaps=[5:15, 4096:4116], nr-gaps=[4116:4117], dups=[16909060]]; "
 		"HEARTBEAT[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
 		"HEARTBEAT_ACK[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
@@ -418,8 +418,8 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"SHUTDOWN_COMPLETE[flgs=T]; "
 		"FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,2},{3,4}]]; "
 		"I_FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,1,256}]]; "
-		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
-		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
+		"I_DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
+		"I_DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]";
 	assert(strcmp(dump, expected) == 0);
 	free(dump);
@@ -449,7 +449,7 @@ static void test_sctp_ipv6_packet_to_string(void)
 			   "PARAMETER[type=0x8001, value=[]]]]]; "
 		"SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
 		     "gaps=[1:3, 5:15, 4096:4116], dups=[16909060]]; "
-		"NR-SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
+		"NR_SACK[flgs=0x00, cum_tsn=16909060, a_rwnd=65536, "
 		     "gaps=[5:15, 4096:4116], nr-gaps=[4116:4117], dups=[16909060]]; "
 		"HEARTBEAT[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
 		"HEARTBEAT_ACK[flgs=0x00, HEARTBEAT_INFORMATION[len=6, val=...]]; "
@@ -481,8 +481,8 @@ static void test_sctp_ipv6_packet_to_string(void)
 		"SHUTDOWN_COMPLETE[flgs=T]; "
 		"FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,2},{3,4}]]; "
 		"I_FORWARD_TSN[flgs=0x00, len=16, cum_tsn=3047862031, ids=[{1,1,256}]]; "
-		"I-DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
-		"I-DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
+		"I_DATA[flgs=IUBE, len=23, tsn=4, sid=255, mid=1, ppid=0]; "
+		"I_DATA[flgs=IUE, len=23, tsn=4, sid=255, mid=2, fsn=1]; "
 		"PAD[flgs=0x00, len=16, val=...]"
 		"\n"
 		"0x0000: 60 00 00 00 02 1c 84 ff 00 02 00 00 00 00 00 00 " "\n"
