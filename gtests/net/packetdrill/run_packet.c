@@ -3118,7 +3118,8 @@ static int do_outbound_script_packet(
 		goto out;
 	}
 
-	if (socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) {
+	if ((socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) ||
+	    (socket->state == SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED)) {
 		if (packet->tcp && packet->tcp->syn && packet->tcp->ack && !(packet->flags & FLAG_IGNORE_SEQ)) {
 			/* Script says we should see an outbound server SYNACK. */
 			socket->script.local_isn = ntohl(packet->tcp->seq);
@@ -3163,7 +3164,8 @@ static int do_outbound_script_packet(
 				asprintf(error, "Partial chunk for outbound packet");;
 				goto out;
 			}
-			if ((socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) &&
+			if (((socket->state == SOCKET_PASSIVE_PACKET_RECEIVED) ||
+			     (socket->state == SOCKET_PASSIVE_COOKIE_ECHO_RECEIVED)) &&
 			    (chunk->type == SCTP_INIT_ACK_CHUNK_TYPE)) {
 				chunk_length = ntohs(chunk->length);
 				if (chunk_length < sizeof(struct _sctp_init_ack_chunk)) {
