@@ -5915,6 +5915,7 @@ note
 word_list
 : WORD              { $$ = $1; }
 | word_list WORD    { asprintf(&($$), "%s %s", $1, $2); free($1); free($2); }
+| word_list IS      { asprintf(&($$), "%s is", $1); free($1); }
 ;
 
 command_spec
