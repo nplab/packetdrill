@@ -98,6 +98,15 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_DOMAIN,                        "SO_DOMAIN"                       },
 #endif
 
+	/* /usr/include/sys/sockio.h */
+	{ SIOCSHIWAT,                       "SIOCSHIWAT"                      },
+	{ SIOCGHIWAT,                       "SIOCGHIWAT"                      },
+	{ SIOCSLOWAT,                       "SIOCSLOWAT"                      },
+	{ SIOCGLOWAT,                       "SIOCGLOWAT"                      },
+	{ SIOCATMARK,                       "SIOCATMARK"                      },
+	{ SIOCSPGRP,                        "SIOCSPGRP"                       },
+	{ SIOCGPGRP,                        "SIOCGPGRP"                       },
+
 	/* /usr/include/netinet/in.h */
 	{ IP_OPTIONS,                       "IP_OPTIONS"                      },
 	{ IP_HDRINCL,                       "IP_HDRINCL"                      },
