@@ -184,7 +184,7 @@ struct _tcp_info {
 	u_int8_t	__tcpi_backoff;
 	u_int8_t	tcpi_options;
 	u_int8_t	tcpi_snd_wscale:4,
-		tcpi_rcv_wscale:4;
+			tcpi_rcv_wscale:4;
 
 	u_int32_t	tcpi_rto;
 	u_int32_t	__tcpi_ato;
@@ -223,9 +223,6 @@ struct _tcp_info {
 	u_int32_t	tcpi_snd_rexmitpack;
 	u_int32_t	tcpi_rcv_ooopack;
 	u_int32_t	tcpi_snd_zerowin;
-
-	/* Padding to grow without breaking ABI. */
-	u_int32_t	__tcpi_pad[26];		/* Padding. */
 };
 
 #endif  /* __FreeBSD__ */
