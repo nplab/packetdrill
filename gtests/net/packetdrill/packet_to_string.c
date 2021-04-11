@@ -232,7 +232,7 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 		fprintf(s, " win %u", ntohs(packet->tcp->window));
 
 	if (packet->tcp->urg)
-		fprintf(s, " ack %u", ntohs(packet->tcp->urg_ptr));
+		fprintf(s, " urg %u", ntohs(packet->tcp->urg_ptr));
 
 	if (packet_tcp_options_len(packet) > 0) {
 		char *tcp_options = NULL;
