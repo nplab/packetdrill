@@ -33,6 +33,9 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#if defined(__FreeBSD__)
+#include <sys/sysctl.h>
+#endif
 #include <sys/times.h>
 #include <unistd.h>
 #include "ip.h"
