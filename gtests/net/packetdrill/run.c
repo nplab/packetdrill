@@ -88,6 +88,10 @@ struct state *state_new(struct config *config,
 {
 	struct state *state = calloc(1, sizeof(struct state));
 	int err;
+#if defined(__FreeBSD__)
+	char vm_guest[16];
+	size_t len;
+#endif
 
 	if ((err = pthread_mutex_init(&state->mutex, NULL)) != 0)
 		die_strerror("pthread_mutex_init", err);
@@ -101,6 +105,18 @@ struct state *state_new(struct config *config,
 	state->syscalls = syscalls_new(state);
 	state->code = code_new(config);
 	state->sockets = NULL;
+#if defined(__FreeBSD__)
+	len = sizeof(vm_guest);
+	if (sysctlbyname("kern.vm_guest", vm, &len, NULL , 0) < 0) {
+		state->is_vm = false;
+	} else {
+		if (strncmp(vm, "none", len) == 0) {
+			state->is_vm = false;
+		} else {
+			state->is_vm = true;
+		}
+	}
+#endif
 	return state;
 }
 
@@ -365,8 +381,10 @@ void wait_for_event(struct state *state)
 		 * event we're waiting for and then spin.
 		 * Since FreeBSD is overshooting by about 10 percent,
 		 * take this into account.
+		 * Also do spinning if running in a VM, since usleep
+		 * is overshooting substantially.
 		 */
-		if (wait_usecs > MAX_SPIN_USECS) {
+		if (!state->is_vm && wait_usecs > MAX_SPIN_USECS) {
 			useconds_t delta = (useconds_t)(wait_usecs - MAX_SPIN_USECS);
 
 			delta -= delta >> 3;

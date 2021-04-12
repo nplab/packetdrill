@@ -102,6 +102,9 @@ struct state {
 	s64 script_start_time_usecs;	/* time of first event in script */
 	s64 script_last_time_usecs;	/* time of previous event in script */
 	s64 live_start_time_usecs;	/* time of first event in live test */
+#if defined(__FreeBSD__)
+	bool is_vm;			/* is packetdrill running on a VM */
+#endif
 };
 
 /* Allocate all run-time state for executing a test script. */
