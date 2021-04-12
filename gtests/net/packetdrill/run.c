@@ -107,10 +107,10 @@ struct state *state_new(struct config *config,
 	state->sockets = NULL;
 #if defined(__FreeBSD__)
 	len = sizeof(vm_guest);
-	if (sysctlbyname("kern.vm_guest", vm, &len, NULL , 0) < 0) {
+	if (sysctlbyname("kern.vm_guest", vm_guest, &len, NULL , 0) < 0) {
 		state->is_vm = false;
 	} else {
-		if (strncmp(vm, "none", len) == 0) {
+		if (strncmp(vm_guest, "none", len) == 0) {
 			state->is_vm = false;
 		} else {
 			state->is_vm = true;
