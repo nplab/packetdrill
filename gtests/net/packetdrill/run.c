@@ -37,6 +37,7 @@
 #include <sys/sysctl.h>
 #endif
 #include <sys/times.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include "ip.h"
 #include "logging.h"
@@ -354,14 +355,22 @@ void adjust_relative_event_times(struct state *state, struct event *event)
 
 void wait_for_event(struct state *state)
 {
+	s64 hist[1024];
+	char *error = NULL;
+	unsigned int n = 0;
 	s64 event_usecs =
 		script_time_to_live_time_usecs(
 			state, state->event->time_usecs);
 	DEBUGP("waiting until %lld -- now is %lld\n",
 	       event_usecs, now_usecs());
+	hist[n++] = now_usecs();
+	hist[n++] = event_usecs;
 	run_unlock(state);
 	while (1) {
 		const s64 wait_usecs = event_usecs - now_usecs();
+		hist[n++] = wait_usecs;
+		if (n == 1024)
+			n = 2;
 		if (wait_usecs <= 0)
 			break;
 
@@ -400,7 +409,19 @@ void wait_for_event(struct state *state)
 		 */
 	}
 	run_lock(state);
-	check_event_time(state, now_usecs());
+	if (verify_time(state,
+			state->event->time_type,
+			state->event->time_usecs,
+			state->event->time_usecs_end, now_usecs(),
+			event_description(state->event), &error)) {
+		for (unsigned int i = 0; i < n; i++)
+			fprintf(stderr, "hist[%u]=%"PRId64"\n", i, hist[i]);
+		die("%s:%d: %s\n",
+		    state->config->script_path,
+		    state->event->line_number,
+		    error);
+	}
+//	check_event_time(state, now_usecs());
 }
 
 int get_next_event(struct state *state, char **error)
