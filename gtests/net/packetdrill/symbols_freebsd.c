@@ -419,6 +419,9 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(TCP_LOG)
 	{ TCP_LOG,                          "TCP_LOG"                         },
 #endif
+#if defined(TCP_RACK_TIMER_SLOP)
+	{ TCP_RACK_TIMER_SLOP,              "TCP_RACK_TIMER_SLOP"             },
+#endif
 
 #if defined(UDPLITE_RECV_CSCOV) && defined(UDPLITE_SEND_CSCOV)
 	/* /usr/include/netinet/udplite.h */
