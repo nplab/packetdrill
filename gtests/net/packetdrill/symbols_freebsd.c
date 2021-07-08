@@ -341,6 +341,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_COMM_LOST,                   "SCTP_COMM_LOST"                  },
 	{ SCTP_RESTART,                     "SCTP_RESTART"                    },
 	{ SCTP_SHUTDOWN_COMP,               "SCTP_SHUTDOWN_COMP"              },
+	{ SCTP_CANT_STR_ASSOC,              "SCTP_CANT_STR_ASSOC"             },
 	{ SCTP_AUTH_NEW_KEY,                "SCTP_AUTH_NEW_KEY"               },
 	{ SCTP_AUTH_NO_AUTH,                "SCTP_AUTH_NO_AUTH"               },
 	{ SCTP_AUTH_FREE_KEY,               "SCTP_AUTH_FREE_KEY"              },
