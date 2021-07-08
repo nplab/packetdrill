@@ -240,10 +240,6 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_ASSOC_SUPPORTS_ASCONF,       "SCTP_ASSOC_SUPPORTS_ASCONF"      },
 	{ SCTP_ASSOC_SUPPORTS_MULTIBUF,     "SCTP_ASSOC_SUPPORTS_MULTIBUF"    },
 #endif
-	{ SCTP_RECVV_NOINFO,                "SCTP_RECVV_NOINFO"               },
-	{ SCTP_RECVV_RCVINFO,               "SCTP_RECVV_RCVINFO"              },
-	{ SCTP_RECVV_NXTINFO,               "SCTP_RECVV_NXTINFO"              },
-	{ SCTP_RECVV_RN,                    "SCTP_RECVV_RN"                   },
 //flags for sctp_send_failed
 	{ SCTP_DATA_UNSENT,                 "SCTP_DATA_UNSENT"                },
 	{ SCTP_DATA_SENT,                   "SCTP_DATA_SENT"                  },
