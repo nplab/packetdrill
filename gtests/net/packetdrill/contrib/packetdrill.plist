@@ -28,6 +28,7 @@
 		<string>sin_addr</string>
 		<string>msg_name</string>
 		<string>msg_iov</string>
+		<string>msg_control</string>
 		<string>msg_flags</string>
 		<string>fd</string>
 		<string>events</string>
