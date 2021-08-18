@@ -70,7 +70,7 @@ struct socket_state {
 	struct endpoint local;		/* local endpoint address */
 	/* TCP specific */
 	u32 local_isn;			/* initial TCP sequence (host order) */
-	/* SCTP specific (in host byte order ) */
+	/* SCTP specific (in host byte order) */
 	u32 local_initial_tsn;		/* initial TSN */
 	u32 local_initiate_tag;		/* v-tag expected from the peer */
 	struct endpoint remote;		/* remote endpoint address */
