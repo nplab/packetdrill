@@ -724,8 +724,8 @@ static int map_inbound_sctp_packet(
 					init = (struct _sctp_init_chunk *)chunk;
 					init->initial_tsn = htonl(ntohl(init->initial_tsn) + remote_diff);
 					/* XXX: Does this work in all cases? */
-					if (ntohl(init->initiate_tag) == socket->script.local_initiate_tag) {
-						init->initiate_tag = htonl(socket->live.local_initiate_tag);
+					if (ntohl(init->initiate_tag) == socket->script.remote_initiate_tag) {
+						init->initiate_tag = htonl(socket->live.remote_initiate_tag);
 					}
 					contains_init_chunk = true;
 				}
@@ -735,8 +735,8 @@ static int map_inbound_sctp_packet(
 					init_ack = (struct _sctp_init_ack_chunk *)chunk;
 					init_ack->initial_tsn = htonl(ntohl(init_ack->initial_tsn) + remote_diff);
 					/* XXX: Does this work in all cases? */
-					if (ntohl(init_ack->initiate_tag) == socket->script.local_initiate_tag) {
-						init_ack->initiate_tag = htonl(socket->live.local_initiate_tag);
+					if (ntohl(init_ack->initiate_tag) == socket->script.remote_initiate_tag) {
+						init_ack->initiate_tag = htonl(socket->live.remote_initiate_tag);
 					}
 				}
 				break;
