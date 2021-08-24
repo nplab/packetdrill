@@ -2422,6 +2422,14 @@ static int verify_sctp(
 	       ntohs(actual_packet->sctp->src_port),
 	       ntohs(actual_packet->sctp->dst_port),
 	       ntohl(actual_packet->sctp->v_tag));
+	flags = script_packet->flags;
+	if (flags & FLAGS_SCTP_EXPLICIT_TAG &&
+	    check_field("sctp_verification_tag",
+	                ntohl(script_packet->sctp->v_tag),
+	                ntohl(actual_packet->sctp->v_tag),
+	                error) == STATUS_ERR) {
+	    return STATUS_ERR;
+	}
 	for (actual_chunk = sctp_chunks_begin((struct packet *)actual_packet, &iter, error),
 	     script_chunk_item = script_packet->chunk_list->first;
 	     actual_chunk != NULL && script_chunk_item != NULL;
