@@ -225,7 +225,7 @@ label				return LABEL;
 tc				return TC;
 ttl				return TTL;
 tos				return TOS;
-hlim				return TTL
+hlim				return TTL;
 flowlabel			return FLOWLABEL;
 inet_addr			return INET_ADDR;
 ack				return ACK;
