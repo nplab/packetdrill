@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <poll.h>
 #include <stdlib.h>
@@ -141,6 +142,8 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef IP_RECVRSSBUCKETID
 	{ IP_RECVRSSBUCKETID,               "IP_RECVRSSBUCKETID"              },
 #endif
+
+	/* /usr/include/netinet/ip.h */
 	{ IPTOS_DSCP_CS0,                   "IPTOS_DSCP_CS0"                  },
 	{ IPTOS_DSCP_CS1,                   "IPTOS_DSCP_CS1"                  },
 	{ IPTOS_DSCP_AF11,                  "IPTOS_DSCP_AF11"                 },
