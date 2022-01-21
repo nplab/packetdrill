@@ -1354,27 +1354,49 @@ static int check_field_u16(
 	return STATUS_OK;
 }
 
-/* Verify that the actual ECN bits are as the script expected. */
-static int verify_outbound_live_ecn(enum ip_ecn_t ecn,
-				    u8 actual_ecn_bits,
-				    u8 script_ecn_bits,
+/* Verify that the actual TOS byte is as the script expected. */
+static int verify_outbound_live_tos(enum tos_chk_t tos_chk,
+				    u8 actual_tos_byte,
+				    u8 script_tos_byte,
 				    char **error)
 {
-	if (ecn == ECN_NOCHECK)
-		return STATUS_OK;
+	u8 actual_ecn_bits = actual_tos_byte & IP_ECN_MASK;
 
-	if (ecn == ECN_ECT01) {
+	if (tos_chk == TOS_CHECK_ECN_ECT01) {
 		if ((actual_ecn_bits != IP_ECN_ECT0) &&
 		    (actual_ecn_bits != IP_ECN_ECT1)) {
 			asprintf(error, "live packet field ip_ecn: "
-				 "expected: 0x1 or 0x2 vs actual: 0x%x",
-				 actual_ecn_bits);
+					 "expected: 0x1 or 0x2 vs actual: 0x%x",
+					 actual_ecn_bits);
 			return STATUS_ERR;
 		}
-	} else if (check_field("ip_ecn",
-			       script_ecn_bits,
-			       actual_ecn_bits, error)) {
-		return STATUS_ERR;
+	} else if (tos_chk == TOS_CHECK_ECN) {
+		if (check_field("ip_ecn",
+				script_tos_byte,
+				actual_ecn_bits,
+				error))
+			return STATUS_ERR;
+	} else if (tos_chk == TOS_CHECK_TOS) {
+		if (check_field("tos",
+				script_tos_byte,
+				actual_tos_byte, error)) {
+			return STATUS_ERR;
+		}
+	}
+
+	return STATUS_OK;
+}
+
+static int verify_outbound_live_ttl_or_hl(u8 actual_ttl_byte,
+					  u8 script_ttl_byte,
+					  char **error)
+{
+	if (script_ttl_byte != TTL_CHECK_NONE) {
+		if (check_field("ttl",
+				script_ttl_byte,
+				actual_ttl_byte, error)) {
+			return STATUS_ERR;
+		}
 	}
 
 	return STATUS_OK;
@@ -1451,11 +1473,17 @@ static int verify_ipv4(
 		break;
 	}
 
-	if (verify_outbound_live_ecn(script_packet->ecn,
-				     ipv4_ecn_bits(actual_ipv4),
-				     ipv4_ecn_bits(script_ipv4),
+	if (verify_outbound_live_tos(script_packet->tos_chk,
+				     ipv4_tos_byte(actual_ipv4),
+				     ipv4_tos_byte(script_ipv4),
 				     error))
 		return STATUS_ERR;
+
+	if (verify_outbound_live_ttl_or_hl(ipv4_ttl_byte(actual_ipv4),
+					   ipv4_ttl_byte(script_ipv4),
+					   error))
+		return STATUS_ERR;
+
 
 	return STATUS_OK;
 }
@@ -1509,10 +1537,15 @@ static int verify_ipv6(
 		break;
 	}
 
-	if (verify_outbound_live_ecn(script_packet->ecn,
-				     ipv6_ecn_bits(actual_ipv6),
-				     ipv6_ecn_bits(script_ipv6),
+	if (verify_outbound_live_tos(script_packet->tos_chk,
+				     ipv6_tos_byte(actual_ipv6),
+				     ipv6_tos_byte(script_ipv6),
 				     error))
+		return STATUS_ERR;
+
+	if (verify_outbound_live_ttl_or_hl(ipv6_hoplimit_byte(actual_ipv6),
+					   ipv6_hoplimit_byte(script_ipv6),
+					   error))
 		return STATUS_ERR;
 
 	return STATUS_OK;
@@ -3585,6 +3618,7 @@ int reset_connection(struct state *state, struct socket *socket)
 	u32 seq = 0, ack_seq = 0;
 	struct packet *packet = NULL;
 	struct tuple live_inbound;
+	const struct ip_info ip_info = {{TOS_CHECK_NONE, 0}, 0};
 	int result = STATUS_OK;
 	u16 udp_src_port;
 	u16 udp_dst_port;
@@ -3626,7 +3660,7 @@ int reset_connection(struct state *state, struct socket *socket)
 	}
 
 	packet = new_tcp_packet(socket->address_family,
-				DIRECTION_INBOUND, ECN_NONE,
+				DIRECTION_INBOUND, ip_info, 0, 0,
 				ack_bit ? "R." : "R", seq, 0, ack_seq, 0, 0, NULL, false, false,
 				false, false, udp_src_port, udp_dst_port, &error);
 	if (packet == NULL)
@@ -3656,6 +3690,7 @@ int abort_association(struct state *state, struct socket *socket)
 	struct sctp_chunk_list *chunk_list;
 	struct sctp_cause_list *cause_list;
 	struct tuple live_inbound;
+	const struct ip_info ip_info = {{TOS_CHECK_NONE, 0}, 0};
 	int result;
 	s64 flgs;
 	u16 udp_src_port;
@@ -3684,7 +3719,7 @@ int abort_association(struct state *state, struct socket *socket)
 	chunk_list = sctp_chunk_list_new();
 	sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(flgs, cause_list));
 	packet = new_sctp_packet(socket->address_family,
-				 DIRECTION_INBOUND, ECN_NONE, -1, false,
+				 DIRECTION_INBOUND, ip_info, 0, 0, -1, false,
 				 chunk_list, udp_src_port, udp_dst_port,
 				 &error);
 	if (packet == NULL)

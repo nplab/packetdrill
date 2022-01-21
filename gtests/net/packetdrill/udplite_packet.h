@@ -35,7 +35,10 @@
  */
 extern struct packet *new_udplite_packet(int address_family,
 					 enum direction_t direction,
+					 struct ip_info ip_info,
 					 u16 udplite_payload_bytes,
 					 u16 checksum_coverage,
+					 u16 src_port,
+					 u16 dst_port,
 					 char **error);
 #endif /* __UDPLITE_PACKET_H__ */

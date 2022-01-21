@@ -90,14 +90,16 @@ static inline int tcp_flag_ace_count(const char *flags)
 
 struct packet *new_tcp_packet(int address_family,
 			       enum direction_t direction,
-			       enum ip_ecn_t ecn,
+			       struct ip_info ip_info,
+			       u16 src_port,
+			       u16 dst_port,
 			       const char *flags,
 			       u32 start_sequence,
 			       u16 tcp_payload_bytes,
 			       u32 ack_sequence,
 			       s32 window,
 			       u16 urg_ptr,
-			       struct tcp_options *tcp_options,
+			       const struct tcp_options *tcp_options,
 			       bool ignore_ts_val,
 			       bool abs_ts_ecr,
 			       bool abs_seq,
@@ -159,12 +161,13 @@ struct packet *new_tcp_packet(int address_family,
 
 	packet->direction = direction;
 	packet->flags = encapsulate ? FLAGS_UDP_ENCAPSULATED : 0;
-	packet->ecn = ecn;
+	packet->tos_chk = ip_info.tos.check;
 
 	/* Set IP header fields */
 	if (encapsulate) {
-		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-				     IPPROTO_UDP);
+		set_packet_ip_header(packet, address_family, ip_bytes,
+				     ip_info.tos.value, ip_info.flow_label,
+				     ip_info.ttl, IPPROTO_UDP);
 		udp_header = packet_append_header(packet, HEADER_UDP, udp_header_bytes);
 		udp_header->total_bytes = udp_header_bytes + tcp_header_bytes + tcp_payload_bytes;
 		udp_header->h.udp->src_port = htons(udp_src_port);
@@ -172,8 +175,9 @@ struct packet *new_tcp_packet(int address_family,
 		udp_header->h.udp->len = htons(udp_header_bytes + tcp_header_bytes + tcp_payload_bytes);
 		udp_header->h.udp->check = htons(0);
 	} else {
-		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-				     IPPROTO_TCP);
+		set_packet_ip_header(packet, address_family, ip_bytes,
+				     ip_info.tos.value, ip_info.flow_label,
+				     ip_info.ttl, IPPROTO_TCP);
 	}
 
 	tcp_header = packet_append_header(packet, HEADER_TCP, tcp_header_bytes);
@@ -188,8 +192,8 @@ struct packet *new_tcp_packet(int address_family,
 	u8 *tcp_option_start = (u8 *) (packet->tcp + 1);
 
 	/* Set TCP header fields */
-	packet->tcp->src_port = htons(0);
-	packet->tcp->dst_port = htons(0);
+	packet->tcp->src_port = htons(src_port);
+	packet->tcp->dst_port = htons(dst_port);
 	packet->tcp->seq = htonl(start_sequence);
 	packet->tcp->ack_seq = htonl(ack_sequence);
 	packet->tcp->doff = tcp_header_bytes / 4;

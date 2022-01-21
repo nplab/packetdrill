@@ -141,6 +141,28 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef IP_RECVRSSBUCKETID
 	{ IP_RECVRSSBUCKETID,               "IP_RECVRSSBUCKETID"              },
 #endif
+	{ IPTOS_DSCP_CS0,                   "IPTOS_DSCP_CS0"                  },
+	{ IPTOS_DSCP_CS1,                   "IPTOS_DSCP_CS1"                  },
+	{ IPTOS_DSCP_AF11,                  "IPTOS_DSCP_AF11"                 },
+	{ IPTOS_DSCP_AF12,                  "IPTOS_DSCP_AF12"                 },
+	{ IPTOS_DSCP_AF13,                  "IPTOS_DSCP_AF13"                 },
+	{ IPTOS_DSCP_CS2,                   "IPTOS_DSCP_CS2"                  },
+	{ IPTOS_DSCP_AF21,                  "IPTOS_DSCP_AF21"                 },
+	{ IPTOS_DSCP_AF22,                  "IPTOS_DSCP_AF22"                 },
+	{ IPTOS_DSCP_AF23,                  "IPTOS_DSCP_AF23"                 },
+	{ IPTOS_DSCP_CS3,                   "IPTOS_DSCP_CS3"                  },
+	{ IPTOS_DSCP_AF31,                  "IPTOS_DSCP_AF31"                 },
+	{ IPTOS_DSCP_AF32,                  "IPTOS_DSCP_AF32"                 },
+	{ IPTOS_DSCP_AF33,                  "IPTOS_DSCP_AF33"                 },
+	{ IPTOS_DSCP_CS4,                   "IPTOS_DSCP_CS4"                  },
+	{ IPTOS_DSCP_AF41,                  "IPTOS_DSCP_AF41"                 },
+	{ IPTOS_DSCP_AF42,                  "IPTOS_DSCP_AF42"                 },
+	{ IPTOS_DSCP_AF43,                  "IPTOS_DSCP_AF43"                 },
+	{ IPTOS_DSCP_CS5,                   "IPTOS_DSCP_CS5"                  },
+	{ IPTOS_DSCP_VA,                    "IPTOS_DSCP_VA"                   },
+	{ IPTOS_DSCP_EF,                    "IPTOS_DSCP_EF"                   },
+	{ IPTOS_DSCP_CS6,                   "IPTOS_DSCP_CS6"                  },
+	{ IPTOS_DSCP_CS7,                   "IPTOS_DSCP_CS7"                  },
 
 	/* /usr/include/netinet6/in6.h */
 	{ IPV6_UNICAST_HOPS,                "IPV6_UNICAST_HOPS"               },

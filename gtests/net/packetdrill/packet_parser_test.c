@@ -70,7 +70,6 @@ static void test_parse_sctp_ipv4_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -116,7 +115,6 @@ static void test_parse_sctp_ipv6_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -164,7 +162,6 @@ static void test_parse_sctp_udp_ipv4_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== FLAGS_UDP_ENCAPSULATED);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -214,7 +211,6 @@ static void test_parse_sctp_udp_ipv6_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== FLAGS_UDP_ENCAPSULATED);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -263,7 +259,6 @@ static void test_parse_tcp_ipv4_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -311,7 +306,6 @@ static void test_parse_tcp_ipv6_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -352,7 +346,6 @@ static void test_parse_udp_ipv4_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -396,7 +389,6 @@ static void test_parse_udp_ipv6_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -439,7 +431,6 @@ static void test_parse_udplite_ipv4_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -485,7 +476,6 @@ static void test_parse_udplite_ipv6_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -564,7 +554,6 @@ static void test_parse_ipv4_gre_ipv4_tcp_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -663,7 +652,6 @@ static void test_parse_ipv4_gre_mpls_ipv4_tcp_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -706,7 +694,6 @@ static void test_parse_icmpv4_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }
@@ -760,7 +747,6 @@ static void test_parse_icmpv6_packet(void)
 
 	assert(packet->time_usecs	== 0);
 	assert(packet->flags		== 0);
-	assert(packet->ecn		== 0);
 
 	packet_free(packet);
 }

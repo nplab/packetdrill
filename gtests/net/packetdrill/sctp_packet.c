@@ -3058,7 +3058,9 @@ sctp_cause_list_free(struct sctp_cause_list *list)
 struct packet *
 new_sctp_packet(int address_family,
                 enum direction_t direction,
-                enum ip_ecn_t ecn,
+                struct ip_info ip_info,
+                u16 src_port,
+                u16 dst_port,
                 s64 tag,
                 bool bad_crc32c,
                 struct sctp_chunk_list *list,
@@ -3477,12 +3479,13 @@ new_sctp_packet(int address_family,
 	if (tag != -1) {
 		packet->flags |= FLAGS_SCTP_EXPLICIT_TAG;
 	}
-	packet->ecn = ecn;
+	packet->tos_chk = ip_info.tos.check;
 
 	/* Set IP header fields */
 	if (encapsulate) {
-		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-				     IPPROTO_UDP);
+		set_packet_ip_header(packet, address_family, ip_bytes,
+				     ip_info.tos.value, ip_info.flow_label,
+				     ip_info.ttl, IPPROTO_UDP);
 		udp_header = packet_append_header(packet, HEADER_UDP, udp_header_bytes);
 		udp_header->total_bytes = udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
 		udp_header->h.udp->src_port = htons(udp_src_port);
@@ -3490,8 +3493,9 @@ new_sctp_packet(int address_family,
 		udp_header->h.udp->len = htons(udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes);
 		udp_header->h.udp->check = htons(0);
 	} else {
-		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-				     IPPROTO_SCTP);
+		set_packet_ip_header(packet, address_family, ip_bytes,
+				     ip_info.tos.value, ip_info.flow_label,
+				     ip_info.ttl, IPPROTO_SCTP);
 	}
 
 	sctp_header = packet_append_header(packet, HEADER_SCTP, sctp_header_bytes);
@@ -3506,8 +3510,8 @@ new_sctp_packet(int address_family,
 	u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
 
 	/* Set SCTP header fields */
-	packet->sctp->src_port = htons(0);
-	packet->sctp->dst_port = htons(0);
+	packet->sctp->src_port = htons(src_port);
+	packet->sctp->dst_port = htons(dst_port);
 	packet->sctp->v_tag = htonl((u32)tag);
 	packet->sctp->crc32c = htonl(0);
 
@@ -3554,7 +3558,9 @@ static void print_sctp_byte_list(struct sctp_byte_list *list) {
 struct packet *
 new_sctp_generic_packet(int address_family,
 			enum direction_t direction,
-			enum ip_ecn_t ecn,
+			struct ip_info ip_info,
+			u16 src_port,
+			u16 dst_port,
 			s64 tag,
 			bool bad_crc32c,
 			struct sctp_byte_list *bytes,
@@ -3619,12 +3625,13 @@ new_sctp_generic_packet(int address_family,
 	if (encapsulate) {
 		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
 	}
-	packet->ecn = ecn;
+	packet->tos_chk = ip_info.tos.check;
 
 	/* Set IP header fields */
 	if (encapsulate) {
-		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-				     IPPROTO_UDP);
+		set_packet_ip_header(packet, address_family, ip_bytes,
+				     ip_info.tos.value, ip_info.flow_label,
+				     ip_info.ttl, IPPROTO_UDP);
 		udp_header = packet_append_header(packet, HEADER_UDP, udp_header_bytes);
 		udp_header->total_bytes = udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes;
 		udp_header->h.udp->src_port = htons(udp_src_port);
@@ -3632,8 +3639,9 @@ new_sctp_generic_packet(int address_family,
 		udp_header->h.udp->len = htons(udp_header_bytes + sctp_header_bytes + sctp_chunk_bytes);
 		udp_header->h.udp->check = htons(0);
 	} else {
-		set_packet_ip_header(packet, address_family, ip_bytes, ecn,
-				     IPPROTO_SCTP);
+		set_packet_ip_header(packet, address_family, ip_bytes,
+				     ip_info.tos.value, ip_info.flow_label,
+				     ip_info.ttl, IPPROTO_SCTP);
 	}
 
 	sctp_header = packet_append_header(packet, HEADER_SCTP, sctp_header_bytes);
@@ -3648,8 +3656,8 @@ new_sctp_generic_packet(int address_family,
 	u8 *sctp_chunk_start = (u8 *) (packet->sctp + 1);
 
 	/* Set SCTP header fields */
-	packet->sctp->src_port = htons(0);
-	packet->sctp->dst_port = htons(0);
+	packet->sctp->src_port = htons(src_port);
+	packet->sctp->dst_port = htons(dst_port);
 	packet->sctp->v_tag = htonl((u32)tag);
 	packet->sctp->crc32c = htonl(0);
 

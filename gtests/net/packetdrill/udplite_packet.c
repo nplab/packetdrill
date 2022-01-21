@@ -29,8 +29,11 @@
 
 struct packet *new_udplite_packet(int address_family,
 				  enum direction_t direction,
+				  struct ip_info ip_info,
 				  u16 udplite_payload_bytes,
 				  u16 checksum_coverage,
+				  u16 src_port,
+				  u16 dst_port,
 				  char **error)
 {
 #if defined(IPPROTO_UDPLITE)
@@ -65,11 +68,12 @@ struct packet *new_udplite_packet(int address_family,
 
 	packet->direction = direction;
 	packet->flags = 0;
-	packet->ecn = ECN_NONE;
+	packet->tos_chk = ip_info.tos.check;
 
 	/* Set IP header fields */
 	set_packet_ip_header(packet, address_family, ip_bytes,
-			     packet->ecn, IPPROTO_UDPLITE);
+			     ip_info.tos.value, ip_info.flow_label,
+			     ip_info.ttl, IPPROTO_UDPLITE);
 
 	udplite_header = packet_append_header(packet, HEADER_UDPLITE,
 					      sizeof(struct udplite));
@@ -81,8 +85,8 @@ struct packet *new_udplite_packet(int address_family,
 	    (struct udplite *)(ip_start(packet) + ip_header_bytes);
 
 	/* Set UDPLITE header fields */
-	packet->udplite->src_port	= htons(0);
-	packet->udplite->dst_port	= htons(0);
+	packet->udplite->src_port	= htons(src_port);
+	packet->udplite->dst_port	= htons(dst_port);
 	packet->udplite->cov		= htons(checksum_coverage);
 	packet->udplite->check		= 0;
 

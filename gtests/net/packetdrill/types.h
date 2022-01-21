@@ -128,14 +128,25 @@ static inline enum direction_t reverse_direction(enum direction_t direction)
 		assert(!"bad direction");
 }
 
-/* IPv4 ECN treatment for a packet. */
-enum ip_ecn_t {
-	ECN_NONE,
-	ECN_ECT0,
-	ECN_ECT1,
-	ECN_CE,
-	ECN_ECT01,
-	ECN_NOCHECK,
+/* How to treat the TOS byte of a packet. */
+enum tos_chk_t {
+	TOS_CHECK_NONE,
+	TOS_CHECK_ECN,
+	TOS_CHECK_ECN_ECT01,  /* for outbound packet, either ECT0/ECT1 is OK */
+	TOS_CHECK_TOS,
+};
+
+struct tos_spec {
+	enum tos_chk_t check;
+	u8 value;
+};
+
+#define TTL_CHECK_NONE 255
+
+struct ip_info {
+	struct tos_spec tos;
+	u32 flow_label;
+	u8 ttl;
 };
 
 /* Type to handle <integer>! for specifying absolute vs adjusted values.
@@ -209,6 +220,11 @@ static inline bool is_valid_u8(s64 x)
 static inline bool is_valid_u16(s64 x)
 {
 	return (x >= 0) && (x <= USHRT_MAX);
+}
+
+static inline bool is_valid_u20(s64 x)
+{
+	return (x >= 0) && (x <= 0xfffff);
 }
 
 static inline bool is_valid_u32(s64 x)

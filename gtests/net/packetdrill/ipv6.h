@@ -62,6 +62,21 @@ static inline u8 ipv6_ecn_bits(const struct ipv6 *ipv6)
 	return ipv6->traffic_class_lo & IP_ECN_MASK;
 }
 
+static inline u8 ipv6_tos_byte(const struct ipv6 *ipv6)
+{
+	return (ipv6->traffic_class_hi << 4) | ipv6->traffic_class_lo;
+}
+
+static inline u32 ipv6_flow_label(const struct ipv6 *ipv6)
+{
+	return (ntohs(ipv6->flow_label_lo)) | (ipv6->flow_label_hi << 16);
+}
+
+static inline u8 ipv6_hoplimit_byte(const struct ipv6 *ipv6)
+{
+	return ipv6->hop_limit;
+}
+
 /* The following struct declaration is needed for the IPv6 ioctls
  * SIOCSIFADDR and SIOCDIFADDR that add and delete IPv6 addresses from
  * a network interface. We have to declare our own version here

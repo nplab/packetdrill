@@ -104,6 +104,9 @@ struct packet {
 	struct udplite *udplite;/* start of UDPLite header, if present */
 	struct icmpv4 *icmpv4;	/* start of ICMPv4 header, if present */
 	struct icmpv6 *icmpv6;	/* start of ICMPv6 header, if present */
+	bool echoed_header;     /* icmp payload is an echoed header?
+				   This is for SCTP/TCP/UDP/UDPLite */
+
 
 	s64 time_usecs;		/* wall time of receive/send if non-zero */
 
@@ -120,7 +123,7 @@ struct packet {
 #define FLAG_IGNORE_SEQ           0x200 /* set to ignore processing of sequence numbers */
 #define FLAG_PARSE_ACE            0x400 /* output parsed AccECN ACE field */
 
-	enum ip_ecn_t ecn;	/* IPv4/IPv6 ECN treatment for packet */
+	enum tos_chk_t tos_chk;	/* how to treat the TOS byte of a packet */
 
 	__be32 *tcp_ts_val;	/* location of TCP timestamp val, or NULL */
 	__be32 *tcp_ts_ecr;	/* location of TCP timestamp ecr, or NULL */

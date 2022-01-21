@@ -492,7 +492,9 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 	char *reserved;
 	s64 time_usecs;
 	enum direction_t direction;
-	enum ip_ecn_t ip_ecn;
+	u8 ip_ecn;
+	struct tos_spec tos_spec;
+	struct ip_info ip_info;
 	struct mpls_stack *mpls_stack;
 	struct mpls mpls_stack_entry;
 	u16 port;
@@ -514,6 +516,10 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 		u16 udp_src_port;
 		u16 udp_dst_port;
 	} transport_info;
+	struct {
+		u16 src_port;
+		u16 dst_port;
+	} port_info;
 	struct {
 		u16 udp_src_port;
 		u16 udp_dst_port;
@@ -566,9 +572,10 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> URG EXP_FAST_OPEN FAST_OPEN
+%token <reserved> TOS FLOWLABEL
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
-%token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU
+%token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU ID
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
 %token <reserved> AF_NAME AF_ARG
@@ -655,7 +662,8 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <abs_integer> abs_integer
 %type <ignore_integer> ignore_integer
 %type <direction> direction
-%type <ip_ecn> opt_ip_info
+%type <ip_info> ip_info opt_ip_info
+%type <tos_spec> tos_spec
 %type <ip_ecn> ip_ecn
 %type <option> option options opt_options
 %type <event> event events event_time action
@@ -672,6 +680,8 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <mpls_stack_entry> mpls_stack_entry
 %type <integer> opt_mpls_stack_bottom
 %type <integer> opt_icmp_mtu
+%type <integer> opt_icmp_echo_id
+%type <integer> flow_label
 %type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
 %type <string> opt_note note word_list
@@ -812,6 +822,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <address_type_list_item> address_type
 %type <parameter_type_list> parameter_types_list
 %type <parameter_type_list_item> parameter_type
+%type <port_info> opt_port_info
 
 %%  /* The grammar follows. */
 
@@ -1054,14 +1065,15 @@ sctp_header_spec
 ;
 
 sctp_packet_spec
-: packet_prefix opt_ip_info sctp_header_spec opt_udp_encaps_info ':' sctp_chunk_list_spec {
+: packet_prefix opt_ip_info opt_port_info sctp_header_spec opt_udp_encaps_info ':' sctp_chunk_list_spec {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
 	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
-	                        $3.tag, $3.bad_crc32c, $6,
-	                        $4.udp_src_port, $4.udp_dst_port,
+	                        $3.src_port, $3.dst_port,
+	                        $4.tag, $4.bad_crc32c, $7,
+	                        $5.udp_src_port, $5.udp_dst_port,
 	                        &error);
 	if (inner == NULL) {
 		assert(error != NULL);
@@ -1071,14 +1083,15 @@ sctp_packet_spec
 
 	$$ = packet_encapsulate_and_free(outer, inner);
 }
-| packet_prefix opt_ip_info sctp_header_spec opt_udp_encaps_info ':' '[' byte_list ']' {
+| packet_prefix opt_ip_info opt_port_info sctp_header_spec opt_udp_encaps_info ':' '[' byte_list ']' {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
 	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
-	                                $3.tag, $3.bad_crc32c, $7,
-	                                $4.udp_src_port, $4.udp_dst_port,
+	                                $3.src_port, $3.dst_port,
+	                                $4.tag, $4.bad_crc32c, $8,
+	                                $5.udp_src_port, $5.udp_dst_port,
 	                                &error);
 	if (inner == NULL) {
 		assert(error != NULL);
@@ -2422,31 +2435,31 @@ sctp_protocol_violation_cause_spec
 }
 
 tcp_packet_spec
-: packet_prefix opt_ip_info flags seq opt_ack opt_window opt_urg_ptr opt_tcp_options opt_udp_encaps_info {
+: packet_prefix opt_ip_info opt_port_info flags seq opt_ack opt_window opt_urg_ptr opt_tcp_options opt_udp_encaps_info {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if (($8 == NULL) && (direction != DIRECTION_OUTBOUND)) {
+	if (($9 == NULL) && (direction != DIRECTION_OUTBOUND)) {
 		yylineno = @8.first_line;
 		semantic_error("<...> for TCP options can only be used with "
 			       "outbound packets");
 	}
 
 	inner = new_tcp_packet(in_config->wire_protocol,
-			       direction, $2, $3,
-			       $4.start_sequence, $4.payload_bytes,
-			       $5, $6, $7, $8,
+			       direction, $2, $3.src_port, $3.dst_port, $4,
+			       $5.start_sequence, $5.payload_bytes,
+			       $6, $7, $8, $9,
 			       ignore_ts_val,
 			       absolute_ts_ecr,
-			       $4.absolute,
-			       $4.ignore,
-			       $9.udp_src_port, $9.udp_dst_port,
+			       $5.absolute,
+			       $5.ignore,
+			       $10.udp_src_port, $10.udp_dst_port,
 			       &error);
 	ignore_ts_val = false;
 	absolute_ts_ecr = false;
-	free($3);
-	free($8);
+	free($4);
+	free($9);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
@@ -2458,16 +2471,21 @@ tcp_packet_spec
 ;
 
 udp_packet_spec
-: packet_prefix UDP '(' INTEGER ')' {
+: packet_prefix opt_ip_info UDP opt_port_info '(' INTEGER ')' {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if (!is_valid_u16($4)) {
+	if ($2.tos.check == TOS_CHECK_ECN) {
+		semantic_error("ECN can only be used with SCTP or TCP packets");
+	}
+
+	if (!is_valid_u16($6)) {
 		semantic_error("UDP payload size out of range");
 	}
 
-	inner = new_udp_packet(in_config->wire_protocol, direction, $4, &error);
+	inner = new_udp_packet(in_config->wire_protocol, direction, $2,
+			       $6, $4.src_port, $4.dst_port, &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
@@ -2479,20 +2497,23 @@ udp_packet_spec
 ;
 
 udplite_packet_spec
-: packet_prefix UDPLITE '(' INTEGER ',' INTEGER ')' {
+: packet_prefix opt_ip_info UDPLITE opt_port_info '(' INTEGER ',' INTEGER ')' {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if (!is_valid_u16($4)) {
-		semantic_error("UDPLite payload size out of range");
+	if ($2.tos.check == TOS_CHECK_ECN) {
+		semantic_error("ECN can only be used with SCTP or TCP packets");
 	}
 	if (!is_valid_u16($6)) {
+		semantic_error("UDPLite payload size out of range");
+	}
+	if (!is_valid_u16($8)) {
 		semantic_error("UDPLite checksum coverage out of range");
 	}
 
-	inner = new_udplite_packet(in_config->wire_protocol, direction, $4, $6,
-				   &error);
+	inner = new_udplite_packet(in_config->wire_protocol, direction, $2,
+				   $6, $8, $4.src_port, $4.dst_port, &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
@@ -2504,16 +2525,22 @@ udplite_packet_spec
 ;
 
 icmp_packet_spec
-: packet_prefix opt_icmp_echoed ICMP icmp_type opt_icmp_code opt_icmp_mtu {
+: packet_prefix opt_ip_info ICMP icmp_type opt_icmp_code opt_icmp_mtu
+  opt_icmp_echo_id opt_icmp_echoed {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
+	if (($2.tos.check == TOS_CHECK_ECN_ECT01) &&
+	    (direction != DIRECTION_OUTBOUND)) {
+		semantic_error("[ect01] can only be used with outbound packets");
+	}
+
 	inner = new_icmp_packet(in_config->wire_protocol, direction, $4, $5,
-				$2.protocol, $2.payload_bytes,
-				$2.start_sequence, $2.checksum_coverage,
-				$2.verification_tag, $6,
-				$2.udp_src_port, $2.udp_dst_port, &error);
+				$8.protocol, $8.start_sequence,
+				$8.checksum_coverage, $8.verification_tag,
+				$8.payload_bytes, $2, $6, $7,
+				$8.udp_src_port, $8.udp_dst_port, &error);
 	free($4);
 	free($5);
 	if (inner == NULL) {
@@ -2525,29 +2552,32 @@ icmp_packet_spec
 }
 ;
 
-
 packet_prefix
 : direction {
 	$$ = packet_new(PACKET_MAX_HEADER_BYTES);
 	$$->direction = $1;
 }
-| packet_prefix IPV4 IPV4_ADDR '>' IPV4_ADDR ':' {
+| packet_prefix IPV4 opt_ip_info IPV4_ADDR '>' IPV4_ADDR ':' {
 	char *error = NULL;
 	struct packet *packet = $1;
-	char *ip_src = $3;
-	char *ip_dst = $5;
-	if (ipv4_header_append(packet, ip_src, ip_dst, &error))
+	u8 tos = $3.tos.value;
+	u8 ttl = $3.ttl;
+	char *ip_src = $4;
+	char *ip_dst = $6;
+	if (ipv4_header_append(packet, ip_src, ip_dst, tos, ttl, &error))
 		semantic_error(error);
 	free(ip_src);
 	free(ip_dst);
 	$$ = packet;
 }
-| packet_prefix IPV6 IPV6_ADDR '>' IPV6_ADDR ':' {
+| packet_prefix IPV6 opt_ip_info IPV6_ADDR '>' IPV6_ADDR ':' {
 	char *error = NULL;
 	struct packet *packet = $1;
-	char *ip_src = $3;
-	char *ip_dst = $5;
-	if (ipv6_header_append(packet, ip_src, ip_dst, &error))
+	u8 tos = $3.tos.value;
+	u8 hop_limit = $3.ttl;
+	char *ip_src = $4;
+	char *ip_dst = $6;
+	if (ipv6_header_append(packet, ip_src, ip_dst, tos, hop_limit, &error))
 		semantic_error(error);
 	free(ip_src);
 	free(ip_dst);
@@ -2663,22 +2693,54 @@ opt_icmp_mtu
 | MTU INTEGER	{ $$ = $2; }
 ;
 
+opt_icmp_echo_id
+:                { $$ = 0; }
+| ID INTEGER     { $$ = $2; }
+;
+
+opt_port_info
+:		{
+	$$.src_port		= 0;
+	$$.dst_port		= 0;
+}
+| INTEGER '>' INTEGER	{
+	if (!is_valid_u16($1)) {
+		semantic_error("src port out of range");
+	}
+	if (!is_valid_u16($3)) {
+		semantic_error("dst port out of range");
+	}
+
+	$$.src_port		= $1;
+	$$.dst_port		= $3;
+}
+;
+
 direction
 : '<'          { $$ = DIRECTION_INBOUND;  current_script_line = yylineno; }
 | '>'          { $$ = DIRECTION_OUTBOUND; current_script_line = yylineno; }
 ;
 
-opt_ip_info
-:			{ $$ = ECN_NOCHECK; }
-| '[' ip_ecn ']'	{ $$ = $2; }
+tos_spec
+: ip_ecn		{ $$.check = TOS_CHECK_ECN; $$.value = $1; }
+| ECT01			{ $$.check = TOS_CHECK_ECN_ECT01; $$.value = 0; }
+| TOS HEX_INTEGER	{
+	s64 tos = $2;
+
+	if (!is_valid_u8(tos)) {
+		semantic_error("tos out of range for 8 bits");
+	}
+
+	$$.check = TOS_CHECK_TOS;
+	$$.value = tos;
+}
 ;
 
 ip_ecn
-: NO_ECN	{ $$ = ECN_NONE; }
-| ECT0		{ $$ = ECN_ECT0; }
-| ECT1		{ $$ = ECN_ECT1; }
-| ECT01		{ $$ = ECN_ECT01; }
-| CE		{ $$ = ECN_CE; }
+: NO_ECN	{ $$ = IP_ECN_NONE; }
+| ECT0		{ $$ = IP_ECN_ECT0; }
+| ECT1		{ $$ = IP_ECN_ECT1; }
+| CE		{ $$ = IP_ECN_CE; }
 ;
 
 opt_ack_flag
@@ -2710,6 +2772,55 @@ flags
 | opt_word ack_and_ace { asprintf(&($$), "%s%s", $1, $2); free($1); free($2); }
 | '.'          { $$ = strdup("."); }
 | '-'          { $$ = strdup(""); }  /* no TCP flags set in segment */
+;
+
+flow_label
+: FLOWLABEL HEX_INTEGER {
+	s64 flowlabel = $2;
+
+	if (!is_valid_u20(flowlabel)) {
+		semantic_error("flowlabel out of range for 20 bits");
+	}
+	$$ = flowlabel;
+}
+;
+
+ip_info
+: tos_spec	{
+	$$.tos.check = $1.check;
+	$$.tos.value = $1.value;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| flow_label	{
+	$$.tos.check = TOS_CHECK_NONE;
+	$$.tos.value = 0;
+	$$.flow_label = $1;
+	$$.ttl = 0;
+}
+| TTL INTEGER {
+	$$.tos.check = TOS_CHECK_NONE;
+	$$.tos.value = 0;
+	$$.flow_label = 0;
+	$$.ttl = $2;
+}
+| tos_spec ',' flow_label {
+	$$.tos.check = $1.check;
+	$$.tos.value = $1.value;
+	$$.flow_label = $3;
+	$$.ttl = 0;
+}
+;
+
+opt_ip_info
+:			{
+	$$.tos.check = TOS_CHECK_NONE;
+	$$.tos.value = 0;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| '(' ip_info ')'	{ $$ = $2; }
+| '[' ip_info ']'	{ $$ = $2; }
 ;
 
 seq
