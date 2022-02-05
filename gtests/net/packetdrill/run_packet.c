@@ -3022,6 +3022,10 @@ out:
 	add_packet_dump(error, "script", script_packet, script_usecs,
 			DUMP_SHORT);
 	if (actual_packet != NULL) {
+		if (script_packet->flags & FLAG_PARSE_ACE) {
+			/* set numeric ACE count flag on actual packet as well */
+			actual_packet->flags |= FLAG_PARSE_ACE;
+		}
 		add_packet_dump(error, "actual", actual_packet,
 				actual_usecs, DUMP_SHORT);
 		packet_free(actual_packet);
