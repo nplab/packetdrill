@@ -199,6 +199,8 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 		fputc('R', s);
 	if (packet->tcp->psh)
 		fputc('P', s);
+	if (packet->tcp->ack)
+		fputc('.', s);
 	if (packet->tcp->urg)
 		fputc('U', s);
 	if (packet->flags & FLAG_PARSE_ACE) {
@@ -217,8 +219,6 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 		if (packet->tcp->ae)
 			fputc('A', s);   /* *A*ccurate ECN */
 	}
-	if (packet->tcp->ack)
-		fputc('.', s);
 
 	fprintf(s, " %u:%u(%u)",
 		ntohl(packet->tcp->seq),
