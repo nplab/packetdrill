@@ -84,6 +84,30 @@ struct ipv4 {
 #define IP_ECN_ECT0 2
 #define IP_ECN_CE   3
 
+#define DSCP_CS0         0x00
+#define DSCP_CS1         0x08
+#define DSCP_CS2         0x10
+#define DSCP_CS3         0x18
+#define DSCP_CS4         0x20
+#define DSCP_CS5         0x28
+#define DSCP_CS6         0x30
+#define DSCP_CS7         0x38
+#define DSCP_AF11        0x0a
+#define DSCP_AF12        0x0c
+#define DSCP_AF13        0x0e
+#define DSCP_AF21        0x12
+#define DSCP_AF22        0x14
+#define DSCP_AF23        0x16
+#define DSCP_AF31        0x1a
+#define DSCP_AF32        0x1c
+#define DSCP_AF33        0x1e
+#define DSCP_AF41        0x22
+#define DSCP_AF42        0x24
+#define DSCP_AF43        0x26
+#define DSCP_EF          0x2e
+#define DSCP_VOICE_ADMIT 0x2c
+#define DSCP_LE          0x01
+
 static inline u8 ipv4_ecn_bits(const struct ipv4 *ipv4)
 {
 	return ipv4->tos & IP_ECN_MASK;
