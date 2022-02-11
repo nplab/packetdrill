@@ -681,7 +681,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <integer> opt_mpls_stack_bottom
 %type <integer> opt_icmp_mtu
 %type <integer> opt_icmp_echo_id
-%type <integer> flow_label
+%type <integer> flow_label ttl
 %type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
 %type <string> opt_note note word_list
@@ -2785,6 +2785,16 @@ flow_label
 }
 ;
 
+ttl
+: TTL INTEGER {
+	s64 ttl = $2;
+
+	if (!is_valid_u8(ttl)) {
+		semantic_error("TTL out of range");
+	}
+	$$ = ttl;
+}
+
 ip_info
 : tos_spec	{
 	$$.tos.check = $1.check;
@@ -2798,11 +2808,11 @@ ip_info
 	$$.flow_label = $1;
 	$$.ttl = 0;
 }
-| TTL INTEGER {
+| ttl {
 	$$.tos.check = TOS_CHECK_NONE;
 	$$.tos.value = 0;
 	$$.flow_label = 0;
-	$$.ttl = $2;
+	$$.ttl = $1;
 }
 | tos_spec ',' flow_label {
 	$$.tos.check = $1.check;
