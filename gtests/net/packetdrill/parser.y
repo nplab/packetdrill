@@ -572,7 +572,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> URG EXP_FAST_OPEN FAST_OPEN
-%token <reserved> TOS FLOWLABEL
+%token <reserved> CLASS TOS HLIM FLOWLABEL
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU ID
@@ -681,7 +681,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <integer> opt_mpls_stack_bottom
 %type <integer> opt_icmp_mtu
 %type <integer> opt_icmp_echo_id
-%type <integer> flow_label ttl
+%type <integer> flow_label ttl hlim
 %type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
 %type <string> opt_note note word_list
@@ -2734,6 +2734,16 @@ tos_spec
 	$$.check = TOS_CHECK_TOS;
 	$$.value = tos;
 }
+| CLASS HEX_INTEGER	{
+	s64 tos = $2;
+
+	if (!is_valid_u8(tos)) {
+		semantic_error("class out of range for 8 bits");
+	}
+
+	$$.check = TOS_CHECK_TOS;
+	$$.value = tos;
+}
 ;
 
 ip_ecn
@@ -2790,7 +2800,17 @@ ttl
 	s64 ttl = $2;
 
 	if (!is_valid_u8(ttl)) {
-		semantic_error("TTL out of range");
+		semantic_error("ttl out of range");
+	}
+	$$ = ttl;
+}
+
+hlim
+: HLIM INTEGER {
+	s64 ttl = $2;
+
+	if (!is_valid_u8(ttl)) {
+		semantic_error("hlim out of range");
 	}
 	$$ = ttl;
 }
@@ -2802,13 +2822,25 @@ ip_info
 	$$.flow_label = 0;
 	$$.ttl = 0;
 }
+| ttl {
+	$$.tos.check = TOS_CHECK_NONE;
+	$$.tos.value = 0;
+	$$.flow_label = 0;
+	$$.ttl = $1;
+}
+| tos_spec ',' ttl {
+	$$.tos.check = $1.check;
+	$$.tos.value = $1.value;
+	$$.flow_label = 0;
+	$$.ttl = $3;
+}
 | flow_label	{
 	$$.tos.check = TOS_CHECK_NONE;
 	$$.tos.value = 0;
 	$$.flow_label = $1;
 	$$.ttl = 0;
 }
-| ttl {
+| hlim {
 	$$.tos.check = TOS_CHECK_NONE;
 	$$.tos.value = 0;
 	$$.flow_label = 0;
@@ -2820,11 +2852,23 @@ ip_info
 	$$.flow_label = $3;
 	$$.ttl = 0;
 }
-| tos_spec ',' ttl {
+| tos_spec ',' hlim {
 	$$.tos.check = $1.check;
 	$$.tos.value = $1.value;
 	$$.flow_label = 0;
 	$$.ttl = $3;
+}
+| flow_label ',' hlim {
+	$$.tos.check = TOS_CHECK_NONE;
+	$$.tos.value = 0;
+	$$.flow_label = $1;
+	$$.ttl = $3;
+}
+| tos_spec ',' flow_label ',' hlim {
+	$$.tos.check = $1.check;
+	$$.tos.value = $1.value;
+	$$.flow_label = $3;
+	$$.ttl = $5;
 }
 ;
 
