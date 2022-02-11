@@ -2820,6 +2820,12 @@ ip_info
 	$$.flow_label = $3;
 	$$.ttl = 0;
 }
+| tos_spec ',' ttl {
+	$$.tos.check = $1.check;
+	$$.tos.value = $1.value;
+	$$.flow_label = 0;
+	$$.ttl = $3;
+}
 ;
 
 opt_ip_info
