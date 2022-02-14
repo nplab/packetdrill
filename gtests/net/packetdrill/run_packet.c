@@ -646,6 +646,9 @@ static int map_inbound_icmp_packet(
 {
 	int protocol;
 
+	if (!live_packet->echoed_header) {
+		return STATUS_OK;
+	}
 	protocol = packet_echoed_ip_protocol(live_packet);
 	if ((protocol == IPPROTO_UDP) && (udp_encaps != 0)) {
 		protocol = udp_encaps;
@@ -970,12 +973,10 @@ static int map_inbound_packet(
 	char **error)
 {
 	DEBUGP("map_inbound_packet\n");
-
 	/* Remap packet to live values. */
 	struct tuple live_inbound;
 	socket_get_inbound(&socket->live, &live_inbound);
 	set_packet_tuple(live_packet, &live_inbound, udp_encaps != 0);
-
 	if ((live_packet->icmpv4 != NULL) || (live_packet->icmpv6 != NULL))
 		return map_inbound_icmp_packet(socket, live_packet, udp_encaps, error);
 

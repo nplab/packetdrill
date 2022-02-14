@@ -120,6 +120,7 @@ struct icmp_type_info icmpv6_types[] = {
 	{ ICMPV6_PARAMPROB,	"parameter_problem", icmpv6_paramprob_codes },
 	{ ICMPV6_ECHO_REQUEST,  "echo_request" },
 	{ ICMPV6_ECHO_REPLY,    "echo_reply" },
+	{ ICMPV6_ROUTER_ADVERTISEMENT, "router_advertisement" },
 	{ 0, NULL, NULL },
 };
 
@@ -182,18 +183,31 @@ static int set_icmpv6_header(struct icmpv6 *icmpv6, u8 type, u8 code,
 	icmpv6->code = code;
 	icmpv6->checksum = htons(0);
 
-	if (mtu >= 0) {
-		if ((type != ICMPV6_PKT_TOOBIG) || (code != 0)) {
+	if ((type == ICMPV6_PKT_TOOBIG) || (type == ICMPV6_ROUTER_ADVERTISEMENT)) {
+		if (mtu <= 0 || code != 0) {
 			asprintf(error,
-				 "ICMPv6 MTU is only valid for "
-				 "packet_too_big-0");
+				 "ICMPv6 MTU is required for packet_too_big or router_advertisement "
+				 "and code must equal 0");
 			return STATUS_ERR;
 		}
 		if (!is_valid_u32(mtu)) {
 			asprintf(error, "ICMPv6 MTU out of 32-bit range");
 			return STATUS_ERR;
 		}
-		icmpv6->message.packet_too_big.mtu = htonl(mtu);
+		if (type == ICMPV6_PKT_TOOBIG) {
+			icmpv6->message.packet_too_big.mtu = htonl(mtu);
+		} else { // if (type == ICMPV6_ROUTER_ADVERTISEMENT)
+			struct icmpv6_ra *ra = (struct icmpv6_ra *)icmpv6;
+			ra->cur_hop_limit = 0;
+			ra->reserved = 0;
+			ra->router_lifetime = 0;
+			ra->reachable_time = 0;
+			ra->retrans_time = 0;
+			ra->mtu_type = 5;
+			ra->mtu_length = 1;
+			ra->mtu_reserved = 0;
+			ra->mtu = htonl(mtu);
+		}
 	}
 	if (echo_id > 0) {
 		icmpv6->message.u_echo.identifier = htons(echo_id);
@@ -221,8 +235,12 @@ static int set_packet_icmp_header(struct packet *packet, void *icmp,
 		struct icmpv6 *icmpv6 = (struct icmpv6 *) icmp;
 		packet->icmpv6 = icmpv6;
 		assert(packet->icmpv4 == NULL);
+		int header_bytes = sizeof(*icmpv6);
+		if (type == ICMPV6_ROUTER_ADVERTISEMENT) {
+			header_bytes = sizeof(struct icmpv6_ra);
+		}
 		icmp_header = packet_append_header(packet, HEADER_ICMPV6,
-						   sizeof(*icmpv6));
+						   header_bytes);
 		icmp_header->total_bytes = icmp_bytes;
 		return set_icmpv6_header(icmpv6, type, code, mtu, echo_id, error);
 	} else {
@@ -326,16 +344,6 @@ struct packet *new_icmp_packet(int address_family,
 	int icmp_bytes;
 	int ip_bytes;
 
-	if (protocol == IPPROTO_RAW) {
-		echoed_bytes = 0;
-		icmp_bytes = payload_bytes;
-	} else {
-		echoed_bytes = ip_fixed_bytes + ICMP_ECHO_BYTES +
-			       (encapsulated ? sizeof(struct udp) : 0);
-		icmp_bytes = icmp_header_len(address_family) + echoed_bytes;
-	}
-	ip_bytes = ip_header_bytes + icmp_bytes;
-
 	/* Sanity-check on echo_id to make sure it fits in u16 */
 	if (echo_id < 0 || echo_id > 65535) {
 		asprintf(error,
@@ -351,13 +359,6 @@ struct packet *new_icmp_packet(int address_family,
 		goto error_out;
 	}
 	assert((ip_header_bytes & 0x3) == 0);
-	if (icmp_bytes < icmp_header_len(address_family)) {
-		asprintf(error, "icmp_bytes %d smaller than icmp header "
-			 "length %d",
-			 icmp_bytes, icmp_header_len(address_family));
-		goto error_out;
-	}
-
 
 	/* Parse the ICMP type and code */
 	if (parse_icmp_type_and_code(address_family, type_string, code_string,
@@ -365,6 +366,27 @@ struct packet *new_icmp_packet(int address_family,
 		goto error_out;
 	assert(is_valid_u8(type));
 	assert(is_valid_u8(code));
+
+	if (address_family == AF_INET6 && type == ICMPV6_ROUTER_ADVERTISEMENT) {
+		echoed_bytes = 0;
+		icmp_bytes = sizeof(struct icmpv6_ra);
+	} else {
+		if (protocol == IPPROTO_RAW) {
+			echoed_bytes = 0;
+			icmp_bytes = payload_bytes;
+			if (icmp_bytes < icmp_header_len(address_family)) {
+				asprintf(error, "icmp_bytes %d smaller than icmp header "
+					 "length %d",
+					 icmp_bytes, icmp_header_len(address_family));
+				goto error_out;
+			}
+		} else {
+			echoed_bytes = ip_fixed_bytes + ICMP_ECHO_BYTES +
+					   (encapsulated ? sizeof(struct udp) : 0);
+			icmp_bytes = icmp_header_len(address_family) + echoed_bytes;
+		}
+	}
+	ip_bytes = ip_header_bytes + icmp_bytes;
 
 	/* Allocate and zero out a packet object of the desired size */
 	packet = packet_new(ip_bytes);
@@ -434,8 +456,9 @@ struct packet *new_icmp_packet(int address_family,
 			*checksum = htons(0xffff);
 		}
 		packet->echoed_header = true;
-	} else
+	} else {
 		packet->echoed_header = false;
+	}
 
 	packet->ip_bytes = ip_bytes;
 	return packet;
