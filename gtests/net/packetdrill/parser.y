@@ -2772,14 +2772,14 @@ tos_spec
 	$$.value = tos;
 }
 | CLASS HEX_INTEGER	{
-	s64 tos = $2;
+	s64 class = $2;
 
-	if (!is_valid_u8(tos)) {
+	if (!is_valid_u8(class)) {
 		semantic_error("class out of range for 8 bits");
 	}
 
 	$$.check = TOS_CHECK_TOS;
-	$$.value = tos;
+	$$.value = class;
 }
 | dscp	{
 	$$.check = TOS_CHECK_DSCP;
@@ -2852,12 +2852,12 @@ ttl
 
 hlim
 : HLIM INTEGER {
-	s64 ttl = $2;
+	s64 hlim = $2;
 
-	if (!is_valid_u8(ttl)) {
+	if (!is_valid_u8(hlim)) {
 		semantic_error("hlim out of range");
 	}
-	$$ = ttl;
+	$$ = hlim;
 }
 
 ip_info
