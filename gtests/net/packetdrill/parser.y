@@ -2479,10 +2479,6 @@ udp_packet_spec
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if ($2.tos.check == TOS_CHECK_ECN) {
-		semantic_error("ECN can only be used with SCTP or TCP packets");
-	}
-
 	if (!is_valid_u16($6)) {
 		semantic_error("UDP payload size out of range");
 	}
@@ -2505,9 +2501,6 @@ udplite_packet_spec
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if ($2.tos.check == TOS_CHECK_ECN) {
-		semantic_error("ECN can only be used with SCTP or TCP packets");
-	}
 	if (!is_valid_u16($6)) {
 		semantic_error("UDPLite payload size out of range");
 	}
@@ -2534,7 +2527,8 @@ icmp_packet_spec
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if (($2.tos.check == TOS_CHECK_ECN_ECT01) &&
+	if ((($2.tos.check == TOS_CHECK_ECN_ECT01) ||
+	     ($2.tos.check == TOS_CHECK_DSCP_ECN_ECT01)) &&
 	    (direction != DIRECTION_OUTBOUND)) {
 		semantic_error("[ect01] can only be used with outbound packets");
 	}
@@ -2781,13 +2775,13 @@ tos_spec
 	$$.check = TOS_CHECK_TOS;
 	$$.value = class;
 }
-| dscp	{
-	$$.check = TOS_CHECK_DSCP;
-	$$.value = $1 << 2;
-}
 | ECN ip_ecn	{
 	$$.check = TOS_CHECK_ECN;
 	$$.value = $2;
+}
+| ECN ECT01	{
+	$$.check = TOS_CHECK_ECN_ECT01;
+	$$.value = 0;
 }
 ;
 
@@ -2914,6 +2908,90 @@ ip_info
 	$$.tos.value = $1.value;
 	$$.flow_label = $3;
 	$$.ttl = $5;
+}
+| dscp	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| dscp ',' ttl	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $3;
+}
+| dscp ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $3;
+}
+| dscp ',' flow_label	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $3;
+	$$.ttl = 0;
+}
+| dscp ',' flow_label ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $3;
+	$$.ttl = $5;
+}
+| dscp ',' ECN ip_ecn	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ip_ecn ',' ttl	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ip_ecn ',' hlim	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ip_ecn ',' flow_label	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = $6;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ECT01	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ECT01 ',' ttl	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ECT01 ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ECT01 ',' flow_label	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $6;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ECT01 ',' flow_label ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $6;
+	$$.ttl = $8;
 }
 ;
 

@@ -134,7 +134,8 @@ enum tos_chk_t {
 	TOS_CHECK_ECN,
 	TOS_CHECK_ECN_ECT01,  /* for outbound packet, either ECT0/ECT1 is OK */
 	TOS_CHECK_TOS,
-	TOS_CHECK_DSCP
+	TOS_CHECK_DSCP,
+	TOS_CHECK_DSCP_ECN_ECT01
 };
 
 struct tos_spec {
