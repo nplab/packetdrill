@@ -3222,6 +3222,11 @@ static int do_outbound_script_packet(
 			DEBUGP("SYNACK live.local_isn: %u\n",
 			       socket->live.local_isn);
 		}
+		if (packet->flags & FLAG_PARSE_ACE) {
+			/* set numeric ACE count flag on actual packet as well */
+			live_packet->flags |= FLAG_PARSE_ACE;
+		}
+
 	}
 	if (live_packet->sctp) {
 		for (chunk = sctp_chunks_begin(live_packet, &chunk_iter, error);
