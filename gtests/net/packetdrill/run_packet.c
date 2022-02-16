@@ -1361,6 +1361,9 @@ static int verify_outbound_live_tos(enum tos_chk_t tos_chk,
 				    char **error)
 {
 	u8 actual_ecn_bits = actual_tos_byte & IP_ECN_MASK;
+	u8 script_ecn_bits = script_tos_byte & IP_ECN_MASK;
+	u8 actual_dscp = actual_tos_byte >> 2;
+	u8 script_dscp = script_tos_byte >> 2;
 
 	if (tos_chk == TOS_CHECK_ECN_ECT01) {
 		if ((actual_ecn_bits != IP_ECN_ECT0) &&
@@ -1371,8 +1374,8 @@ static int verify_outbound_live_tos(enum tos_chk_t tos_chk,
 			return STATUS_ERR;
 		}
 	} else if (tos_chk == TOS_CHECK_ECN) {
-		if (check_field("ip_ecn",
-				script_tos_byte,
+		if (check_field("ecn",
+				script_ecn_bits,
 				actual_ecn_bits,
 				error))
 			return STATUS_ERR;
@@ -1382,7 +1385,27 @@ static int verify_outbound_live_tos(enum tos_chk_t tos_chk,
 				actual_tos_byte, error)) {
 			return STATUS_ERR;
 		}
+	} else if (tos_chk == TOS_CHECK_DSCP) {
+		if (check_field("dscp",
+				script_dscp,
+				actual_dscp, error)) {
+			return STATUS_ERR;
+		}
+	} else if (tos_chk == TOS_CHECK_DSCP_ECN_ECT01) {
+		if ((actual_ecn_bits != IP_ECN_ECT0) &&
+		    (actual_ecn_bits != IP_ECN_ECT1)) {
+			asprintf(error, "live packet field ip_ecn: "
+					 "expected: 0x1 or 0x2 vs actual: 0x%x",
+					 actual_ecn_bits);
+			return STATUS_ERR;
+		}
+		if (check_field("dscp",
+				script_dscp,
+				actual_dscp, error)) {
+			return STATUS_ERR;
+		}
 	}
+
 
 	return STATUS_OK;
 }

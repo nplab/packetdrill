@@ -134,6 +134,8 @@ enum tos_chk_t {
 	TOS_CHECK_ECN,
 	TOS_CHECK_ECN_ECT01,  /* for outbound packet, either ECT0/ECT1 is OK */
 	TOS_CHECK_TOS,
+	TOS_CHECK_DSCP,
+	TOS_CHECK_DSCP_ECN_ECT01
 };
 
 struct tos_spec {
@@ -211,6 +213,11 @@ static inline s64 timeval_to_usecs(const struct timeval *tv)
 
 /* Return a malloc-allocated hex dump of the given buffer of the given length */
 extern void hex_dump(const u8 *buffer, int bytes, char **hex);
+
+static inline bool is_valid_u6(s64 x)
+{
+	return (x >= 0) && (x <= 0x3f);
+}
 
 static inline bool is_valid_u8(s64 x)
 {

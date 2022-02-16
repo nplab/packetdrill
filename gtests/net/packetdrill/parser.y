@@ -572,9 +572,12 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> URG EXP_FAST_OPEN FAST_OPEN
-%token <reserved> CLASS TOS HLIM FLOWLABEL
+%token <reserved> CLASS TOS DSCP ECN HLIM FLOWLABEL
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
+%token <reserved> CS0 CS1 CS2 CS3 CS4 CS5 CS6 CS7
+%token <reserved> AF11 AF12 AF13 AF21 AF22 AF23 AF31 AF32 AF33 AF41 AF42 AF43
+%token <reserved> EF VOICE_ADMIT LE
 %token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU ID
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
@@ -681,7 +684,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <integer> opt_mpls_stack_bottom
 %type <integer> opt_icmp_mtu
 %type <integer> opt_icmp_echo_id
-%type <integer> flow_label ttl hlim
+%type <integer> dscp flow_label ttl hlim
 %type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
 %type <string> opt_note note word_list
@@ -2476,10 +2479,6 @@ udp_packet_spec
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if ($2.tos.check == TOS_CHECK_ECN) {
-		semantic_error("ECN can only be used with SCTP or TCP packets");
-	}
-
 	if (!is_valid_u16($6)) {
 		semantic_error("UDP payload size out of range");
 	}
@@ -2502,9 +2501,6 @@ udplite_packet_spec
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if ($2.tos.check == TOS_CHECK_ECN) {
-		semantic_error("ECN can only be used with SCTP or TCP packets");
-	}
 	if (!is_valid_u16($6)) {
 		semantic_error("UDPLite payload size out of range");
 	}
@@ -2531,7 +2527,8 @@ icmp_packet_spec
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
 
-	if (($2.tos.check == TOS_CHECK_ECN_ECT01) &&
+	if ((($2.tos.check == TOS_CHECK_ECN_ECT01) ||
+	     ($2.tos.check == TOS_CHECK_DSCP_ECN_ECT01)) &&
 	    (direction != DIRECTION_OUTBOUND)) {
 		semantic_error("[ect01] can only be used with outbound packets");
 	}
@@ -2721,6 +2718,40 @@ direction
 | '>'          { $$ = DIRECTION_OUTBOUND; current_script_line = yylineno; }
 ;
 
+dscp
+: DSCP HEX_INTEGER {
+	s64 dscp = $2;
+
+	if (!is_valid_u6(dscp)) {
+		semantic_error("dscp out of range for 6 bits");
+	}
+	$$ = dscp;
+}
+| DSCP CS0 { $$ = DSCP_CS0 }
+| DSCP CS1 { $$ = DSCP_CS1 }
+| DSCP CS2 { $$ = DSCP_CS2 }
+| DSCP CS3 { $$ = DSCP_CS3 }
+| DSCP CS4 { $$ = DSCP_CS4 }
+| DSCP CS5 { $$ = DSCP_CS5 }
+| DSCP CS6 { $$ = DSCP_CS6 }
+| DSCP CS7 { $$ = DSCP_CS7 }
+| DSCP AF11 { $$ = DSCP_AF11 }
+| DSCP AF12 { $$ = DSCP_AF12 }
+| DSCP AF13 { $$ = DSCP_AF13 }
+| DSCP AF21 { $$ = DSCP_AF21 }
+| DSCP AF22 { $$ = DSCP_AF22 }
+| DSCP AF23 { $$ = DSCP_AF23 }
+| DSCP AF31 { $$ = DSCP_AF31 }
+| DSCP AF32 { $$ = DSCP_AF32 }
+| DSCP AF33 { $$ = DSCP_AF33 }
+| DSCP AF41 { $$ = DSCP_AF41 }
+| DSCP AF42 { $$ = DSCP_AF42 }
+| DSCP AF43 { $$ = DSCP_AF43 }
+| DSCP EF { $$ = DSCP_EF }
+| DSCP VOICE_ADMIT { $$ = DSCP_VOICE_ADMIT }
+| DSCP LE { $$ = DSCP_LE }
+;
+
 tos_spec
 : ip_ecn		{ $$.check = TOS_CHECK_ECN; $$.value = $1; }
 | ECT01			{ $$.check = TOS_CHECK_ECN_ECT01; $$.value = 0; }
@@ -2735,14 +2766,22 @@ tos_spec
 	$$.value = tos;
 }
 | CLASS HEX_INTEGER	{
-	s64 tos = $2;
+	s64 class = $2;
 
-	if (!is_valid_u8(tos)) {
+	if (!is_valid_u8(class)) {
 		semantic_error("class out of range for 8 bits");
 	}
 
 	$$.check = TOS_CHECK_TOS;
-	$$.value = tos;
+	$$.value = class;
+}
+| ECN ip_ecn	{
+	$$.check = TOS_CHECK_ECN;
+	$$.value = $2;
+}
+| ECN ECT01	{
+	$$.check = TOS_CHECK_ECN_ECT01;
+	$$.value = 0;
 }
 ;
 
@@ -2807,12 +2846,12 @@ ttl
 
 hlim
 : HLIM INTEGER {
-	s64 ttl = $2;
+	s64 hlim = $2;
 
-	if (!is_valid_u8(ttl)) {
+	if (!is_valid_u8(hlim)) {
 		semantic_error("hlim out of range");
 	}
-	$$ = ttl;
+	$$ = hlim;
 }
 
 ip_info
@@ -2869,6 +2908,90 @@ ip_info
 	$$.tos.value = $1.value;
 	$$.flow_label = $3;
 	$$.ttl = $5;
+}
+| dscp	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| dscp ',' ttl	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $3;
+}
+| dscp ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $3;
+}
+| dscp ',' flow_label	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $3;
+	$$.ttl = 0;
+}
+| dscp ',' flow_label ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $3;
+	$$.ttl = $5;
+}
+| dscp ',' ECN ip_ecn	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ip_ecn ',' ttl	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ip_ecn ',' hlim	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ip_ecn ',' flow_label	{
+	$$.tos.check = TOS_CHECK_TOS;
+	$$.tos.value = $1 << 2 | $4;
+	$$.flow_label = $6;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ECT01	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ECT01 ',' ttl	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ECT01 ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = 0;
+	$$.ttl = $6;
+}
+| dscp ',' ECN ECT01 ',' flow_label	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $6;
+	$$.ttl = 0;
+}
+| dscp ',' ECN ECT01 ',' flow_label ',' hlim	{
+	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+	$$.tos.value = $1 << 2;
+	$$.flow_label = $6;
+	$$.ttl = $8;
 }
 ;
 
