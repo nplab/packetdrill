@@ -2727,29 +2727,29 @@ dscp
 	}
 	$$ = dscp;
 }
-| DSCP CS0 { $$ = DSCP_CS0 }
-| DSCP CS1 { $$ = DSCP_CS1 }
-| DSCP CS2 { $$ = DSCP_CS2 }
-| DSCP CS3 { $$ = DSCP_CS3 }
-| DSCP CS4 { $$ = DSCP_CS4 }
-| DSCP CS5 { $$ = DSCP_CS5 }
-| DSCP CS6 { $$ = DSCP_CS6 }
-| DSCP CS7 { $$ = DSCP_CS7 }
-| DSCP AF11 { $$ = DSCP_AF11 }
-| DSCP AF12 { $$ = DSCP_AF12 }
-| DSCP AF13 { $$ = DSCP_AF13 }
-| DSCP AF21 { $$ = DSCP_AF21 }
-| DSCP AF22 { $$ = DSCP_AF22 }
-| DSCP AF23 { $$ = DSCP_AF23 }
-| DSCP AF31 { $$ = DSCP_AF31 }
-| DSCP AF32 { $$ = DSCP_AF32 }
-| DSCP AF33 { $$ = DSCP_AF33 }
-| DSCP AF41 { $$ = DSCP_AF41 }
-| DSCP AF42 { $$ = DSCP_AF42 }
-| DSCP AF43 { $$ = DSCP_AF43 }
-| DSCP EF { $$ = DSCP_EF }
-| DSCP VOICE_ADMIT { $$ = DSCP_VOICE_ADMIT }
-| DSCP LE { $$ = DSCP_LE }
+| DSCP CS0 { $$ = DSCP_CS0; }
+| DSCP CS1 { $$ = DSCP_CS1; }
+| DSCP CS2 { $$ = DSCP_CS2; }
+| DSCP CS3 { $$ = DSCP_CS3; }
+| DSCP CS4 { $$ = DSCP_CS4; }
+| DSCP CS5 { $$ = DSCP_CS5; }
+| DSCP CS6 { $$ = DSCP_CS6; }
+| DSCP CS7 { $$ = DSCP_CS7; }
+| DSCP AF11 { $$ = DSCP_AF11; }
+| DSCP AF12 { $$ = DSCP_AF12; }
+| DSCP AF13 { $$ = DSCP_AF13; }
+| DSCP AF21 { $$ = DSCP_AF21; }
+| DSCP AF22 { $$ = DSCP_AF22; }
+| DSCP AF23 { $$ = DSCP_AF23; }
+| DSCP AF31 { $$ = DSCP_AF31; }
+| DSCP AF32 { $$ = DSCP_AF32; }
+| DSCP AF33 { $$ = DSCP_AF33; }
+| DSCP AF41 { $$ = DSCP_AF41; }
+| DSCP AF42 { $$ = DSCP_AF42; }
+| DSCP AF43 { $$ = DSCP_AF43; }
+| DSCP EF { $$ = DSCP_EF; }
+| DSCP VOICE_ADMIT { $$ = DSCP_VOICE_ADMIT; }
+| DSCP LE { $$ = DSCP_LE; }
 ;
 
 tos_spec
