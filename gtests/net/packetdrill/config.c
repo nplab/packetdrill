@@ -43,7 +43,9 @@ enum option_codes {
 	OPT_CONNECT_PORT,
 	OPT_REMOTE_IP,
 	OPT_LOCAL_IP,
+	OPT_LOCAL_LINKLOCAL_IP,
 	OPT_GATEWAY_IP,
+	OPT_GATEWAY_LINKLOCAL_IP,
 	OPT_NETMASK_IP,
 	OPT_SPEED,
 	OPT_MTU,
@@ -79,7 +81,9 @@ struct option options[] = {
 	{ "connect_port",	.has_arg = true,  NULL, OPT_CONNECT_PORT },
 	{ "remote_ip",		.has_arg = true,  NULL, OPT_REMOTE_IP },
 	{ "local_ip",		.has_arg = true,  NULL, OPT_LOCAL_IP },
+	{ "local_linklocal_ip", .has_arg = true, NULL, OPT_LOCAL_LINKLOCAL_IP },
 	{ "gateway_ip",		.has_arg = true,  NULL, OPT_GATEWAY_IP },
+	{ "gateway_linklocal_ip", .has_arg = true, NULL, OPT_GATEWAY_LINKLOCAL_IP },
 	{ "netmask_ip",		.has_arg = true,  NULL, OPT_NETMASK_IP },
 	{ "speed",		.has_arg = true,  NULL, OPT_SPEED },
 	{ "mtu",		.has_arg = true,  NULL, OPT_MTU },
@@ -117,7 +121,9 @@ void show_usage(void)
 		"\t[--connect_port=connect_port]\n"
 		"\t[--remote_ip=remote_ip]\n"
 		"\t[--local_ip=local_ip]\n"
+		"\t[--local_linklocal_ip=local_linklocal_ip]\n"
 		"\t[--gateway_ip=gateway_ip]\n"
+		"\t[--gateway_linklocal_ip=gateway_linklocal_ip]\n"
 		"\t[--netmask_ip=netmask_ip]\n"
 		"\t[--init_scripts=<comma separated filenames>]\n"
 		"\t[--speed=<speed in Mbps>]\n"
@@ -176,7 +182,9 @@ void show_usage(void)
 
 #define DEFAULT_V6_LIVE_REMOTE_IP_STRING   "2001:DB8::1/32"
 #define DEFAULT_V6_LIVE_LOCAL_IP_STRING    "fd3d:fa7b:d17d::1"
+#define DEFAULT_V6_LIVE_LOCAL_LINKLOCAL_IP_STRING    "fe80::1"
 #define DEFAULT_V6_LIVE_GATEWAY_IP_STRING  "fd3d:fa7b:d17d::2"
+#define DEFAULT_V6_LIVE_GATEWAY_LINKLOCAL_IP_STRING  "fe80::2"
 #define DEFAULT_V6_LIVE_PREFIX_LEN         48
 
 /* Fill in any as-yet-unspecified IP address attributes using IPv4 defaults. */
@@ -205,9 +213,15 @@ static void set_ipv6_defaults(struct config *config)
 	if (strlen(config->live_local_ip_string) == 0)
 		strcpy(config->live_local_ip_string,
 		       DEFAULT_V6_LIVE_LOCAL_IP_STRING);
+	if (strlen(config->live_local_linklocal_ip_string) == 0)
+		strcpy(config->live_local_linklocal_ip_string,
+		       DEFAULT_V6_LIVE_LOCAL_LINKLOCAL_IP_STRING);
 	if (strlen(config->live_gateway_ip_string) == 0)
 		strcpy(config->live_gateway_ip_string,
 		       DEFAULT_V6_LIVE_GATEWAY_IP_STRING);
+	if (strlen(config->live_gateway_linklocal_ip_string) == 0)
+		strcpy(config->live_gateway_linklocal_ip_string,
+		       DEFAULT_V6_LIVE_GATEWAY_LINKLOCAL_IP_STRING);
 }
 
 /* Set default configuration before we begin parsing. */
@@ -238,7 +252,9 @@ void set_default_config(struct config *config)
 
 	config->live_remote_ip_string[0]	= '\0';
 	config->live_local_ip_string[0]		= '\0';
+	config->live_local_linklocal_ip_string[0] = '\0';
 	config->live_gateway_ip_string[0]	= '\0';
+	config->live_gateway_linklocal_ip_string[0] = '\0';
 	config->live_netmask_ip_string[0]	= '\0';
 
 	config->init_scripts = NULL;
@@ -337,6 +353,7 @@ static void finalize_ipv6_config(struct config *config)
 	set_ipv6_defaults(config);
 
 	config->live_local_ip	= ipv6_parse(config->live_local_ip_string);
+	config->live_local_linklocal_ip	= ipv6_parse(config->live_local_linklocal_ip_string);
 
 	config->live_remote_prefix =
 		ipv6_prefix_parse(config->live_remote_ip_string);
@@ -344,6 +361,7 @@ static void finalize_ipv6_config(struct config *config)
 
 	config->live_prefix_len	= DEFAULT_V6_LIVE_PREFIX_LEN;
 	config->live_gateway_ip = ipv6_parse(config->live_gateway_ip_string);
+	config->live_gateway_linklocal_ip = ipv6_parse(config->live_gateway_linklocal_ip_string);
 	config->live_bind_ip	= config->live_local_ip;
 	config->live_connect_ip	= config->live_remote_ip;
 	config->socket_domain	= AF_INET6;
@@ -495,9 +513,17 @@ static void process_option(int opt, char *optarg, struct config *config,
 		assert(optarg != NULL);
 		strncpy(config->live_local_ip_string, optarg, ADDR_STR_LEN-1);
 		break;
+	case OPT_LOCAL_LINKLOCAL_IP:
+		assert(optarg != NULL);
+		strncpy(config->live_local_linklocal_ip_string, optarg, ADDR_STR_LEN-1);
+		break;
 	case OPT_GATEWAY_IP:
 		assert(optarg != NULL);
 		strncpy(config->live_gateway_ip_string, optarg, ADDR_STR_LEN-1);
+		break;
+	case OPT_GATEWAY_LINKLOCAL_IP:
+		assert(optarg != NULL);
+		strncpy(config->live_gateway_linklocal_ip_string, optarg, ADDR_STR_LEN-1);
 		break;
 	case OPT_MTU:
 		assert(optarg != NULL);

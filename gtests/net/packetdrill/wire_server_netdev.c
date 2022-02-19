@@ -127,6 +127,7 @@ struct netdev *wire_server_netdev_new(
 	net_setup_dev_address(netdev->name,
 			      &config->live_gateway_ip,
 			      config->live_prefix_len,
+			      &config->live_gateway_linklocal_ip,
 			      &config->live_gateway_ip);
 
 	netdev->psock = packet_socket_new(netdev->name);

@@ -969,16 +969,22 @@ static int map_inbound_sctp_packet(
  * on failure returns STATUS_ERR and sets error message.
  */
 static int map_inbound_packet(
-	struct socket *socket, struct packet *live_packet, u8 udp_encaps,
+	struct socket *socket, struct packet *live_packet, struct config *config,
 	char **error)
 {
 	DEBUGP("map_inbound_packet\n");
 	/* Remap packet to live values. */
 	struct tuple live_inbound;
-	socket_get_inbound(&socket->live, &live_inbound);
-	set_packet_tuple(live_packet, &live_inbound, udp_encaps != 0);
+	if ((live_packet->icmpv6 != NULL) && (live_packet->icmpv6->type == ICMPV6_ROUTER_ADVERTISEMENT)) {
+		memset(&live_inbound, 0, sizeof(live_inbound));
+		live_inbound.src.ip = config->live_gateway_linklocal_ip;
+		live_inbound.dst.ip = config->live_local_linklocal_ip;
+	} else {
+		socket_get_inbound(&socket->live, &live_inbound);
+	}
+	set_packet_tuple(live_packet, &live_inbound, config->udp_encaps != 0);
 	if ((live_packet->icmpv4 != NULL) || (live_packet->icmpv6 != NULL))
-		return map_inbound_icmp_packet(socket, live_packet, udp_encaps, error);
+		return map_inbound_icmp_packet(socket, live_packet, config->udp_encaps, error);
 
 	if (live_packet->sctp) {
 		return map_inbound_sctp_packet(socket, live_packet, error);
@@ -3514,7 +3520,7 @@ static int do_inbound_script_packet(
 	/* Start with a bit-for-bit copy of the packet from the script. */
 	struct packet *live_packet = packet_copy(packet);
 	/* Map packet fields from script values to live values. */
-	if (map_inbound_packet(socket, live_packet, state->config->udp_encaps,
+	if (map_inbound_packet(socket, live_packet, state->config,
 			       error))
 		goto out;
 

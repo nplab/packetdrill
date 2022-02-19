@@ -101,15 +101,19 @@ struct config {
 	struct ip_address live_connect_ip;	/* address for connect() */
 
 	struct ip_address live_local_ip;	/* local interface IP */
+	struct ip_address live_local_linklocal_ip;	/* IPv6 local link-local address */
 	struct ip_address live_remote_ip;	/* remote interface IP */
 	struct ip_prefix live_remote_prefix;	/* remote prefix under test */
 	struct ip_address live_gateway_ip;	/* gateway interface IP */
+	struct ip_address live_gateway_linklocal_ip;	/* IPv6 gateway link-local address */
 
 	char live_local_ip_string[ADDR_STR_LEN];	/* human-readable IP */
+	char live_local_linklocal_ip_string[ADDR_STR_LEN];	/* human-readable IP */
 	char live_remote_ip_string[ADDR_STR_LEN];	/* human-readable IP */
 	char live_remote_prefix_string[ADDR_STR_LEN];	/* <addr>/<prefixlen> */
 
 	char live_gateway_ip_string[ADDR_STR_LEN];	/* local gateway IP */
+	char live_gateway_linklocal_ip_string[ADDR_STR_LEN];	/* local gateway IP */
 	char live_netmask_ip_string[ADDR_STR_LEN];	/* local netmask */
 
 	int live_prefix_len;		/* IPv4/IPv6 interface prefix len */

@@ -121,6 +121,7 @@ struct netdev *wire_client_netdev_new(struct config *config)
 	net_setup_dev_address(netdev->name,
 			      &config->live_local_ip,
 			      config->live_prefix_len,
+			      &config->live_local_linklocal_ip,
 			      &config->live_gateway_ip);
 
 	route_traffic_to_wire_server(config, netdev);

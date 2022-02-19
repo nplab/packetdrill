@@ -87,7 +87,7 @@ static void net_add_ipv6_address(const char *dev_name,
 	asprintf(&command, "ip addr add %s/%d dev %s > /dev/null 2>&1",
 		 local_ip_string, prefix_len, dev_name);
 #else
-	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d",
+	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d accept_rtadv",
 		 dev_name, local_ip_string, prefix_len);
 #endif /* defined(linux) */
 
@@ -110,6 +110,7 @@ static void net_add_ipv6_address(const char *dev_name,
 static void net_add_dev_address(const char *dev_name,
 				const struct ip_address *local_ip,
 				int prefix_len,
+				const struct ip_address *local_linklocal_ip,
 				const struct ip_address *gateway_ip)
 {
 	switch (local_ip->address_family) {
@@ -117,6 +118,7 @@ static void net_add_dev_address(const char *dev_name,
 		net_add_ipv4_address(dev_name, local_ip, prefix_len, gateway_ip);
 		break;
 	case AF_INET6:
+		net_add_ipv6_address(dev_name, local_linklocal_ip, 64);
 		net_add_ipv6_address(dev_name, local_ip, prefix_len);
 		break;
 	default:
@@ -157,6 +159,7 @@ void net_del_dev_address(const char *dev_name,
 void net_setup_dev_address(const char *dev_name,
 			   const struct ip_address *local_ip,
 			   int prefix_len,
+			   const struct ip_address *local_linklocal_ip,
 			   const struct ip_address *gateway_ip)
 {
 	char cur_dev_name[IFNAMSIZ];
@@ -170,7 +173,11 @@ void net_setup_dev_address(const char *dev_name,
 		return;
 	}
 
-	if (found)
+	if (found) {
 		net_del_dev_address(cur_dev_name, local_ip, prefix_len);
-	net_add_dev_address(dev_name, local_ip, prefix_len, gateway_ip);
+		if (local_ip->address_family == AF_INET6) {
+			net_del_dev_address(cur_dev_name, local_linklocal_ip, 64);
+		}
+	}
+	net_add_dev_address(dev_name, local_ip, prefix_len, local_linklocal_ip, gateway_ip);
 }
