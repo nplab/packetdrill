@@ -114,12 +114,12 @@ struct icmp_code_info icmpv6_paramprob_codes[] = {
 
 /* Information about the supported types of ICMPv6 header (RFC 2463). */
 struct icmp_type_info icmpv6_types[] = {
-	{ ICMPV6_DEST_UNREACH,	"unreachable", icmpv6_unreachable_codes },
-	{ ICMPV6_PKT_TOOBIG,	"packet_too_big" },
-	{ ICMPV6_TIME_EXCEED,	"time_exceeded", icmpv6_time_exceed_codes },
-	{ ICMPV6_PARAMPROB,	"parameter_problem", icmpv6_paramprob_codes },
-	{ ICMPV6_ECHO_REQUEST,  "echo_request" },
-	{ ICMPV6_ECHO_REPLY,    "echo_reply" },
+	{ ICMPV6_DEST_UNREACH,         "unreachable", icmpv6_unreachable_codes },
+	{ ICMPV6_PKT_TOOBIG,           "packet_too_big" },
+	{ ICMPV6_TIME_EXCEED,          "time_exceeded", icmpv6_time_exceed_codes },
+	{ ICMPV6_PARAMPROB,            "parameter_problem", icmpv6_paramprob_codes },
+	{ ICMPV6_ECHO_REQUEST,         "echo_request" },
+	{ ICMPV6_ECHO_REPLY,           "echo_reply" },
 	{ ICMPV6_ROUTER_ADVERTISEMENT, "router_advertisement" },
 	{ 0, NULL, NULL },
 };
@@ -196,7 +196,7 @@ static int set_icmpv6_header(struct icmpv6 *icmpv6, u8 type, u8 code,
 		}
 		if (type == ICMPV6_PKT_TOOBIG) {
 			icmpv6->message.packet_too_big.mtu = htonl(mtu);
-		} else { // if (type == ICMPV6_ROUTER_ADVERTISEMENT)
+		} else { /* if (type == ICMPV6_ROUTER_ADVERTISEMENT) */
 			struct icmpv6_ra *ra = (struct icmpv6_ra *)icmpv6;
 			ra->cur_hop_limit = 0;
 			ra->reserved = 0;
