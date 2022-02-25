@@ -86,8 +86,11 @@ static void net_add_ipv6_address(const char *dev_name,
 #ifdef linux
 	asprintf(&command, "ip addr add %s/%d dev %s > /dev/null 2>&1",
 		 local_ip_string, prefix_len, dev_name);
-#else
+#elif defined(__FreeBSD__)
 	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d accept_rtadv",
+		 dev_name, local_ip_string, prefix_len);
+#else
+	asprintf(&command, "/sbin/ifconfig %s inet6 %s/%d",
 		 dev_name, local_ip_string, prefix_len);
 #endif /* defined(linux) */
 
