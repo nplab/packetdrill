@@ -43,7 +43,9 @@ enum option_codes {
 	OPT_CONNECT_PORT,
 	OPT_REMOTE_IP,
 	OPT_LOCAL_IP,
+	OPT_LOCAL_LINKLOCAL_IP,
 	OPT_GATEWAY_IP,
+	OPT_GATEWAY_LINKLOCAL_IP,
 	OPT_NETMASK_IP,
 	OPT_SPEED,
 	OPT_MTU,
@@ -71,38 +73,40 @@ enum option_codes {
 
 /* Specification of command line options for getopt_long(). */
 struct option options[] = {
-	{ "ip_version",		.has_arg = true,  NULL, OPT_IP_VERSION },
-	{ "bind_port",		.has_arg = true,  NULL, OPT_BIND_PORT },
-	{ "code_command",	.has_arg = true,  NULL, OPT_CODE_COMMAND },
-	{ "code_format",	.has_arg = true,  NULL, OPT_CODE_FORMAT },
-	{ "code_sockopt",	.has_arg = true,  NULL, OPT_CODE_SOCKOPT },
-	{ "connect_port",	.has_arg = true,  NULL, OPT_CONNECT_PORT },
-	{ "remote_ip",		.has_arg = true,  NULL, OPT_REMOTE_IP },
-	{ "local_ip",		.has_arg = true,  NULL, OPT_LOCAL_IP },
-	{ "gateway_ip",		.has_arg = true,  NULL, OPT_GATEWAY_IP },
-	{ "netmask_ip",		.has_arg = true,  NULL, OPT_NETMASK_IP },
-	{ "speed",		.has_arg = true,  NULL, OPT_SPEED },
-	{ "mtu",		.has_arg = true,  NULL, OPT_MTU },
-	{ "init_scripts",	.has_arg = true,  NULL, OPT_INIT_SCRIPTS },
-	{ "tolerance_usecs",	.has_arg = true,  NULL, OPT_TOLERANCE_USECS },
-	{ "wire_client",	.has_arg = false, NULL, OPT_WIRE_CLIENT },
-	{ "wire_server",	.has_arg = false, NULL, OPT_WIRE_SERVER },
-	{ "wire_server_ip",	.has_arg = true,  NULL, OPT_WIRE_SERVER_IP },
-	{ "wire_server_port",	.has_arg = true,  NULL, OPT_WIRE_SERVER_PORT },
-	{ "wire_client_dev",	.has_arg = true,  NULL, OPT_WIRE_CLIENT_DEV },
-	{ "wire_server_dev",	.has_arg = true,  NULL, OPT_WIRE_SERVER_DEV },
-	{ "tcp_ts_tick_usecs",	.has_arg = true,  NULL, OPT_TCP_TS_TICK_USECS },
-	{ "non_fatal",		.has_arg = true,  NULL, OPT_NON_FATAL },
-	{ "dry_run",		.has_arg = false, NULL, OPT_DRY_RUN },
-	{ "define",		.has_arg = true,  NULL, OPT_DEFINE },
-	{ "verbose",		.has_arg = false, NULL, OPT_VERBOSE },
-	{ "debug",		.has_arg = false, NULL, OPT_DEBUG },
-	{ "udp_encapsulation",	.has_arg = true,  NULL, OPT_UDP_ENCAPS },
+	{ "ip_version",           .has_arg = true,  NULL, OPT_IP_VERSION },
+	{ "bind_port",            .has_arg = true,  NULL, OPT_BIND_PORT },
+	{ "code_command",         .has_arg = true,  NULL, OPT_CODE_COMMAND },
+	{ "code_format",          .has_arg = true,  NULL, OPT_CODE_FORMAT },
+	{ "code_sockopt",         .has_arg = true,  NULL, OPT_CODE_SOCKOPT },
+	{ "connect_port",         .has_arg = true,  NULL, OPT_CONNECT_PORT },
+	{ "remote_ip",            .has_arg = true,  NULL, OPT_REMOTE_IP },
+	{ "local_ip",             .has_arg = true,  NULL, OPT_LOCAL_IP },
+	{ "local_linklocal_ip",   .has_arg = true,  NULL, OPT_LOCAL_LINKLOCAL_IP },
+	{ "gateway_ip",           .has_arg = true,  NULL, OPT_GATEWAY_IP },
+	{ "gateway_linklocal_ip", .has_arg = true,  NULL, OPT_GATEWAY_LINKLOCAL_IP },
+	{ "netmask_ip",           .has_arg = true,  NULL, OPT_NETMASK_IP },
+	{ "speed",                .has_arg = true,  NULL, OPT_SPEED },
+	{ "mtu",                  .has_arg = true,  NULL, OPT_MTU },
+	{ "init_scripts",         .has_arg = true,  NULL, OPT_INIT_SCRIPTS },
+	{ "tolerance_usecs",      .has_arg = true,  NULL, OPT_TOLERANCE_USECS },
+	{ "wire_client",          .has_arg = false, NULL, OPT_WIRE_CLIENT },
+	{ "wire_server",          .has_arg = false, NULL, OPT_WIRE_SERVER },
+	{ "wire_server_ip",       .has_arg = true,  NULL, OPT_WIRE_SERVER_IP },
+	{ "wire_server_port",     .has_arg = true,  NULL, OPT_WIRE_SERVER_PORT },
+	{ "wire_client_dev",      .has_arg = true,  NULL, OPT_WIRE_CLIENT_DEV },
+	{ "wire_server_dev",      .has_arg = true,  NULL, OPT_WIRE_SERVER_DEV },
+	{ "tcp_ts_tick_usecs",    .has_arg = true,  NULL, OPT_TCP_TS_TICK_USECS },
+	{ "non_fatal",            .has_arg = true,  NULL, OPT_NON_FATAL },
+	{ "dry_run",              .has_arg = false, NULL, OPT_DRY_RUN },
+	{ "define",               .has_arg = true,  NULL, OPT_DEFINE },
+	{ "verbose",              .has_arg = false, NULL, OPT_VERBOSE },
+	{ "debug",                .has_arg = false, NULL, OPT_DEBUG },
+	{ "udp_encapsulation",    .has_arg = true,  NULL, OPT_UDP_ENCAPS },
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-	{ "tun_dev",		.has_arg = true,  NULL, OPT_TUN_DEV },
-	{ "persistent_tun_dev",	.has_arg = false, NULL, OPT_PERSISTENT_TUN_DEV },
+	{ "tun_dev",              .has_arg = true,  NULL, OPT_TUN_DEV },
+	{ "persistent_tun_dev",   .has_arg = false, NULL, OPT_PERSISTENT_TUN_DEV },
 #endif
-	{ "no_cleanup",		.has_arg = false, NULL, OPT_NO_CLEANUP },
+	{ "no_cleanup",           .has_arg = false, NULL, OPT_NO_CLEANUP },
 	{ NULL },
 };
 
@@ -117,7 +121,9 @@ void show_usage(void)
 		"\t[--connect_port=connect_port]\n"
 		"\t[--remote_ip=remote_ip]\n"
 		"\t[--local_ip=local_ip]\n"
+		"\t[--local_linklocal_ip=local_linklocal_ip]\n"
 		"\t[--gateway_ip=gateway_ip]\n"
+		"\t[--gateway_linklocal_ip=gateway_linklocal_ip]\n"
 		"\t[--netmask_ip=netmask_ip]\n"
 		"\t[--init_scripts=<comma separated filenames>]\n"
 		"\t[--speed=<speed in Mbps>]\n"
@@ -174,10 +180,12 @@ void show_usage(void)
  * - remote address: 2001:DB8::/32 documentation prefix (RFC 3849)
  */
 
-#define DEFAULT_V6_LIVE_REMOTE_IP_STRING   "2001:DB8::1/32"
-#define DEFAULT_V6_LIVE_LOCAL_IP_STRING    "fd3d:fa7b:d17d::1"
-#define DEFAULT_V6_LIVE_GATEWAY_IP_STRING  "fd3d:fa7b:d17d::2"
-#define DEFAULT_V6_LIVE_PREFIX_LEN         48
+#define DEFAULT_V6_LIVE_REMOTE_IP_STRING            "2001:DB8::1/32"
+#define DEFAULT_V6_LIVE_LOCAL_IP_STRING             "fd3d:fa7b:d17d::1"
+#define DEFAULT_V6_LIVE_LOCAL_LINKLOCAL_IP_STRING   "fe80::1"
+#define DEFAULT_V6_LIVE_GATEWAY_IP_STRING           "fd3d:fa7b:d17d::2"
+#define DEFAULT_V6_LIVE_GATEWAY_LINKLOCAL_IP_STRING "fe80::2"
+#define DEFAULT_V6_LIVE_PREFIX_LEN                  48
 
 /* Fill in any as-yet-unspecified IP address attributes using IPv4 defaults. */
 static void set_ipv4_defaults(struct config *config)
@@ -205,9 +213,15 @@ static void set_ipv6_defaults(struct config *config)
 	if (strlen(config->live_local_ip_string) == 0)
 		strcpy(config->live_local_ip_string,
 		       DEFAULT_V6_LIVE_LOCAL_IP_STRING);
+	if (strlen(config->live_local_linklocal_ip_string) == 0)
+		strcpy(config->live_local_linklocal_ip_string,
+		       DEFAULT_V6_LIVE_LOCAL_LINKLOCAL_IP_STRING);
 	if (strlen(config->live_gateway_ip_string) == 0)
 		strcpy(config->live_gateway_ip_string,
 		       DEFAULT_V6_LIVE_GATEWAY_IP_STRING);
+	if (strlen(config->live_gateway_linklocal_ip_string) == 0)
+		strcpy(config->live_gateway_linklocal_ip_string,
+		       DEFAULT_V6_LIVE_GATEWAY_LINKLOCAL_IP_STRING);
 }
 
 /* Set default configuration before we begin parsing. */
@@ -236,10 +250,12 @@ void set_default_config(struct config *config)
 	 */
 	config->tcp_ts_tick_usecs	= 0;	/* disable checks of TS val */
 
-	config->live_remote_ip_string[0]	= '\0';
-	config->live_local_ip_string[0]		= '\0';
-	config->live_gateway_ip_string[0]	= '\0';
-	config->live_netmask_ip_string[0]	= '\0';
+	config->live_remote_ip_string[0]            = '\0';
+	config->live_local_ip_string[0]             = '\0';
+	config->live_local_linklocal_ip_string[0]   = '\0';
+	config->live_gateway_ip_string[0]           = '\0';
+	config->live_gateway_linklocal_ip_string[0] = '\0';
+	config->live_netmask_ip_string[0]           = '\0';
 
 	config->init_scripts = NULL;
 
@@ -337,6 +353,7 @@ static void finalize_ipv6_config(struct config *config)
 	set_ipv6_defaults(config);
 
 	config->live_local_ip	= ipv6_parse(config->live_local_ip_string);
+	config->live_local_linklocal_ip	= ipv6_parse(config->live_local_linklocal_ip_string);
 
 	config->live_remote_prefix =
 		ipv6_prefix_parse(config->live_remote_ip_string);
@@ -344,6 +361,7 @@ static void finalize_ipv6_config(struct config *config)
 
 	config->live_prefix_len	= DEFAULT_V6_LIVE_PREFIX_LEN;
 	config->live_gateway_ip = ipv6_parse(config->live_gateway_ip_string);
+	config->live_gateway_linklocal_ip = ipv6_parse(config->live_gateway_linklocal_ip_string);
 	config->live_bind_ip	= config->live_local_ip;
 	config->live_connect_ip	= config->live_remote_ip;
 	config->socket_domain	= AF_INET6;
@@ -495,9 +513,17 @@ static void process_option(int opt, char *optarg, struct config *config,
 		assert(optarg != NULL);
 		strncpy(config->live_local_ip_string, optarg, ADDR_STR_LEN-1);
 		break;
+	case OPT_LOCAL_LINKLOCAL_IP:
+		assert(optarg != NULL);
+		strncpy(config->live_local_linklocal_ip_string, optarg, ADDR_STR_LEN-1);
+		break;
 	case OPT_GATEWAY_IP:
 		assert(optarg != NULL);
 		strncpy(config->live_gateway_ip_string, optarg, ADDR_STR_LEN-1);
+		break;
+	case OPT_GATEWAY_LINKLOCAL_IP:
+		assert(optarg != NULL);
+		strncpy(config->live_gateway_linklocal_ip_string, optarg, ADDR_STR_LEN-1);
 		break;
 	case OPT_MTU:
 		assert(optarg != NULL);

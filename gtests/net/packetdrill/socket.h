@@ -270,7 +270,7 @@ static inline void set_packet_tuple(struct packet *packet,
 {
 	set_headers_tuple(packet->ipv4, packet->ipv6, packet->sctp, packet->tcp,
 			  packet->udp, packet->udplite, tuple);
-	if ((packet->icmpv4 != NULL) || (packet->icmpv6 != NULL))
+	if (((packet->icmpv4 != NULL) || (packet->icmpv6 != NULL)) && (packet->echoed_header))
 		set_icmp_echoed_tuple(packet, tuple, encapsulated);
 }
 

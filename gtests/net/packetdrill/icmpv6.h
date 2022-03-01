@@ -54,6 +54,21 @@ struct icmpv6 {
 	} message;
 };
 
+struct icmpv6_ra {
+	__u8		type;
+	__u8		code;
+	__sum16		checksum;
+	__u8		cur_hop_limit;
+	__u8		reserved;
+	__u16		router_lifetime;
+	__u32		reachable_time;
+	__u32		retrans_time;
+	__u8		mtu_type;
+	__u8		mtu_length;
+	__u16		mtu_reserved;
+	__u32		mtu;
+};
+
 /* Supported ICMPv6 types */
 #define ICMPV6_DEST_UNREACH		1
 #define ICMPV6_PKT_TOOBIG		2
@@ -61,6 +76,7 @@ struct icmpv6 {
 #define ICMPV6_PARAMPROB		4
 #define ICMPV6_ECHO_REQUEST		128
 #define ICMPV6_ECHO_REPLY		129
+#define ICMPV6_ROUTER_ADVERTISEMENT	134
 
 /* Codes for ICMPV6 Destination Unreachable */
 #define ICMPV6_NOROUTE			0

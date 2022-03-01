@@ -47,6 +47,7 @@ extern void net_del_dev_address(const char *dev_name,
 extern void net_setup_dev_address(const char *dev_name,
 				  const struct ip_address *local_ip,
 				  int prefix_len,
+				  const struct ip_address *local_linklocal_ip,
 				  const struct ip_address *gateway_ip);
 
 #endif /* __NET_UTILS_H__ */
