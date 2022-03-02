@@ -226,7 +226,7 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 					     old_packet->tcp_ts_val);
 	packet->tcp_ts_ecr	= offset_ptr(old_base, new_base,
 					     old_packet->tcp_ts_ecr);
-
+	packet->echoed_header	= old_packet->echoed_header;
 	return packet;
 }
 
