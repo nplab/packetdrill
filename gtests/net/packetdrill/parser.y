@@ -3496,6 +3496,8 @@ sockaddr
 			free(ipv6);
 			semantic_error("invalid IPv6 address");
 		}
+	} else {
+		semantic_error("invalid address family");
 	}
 }
 ;
