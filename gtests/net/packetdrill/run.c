@@ -145,8 +145,8 @@ static void close_all_sockets(struct state *state)
 		if ((socket->state != SOCKET_INIT) &&
 		    (socket->state != SOCKET_NEW) &&
 		    (socket->state != SOCKET_PASSIVE_LISTENING) &&
-		    (state->config->is_wire_client == false) &&
-		    (state->config->no_cleanup == false)) {
+		    !state->config->is_wire_client &&
+		    !state->config->no_cleanup) {
 			switch (socket->protocol) {
 			case IPPROTO_TCP:
 				if (reset_connection(state, socket) != STATUS_OK)
