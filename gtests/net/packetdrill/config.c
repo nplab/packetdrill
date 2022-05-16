@@ -146,7 +146,7 @@ void show_usage(void)
 		"\t[--tun_dev=<tun_dev_name>]\n"
 		"\t[--persistent_tun_dev]\n"
 #endif
-		"\t[-no-cleanup]\n"
+		"\t[--no_cleanup]\n"
 		"\tscript_path ...\n");
 }
 
