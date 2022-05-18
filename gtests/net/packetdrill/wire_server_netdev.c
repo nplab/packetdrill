@@ -67,20 +67,14 @@ void wire_server_netdev_init(const char *netdev_name)
 	 * sniffing packets as seen on the wire, not packets
 	 * aggregated by LRO or GRO.
 	 *
-	 * TOOD(ncardwell): if netdev_name is not a bonding interface,
-	 * then we should just disable LRO/GRO on that interface; if
-	 * netdev_name is a bonding interface then we should
+	 * TOOD: if netdev_name is a bonding interface then we should
 	 * programmatically figure out all the slave interfaces for
-	 * the given netdev_name, instead of using this overly broad
-	 * approach.
+	 * the given netdev_name.
 	 */
 	asprintf(&command,
-		 "(ethtool --offload eth0 lro off gro off; "
-		 " ethtool --offload eth1 lro off gro off; "
-		 " ethtool --offload eth2 lro off gro off) "
-		 " > /dev/null 2>&1");
-	/* For now, intentionally ignoring errors rather than figuring
-	 * out how many Ethernet interfaces there are. TODO: clean up.
+		 "ethtool --offload %s lro off gro off > /dev/null 2>&1",
+		 netdev_name);
+	/* For now, intentionally ignoring errors. TODO: clean up.
 	 */
 	system(command);
 	free(command);
