@@ -59,6 +59,7 @@
 #include "packet.h"
 #include "packet_parser.h"
 #include "packet_socket.h"
+#include "system.h"
 #include "tcp.h"
 #include "tun.h"
 
@@ -92,9 +93,6 @@ static void cleanup_old_device(struct config *config,
 {
 #if defined(__NetBSD__)
 	char *cleanup_command = NULL;
-#ifdef DEBUG
-	int result;
-#endif
 
 	if ((config->tun_device == NULL) || config->persistent_tun_device) {
 		return;
@@ -102,13 +100,7 @@ static void cleanup_old_device(struct config *config,
 	asprintf(&cleanup_command,
 		 "/sbin/ifconfig %s down delete > /dev/null 2>&1",
 		 config->tun_device);
-	DEBUGP("running: '%s'\n", cleanup_command);
-#ifdef DEBUG
-	result = system(cleanup_command);
-#else
-	system(cleanup_command);
-#endif
-	DEBUGP("result: %d\n", result);
+	verbose_system(cleanup_command);
 	free(cleanup_command);
 #endif  /* defined(__NetBSD__) */
 }
@@ -166,8 +158,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	DEBUGP("utun index: '%d'\n", netdev->index);
 	if (config->mtu != TUN_DRIVER_DEFAULT_MTU) {
 		asprintf(&command, "ifconfig %s mtu %d", netdev->name, config->mtu);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if (verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 	}
 }
@@ -199,8 +191,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	tun_fd = open(tun_path, O_RDWR);
 #if defined(__FreeBSD__)
 	if ((tun_fd < 0) && (errno == ENOENT)) {
-		if (system("kldload -q if_tun") < 0) {
-			die_perror("kldload -q if_tun");
+		if (verbose_system("kldload -q if_tun") != STATUS_OK) {
+			die_perror("");
 		}
 		tun_fd = open(tun_path, O_RDWR);
 	}
@@ -275,8 +267,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		char *command;
 		asprintf(&command, "ethtool -s %s speed %u autoneg off",
 			 netdev->name, config->speed);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if (verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 
 		/* Need to bring interface down and up so the interface speed
@@ -284,8 +276,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		 * used by TCP's cwnd bound. */
 		asprintf(&command, "ifconfig %s down; sleep 1; ifconfig %s up; "
 			      "sleep 1", netdev->name, netdev->name);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if(verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 	}
 
@@ -293,8 +285,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		char *command;
 		asprintf(&command, "ifconfig %s mtu %d",
 			 netdev->name, config->mtu);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if(verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 	}
 #endif
@@ -377,11 +369,7 @@ static void route_traffic_to_device(struct config *config,
 		assert(!"bad wire protocol");
 	}
 #endif /* defined(linux) */
-	int result = system(route_command);
-	if ((result == -1) || (WEXITSTATUS(result) != 0)) {
-		die("error executing route command '%s'\n",
-		    route_command);
-	}
+	verbose_system(route_command);
 	free(route_command);
 }
 
@@ -433,7 +421,7 @@ static void local_netdev_free(struct netdev *a_netdev)
 			asprintf(&cleanup_command,
 			         "/sbin/ifconfig %s destroy > /dev/null 2>&1",
 			         netdev->name);
-			system(cleanup_command);
+			verbose_system(cleanup_command);
 			free(cleanup_command);
 		}
 #endif
