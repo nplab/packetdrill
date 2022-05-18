@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include "checksum.h"
 #include "gre.h"
+#include "ip_address.h"
 #include "logging.h"
 #include "netdev.h"
 #include "packet.h"
@@ -140,6 +141,24 @@ static void verbose_packet_dump(struct state *state, const char *type,
 	}
 }
 
+static int find_local_path_for_ip(struct config *config, struct ip_address *ip) {
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
+		if (is_equal_ip(ip, &path->local_ip))
+			return i;
+	}
+	return STATUS_ERR;
+}
+
+static int find_remote_path_for_ip(struct config *config, struct ip_address *ip) {
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
+		if (is_equal_ip(ip, &path->remote_ip))
+			return i;
+	}
+	return STATUS_ERR;
+}
+
 /* See if the live packet matches the live 4-tuple of the socket under test. */
 static struct socket *find_socket_for_live_packet(
 	struct state *state, const struct packet *packet,
@@ -147,28 +166,41 @@ static struct socket *find_socket_for_live_packet(
 {
 	struct socket *socket = state->socket_under_test;	/* shortcut */
 
-	DEBUGP("find_connect_for_live_packet\n");
+	DEBUGP("find_socket_for_live_packet\n");
 	if (socket == NULL)
 		return NULL;
 
-	struct tuple packet_tuple, live_outbound, live_inbound;
+	bool matches_ports;
+	int local_path, remote_path;
+	struct tuple packet_tuple;
 	get_packet_tuple(packet, &packet_tuple);
+
 	/* Is packet inbound to the socket under test? */
-	socket_get_inbound(&socket->live, &live_inbound);
-	if (is_equal_tuple(&packet_tuple, &live_inbound)) {
+	matches_ports = packet_tuple.src.port == socket->live.remote.port
+		&& packet_tuple.dst.port == socket->live.local.port;
+	local_path = find_local_path_for_ip(state->config, &packet_tuple.dst.ip);
+	remote_path = find_remote_path_for_ip(state->config, &packet_tuple.src.ip);
+
+	if (matches_ports && local_path != STATUS_ERR && remote_path != STATUS_ERR) {
 		*direction = DIRECTION_INBOUND;
 		DEBUGP("inbound live packet, socket in state %d\n",
 		       socket->state);
 		return socket;
 	}
+
 	/* Is packet outbound from the socket under test? */
-	socket_get_outbound(&socket->live, &live_outbound);
-	if (is_equal_tuple(&packet_tuple, &live_outbound)) {
+	matches_ports = packet_tuple.src.port == socket->live.local.port
+		&& packet_tuple.dst.port == socket->live.remote.port;
+	local_path = find_local_path_for_ip(state->config, &packet_tuple.src.ip);
+	remote_path = find_remote_path_for_ip(state->config, &packet_tuple.dst.ip);
+
+	if(matches_ports && local_path != STATUS_ERR && remote_path != STATUS_ERR) {
 		*direction = DIRECTION_OUTBOUND;
 		DEBUGP("outbound live packet, socket in state %d\n",
-		       socket->state);
+				socket->state);
 		return socket;
 	}
+
 	return NULL;
 }
 
@@ -199,9 +231,9 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 	/* Set up the live info for this socket based
 	 * on the script packet and our overall config.
 	 */
-	socket->live.remote.ip		= config->live_remote_ip;
+	socket->live.remote.ip		= config->live_paths[0].remote_ip;
 	socket->live.remote.port	= htons(next_ephemeral_port(state));
-	socket->live.local.ip		= config->live_local_ip;
+	socket->live.local.ip		= config->live_paths[0].local_ip;
 	socket->live.local.port		= htons(config->live_bind_port);
 	socket->live.fd			= -1;
 	return socket;
@@ -423,7 +455,7 @@ static struct socket *handle_connect_for_script_packet(
 
 		socket->script.fd	 = -1;
 
-		socket->live.remote.ip   = config->live_remote_ip;
+		socket->live.remote.ip   = config->live_paths[0].remote_ip;
 		socket->live.remote.port = htons(config->live_connect_port);
 		socket->live.fd		 = -1;
 	}
@@ -484,8 +516,13 @@ static struct socket *find_connect_for_live_packet(
 	    !is_udp_match && !is_udplite_match)
 		return NULL;
 
-	if (!is_equal_ip(&tuple.dst.ip, &socket->live.remote.ip) ||
-	    !is_equal_port(tuple.dst.port, socket->live.remote.port))
+	bool matched_path = false;
+	for (uint i = 0; i < state->config->live_paths_cnt; i++) {
+		struct path *path = &state->config->live_paths[i];
+		if (is_equal_ip(&tuple.dst.ip, &path->remote_ip))
+			matched_path = true;
+	}
+	if (!matched_path || !is_equal_port(tuple.dst.port, socket->live.remote.port))
 		return NULL;
 
 	*direction = DIRECTION_OUTBOUND;
@@ -961,6 +998,26 @@ static int map_inbound_sctp_packet(
 	return STATUS_OK;
 }
 
+static inline struct ip_address path_get_local_ip(struct config *config, int pathNum)
+{
+	return config->live_paths[pathNum].local_ip;
+}
+
+static inline struct ip_address path_get_remote_ip(struct config *config, int pathNum)
+{
+	return config->live_paths[pathNum].remote_ip;
+}
+
+static inline struct ip_address path_get_gateway_linklocal_ip(struct config *config, int pathNum)
+{
+	return config->live_paths[pathNum].gateway_linklocal_ip;
+}
+
+static inline struct ip_address path_get_local_linklocal_ip(struct config *config, int pathNum)
+{
+	return config->live_paths[pathNum].local_linklocal_ip;
+}
+
 /* Rewrite the IP and TCP, UDP, or ICMP fields in 'live_packet', mapping
  * inbound packet values (address 4-tuple and sequence numbers in seq,
  * ACK, SACK blocks) from script values to live values, so that we can
@@ -977,10 +1034,14 @@ static int map_inbound_packet(
 	struct tuple live_inbound;
 	if ((live_packet->icmpv6 != NULL) && (live_packet->icmpv6->type == ICMPV6_ROUTER_ADVERTISEMENT)) {
 		memset(&live_inbound, 0, sizeof(live_inbound));
-		live_inbound.src.ip = config->live_gateway_linklocal_ip;
-		live_inbound.dst.ip = config->live_local_linklocal_ip;
+		live_inbound.src.ip = path_get_gateway_linklocal_ip(config, live_packet->ip_src_index);
+		live_inbound.dst.ip = path_get_local_linklocal_ip(config, live_packet->ip_dst_index);
 	} else {
 		socket_get_inbound(&socket->live, &live_inbound);
+		if (live_packet->ip_src_index != 0)
+			live_inbound.src.ip = path_get_remote_ip(config, live_packet->ip_src_index);
+		if (live_packet->ip_dst_index != 0)
+			live_inbound.dst.ip = path_get_local_ip(config, live_packet->ip_dst_index);
 	}
 	set_packet_tuple(live_packet, &live_inbound, config->udp_encaps != 0);
 	if ((live_packet->icmpv4 != NULL) || (live_packet->icmpv6 != NULL))
@@ -1228,21 +1289,37 @@ static int map_outbound_live_packet(
 	struct packet *live_packet,
 	struct packet *actual_packet,
 	struct packet *script_packet,
-	u8 udp_encaps,
+	struct config *config,
 	char **error)
 {
 	DEBUGP("map_outbound_live_packet\n");
 
-	struct tuple live_packet_tuple, live_outbound, script_outbound;
+	struct tuple live_packet_tuple, script_outbound;
 
 	/* Verify packet addresses are outbound and live for this socket. */
 	get_packet_tuple(live_packet, &live_packet_tuple);
-	socket_get_outbound(&socket->live, &live_outbound);
-	assert(is_equal_tuple(&live_packet_tuple, &live_outbound));
+
+	int local_path = find_local_path_for_ip(config, &live_packet_tuple.src.ip);
+	if (local_path == STATUS_ERR) {
+		char ip_string[ADDR_STR_LEN];
+		asprintf(error, "no path configured for src ip %s", ip_to_string(&live_packet_tuple.src.ip, ip_string));
+		return STATUS_ERR;
+	} else
+		actual_packet->ip_src_index = local_path;
+
+	int remote_path = find_remote_path_for_ip(config, &live_packet_tuple.dst.ip);
+	if (remote_path == STATUS_ERR) {
+		char ip_string[ADDR_STR_LEN];
+		asprintf(error, "no path configured for dst ip %s", ip_to_string(&live_packet_tuple.dst.ip, ip_string));
+		return STATUS_ERR;
+	} else
+		actual_packet->ip_dst_index = remote_path;
 
 	/* Rewrite 4-tuple to be outbound script values. */
 	socket_get_outbound(&socket->script, &script_outbound);
-	set_packet_tuple(actual_packet, &script_outbound, udp_encaps != 0);
+	script_outbound.src.ip = config->live_paths[local_path].local_ip;
+	script_outbound.dst.ip = config->live_paths[remote_path].remote_ip;
+	set_packet_tuple(actual_packet, &script_outbound, config->udp_encaps != 0);
 
 	if (live_packet->sctp) {
 		return map_outbound_live_sctp_packet(socket, live_packet, actual_packet, script_packet, error);
@@ -3011,8 +3088,28 @@ static int verify_outbound_live_packet(
 	/* Map live packet values into script space for easy comparison. */
 	if (map_outbound_live_packet(
 		    socket, live_packet, actual_packet, script_packet,
-		    state->config->udp_encaps, error))
+		    state->config, error))
 		goto out;
+
+	/* Verify packet addresses matched expected values. */
+	struct tuple live_packet_tuple;
+	get_packet_tuple(live_packet, &live_packet_tuple);
+
+	if (live_packet_tuple.src.port != socket->live.local.port
+		|| live_packet_tuple.dst.port != socket->live.remote.port) {
+		asprintf(error, "packet ports (%d>%d) do not match expected (%d>%d)",
+			live_packet_tuple.src.port, live_packet_tuple.dst.port,
+			socket->live.local.port, socket->live.remote.port);
+		goto out;
+	}
+
+	if (actual_packet->ip_src_index != script_packet->ip_src_index
+		|| actual_packet->ip_dst_index != script_packet->ip_dst_index) {
+		asprintf(error, "packet ip indices [%d>%d] do not match expected [%d>%d]",
+			actual_packet->ip_src_index, actual_packet->ip_dst_index,
+			script_packet->ip_src_index, script_packet->ip_dst_index);
+		goto out;
+	}
 
 	/* Verify actual IP, TCP/UDP header values matched expected ones. */
 	if (verify_outbound_live_headers(actual_packet, script_packet,
@@ -3548,8 +3645,7 @@ static int do_inbound_script_packet(
 	/* Start with a bit-for-bit copy of the packet from the script. */
 	struct packet *live_packet = packet_copy(packet);
 	/* Map packet fields from script values to live values. */
-	if (map_inbound_packet(socket, live_packet, state->config,
-			       error))
+	if (map_inbound_packet(socket, live_packet, state->config, error))
 		goto out;
 
 	verbose_packet_dump(state, "inbound injected", live_packet,
@@ -3760,7 +3856,7 @@ int abort_association(struct state *state, struct socket *socket)
 	packet = new_sctp_packet(socket->address_family,
 				 DIRECTION_INBOUND, ip_info, 0, 0, -1, false,
 				 chunk_list, udp_src_port, udp_dst_port,
-				 &error);
+				 state->config, &error);
 	if (packet == NULL)
 		die("%s", error);
 	/* Rewrite addresses and port to match inbound live traffic. */

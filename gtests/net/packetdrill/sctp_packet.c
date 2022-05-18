@@ -26,6 +26,8 @@
 #include "sctp_packet.h"
 #include "ip_packet.h"
 #include "sctp.h"
+#include "path.h"
+#include "config.h"
 
 /*
  * ToDo:
@@ -1815,7 +1817,7 @@ sctp_heartbeat_information_parameter_new(s64 len, struct sctp_byte_list *bytes)
 }
 
 struct sctp_parameter_list_item *
-sctp_ipv4_address_parameter_new(struct in_addr *addr)
+sctp_ipv4_address_parameter_new(struct in_addr *addr, int addr_index)
 {
 	struct sctp_ipv4_address_parameter *parameter;
 	u32 flags;
@@ -1826,8 +1828,8 @@ sctp_ipv4_address_parameter_new(struct in_addr *addr)
 	parameter->type = htons(SCTP_IPV4_ADDRESS_PARAMETER_TYPE);
 	parameter->length = htons(sizeof(struct sctp_ipv4_address_parameter));
 	if (addr == NULL) {
-		parameter->addr.s_addr = htonl(INADDR_ANY);
-		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
+		parameter->addr.s_addr = (in_addr_t) addr_index;
+		flags |= FLAG_PARAMETER_ADDRESS_IS_INDEX;
 	} else {
 		parameter->addr = *addr;
 	}
@@ -1837,7 +1839,7 @@ sctp_ipv4_address_parameter_new(struct in_addr *addr)
 }
 
 struct sctp_parameter_list_item *
-sctp_ipv6_address_parameter_new(struct in6_addr *addr)
+sctp_ipv6_address_parameter_new(struct in6_addr *addr, int addr_index)
 {
 	struct sctp_ipv6_address_parameter *parameter;
 	u32 flags;
@@ -1848,8 +1850,8 @@ sctp_ipv6_address_parameter_new(struct in6_addr *addr)
 	parameter->type = htons(SCTP_IPV6_ADDRESS_PARAMETER_TYPE);
 	parameter->length = htons(sizeof(struct sctp_ipv6_address_parameter));
 	if (addr == NULL) {
-		parameter->addr = in6addr_any;
-		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
+		parameter->addr.s6_addr[3] = (uint32_t) addr_index;
+		flags |= FLAG_PARAMETER_ADDRESS_IS_INDEX;
 	} else {
 		parameter->addr = *addr;
 	}
@@ -3066,6 +3068,7 @@ new_sctp_packet(int address_family,
                 struct sctp_chunk_list *list,
                 u16 udp_src_port,
                 u16 udp_dst_port,
+				struct config *config,
                 char **error)
 {
 	struct packet *packet;  /* the newly-allocated result packet */
@@ -3464,6 +3467,49 @@ new_sctp_packet(int address_family,
 						 "Partial causes not supported for outbound packets");
 					return NULL;
 				}
+			}
+		}
+	}
+
+	/* Map the address parameter in the INIT and INIT_ACK chunk */
+	enum paths_address_types address_type = direction == DIRECTION_INBOUND ?
+		PATH_ADDRESS_REMOTE_TYPE : PATH_ADDRESS_LOCAL_TYPE;
+	for (chunk_item = list->first;
+		 chunk_item != NULL;
+		 chunk_item = chunk_item->next) {
+		if (chunk_item->chunk->type != SCTP_INIT_CHUNK_TYPE &&
+			chunk_item->chunk->type != SCTP_INIT_ACK_CHUNK_TYPE)
+			continue;
+		for (parameter_item = chunk_item->parameter_list->first;
+			 parameter_item != NULL;
+			 parameter_item = parameter_item->next) {
+			switch(ntohs(parameter_item->parameter->type)) {
+			case SCTP_IPV4_ADDRESS_PARAMETER_TYPE:
+				if (parameter_item->flags & FLAG_PARAMETER_ADDRESS_IS_INDEX) {
+					struct sctp_ipv4_address_parameter *address_parameter =
+						(struct sctp_ipv4_address_parameter *)
+						parameter_item->parameter;
+					struct ip_address *ip_address = paths_get_address(config,
+						(int) address_parameter->addr.s_addr,
+						AF_INET, address_type);
+					address_parameter->addr = ip_address->ip.v4;
+					parameter_item->flags &= ~FLAG_PARAMETER_ADDRESS_IS_INDEX;
+				}
+				break;
+			case SCTP_IPV6_ADDRESS_PARAMETER_TYPE:
+				if (parameter_item->flags & FLAG_PARAMETER_ADDRESS_IS_INDEX) {
+					struct sctp_ipv6_address_parameter *address_parameter =
+						(struct sctp_ipv6_address_parameter *)
+						parameter_item->parameter;
+					struct ip_address *ip_address = paths_get_address(config,
+						(int) address_parameter->addr.s6_addr[3],
+						AF_INET6, address_type);
+					address_parameter->addr = ip_address->ip.v6;
+					parameter_item->flags &= ~FLAG_PARAMETER_ADDRESS_IS_INDEX;
+				}
+				break;
+			default:
+				break;
 			}
 		}
 	}

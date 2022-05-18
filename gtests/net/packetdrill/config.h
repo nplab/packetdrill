@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include "ip_address.h"
-#include "ip_prefix.h"
+#include "path.h"
 #include "script.h"
 
 #define TUN_DRIVER_SPEED_CUR	0	/* don't change current speed */
@@ -97,26 +97,8 @@ struct config {
 	u16 live_bind_port;			/* local port for bind() */
 	u16 live_connect_port;			/* remote port for connect() */
 
-	struct ip_address live_bind_ip;		/* address for bind() */
-	struct ip_address live_connect_ip;	/* address for connect() */
-
-	struct ip_address live_local_ip;	/* local interface IP */
-	struct ip_address live_local_linklocal_ip;	/* IPv6 local link-local address */
-	struct ip_address live_remote_ip;	/* remote interface IP */
-	struct ip_prefix live_remote_prefix;	/* remote prefix under test */
-	struct ip_address live_gateway_ip;	/* gateway interface IP */
-	struct ip_address live_gateway_linklocal_ip;	/* IPv6 gateway link-local address */
-
-	char live_local_ip_string[ADDR_STR_LEN];	/* human-readable IP */
-	char live_local_linklocal_ip_string[ADDR_STR_LEN];	/* human-readable IP */
-	char live_remote_ip_string[ADDR_STR_LEN];	/* human-readable IP */
-	char live_remote_prefix_string[ADDR_STR_LEN];	/* <addr>/<prefixlen> */
-
-	char live_gateway_ip_string[ADDR_STR_LEN];	/* local gateway IP */
-	char live_gateway_linklocal_ip_string[ADDR_STR_LEN];	/* local gateway IP */
-	char live_netmask_ip_string[ADDR_STR_LEN];	/* local netmask */
-
-	int live_prefix_len;		/* IPv4/IPv6 interface prefix len */
+	struct path *live_paths;	/* the local/remote/gateway IPs for each path */
+	uint live_paths_cnt;		/* numer of elements in live_path */
 
 	int tolerance_usecs;		/* tolerance for time divergence */
 	int tcp_ts_tick_usecs;		/* microseconds per TS val tick */
@@ -207,5 +189,8 @@ extern char **parse_command_line_options(int argc, char *argv[],
 
 /* The parser calls this function to finalize processing of config info. */
 extern void parse_and_finalize_config(struct invocation *invocation);
+
+extern struct ip_address *paths_get_address(struct config *config, int addr_skip,
+	int address_family, enum paths_address_types address_type);
 
 #endif /* __CONFIG_H__ */

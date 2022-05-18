@@ -124,32 +124,43 @@ static void packet_socket_setup(struct packet_socket *psock)
 /* Add a filter so we only sniff packets we want. */
 void packet_socket_set_filter(struct packet_socket *psock,
 			      const struct ether_addr *client_ether_addr,
-			      const struct ip_address *client_live_ip)
+			      const struct path *paths, uint paths_cnt)
 {
 	const u8 *client_ether;
 	struct bpf_program bpf_code;
+	size_t filter_str_len;
 	char *filter_str = NULL;
 	char client_live_ip_string[ADDR_STR_LEN];
-
-	ip_to_string(client_live_ip, client_live_ip_string);
+	FILE *stream = open_memstream(&filter_str, &filter_str_len);
 
 	if (client_ether_addr != NULL) {
 		client_ether = client_ether_addr->ether_addr_octet;
-		asprintf(&filter_str,
-			 "ether src %02x:%02x:%02x:%02x:%02x:%02x and %s src %s",
+		fprintf(stream,
+			 "ether src %02x:%02x:%02x:%02x:%02x:%02x and ",
 			 client_ether[0],
 			 client_ether[1],
 			 client_ether[2],
 			 client_ether[3],
 			 client_ether[4],
-			 client_ether[5],
-			 client_live_ip->address_family == AF_INET6 ? "ip6" : "ip",
+			 client_ether[5]);
+	}
+
+	fprintf(stream, "( ");
+
+	for (int i = 0; i < paths_cnt; i++) {
+		if (i != 0)
+			fprintf(stream, " or ");
+		const struct path *path = &paths[i];
+		ip_to_string(&path->local_ip, client_live_ip_string);
+		fprintf(stream, "%s src %s",
+			 path->local_ip.address_family == AF_INET6 ? "ip6" : "ip",
 			 client_live_ip_string);
-	} else
-		asprintf(&filter_str,
-			 "%s src %s",
-			 client_live_ip->address_family == AF_INET6 ? "ip6" : "ip",
-			 client_live_ip_string);
+	}
+
+	fprintf(stream, " )");
+
+	fclose(stream);
+
 	DEBUGP("setting BPF filter: %s\n", filter_str);
 
 	if (pcap_compile(psock->pcap, &bpf_code, filter_str, 1, 0) != 0)

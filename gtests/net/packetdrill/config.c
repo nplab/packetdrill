@@ -62,6 +62,7 @@ enum option_codes {
 	OPT_DRY_RUN,
 	OPT_DEBUG,
 	OPT_UDP_ENCAPS,
+	OPT_PATHS,
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	OPT_TUN_DEV,
 	OPT_PERSISTENT_TUN_DEV,
@@ -102,6 +103,7 @@ struct option options[] = {
 	{ "verbose",              .has_arg = false, NULL, OPT_VERBOSE },
 	{ "debug",                .has_arg = false, NULL, OPT_DEBUG },
 	{ "udp_encapsulation",    .has_arg = true,  NULL, OPT_UDP_ENCAPS },
+	{ "paths",                .has_arg = true,  NULL, OPT_PATHS },
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	{ "tun_dev",              .has_arg = true,  NULL, OPT_TUN_DEV },
 	{ "persistent_tun_dev",   .has_arg = false, NULL, OPT_PERSISTENT_TUN_DEV },
@@ -119,12 +121,12 @@ void show_usage(void)
 		"\t[--code_format=code_format]\n"
 		"\t[--code_sockopt=TCP_INFO]\n"
 		"\t[--connect_port=connect_port]\n"
-		"\t[--remote_ip=remote_ip]\n"
-		"\t[--local_ip=local_ip]\n"
-		"\t[--local_linklocal_ip=local_linklocal_ip]\n"
-		"\t[--gateway_ip=gateway_ip]\n"
-		"\t[--gateway_linklocal_ip=gateway_linklocal_ip]\n"
-		"\t[--netmask_ip=netmask_ip]\n"
+		"\t[--remote_ip=<comma separated remote ips>]\n"
+		"\t[--local_ip=<comma separated local ips>]\n"
+		"\t[--local_linklocal_ip=<comma separated local linklocal ips>]\n"
+		"\t[--gateway_ip=<comma separated gateway ips>]\n"
+		"\t[--gateway_linklocal_ip=<comma separated gateway linklocal ips>]\n"
+		"\t[--netmask_ip=<comma separated netmask ips>]\n"
 		"\t[--init_scripts=<comma separated filenames>]\n"
 		"\t[--speed=<speed in Mbps>]\n"
 		"\t[--mtu=<MTU in bytes>]\n"
@@ -142,6 +144,7 @@ void show_usage(void)
 		"\t[--verbose|-v]\n"
 		"\t[--debug] * requires compilation with DEBUG *\n"
 		"\t[--udp_encapsulation=[sctp,tcp]]\n"
+		"\t[--paths=<number of paths to be used>]\n"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 		"\t[--tun_dev=<tun_dev_name>]\n"
 		"\t[--persistent_tun_dev]\n"
@@ -150,7 +153,44 @@ void show_usage(void)
 		"\tscript_path ...\n");
 }
 
-/* Address Configuration for IPv4
+/* Allocate space for paths_cnt paths in config */
+extern void paths_new(struct config *config, uint paths_cnt) {
+	if (paths_cnt == 0)
+		die("can't have zero paths\n");
+
+	if (paths_cnt == config->live_paths_cnt)
+		return;
+
+	assert(config->live_paths == NULL);
+
+	config->live_paths_cnt = paths_cnt;
+	config->live_paths = calloc(paths_cnt, sizeof(struct path));
+}
+
+struct ip_address *paths_get_address(struct config *config, int addr_skip,
+	int address_family, enum paths_address_types address_type)
+{
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct ip_address *ip_address;
+		switch (address_type) {
+		case PATH_ADDRESS_LOCAL_TYPE:
+			ip_address = &config->live_paths[i].local_ip;
+			break;
+		case PATH_ADDRESS_REMOTE_TYPE:
+			ip_address = &config->live_paths[i].remote_ip;
+			break;
+		}
+
+		if (ip_address->address_family == address_family) {
+			if (addr_skip == 0)
+				return ip_address;
+			addr_skip--;
+		}
+	}
+	die("requested to many paths");
+}
+
+/* Fill in any as-yet-unspecified IP address attributes using IPv4 defaults.
  *
  * For IPv4, we use the 192.168.0.0/16 RFC 1918 private IP space for
  * our tun interface. To avoid accidents and confusion we want remote
@@ -164,12 +204,30 @@ void show_usage(void)
  * - remote address: 192.0.2.0/24 TEST-NET-1 range (RFC 5737)
  */
 
-#define DEFAULT_V4_LIVE_REMOTE_IP_STRING   "192.0.2.1/24"
-#define DEFAULT_V4_LIVE_LOCAL_IP_STRING    "192.168.0.1"
-#define DEFAULT_V4_LIVE_GATEWAY_IP_STRING  "192.168.0.2"
-#define DEFAULT_V4_LIVE_NETMASK_IP_STRING  "255.255.0.0"
+static void set_ipv4_defaults(struct config *config)
+{
+	if (config->live_paths_cnt == 0)
+		paths_new(config, 1);
+	else if (config->live_paths_cnt >= 64)
+		die("To many paths %d", config->live_paths_cnt);
 
-/* Address Configuration for IPv6
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
+
+		if (strlen(path->remote_ip_string) == 0)
+			snprintf(path->remote_ip_string, ADDR_STR_LEN, "192.0.2.%d/%s",
+			i + 1, config->live_paths_cnt == 1 ? "24" : "32");
+		if (strlen(path->local_ip_string) == 0)
+			snprintf(path->local_ip_string, ADDR_STR_LEN, "192.168.%d.1", i);
+		if (strlen(path->gateway_ip_string) == 0)
+			snprintf(path->gateway_ip_string, ADDR_STR_LEN, "192.168.%d.2", i);
+		if (strlen(path->netmask_ip_string) == 0)
+			strcpy(path->netmask_ip_string, config->live_paths_cnt == 1 ?
+			"255.255.0.0" : "255.255.255.0");
+	}
+}
+
+/* Fill in any as-yet-unspecified IP address attributes using IPv6 defaults.
  *
  * For IPv6 we use a ULA (unique local address) for our local (tun)
  * interface, and the RFC 3849 documentation space for our remote
@@ -179,49 +237,28 @@ void show_usage(void)
  * - local address: fd3d:fa7b:d17d::/48 in unique local address space (RFC 4193)
  * - remote address: 2001:DB8::/32 documentation prefix (RFC 3849)
  */
-
-#define DEFAULT_V6_LIVE_REMOTE_IP_STRING            "2001:DB8::1/32"
-#define DEFAULT_V6_LIVE_LOCAL_IP_STRING             "fd3d:fa7b:d17d::1"
-#define DEFAULT_V6_LIVE_LOCAL_LINKLOCAL_IP_STRING   "fe80::1"
-#define DEFAULT_V6_LIVE_GATEWAY_IP_STRING           "fd3d:fa7b:d17d::2"
-#define DEFAULT_V6_LIVE_GATEWAY_LINKLOCAL_IP_STRING "fe80::2"
-#define DEFAULT_V6_LIVE_PREFIX_LEN                  48
-
-/* Fill in any as-yet-unspecified IP address attributes using IPv4 defaults. */
-static void set_ipv4_defaults(struct config *config)
-{
-	if (strlen(config->live_remote_ip_string) == 0)
-		strcpy(config->live_remote_ip_string,
-		       DEFAULT_V4_LIVE_REMOTE_IP_STRING);
-	if (strlen(config->live_local_ip_string) == 0)
-		strcpy(config->live_local_ip_string,
-		       DEFAULT_V4_LIVE_LOCAL_IP_STRING);
-	if (strlen(config->live_gateway_ip_string) == 0)
-		strcpy(config->live_gateway_ip_string,
-		       DEFAULT_V4_LIVE_GATEWAY_IP_STRING);
-	if (strlen(config->live_netmask_ip_string) == 0)
-		strcpy(config->live_netmask_ip_string,
-		       DEFAULT_V4_LIVE_NETMASK_IP_STRING);
-}
-
-/* Fill in any as-yet-unspecified IP address attributes using IPv6 defaults. */
 static void set_ipv6_defaults(struct config *config)
 {
-	if (strlen(config->live_remote_ip_string) == 0)
-		strcpy(config->live_remote_ip_string,
-		       DEFAULT_V6_LIVE_REMOTE_IP_STRING);
-	if (strlen(config->live_local_ip_string) == 0)
-		strcpy(config->live_local_ip_string,
-		       DEFAULT_V6_LIVE_LOCAL_IP_STRING);
-	if (strlen(config->live_local_linklocal_ip_string) == 0)
-		strcpy(config->live_local_linklocal_ip_string,
-		       DEFAULT_V6_LIVE_LOCAL_LINKLOCAL_IP_STRING);
-	if (strlen(config->live_gateway_ip_string) == 0)
-		strcpy(config->live_gateway_ip_string,
-		       DEFAULT_V6_LIVE_GATEWAY_IP_STRING);
-	if (strlen(config->live_gateway_linklocal_ip_string) == 0)
-		strcpy(config->live_gateway_linklocal_ip_string,
-		       DEFAULT_V6_LIVE_GATEWAY_LINKLOCAL_IP_STRING);
+	if (config->live_paths_cnt == 0)
+		paths_new(config, 1);
+	else if (config->live_paths_cnt >= 0xffff)
+		die("To many paths %d", config->live_paths_cnt);
+
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
+
+		if (strlen(path->remote_ip_string) == 0)
+			snprintf(path->remote_ip_string, ADDR_STR_LEN, "2001:DB8::%d/%s",
+			i, config->live_paths_cnt == 1 ? "32" : "128");
+		if (strlen(path->local_ip_string) == 0)
+			snprintf(path->local_ip_string, ADDR_STR_LEN, "fd3d:fa7b:d17d::%d:1", i);
+		if (strlen(path->local_linklocal_ip_string) == 0)
+			strcpy(path->local_linklocal_ip_string, "fe80::1");
+		if (strlen(path->gateway_ip_string) == 0)
+			snprintf(path->gateway_ip_string, ADDR_STR_LEN, "fd3d:fa7b:d17d::%d:2", i);
+		if (strlen(path->gateway_linklocal_ip_string) == 0)
+			strcpy(path->gateway_linklocal_ip_string, "fe80::2");
+	}
 }
 
 /* Set default configuration before we begin parsing. */
@@ -250,12 +287,9 @@ void set_default_config(struct config *config)
 	 */
 	config->tcp_ts_tick_usecs	= 0;	/* disable checks of TS val */
 
-	config->live_remote_ip_string[0]            = '\0';
-	config->live_local_ip_string[0]             = '\0';
-	config->live_local_linklocal_ip_string[0]   = '\0';
-	config->live_gateway_ip_string[0]           = '\0';
-	config->live_gateway_linklocal_ip_string[0] = '\0';
-	config->live_netmask_ip_string[0]           = '\0';
+	// We initialize these later either by options or in set_XXX_defaults
+	config->live_paths = NULL;
+	config->live_paths_cnt = 0;
 
 	config->init_scripts = NULL;
 
@@ -286,15 +320,13 @@ void set_default_config(struct config *config)
 #endif
 }
 
-static void set_remote_ip_and_prefix(struct config *config)
+static void set_remote_ip_and_prefix(struct path *path)
 {
-	config->live_remote_ip = config->live_remote_prefix.ip;
-	ip_to_string(&config->live_remote_ip,
-		     config->live_remote_ip_string);
+	path->remote_ip = path->remote_prefix.ip;
+	ip_to_string(&path->remote_ip, path->remote_ip_string);
 
-	ip_prefix_normalize(&config->live_remote_prefix);
-	ip_prefix_to_string(&config->live_remote_prefix,
-			    config->live_remote_prefix_string);
+	ip_prefix_normalize(&path->remote_prefix);
+	ip_prefix_to_string(&path->remote_prefix, path->remote_prefix_string);
 }
 
 /* Here's a table summarizing the types of various entities in the
@@ -312,17 +344,18 @@ static void finalize_ipv4_config(struct config *config)
 {
 	set_ipv4_defaults(config);
 
-	config->live_local_ip	= ipv4_parse(config->live_local_ip_string);
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
 
-	config->live_remote_prefix =
-		ipv4_prefix_parse(config->live_remote_ip_string);
-	set_remote_ip_and_prefix(config);
+		path->local_ip	= ipv4_parse(path->local_ip_string);
 
-	config->live_prefix_len =
-		netmask_to_prefix(config->live_netmask_ip_string);
-	config->live_gateway_ip = ipv4_parse(config->live_gateway_ip_string);
-	config->live_bind_ip	= config->live_local_ip;
-	config->live_connect_ip	= config->live_remote_ip;
+		path->remote_prefix = ipv4_prefix_parse(path->remote_ip_string);
+		set_remote_ip_and_prefix(path);
+
+		path->prefix_len = netmask_to_prefix(path->netmask_ip_string);
+		path->gateway_ip = ipv4_parse(path->gateway_ip_string);
+	}
+
 	config->socket_domain	= AF_INET;
 	config->wire_protocol	= AF_INET;
 }
@@ -332,17 +365,18 @@ static void finalize_ipv4_mapped_ipv6_config(struct config *config)
 {
 	set_ipv4_defaults(config);
 
-	config->live_local_ip	= ipv4_parse(config->live_local_ip_string);
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
 
-	config->live_remote_prefix =
-		ipv4_prefix_parse(config->live_remote_ip_string);
-	set_remote_ip_and_prefix(config);
+		path->local_ip	= ipv4_parse(path->local_ip_string);
 
-	config->live_prefix_len =
-		netmask_to_prefix(config->live_netmask_ip_string);
-	config->live_gateway_ip = ipv4_parse(config->live_gateway_ip_string);
-	config->live_bind_ip	= ipv6_map_from_ipv4(config->live_local_ip);
-	config->live_connect_ip	= ipv6_map_from_ipv4(config->live_remote_ip);
+		path->remote_prefix = ipv4_prefix_parse(path->remote_ip_string);
+		set_remote_ip_and_prefix(path);
+
+		path->prefix_len = netmask_to_prefix(path->netmask_ip_string);
+		path->gateway_ip = ipv4_parse(path->gateway_ip_string);
+	}
+
 	config->socket_domain	= AF_INET6;
 	config->wire_protocol	= AF_INET;
 }
@@ -352,18 +386,20 @@ static void finalize_ipv6_config(struct config *config)
 {
 	set_ipv6_defaults(config);
 
-	config->live_local_ip	= ipv6_parse(config->live_local_ip_string);
-	config->live_local_linklocal_ip	= ipv6_parse(config->live_local_linklocal_ip_string);
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
 
-	config->live_remote_prefix =
-		ipv6_prefix_parse(config->live_remote_ip_string);
-	set_remote_ip_and_prefix(config);
+		path->local_ip	= ipv6_parse(path->local_ip_string);
+		path->local_linklocal_ip = ipv6_parse(path->local_linklocal_ip_string);
 
-	config->live_prefix_len	= DEFAULT_V6_LIVE_PREFIX_LEN;
-	config->live_gateway_ip = ipv6_parse(config->live_gateway_ip_string);
-	config->live_gateway_linklocal_ip = ipv6_parse(config->live_gateway_linklocal_ip_string);
-	config->live_bind_ip	= config->live_local_ip;
-	config->live_connect_ip	= config->live_remote_ip;
+		path->remote_prefix = ipv6_prefix_parse(path->remote_ip_string);
+		set_remote_ip_and_prefix(path);
+
+		path->prefix_len = config->live_paths_cnt == 1 ? 48 : 64;
+		path->gateway_ip = ipv6_parse(path->gateway_ip_string);
+		path->gateway_linklocal_ip = ipv6_parse(path->gateway_linklocal_ip_string);
+	}
+
 	config->socket_domain	= AF_INET6;
 	config->wire_protocol	= AF_INET6;
 }
@@ -420,6 +456,7 @@ void cleanup_config(struct config *config)
 	}
 	free(config->argv);
 	free(config->script_path);
+	free(config->live_paths);
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	free(config->tun_device);
 #endif
@@ -455,12 +492,63 @@ void parse_non_fatal_arg(char *arg, struct config *config)
 	free(argdup);
 }
 
+/* Expect that ips are comma-delimited, allowing for spaces. */
+int parse_ips_arg(char *arg, int target, struct config *config)
+{
+	char *argdup, *saveptr, *token;
+
+	if (arg == NULL || strlen(arg) == 0)
+		return STATUS_ERR;
+
+	int ip_cnt = 1;
+	for (int i = 0; arg[i]; i++) {
+		if (arg[i] == ',')
+			ip_cnt++;
+	}
+
+	if(config->live_paths_cnt == 0)
+		paths_new(config, ip_cnt);
+	else if (config->live_paths_cnt != ip_cnt)
+		return STATUS_ERR;
+
+	argdup = strdup(arg);
+	token = strtok_r(argdup, ", ", &saveptr);
+	for (int i = 0; token != NULL; i++) {
+		switch (target) {
+		case OPT_REMOTE_IP:
+			strncpy(config->live_paths[i].remote_ip_string, token, ADDR_STR_LEN - 1);
+			break;
+		case OPT_LOCAL_IP:
+			strncpy(config->live_paths[i].local_ip_string, token, ADDR_STR_LEN - 1);
+			break;
+		case OPT_LOCAL_LINKLOCAL_IP:
+			strncpy(config->live_paths[i].local_linklocal_ip_string, token, ADDR_STR_LEN - 1);
+			break;
+		case OPT_GATEWAY_IP:
+			strncpy(config->live_paths[i].gateway_ip_string, token, ADDR_STR_LEN - 1);
+			break;
+		case OPT_GATEWAY_LINKLOCAL_IP:
+			strncpy(config->live_paths[i].gateway_linklocal_ip_string, token, ADDR_STR_LEN - 1);
+			break;
+		case OPT_NETMASK_IP:
+			strncpy(config->live_paths[i].netmask_ip_string, token, ADDR_STR_LEN - 1);
+			break;
+		default:
+			return STATUS_ERR;
+		}
+		token = strtok_r(NULL, ", ", &saveptr);
+	}
+	free(argdup);
+
+	return STATUS_OK;
+}
+
 
 /* Process a command line option */
 static void process_option(int opt, char *optarg, struct config *config,
 			   char *where)
 {
-	int port = 0;
+	int port, paths = 0;
 	char *end = NULL, *equals = NULL, *symbol = NULL, *value = NULL;
 	unsigned long speed = 0;
 
@@ -507,33 +595,39 @@ static void process_option(int opt, char *optarg, struct config *config,
 		break;
 	case OPT_REMOTE_IP:
 		assert(optarg != NULL);
-		strncpy(config->live_remote_ip_string, optarg, ADDR_STR_LEN-1);
+		if (parse_ips_arg(optarg, OPT_REMOTE_IP, config) == STATUS_ERR)
+			die("%s: bad --remote_ip: %s\n", where, optarg);
 		break;
 	case OPT_LOCAL_IP:
 		assert(optarg != NULL);
-		strncpy(config->live_local_ip_string, optarg, ADDR_STR_LEN-1);
+		if (parse_ips_arg(optarg, OPT_LOCAL_IP, config) == STATUS_ERR)
+			die("%s: bad --local_ip: %s\n", where, optarg);
 		break;
 	case OPT_LOCAL_LINKLOCAL_IP:
 		assert(optarg != NULL);
-		strncpy(config->live_local_linklocal_ip_string, optarg, ADDR_STR_LEN-1);
+		if (parse_ips_arg(optarg, OPT_LOCAL_LINKLOCAL_IP, config) == STATUS_ERR)
+			die("%s: bad --local_linklocal_ip: %s\n", where, optarg);
 		break;
 	case OPT_GATEWAY_IP:
 		assert(optarg != NULL);
-		strncpy(config->live_gateway_ip_string, optarg, ADDR_STR_LEN-1);
+		if (parse_ips_arg(optarg, OPT_GATEWAY_IP, config) == STATUS_ERR)
+			die("%s: bad --gateway_ip: %s\n", where, optarg);
 		break;
 	case OPT_GATEWAY_LINKLOCAL_IP:
 		assert(optarg != NULL);
-		strncpy(config->live_gateway_linklocal_ip_string, optarg, ADDR_STR_LEN-1);
+		if (parse_ips_arg(optarg, OPT_GATEWAY_LINKLOCAL_IP, config) == STATUS_ERR)
+			die("%s: bad --gateway_linklocal_ip: %s\n", where, optarg);
+		break;
+	case OPT_NETMASK_IP:
+		assert(optarg != NULL);
+		if (parse_ips_arg(optarg, OPT_NETMASK_IP, config) == STATUS_ERR)
+			die("%s: bad --netmask_ip: %s\n", where, optarg);
 		break;
 	case OPT_MTU:
 		assert(optarg != NULL);
 		config->mtu = atoi(optarg);
 		if (config->mtu < 0)
 			die("%s: bad --mtu: %s\n", where, optarg);
-		break;
-	case OPT_NETMASK_IP:
-		assert(optarg != NULL);
-		strncpy(config->live_netmask_ip_string, optarg,	ADDR_STR_LEN-1);
 		break;
 	case OPT_INIT_SCRIPTS:
 		assert(optarg != NULL);
@@ -619,6 +713,16 @@ static void process_option(int opt, char *optarg, struct config *config,
 			config->udp_encaps = IPPROTO_TCP;
 		else
 			die("%s: bad --udp_encapsulation: %s\n", where, optarg);
+		break;
+	case OPT_PATHS:
+		assert(optarg != NULL);
+		paths = atoi(optarg);
+		if(paths <= 0)
+			die("%s: bad --paths: %s must be positive\n", where, optarg);
+		if(config->live_paths_cnt == 0)
+			paths_new(config, paths);
+		else if (config->live_paths_cnt != paths)
+			die("%s: bad --paths: %s does not match the number of IPs\n", where, optarg);
 		break;
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	case OPT_TUN_DEV:

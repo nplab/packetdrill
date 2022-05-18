@@ -77,6 +77,8 @@ struct packet {
 	u32 buffer_bytes;	/* bytes of space in data buffer */
 	u32 ip_bytes;		/* bytes in outermost IP hdrs/payload */
 	enum direction_t direction;	/* direction packet is traveling */
+	int ip_src_index;
+	int ip_dst_index;
 
 	/* Metadata about all the headers in the packet, including all
 	 * layers of encapsulation, from outer to inner, starting from

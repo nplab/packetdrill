@@ -31,22 +31,43 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "logging.h"
+
+int checked_system(const char *command, char **error)
+{
+	int result = system(command);
+	if (result == -1) {
+		asprintf(error, "%s", strerror(errno));
+	} else if (WIFSIGNALED(result) &&
+	    (WTERMSIG(result) == SIGINT || WTERMSIG(result) == SIGQUIT)) {
+		asprintf(error, "got signal %d (%s)",
+			 WTERMSIG(result), strsignal(WTERMSIG(result)));
+	} else if (WEXITSTATUS(result) != 0) {
+		asprintf(error, "non-zero status %d", WEXITSTATUS(result));
+	}
+	return result;
+}
+
 int safe_system(const char *command, char **error)
 {
-	int status = system(command);
-	if (status == -1) {
-		asprintf(error, "%s", strerror(errno));
+	assert(*error == NULL);
+	checked_system(command, error);
+	if (*error != NULL)
 		return STATUS_ERR;
-	}
-	if (WIFSIGNALED(status) &&
-	    (WTERMSIG(status) == SIGINT || WTERMSIG(status) == SIGQUIT)) {
-		asprintf(error, "got signal %d (%s)",
-			 WTERMSIG(status), strsignal(WTERMSIG(status)));
-		return STATUS_ERR;
-	}
-	if (WEXITSTATUS(status) != 0) {
-		asprintf(error, "non-zero status %d", WEXITSTATUS(status));
-		return STATUS_ERR;
-	}
 	return STATUS_OK;
+}
+
+int verbose_system(const char *command)
+{
+	int result;
+	char *error = NULL;
+
+	DEBUGP("running: '%s'\n", command);
+	result = checked_system(command, &error);
+	if (result != 0) {
+		DEBUGP("error: %s executing command '%s'\n", error, command);
+	} else {
+		DEBUGP("result: %d\n", result);
+	}
+	return result;
 }

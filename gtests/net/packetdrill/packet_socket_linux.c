@@ -103,78 +103,124 @@ static void packet_socket_setup(struct packet_socket *psock)
 	ioctl(psock->packet_fd, SIOCGSTAMP, &tv);
 }
 
+static int count_local_family(const struct path *paths, int paths_cnt, int family) {
+	int count = 0;
+	for (int i = 0; i < paths_cnt; i++) {
+		if(paths[i].local_ip.address_family == family)
+			count++;
+	}
+	return count;
+}
+
 /* Add a filter so we only sniff packets we want. */
 void packet_socket_set_filter(struct packet_socket *psock,
 			      const struct ether_addr *client_ether_addr,
-			      const struct ip_address *client_live_ip)
+			      const struct path *paths, uint paths_cnt)
 {
 	const u8 *client_ether = client_ether_addr->ether_addr_octet;
 
-	struct sock_fprog bpfcode;
-	struct sock_filter bpf_ipv4_src[] = {
-		/* this filter works for ethernet interfaces: */
-		/* tcpdump -p -n -s 0 -i lo -dd
-		 * "ether src 11:22:33:44:55:66 and ip src 1.2.3.4"
-		 */
-		{ 0x20, 0,  0, 0x00000008 },
-		{ 0x15, 0,  7, 0x33445566 },   /* ether: 33:44:55:66 */
-		{ 0x28, 0,  0, 0x00000006 },
-		{ 0x15, 0,  5, 0x00001122 },   /* ether: 11:22 */
-		{ 0x28, 0,  0, 0x0000000c },
-		{ 0x15, 0,  3, 0x00000800 },
-		{ 0x20, 0,  0, 0x0000001a },
-		{ 0x15, 0,  1, 0x01020304 },   /* IPv4: 1.2.3.4 */
-		{  0x6, 0,  0, 0x0000ffff },
-		{  0x6, 0,  0, 0x00000000 },
-	};
-	struct sock_filter bpf_ipv6_src[] = {
-		/* this filter works for ethernet interfaces: */
-		/* tcpdump -p -n -s 0 -i lo -dd
-		 * "ether src 11:22:33:44:55:66 and ip6 src 1:2:3:4:5:6:7:8" */
-		{ 0x20, 0,  0, 0x00000008 },
-		{ 0x15, 0, 13, 0x33445566 },   /* ether: 33:44:55:66 */
-		{ 0x28, 0,  0, 0x00000006 },
-		{ 0x15, 0, 11, 0x00001122 },   /* ether: 11:22 */
-		{ 0x28, 0,  0, 0x0000000c },
-		{ 0x15, 0,  9, 0x000086dd },
-		{ 0x20, 0,  0, 0x00000016 },
-		{ 0x15, 0,  7, 0x00010002 },   /* IPv6: 1:2 */
-		{ 0x20, 0,  0, 0x0000001a },
-		{ 0x15, 0,  5, 0x00030004 },   /* IPv6: 3:4 */
-		{ 0x20, 0,  0, 0x0000001e },
-		{ 0x15, 0,  3, 0x00050006 },   /* IPv6: 5:6 */
-		{ 0x20, 0,  0, 0x00000022 },
-		{ 0x15, 0,  1, 0x00070008 },   /* IPv6: 7:8 */
-		{  0x6, 0,  0, 0x0000ffff },
-		{  0x6, 0,  0, 0x00000000 },
-	};
+	int v4_cnt = count_local_family(paths, paths_cnt, AF_INET);
+	int v6_cnt = count_local_family(paths, paths_cnt, AF_INET6);
 
-	if (client_live_ip->address_family == AF_INET) {
-		/* Fill in the client-side IPv6 address to look for. */
-		bpf_ipv4_src[7].k = ntohl(client_live_ip->ip.v4.s_addr);
+	/* summ lines of filter instructions */
+	int filter_lines = 4 + 2;   /* ether + return */
+	if (v4_cnt > 0)
+		filter_lines += 3 + v4_cnt;
+	if (v6_cnt > 0)
+		filter_lines += 3 + v6_cnt;
 
-		bpfcode.len	= ARRAY_SIZE(bpf_ipv4_src);
-		bpfcode.filter	= bpf_ipv4_src;
-	} else if (client_live_ip->address_family == AF_INET6) {
-		/* Fill in the client-side IPv6 address to look for. */
-		bpf_ipv6_src[7].k  = ntohl(client_live_ip->ip.v6.s6_addr32[0]);
-		bpf_ipv6_src[9].k  = ntohl(client_live_ip->ip.v6.s6_addr32[1]);
-		bpf_ipv6_src[11].k = ntohl(client_live_ip->ip.v6.s6_addr32[2]);
-		bpf_ipv6_src[13].k = ntohl(client_live_ip->ip.v6.s6_addr32[3]);
+	struct sock_filter *bpf_src, *bpf_src_next;
+	bpf_src = bpf_src_next = calloc(filter_lines, sizeof(struct sock_filter));
 
-		bpfcode.len	= ARRAY_SIZE(bpf_ipv6_src);
-		bpfcode.filter	= bpf_ipv6_src;
-	} else {
-		assert(!"bad address family");
+	/* attach flter for ether adddress */
+	*bpf_src_next = (struct sock_filter) { 0x20, 0,  0, 0x00000008 };
+	bpf_src_next++;
+	*bpf_src_next = (struct sock_filter) { 0x15, 0,  7, 0x33445566 };   /* ether: 33:44:55:66 */
+	bpf_src_next->k = (((u32)client_ether[2] << 24) |
+			           ((u32)client_ether[3] << 16) |
+			           ((u32)client_ether[4] << 8)  |
+			           ((u32)client_ether[5]));
+	bpf_src_next++;
+	*bpf_src_next = (struct sock_filter) { 0x28, 0,  0, 0x00000006 };
+	bpf_src_next++;
+	*bpf_src_next = (struct sock_filter) { 0x15, 0,  5, 0x00001122 };   /* ether: 11:22 */
+	bpf_src_next->k = (((u32)client_ether[0] << 8)  |
+			           ((u32)client_ether[1]));
+	bpf_src_next++;
+
+	if (v4_cnt > 0) {
+		/* attach flter for ipv4 adddress */
+		*bpf_src_next = (struct sock_filter) { 0x28, 0,  0, 0x0000000c };
+		bpf_src_next++;
+		*bpf_src_next = (struct sock_filter) { 0x15, 0,  3, 0x00000800 };
+		bpf_src_next++;
+		*bpf_src_next = (struct sock_filter) { 0x20, 0,  0, 0x0000001a };
+		bpf_src_next++;
+
+		/* Fill in the client-side IPv4 address to look for. */
+		for (int i = 0; i < paths_cnt; i++)	{
+			const struct path *path = &paths[i];
+
+			if (path->local_ip.address_family != AF_INET)
+				continue;
+
+			*bpf_src_next = (struct sock_filter) { 0x15, 0,  1, 0x01020304 };   /* IPv4: 1.2.3.4 */
+			bpf_src_next->k = ntohl(path->local_ip.ip.v4.s_addr);
+			bpf_src_next++;
+		}
 	}
 
-	/* Fill in the client-side ethernet address to look for. */
-	bpfcode.filter[1].k = (((u32)client_ether[2] << 24) |
-			       ((u32)client_ether[3] << 16) |
-			       ((u32)client_ether[4] << 8)  |
-			       ((u32)client_ether[5]));
-	bpfcode.filter[3].k = (((u32)client_ether[0] << 8)  |
-			       ((u32)client_ether[1]));
+	if (v6_cnt > 0) {
+		/* attach flter for ipv6 adddress */
+		*bpf_src_next = (struct sock_filter) { 0x28, 0,  0, 0x0000000c };
+		bpf_src_next++;
+		*bpf_src_next = (struct sock_filter) { 0x15, 0,  9, 0x000086dd };
+		bpf_src_next++;
+
+		struct sock_filter bpf_ipv6_src[] = {
+			{ 0x20, 0,  0, 0x00000016 },
+			{ 0x20, 0,  0, 0x0000001a },
+			{ 0x20, 0,  0, 0x0000001e },
+			{ 0x20, 0,  0, 0x00000022 }
+		};
+
+		/* Fill in the client-side IPv6 address to look for. */
+		for (int i = 0; i < 4; i++) {
+			*bpf_src_next = bpf_ipv6_src[i];
+			bpf_src_next++;
+
+			/* check each two blocks */
+			for (int i = 0; i < paths_cnt; i++)	{
+				const struct path *path = &paths[i];
+
+				if (path->local_ip.address_family != AF_INET6)
+					continue;
+
+				*bpf_src_next = (struct sock_filter) { 0x15, 0,  7, 0x00010002 },   /* IPv6: 1:2 */
+				bpf_src_next->k = ntohl(path->local_ip.ip.v6.s6_addr32[i]);
+				bpf_src_next++;
+			}
+
+		}
+	}
+
+	/* attach returns */
+	*bpf_src_next = (struct sock_filter) {  0x6, 0,  0, 0x0000ffff };
+	bpf_src_next++;
+	*bpf_src_next = (struct sock_filter) {  0x6, 0,  0, 0x00000000 };
+
+	/* bpf_src_next sould now be at the end of the buffer */
+	assert(bpf_src_next == bpf_src + filter_lines);
+
+	/* update length of jumps to the end (return false) */
+	for (int i = -1; i < filter_lines; i++, bpf_src_next--) {
+		if (bpf_src_next->code == 0x15)
+			bpf_src_next->jf = i;
+	}
+
+	struct sock_fprog bpfcode;
+	bpfcode.len = filter_lines;
+	bpfcode.filter = bpf_src;
 
 	if (debug_logging) {
 		int i;

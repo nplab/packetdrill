@@ -343,6 +343,13 @@ int packet_to_string(struct packet *packet,
 	int header_count = packet_header_count(packet);
 	int limit;
 
+	if (packet->ip_src_index != 0 || packet->ip_dst_index != 0) {
+		if (packet->ip_src_index == packet->ip_dst_index)
+			fprintf(s, "[%d] ", packet->ip_src_index);
+		else
+			fprintf(s, "[%d>%d] ", packet->ip_src_index, packet->ip_dst_index);
+	}
+
 	/* Print any encapsulation headers preceding layer 3 and 4 headers. */
 	if (packet->flags & FLAGS_UDP_ENCAPSULATED)
 		limit = header_count - 3;

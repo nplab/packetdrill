@@ -160,6 +160,9 @@ struct invocation *invocation;
 bool ignore_ts_val = false;
 bool absolute_ts_ecr = false;
 
+/* Temporary variable to remember which address is referenced with '...' */
+int addr_ellipsis_counter = 0;
+
 /* Copy the script contents into our single linear buffer. */
 void copy_script(const char *script_buffer, struct script *script)
 {
@@ -494,6 +497,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 	enum direction_t direction;
 	u8 ip_ecn;
 	struct tos_spec tos_spec;
+	struct ip_path ip_path;
 	struct ip_info ip_info;
 	struct mpls_stack *mpls_stack;
 	struct mpls mpls_stack_entry;
@@ -665,6 +669,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <abs_integer> abs_integer
 %type <ignore_integer> ignore_integer
 %type <direction> direction
+%type <ip_path> ip_path
 %type <ip_info> ip_info opt_ip_info
 %type <tos_spec> tos_spec
 %type <ip_ecn> ip_ecn
@@ -689,6 +694,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
 %type <string> opt_note note word_list
 %type <string> option_flag option_value script
+%type <string> option_addrs
 %type <window> opt_window
 %type <urg_ptr> opt_urg_ptr
 %type <sequence_number> opt_ack
@@ -869,14 +875,14 @@ option_flag
 : OPTION	{ $$ = $1; }
 ;
 
+/* TODO: just read the whole remaining string, process_option does checking */
 option_value
-: INTEGER	{ $$ = strdup(yytext); }
-| WORD		{ $$ = $1; }
-| STRING	{ $$ = $1; }
-| IPV4_ADDR	{ $$ = $1; }
-| IPV6_ADDR	{ $$ = $1; }
-| IPV4		{ $$ = strdup("ipv4"); }
-| IPV6		{ $$ = strdup("ipv6"); }
+: INTEGER		{ $$ = strdup(yytext); }
+| WORD			{ $$ = $1; }
+| STRING		{ $$ = $1; }
+| option_addrs	{ $$ = $1; }
+| IPV4			{ $$ = strdup("ipv4"); }
+| IPV6			{ $$ = strdup("ipv6"); }
 | WORD '=' INTEGER {
 	/* For consistency, allow syntax like: --define=PROTO=132 */
 	char *lhs = $1;
@@ -908,6 +914,25 @@ option_value
 	asprintf(&($$), "%s=`%s`", lhs, rhs);
 	free(lhs);
 	free(rhs);
+}
+;
+
+option_addrs
+: IPV4_ADDR	{ $$ = $1; }
+| IPV6_ADDR	{ $$ = $1; }
+| option_addrs '/' INTEGER {
+	asprintf(&($$), "%s/%lld", $1, $3);
+	free($1);
+}
+| option_addrs ',' IPV4_ADDR {
+	asprintf(&($$), "%s,%s", $1, $3);
+	free($1);
+	free($3);
+}
+| option_addrs ',' IPV6_ADDR {
+	asprintf(&($$), "%s,%s", $1, $3);
+	free($1);
+	free($3);
 }
 ;
 
@@ -1077,12 +1102,14 @@ sctp_packet_spec
 	                        $3.src_port, $3.dst_port,
 	                        $4.tag, $4.bad_crc32c, $7,
 	                        $5.udp_src_port, $5.udp_dst_port,
-	                        &error);
+	                        in_config, &error);
 	if (inner == NULL) {
 		assert(error != NULL);
 		semantic_error(error);
 		free(error);
 	}
+	inner->ip_src_index = $2.ip_path.src_index;
+	inner->ip_dst_index = $2.ip_path.dst_index;
 
 	$$ = packet_encapsulate_and_free(outer, inner);
 }
@@ -1101,6 +1128,8 @@ sctp_packet_spec
 		semantic_error(error);
 		free(error);
 	}
+	inner->ip_src_index = $2.ip_path.src_index;
+	inner->ip_dst_index = $2.ip_path.dst_index;
 
 	$$ = packet_encapsulate_and_free(outer, inner);
 }
@@ -2020,7 +2049,7 @@ sctp_reconfig_chunk_spec
 opt_parameter_list_spec
 : ',' ELLIPSIS                 { $$ = NULL; }
 |                              { $$ = sctp_parameter_list_new(); }
-| ',' sctp_parameter_list_spec { $$ = $2; }
+| ',' sctp_parameter_list_spec { $$ = $2; addr_ellipsis_counter = 0; }
 ;
 
 sctp_parameter_list_spec
@@ -2113,10 +2142,12 @@ sctp_ipv4_address_parameter_spec
 		semantic_error("Invalid address");
 	}
 	free($5);
-	$$ = sctp_ipv4_address_parameter_new(&addr);
+	$$ = sctp_ipv4_address_parameter_new(&addr, 0);
 }
 | IPV4_ADDRESS '[' ADDR '=' ELLIPSIS ']' {
-	$$ = sctp_ipv4_address_parameter_new(NULL);
+	if (addr_ellipsis_counter > in_config->live_paths_cnt)
+		semantic_error("To few path specified");
+	$$ = sctp_ipv4_address_parameter_new(NULL, addr_ellipsis_counter++);
 }
 
 sctp_ipv6_address_parameter_spec
@@ -2127,10 +2158,12 @@ sctp_ipv6_address_parameter_spec
 		semantic_error("Invalid address");
 	}
 	free($5);
-	$$ = sctp_ipv6_address_parameter_new(&addr);
+	$$ = sctp_ipv6_address_parameter_new(&addr, 0);
 }
 | IPV6_ADDRESS '[' ADDR '=' ELLIPSIS ']' {
-	$$ = sctp_ipv6_address_parameter_new(NULL);
+	if (addr_ellipsis_counter > in_config->live_paths_cnt)
+		semantic_error("To few path specified");
+	$$ = sctp_ipv6_address_parameter_new(NULL, addr_ellipsis_counter++);
 }
 
 sctp_state_cookie_parameter_spec
@@ -2468,6 +2501,8 @@ tcp_packet_spec
 		semantic_error(error);
 		free(error);
 	}
+	inner->ip_src_index = $2.ip_path.src_index;
+	inner->ip_dst_index = $2.ip_path.dst_index;
 
 	$$ = packet_encapsulate_and_free(outer, inner);
 }
@@ -2782,6 +2817,7 @@ tos_spec
 | ECN ECT01	{
 	$$.check = TOS_CHECK_ECN_ECT01;
 	$$.value = 0;
+
 }
 ;
 
@@ -2790,6 +2826,23 @@ ip_ecn
 | ECT0		{ $$ = IP_ECN_ECT0; }
 | ECT1		{ $$ = IP_ECN_ECT1; }
 | CE		{ $$ = IP_ECN_CE; }
+;
+
+ip_path
+: INTEGER '>' INTEGER	{
+	if ($1 >= in_config->live_paths_cnt)
+		semantic_error("Path identifier out of range");
+	$$.src_index = $1;
+	if ($3 >= in_config->live_paths_cnt)
+		semantic_error("Path identifier out of range");
+	$$.dst_index = $3;
+}
+| INTEGER				{
+	if ($1 >= in_config->live_paths_cnt)
+		semantic_error("Path identifier out of range");
+	$$.src_index = $1;
+	$$.dst_index = $1;
+}
 ;
 
 opt_ack_flag
@@ -3001,9 +3054,32 @@ opt_ip_info
 	$$.tos.value = 0;
 	$$.flow_label = 0;
 	$$.ttl = 0;
+	$$.ip_path.src_index = 0;
+	$$.ip_path.dst_index = 0;
 }
-| '(' ip_info ')'	{ $$ = $2; }
-| '[' ip_info ']'	{ $$ = $2; }
+| '(' ip_info ')'	{
+	$$ = $2;
+	$$.ip_path.src_index = 0;
+	$$.ip_path.dst_index = 0;
+}
+| '[' ip_info ']'	{
+	$$ = $2;
+	$$.ip_path.src_index = 0;
+	$$.ip_path.dst_index = 0;
+}
+| '[' ip_path ']'	{
+	$$.tos.check = TOS_CHECK_NONE;
+	$$.tos.value = 0;
+	$$.flow_label = 0;
+	$$.ttl = 0;
+	$$.ip_path.src_index = $2.src_index;
+	$$.ip_path.dst_index = $2.dst_index;
+}
+| '[' ip_path ',' ip_info ']'	{
+	$$ = $4;
+	$$.ip_path.src_index = $2.src_index;
+	$$.ip_path.dst_index = $2.dst_index;
+}
 ;
 
 seq
