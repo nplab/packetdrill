@@ -6,5 +6,5 @@ extern void __attribute__((noreturn)) die(char *format, ...);
 	do {							\
 		if (!(expr))					\
 			die("assertion %s failed at %s line %d",\
-			    __STRING(expr), __FILE__, __LINE__);\
+			    #expr, __FILE__, __LINE__);\
 	} while (0)
