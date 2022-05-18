@@ -162,6 +162,21 @@
 #define HAVE_FMEMOPEN           1
 #define HAVE_OPEN_MEMSTREAM     1
 
+#if !defined(__ORDER_LITTLE_ENDIAN__)
+#define __ORDER_LITTLE_ENDIAN__ 1234
+#endif
+#if !defined(__ORDER_BIG_ENDIAN__)
+#define __ORDER_BIG_ENDIAN__ 4321
+#endif
+#if !defined(__BYTE_ORDER__)
+#if defined(_LITTLE_ENDIAN)
+#define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__
+#endif
+#if defined(_BIG_ENDIAN)
+#define __BYTE_ORDER__ __ORDER_BIG_ENDIAN__
+#endif
+#endif
+
 #endif  /* __SunOS_5_11 */
 
 
