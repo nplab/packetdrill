@@ -58,7 +58,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_OOBINLINE,                     "SO_OOBINLINE"                    },
 	{ SO_DGRAM_ERRIND,                  "SO_DGRAM_ERRIND"                 },
 	{ SO_RECVUCRED,                     "SO_RECVUCRED"                    },
+#ifdef SO_NOSIGPIPE
 	{ SO_NOSIGPIPE,                     "SO_NOSIGPIPE"                    },
+#endif
 	{ SO_SNDBUF,                        "SO_SNDBUF"                       },
 	{ SO_RCVBUF,                        "SO_RCVBUF"                       },
 	{ SO_SNDLOWAT,                      "SO_SNDLOWAT"                     },
@@ -81,10 +83,18 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_MAC_IMPLICIT,                  "SO_MAC_IMPLICIT"                 },
 	{ SO_VRRP,                          "SO_VRRP"                         },
 	{ SO_FLOW_SLA,                      "SO_FLOW_SLA"                     },
+#ifdef SO_LISTENQLIMIT
 	{ SO_LISTENQLIMIT,                  "SO_LISTENQLIMIT"                 },
+#endif
+#ifdef SO_FLOW_NAME
 	{ SO_FLOW_NAME,                     "SO_FLOW_NAME"                    },
+#endif
+#ifdef SO_NET_KERNEL_BYPASS
 	{ SO_NET_KERNEL_BYPASS,             "SO_NET_KERNEL_BYPASS"            },
+#endif
+#ifdef SO_NET_KERNEL_BYPASS_STATS
 	{ SO_NET_KERNEL_BYPASS_STATS,       "SO_NET_KERNEL_BYPASS_STATS"      },
+#endif
 
 	/* /usr/include/netinet/in.h */
 	{ IP_OPTIONS,                       "IP_OPTIONS"                      },
@@ -258,9 +268,15 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_RTO_MIN,                      "TCP_RTO_MIN"                     },
 	{ TCP_RTO_MAX,                      "TCP_RTO_MAX"                     },
 	{ TCP_LINGER2,                      "TCP_LINGER2"                     },
+#ifdef TCP_KEEPIDLE
 	{ TCP_KEEPIDLE,                     "TCP_KEEPIDLE"                    },
+#endif
+#ifdef TCP_KEEPINTVL
 	{ TCP_KEEPINTVL,                    "TCP_KEEPINTVL"                   },
+#endif
+#ifdef TCP_KEEPCNT
 	{ TCP_KEEPCNT,                      "TCP_KEEPCNT"                     },
+#endif
 	{ TCP_INFO,                         "TCP_INFO"                        },
 	{ TCP_CONGESTION,                   "TCP_CONGESTION"                  },
 	{ TCP_MD5SIG,                       "TCP_MD5SIG"                      },
@@ -291,7 +307,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ O_TPDSAFE,                        "O_TPDSAFE"                       },
 	{ O_XPG4OPEN,                       "O_XPG4OPEN"                      },
 	{ O_CLOFORK,                        "O_CLOFORK"                       },
+#ifdef O_NOSIGPIPE
 	{ O_NOSIGPIPE,                      "O_NOSIGPIPE"                     },
+#endif
 	{ F_DUPFD,                          "F_DUPFD"                         },
 	{ F_DUPFD_CLOEXEC,                  "F_DUPFD_CLOEXEC"                 },
 	{ F_DUPFD_CLOFORK,                  "F_DUPFD_CLOFORK"                 },
@@ -330,10 +348,18 @@ struct int_symbol platform_symbols_table[] = {
 	{ F_UNSHARE,                        "F_UNSHARE"                       },
 	{ F_SHARE_NBMAND,                   "F_SHARE_NBMAND"                  },
 	{ F_BADFD,                          "F_BADFD"                         },
+#ifdef F_SETTPD
 	{ F_SETTPD,                         "F_SETTPD"                        },
+#endif
+#ifdef F_GETTPD
 	{ F_GETTPD,                         "F_GETTPD"                        },
+#endif
+#ifdef F_DUP3FD
 	{ F_DUP3FD,                         "F_DUP3FD"                        },
+#endif
+#ifdef F_CLOSEFROM
 	{ F_CLOSEFROM,                      "F_CLOSEFROM"                     },
+#endif
 	{ O_ACCMODE,                        "O_ACCMODE"                       },
 	{ FD_CLOEXEC,                       "FD_CLOEXEC"                      },
 	{ FD_CLOFORK,                       "FD_CLOFORK"                      },
@@ -375,8 +401,12 @@ struct int_symbol platform_symbols_table[] = {
 	{ MSG_DUPCTRL,                      "MSG_DUPCTRL"                     },
 	{ MSG_DONTWAIT,                     "MSG_DONTWAIT"                    },
 	{ MSG_NOTIFICATION,                 "MSG_NOTIFICATION"                },
+#ifdef MSG_NOSIGNAL
 	{ MSG_NOSIGNAL,                     "MSG_NOSIGNAL"                    },
+#endif
+#ifdef MSG_WAITFORONE
 	{ MSG_WAITFORONE,                   "MSG_WAITFORONE"                  },
+#endif
 	{ MSG_XPG4_2,                       "MSG_XPG4_2"                      },
 
 	/* /usr/include/sys/filio.h */
