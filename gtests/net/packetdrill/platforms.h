@@ -51,22 +51,12 @@
 #include <netinet/sctp.h>
 #include <sys/param.h>
 #include <paths.h>
-#if __FreeBSD_version >= 1001000
 #include <netinet/udplite.h>
-#endif
 #define USE_LIBPCAP             1
 #define TUN_DIR                 _PATH_DEV
 #define HAVE_TCP_INFO           1
-#if (__FreeBSD_version < 1000000 && __FreeBSD_version > 902000) || __FreeBSD_version > 1000028
 #define HAVE_FMEMOPEN           1
-#else
-#include "fmemopen.h"
-#endif
-#if (__FreeBSD_version > 902000)
 #define HAVE_OPEN_MEMSTREAM     1
-#else
-#include "open_memstream.h"
-#endif
 
 /*
  * Very old compilers like gcc 4.2.1 do not define the endian
