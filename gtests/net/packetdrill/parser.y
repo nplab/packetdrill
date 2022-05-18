@@ -578,7 +578,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> CS0 CS1 CS2 CS3 CS4 CS5 CS6 CS7
 %token <reserved> AF11 AF12 AF13 AF21 AF22 AF23 AF31 AF32 AF33 AF41 AF42 AF43
 %token <reserved> EF VOICE_ADMIT LE
-%token <reserved> IPV4 IPV6 ICMP SCTP UDP UDPLITE GRE MTU ID
+%token <reserved> IPV4 IPV6 ICMP TCP SCTP UDP UDPLITE GRE MTU ID
 %token <reserved> MPLS LABEL TC TTL
 %token <reserved> OPTION
 %token <reserved> AF_NAME AF_ARG
@@ -2652,6 +2652,13 @@ opt_icmp_echoed
 	$$.protocol		= IPPROTO_TCP;
 	$$.payload_bytes	= 0;
 	$$.start_sequence	= 0;
+	$$.udp_src_port		= 0;
+	$$.udp_dst_port		= 0;
+}
+| '[' TCP '(' INTEGER ')' ']'	{
+	$$.protocol		= IPPROTO_TCP;
+	$$.payload_bytes	= 0;
+	$$.start_sequence	= $4;
 	$$.udp_src_port		= 0;
 	$$.udp_dst_port		= 0;
 }

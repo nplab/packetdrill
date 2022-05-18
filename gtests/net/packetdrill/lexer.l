@@ -216,6 +216,7 @@ htonl				return _HTONL_;
 ipv4				return IPV4;
 ipv6				return IPV6;
 icmp				return ICMP;
+tcp				return TCP;
 sctp				return SCTP;
 udp				return UDP;
 udplite				return UDPLITE;
