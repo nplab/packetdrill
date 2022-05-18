@@ -1,3 +1,10 @@
 packetdrill-ext-libs := -lpthread -lrt -ldl -lsctp -static
 CFLAGS = -Wall -Werror -Wno-address-of-packed-member
+osrelease := $(shell cat /proc/sys/kernel/osrelease | tr '[:upper:]' '[:lower:]')
+# Define WSL1, iff osrelease contains Microsoft, but not WSL2
+ifneq (,$(findstring microsoft,$(osrelease)))
+ifeq (,$(findstring wsl2,$(osrelease)))
+CFLAGS += -DWSL1
+endif
+endif
 include Makefile.common

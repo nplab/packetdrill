@@ -506,7 +506,7 @@ void set_scheduling_priority(void)
  */
 void lock_memory(void)
 {
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(WSL1)
 	if (mlockall(MCL_CURRENT | MCL_FUTURE))
 		die_perror("mlockall(MCL_CURRENT | MCL_FUTURE)");
 #endif
