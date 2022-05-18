@@ -1,3 +1,6 @@
 packetdrill-ext-libs := -lpthread -lrt -ldl -lsctp -static
 CFLAGS = -Wall -Werror -Wno-address-of-packed-member
+ifneq (,$(findstring microsoft,$(shell cat /proc/sys/kernel/osrelease | tr '[:upper:]' '[:lower:]')))
+CFLAGS += -DWSL1
+endif
 include Makefile.common
