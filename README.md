@@ -56,5 +56,23 @@ or add
 vm.old_mlock=1
 ```
 to `/etc/sysctl.conf` and reboot.
+
+### Windows (Windows 11)
+packetdrill has no Windows support, but the packetdrill remote mode works inside the Windows Subsystem for Linux version 1 (WSL1). Note, WSL1 maps Linux system calls to Windows system calls, whereas WSL2 is basically a Linux VM. To test the Windows implementation, WSL1 is required.
+
+Follow the Linux instructions for installation.
+
+The packetdrill remote mode requires two hosts, the wire\_client (i.e., the system under test, Windows) and the wire\_server (i.e., the system that captures the packets, e.g. Ubuntu).
+
+To start the wire\_server with interface enp0s5f0 connecting to wire\_client.
+```
+sudo packetdrill --wire_server --wire_server_dev=enp0s5f0
+```
+To start the wire\_client on Windows, first start a cmd as Administrator and run wsl within it. Inside the wsl, run
+```
+sudo packetdrill --wire_client --wire_client_dev=eth1 --wire_server_ip=10.1.2.3 <script_path>
+```
+where eth1 is wsl's interface to the wire\_server and 10.1.2.3 is the real IP address of wire\_server's enp0s5f0 interface.
+
 ##  Continous Integration
 The status of continous integration testing is available from [Buildbot](http://buildbot.nplab.de:38010/#/console).
