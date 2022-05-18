@@ -28,6 +28,7 @@
 #include "types.h"
 #include "packet.h"
 #include "sctp.h"
+#include "config.h"
 
 struct sctp_byte_list_item {
 	struct sctp_byte_list_item *next;
@@ -405,6 +406,7 @@ sctp_chunk_list_free(struct sctp_chunk_list *list);
 #define FLAG_PARAMETER_LENGTH_NOCHECK                           0x00000002
 #define FLAG_PARAMETER_VALUE_NOCHECK                            0x00000004
 #define FLAG_PARAMETER_PARTIAL                                  0x00000008
+#define FLAG_PARAMETER_ADDRESS_IS_INDEX                         0x00000010
 
 struct sctp_parameter_list_item *
 sctp_parameter_list_item_new(struct sctp_parameter *parameter,
@@ -417,10 +419,10 @@ struct sctp_parameter_list_item *
 sctp_heartbeat_information_parameter_new(s64 len, struct sctp_byte_list *bytes);
 
 struct sctp_parameter_list_item *
-sctp_ipv4_address_parameter_new(struct in_addr *addr);
+sctp_ipv4_address_parameter_new(struct in_addr *addr, int addr_index);
 
 struct sctp_parameter_list_item *
-sctp_ipv6_address_parameter_new(struct in6_addr *addr);
+sctp_ipv6_address_parameter_new(struct in6_addr *addr, int addr_index);
 
 struct sctp_parameter_list_item *
 sctp_state_cookie_parameter_new(s64 len, u8 *cookie);
@@ -570,6 +572,7 @@ extern struct packet *new_sctp_packet(int address_family,
 				      struct sctp_chunk_list *chunk_list,
 				      u16 udp_src_port,
 				      u16 udp_dst_port,
+					  struct config *config,
 				      char **error);
 
 struct packet *

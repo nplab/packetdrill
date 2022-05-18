@@ -35,6 +35,7 @@
 #include "packet.h"
 #include "packet_socket.h"
 #include "packet_parser.h"
+#include "system.h"
 
 struct wire_server_netdev {
 	struct netdev netdev;		/* "inherit" from netdev */
@@ -76,7 +77,7 @@ void wire_server_netdev_init(const char *netdev_name)
 		 netdev_name);
 	/* For now, intentionally ignoring errors. TODO: clean up.
 	 */
-	system(command);
+	verbose_system(command);
 	free(command);
 
 	/* Block outgoing IPv6 "destination unreachable" messages, to
@@ -89,7 +90,7 @@ void wire_server_netdev_init(const char *netdev_name)
 		 "ip6tables -F OUTPUT; "
 		 "ip6tables -A OUTPUT -p icmpv6 --icmpv6-type 1 -j DROP");
 	/* For now, intentionally ignoring. TODO: clean up. */
-	system(command);
+	verbose_system(command);
 	free(command);
 #endif
 }
@@ -118,18 +119,20 @@ struct netdev *wire_server_netdev_new(
 	 * be using. TODO(ncardwell): make sure we don't delete our
 	 * primary host IP (the one matching our hostname).
 	 */
-	net_setup_dev_address(netdev->name,
-			      &config->live_gateway_ip,
-			      config->live_prefix_len,
-			      &config->live_gateway_linklocal_ip,
-			      &config->live_gateway_ip);
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		net_setup_dev_address(netdev->name,
+					&config->live_paths[i].gateway_ip,
+					config->live_paths[i].prefix_len,
+					&config->live_paths[i].gateway_linklocal_ip,
+					&config->live_paths[i].gateway_ip);
+	}
 
 	netdev->psock = packet_socket_new(netdev->name);
 
 	/* Make sure we only see packets from the machine under test. */
 	packet_socket_set_filter(netdev->psock,
 				 client_ether_addr,
-				 &config->live_local_ip);  /* client IP */
+				 config->live_paths, config->live_paths_cnt);
 
 	return (struct netdev *)netdev;
 }
@@ -140,9 +143,11 @@ static void wire_server_netdev_free(struct netdev *a_netdev)
 
 	DEBUGP("wire_server_netdev_free\n");
 
-	net_del_dev_address(netdev->name,
-			    &netdev->config->live_gateway_ip,
-			    netdev->config->live_prefix_len);
+	for (uint i = 0; i < netdev->config->live_paths_cnt; i++) {
+		net_del_dev_address(netdev->name,
+					&netdev->config->live_paths[i].gateway_ip,
+					netdev->config->live_paths[i].prefix_len);
+	}
 
 	free(netdev->name);
 	if (netdev->psock)

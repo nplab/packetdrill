@@ -32,4 +32,10 @@
  */
 extern int safe_system(const char *command, char **error);
 
+/* Execute the given command with system(3).
+ * If debug logging is active logs the command and result / error.
+ * On success, returns STATUS_OK. On error returns STATUS_ERR.
+ */
+extern int verbose_system(const char *command);
+
 #endif /* __SYSTEM_H__ */

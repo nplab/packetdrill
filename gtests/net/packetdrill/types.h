@@ -145,10 +145,16 @@ struct tos_spec {
 
 #define TTL_CHECK_NONE 255
 
+struct ip_path {
+	int src_index;
+	int dst_index;
+};
+
 struct ip_info {
 	struct tos_spec tos;
 	u32 flow_label;
 	u8 ttl;
+	struct ip_path ip_path;  /* Only used to pass informaition inside the parser */
 };
 
 /* Type to handle <integer>! for specifying absolute vs adjusted values.

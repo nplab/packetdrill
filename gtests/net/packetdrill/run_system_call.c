@@ -1885,15 +1885,37 @@ error_out:
  */
 static int run_syscall_bind(struct state *state,
 			    struct sockaddr *live_addr,
-			    socklen_t *live_addrlen, char **error)
+			    socklen_t *live_addrlen,
+				int live_addrcnt,
+				char **error)
 {
+	socklen_t usedlen = 0;
 	DEBUGP("run_syscall_bind\n");
 
-	/* Fill in the live address we want to bind to */
-	ip_to_sockaddr(&state->config->live_bind_ip,
-		       state->config->live_bind_port,
-		       live_addr, live_addrlen);
+	if (live_addrcnt > state->config->live_paths_cnt) {
+		asprintf(error, "requested more addresses (%d) than configured (%d)",
+			live_addrcnt, state->config->live_paths_cnt);
+		return STATUS_ERR;
+	}
 
+	for (int i = 0; i < live_addrcnt; i++) {
+		if (*live_addrlen < usedlen + sizeof(struct sockaddr)) {
+			asprintf(error, "not enough space (%u) in live_addr for %d addresses",
+				*live_addrlen, live_addrcnt);
+			return STATUS_ERR;
+		}
+
+		/* append i'th path address to live_addr  */
+		socklen_t addrlen = 0;
+		struct ip_address ip = state->config->ip_version == IP_VERSION_4_MAPPED_6 ?
+			ipv6_map_from_ipv4(state->config->live_paths[i].local_ip) :
+			state->config->live_paths[i].local_ip;
+		ip_to_sockaddr(&ip, state->config->live_bind_port,
+				(struct sockaddr *) (((char*)live_addr) + usedlen), &addrlen);
+		usedlen += addrlen;
+	}
+
+	*live_addrlen = usedlen;
 	return STATUS_OK;
 }
 
@@ -2000,7 +2022,7 @@ static int run_syscall_accept(struct state *state,
 
 	socket->live.remote.ip		= ip;
 	socket->live.remote.port	= port;
-	socket->live.local.ip		= state->config->live_local_ip;
+	socket->live.local.ip		= state->config->live_paths[0].local_ip;
 	socket->live.local.port		= htons(state->config->live_bind_port);
 
 	socket->live.fd			= live_accepted_fd;
@@ -2031,6 +2053,7 @@ static int run_syscall_connect(struct state *state,
 			       bool must_be_new_socket,
 			       struct sockaddr *live_addr,
 			       socklen_t *live_addrlen,
+			       int live_addrcnt,
 			       char **error)
 {
 	struct socket *socket	= NULL;
@@ -2039,13 +2062,36 @@ static int run_syscall_connect(struct state *state,
 	/* Fill in the live address we want to connect to */
 	if ((state->socket_under_test != NULL) &&
 	    (state->socket_under_test->state == SOCKET_PASSIVE_PACKET_RECEIVED)) {
+		if (live_addrcnt != 1) {
+			asprintf(error, "live_addrcnt(%d) != 1", live_addrcnt);
+			return STATUS_ERR;
+		}
 		ip_to_sockaddr(&state->socket_under_test->live.remote.ip,
 			       ntohs(state->socket_under_test->live.remote.port),
 			       live_addr, live_addrlen);
 	} else {
-		ip_to_sockaddr(&state->config->live_connect_ip,
-			       state->config->live_connect_port,
-			       live_addr, live_addrlen);
+		socklen_t usedlen = 0;
+		if (live_addrcnt > state->config->live_paths_cnt) {
+			asprintf(error, "live_addrcnt(%d) > live_paths_cnt(%d)", live_addrcnt, state->config->live_paths_cnt);
+			return STATUS_ERR;
+		}
+		for (int i = 0; i < live_addrcnt; i++) {
+			if (*live_addrlen < usedlen + sizeof(struct sockaddr_storage)) {
+				asprintf(error, "not enough space (%u) in live_addr for %d addresses", *live_addrlen, live_addrcnt);
+				return STATUS_ERR;
+			}
+
+			/* append i'th path address to live_addr  */
+			socklen_t addrlen = 0;
+			struct ip_address ip = state->config->ip_version == IP_VERSION_4_MAPPED_6 ?
+			ipv6_map_from_ipv4(state->config->live_paths[i].remote_ip) :
+			state->config->live_paths[i].remote_ip;
+			ip_to_sockaddr(&ip, state->config->live_connect_port,
+					(struct sockaddr *) (((char*)live_addr) + usedlen), &addrlen);
+			usedlen += addrlen;
+		}
+
+		*live_addrlen = usedlen;
 	}
 
 	socket = find_socket_by_script_fd(state, script_fd);
@@ -2064,7 +2110,7 @@ static int run_syscall_connect(struct state *state,
 	ip_reset(&socket->script.local.ip);
 	socket->script.remote.port		= 0;
 	socket->script.local.port		= 0;
-	socket->live.remote.ip   = state->config->live_remote_ip;
+	socket->live.remote.ip   = state->config->live_paths[0].remote_ip;
 	socket->live.remote.port = htons(state->config->live_connect_port);
 	DEBUGP("success: setting socket to state %d\n", socket->state);
 	return STATUS_OK;
@@ -2159,7 +2205,7 @@ static int syscall_bind(struct state *state, struct syscall_spec *syscall,
 {
 	int live_fd, script_fd, result;
 	struct sockaddr_storage live_addr;
-	socklen_t live_addrlen;
+	socklen_t live_addrlen = sizeof(live_addr);
 
 	if (check_arg_count(args, 3, error))
 		return STATUS_ERR;
@@ -2173,7 +2219,7 @@ static int syscall_bind(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	if (run_syscall_bind(
 		    state,
-		    (struct sockaddr *)&live_addr, &live_addrlen, error))
+		    (struct sockaddr *)&live_addr, &live_addrlen, 1, error))
 		return STATUS_ERR;
 
 	begin_syscall(state, syscall);
@@ -2275,7 +2321,7 @@ static int syscall_connect(struct state *state, struct syscall_spec *syscall,
 
 	if (run_syscall_connect(
 		    state, script_fd, true,
-		    (struct sockaddr *)&live_addr, &live_addrlen, error))
+		    (struct sockaddr *)&live_addr, &live_addrlen, 1, error))
 		return STATUS_ERR;
 
 	begin_syscall(state, syscall);
@@ -2606,7 +2652,7 @@ static int syscall_sendto(struct state *state, struct syscall_spec *syscall,
 
 	if (run_syscall_connect(
 		    state, script_fd, false,
-		    (struct sockaddr *)&live_addr, &live_addrlen, error))
+		    (struct sockaddr *)&live_addr, &live_addrlen, 1, error))
 		return STATUS_ERR;
 
 	buf = calloc(count, 1);
@@ -2650,7 +2696,7 @@ static int syscall_sendmsg(struct state *state, struct syscall_spec *syscall,
 
 	if ((msg->msg_name != NULL) &&
 	    run_syscall_connect(state, script_fd, false,
-				msg->msg_name, &msg->msg_namelen, error))
+				msg->msg_name, &msg->msg_namelen, 1, error))
 		goto error_out;
 	if (msg->msg_flags != 0) {
 		asprintf(error, "sendmsg ignores msg_flags field in msghdr");
@@ -6633,9 +6679,7 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 {
 #if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int live_fd, script_fd, addrcnt, flags, result;
-	struct sockaddr_storage addrs;
 	struct expression *addr_list;
-	socklen_t addrlen = sizeof(addrs);
 
 	if (check_arg_count(args, 4, error))
 		return STATUS_ERR;
@@ -6645,6 +6689,10 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	if (s32_arg(args, 2, &addrcnt, error))
 		return STATUS_ERR;
+	if (addrcnt > state->config->live_paths_cnt) {
+		asprintf(error, "there are not %d addresses specified", addrcnt);
+		return STATUS_ERR;
+	}
 	if (s32_arg(args, 3, &flags, error))
 		return STATUS_ERR;
 	addr_list = get_arg(args, 1, error);
@@ -6652,10 +6700,12 @@ static int syscall_sctp_bindx(struct state *state, struct syscall_spec *syscall,
 		return STATUS_ERR;
 	if (ellipsis_arg(addr_list->value.list, 0, error))
 		return STATUS_ERR;
-	//TODO: Modify run_syscall_bind for multihoming
+
+	struct sockaddr_storage addrs[addrcnt];
+	socklen_t addrlen = sizeof(addrs);
 	if (run_syscall_bind(
-		    state,
-		    (struct sockaddr *)&addrs, &addrlen, error))
+		    state, (struct sockaddr *)&addrs,
+			&addrlen, addrcnt, error))
 		return STATUS_ERR;
 
 	begin_syscall(state, syscall);
@@ -6678,9 +6728,7 @@ static int syscall_sctp_connectx(struct state *state, struct syscall_spec *sysca
 {
 #if defined(__FreeBSD__) || defined(linux) || (defined(__APPLE__) && defined(HAVE_SCTP)) || defined(__SunOS_5_11)
 	int live_fd, script_fd, addrcnt, result;
-	struct sockaddr_storage live_addr;
 	struct expression *addrs_expr, *assoc_expr;
-	socklen_t live_addrlen = sizeof(live_addr);
 	sctp_assoc_t live_associd;
 
 	if (check_arg_count(args, 4, error))
@@ -6696,10 +6744,13 @@ static int syscall_sctp_connectx(struct state *state, struct syscall_spec *sysca
 		return STATUS_ERR;
 	if (s32_arg(args, 2, &addrcnt, error))
 		return STATUS_ERR;
-	//TODO: modify for Multihoming
+
+	struct sockaddr_storage live_addr[addrcnt];
+	socklen_t live_addrlen = sizeof(live_addr);
+
 	if (run_syscall_connect(
 		    state, script_fd, true,
-		    (struct sockaddr *)&live_addr, &live_addrlen, error))
+		    (struct sockaddr *)&live_addr, &live_addrlen, addrcnt, error))
 		return STATUS_ERR;
 
 	begin_syscall(state, syscall);

@@ -162,6 +162,8 @@ static struct packet *packet_copy_with_headroom(struct packet *old_packet,
 
 	packet->ip_bytes	= old_packet->ip_bytes;
 	packet->direction	= old_packet->direction;
+	packet->ip_src_index = old_packet->ip_src_index;
+	packet->ip_dst_index = old_packet->ip_dst_index;
 	packet->time_usecs	= old_packet->time_usecs;
 	packet->flags		= old_packet->flags;
 	packet->tos_chk		= old_packet->tos_chk;
@@ -281,6 +283,9 @@ struct packet *packet_encapsulate(struct packet *outer, struct packet *inner)
 	packet_finish_encapsulation_headers(packet);
 
 	packet->ip_bytes = outer->ip_bytes + inner->ip_bytes;
+
+	packet->ip_src_index = inner->ip_src_index;
+	packet->ip_dst_index = inner->ip_dst_index;
 
 	return packet;
 }

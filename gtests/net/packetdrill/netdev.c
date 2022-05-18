@@ -59,6 +59,7 @@
 #include "packet.h"
 #include "packet_parser.h"
 #include "packet_socket.h"
+#include "system.h"
 #include "tcp.h"
 #include "tun.h"
 
@@ -92,9 +93,6 @@ static void cleanup_old_device(struct config *config,
 {
 #if defined(__NetBSD__)
 	char *cleanup_command = NULL;
-#ifdef DEBUG
-	int result;
-#endif
 
 	if ((config->tun_device == NULL) || config->persistent_tun_device) {
 		return;
@@ -102,13 +100,7 @@ static void cleanup_old_device(struct config *config,
 	asprintf(&cleanup_command,
 		 "/sbin/ifconfig %s down delete > /dev/null 2>&1",
 		 config->tun_device);
-	DEBUGP("running: '%s'\n", cleanup_command);
-#ifdef DEBUG
-	result = system(cleanup_command);
-#else
-	system(cleanup_command);
-#endif
-	DEBUGP("result: %d\n", result);
+	verbose_system(cleanup_command);
 	free(cleanup_command);
 #endif  /* defined(__NetBSD__) */
 }
@@ -119,9 +111,11 @@ static void cleanup_old_device(struct config *config,
 static void check_remote_address(struct config *config,
 				 struct local_netdev *netdev)
 {
-	if (is_ip_local(&config->live_remote_ip)) {
-		die("error: live_remote_ip %s is not remote\n",
-		    config->live_remote_ip_string);
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		if (is_ip_local(&config->live_paths[i].remote_ip)) {
+			die("error: remote_ip %s of path %d is not remote\n",
+				config->live_paths[i].remote_ip_string, i);
+		}
 	}
 }
 
@@ -166,8 +160,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	DEBUGP("utun index: '%d'\n", netdev->index);
 	if (config->mtu != TUN_DRIVER_DEFAULT_MTU) {
 		asprintf(&command, "ifconfig %s mtu %d", netdev->name, config->mtu);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if(verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 	}
 }
@@ -199,7 +193,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	tun_fd = open(tun_path, O_RDWR);
 #if defined(__FreeBSD__)
 	if ((tun_fd < 0) && (errno == ENOENT)) {
-		if (system("kldload -q if_tun") < 0) {
+		if (verbose_system("kldload -q if_tun") != STATUS_OK) {
 			die_perror("kldload -q if_tun");
 		}
 		tun_fd = open(tun_path, O_RDWR);
@@ -275,8 +269,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		char *command;
 		asprintf(&command, "ethtool -s %s speed %u autoneg off",
 			 netdev->name, config->speed);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if(verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 
 		/* Need to bring interface down and up so the interface speed
@@ -284,8 +278,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		 * used by TCP's cwnd bound. */
 		asprintf(&command, "ifconfig %s down; sleep 1; ifconfig %s up; "
 			      "sleep 1", netdev->name, netdev->name);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if(verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 	}
 
@@ -293,8 +287,8 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		char *command;
 		asprintf(&command, "ifconfig %s mtu %d",
 			 netdev->name, config->mtu);
-		if (system(command) < 0)
-			die("Error executing %s\n", command);
+		if(verbose_system(command) != STATUS_OK)
+			die("");
 		free(command);
 	}
 #endif
@@ -350,39 +344,40 @@ static void route_traffic_to_device(struct config *config,
 				    struct local_netdev *netdev)
 {
 	char *route_command = NULL;
+
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
+
 #if defined(linux)
-	asprintf(&route_command,
-		 "ip route del %s > /dev/null 2>&1 ; "
-		 "ip route add %s dev %s via %s > /dev/null 2>&1",
-		 config->live_remote_prefix_string,
-		 config->live_remote_prefix_string,
-		 netdev->name,
-		 config->live_gateway_ip_string);
+		asprintf(&route_command,
+			"ip route del %s > /dev/null 2>&1 ; "
+			"ip route add %s dev %s via %s > /dev/null 2>&1",
+			path->remote_prefix_string,
+			path->remote_prefix_string,
+			netdev->name,
+			path->gateway_ip_string);
 #else
-	if (config->wire_protocol == AF_INET) {
-		asprintf(&route_command,
-			 "route delete %s > /dev/null 2>&1 ; "
-			 "route add %s %s > /dev/null",
-			 config->live_remote_prefix_string,
-			 config->live_remote_prefix_string,
-			 config->live_gateway_ip_string);
-	} else if (config->wire_protocol == AF_INET6) {
-		asprintf(&route_command,
-			 "route delete -inet6 %s > /dev/null 2>&1 ; "
-			 "route add -inet6 %s %s > /dev/null",
-			 config->live_remote_prefix_string,
-			 config->live_remote_prefix_string,
-			 config->live_gateway_ip_string);
-	} else {
-		assert(!"bad wire protocol");
-	}
+		if (config->wire_protocol == AF_INET) {
+			asprintf(&route_command,
+				"route delete %s > /dev/null 2>&1 ; "
+				"route add %s %s > /dev/null",
+				path->remote_prefix_string,
+				path->remote_prefix_string,
+				path->gateway_ip_string);
+		} else if (config->wire_protocol == AF_INET6) {
+			asprintf(&route_command,
+				"route delete -inet6 %s > /dev/null 2>&1 ; "
+				"route add -inet6 %s %s > /dev/null",
+				path->remote_prefix_string,
+				path->remote_prefix_string,
+				path->gateway_ip_string);
+		} else {
+			assert(!"bad wire protocol");
+		}
 #endif /* defined(linux) */
-	int result = system(route_command);
-	if ((result == -1) || (WEXITSTATUS(result) != 0)) {
-		die("error executing route command '%s'\n",
-		    route_command);
+		verbose_system(route_command);
+		free(route_command);
 	}
-	free(route_command);
 }
 
 struct netdev *local_netdev_new(struct config *config)
@@ -400,11 +395,14 @@ struct netdev *local_netdev_new(struct config *config)
 	bring_up_device(netdev);
 #endif
 
-	net_setup_dev_address(netdev->name,
-			      &config->live_local_ip,
-			      config->live_prefix_len,
-			      &config->live_local_linklocal_ip,
-			      &config->live_gateway_ip);
+	for (uint i = 0; i < config->live_paths_cnt; i++) {
+		struct path *path = &config->live_paths[i];
+		net_setup_dev_address(netdev->name,
+					&path->local_ip,
+					path->prefix_len,
+					&path->local_linklocal_ip,
+					&path->gateway_ip);
+	}
 
 	route_traffic_to_device(config, netdev);
 	netdev->psock = packet_socket_new(netdev->name);
@@ -412,7 +410,7 @@ struct netdev *local_netdev_new(struct config *config)
 	/* Make sure we only see packets from the machine under test. */
 	packet_socket_set_filter(netdev->psock,
 				 NULL,
-				 &config->live_local_ip);  /* client IP */
+				 config->live_paths, config->live_paths_cnt);
 #endif /* !defined(linux) */
 
 	return (struct netdev *)netdev;
@@ -433,7 +431,7 @@ static void local_netdev_free(struct netdev *a_netdev)
 			asprintf(&cleanup_command,
 			         "/sbin/ifconfig %s destroy > /dev/null 2>&1",
 			         netdev->name);
-			system(cleanup_command);
+			verbose_system(cleanup_command);
 			free(cleanup_command);
 		}
 #endif
