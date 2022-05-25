@@ -2856,138 +2856,125 @@ hlim
 
 ip_info
 : tos_spec	{
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
-	$$.flow_label = 0;
-	$$.ttl = 0;
+	$$ = ip_info_new();
+	$$.tos = $1;
 }
 | ttl {
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
-	$$.flow_label = 0;
+	$$ = ip_info_new();
 	$$.ttl = $1;
 }
 | tos_spec ',' ttl {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
-	$$.flow_label = 0;
+	$$ = ip_info_new();
+	$$.tos = $1;
 	$$.ttl = $3;
 }
 | flow_label	{
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
+	$$ = ip_info_new();
 	$$.flow_label = $1;
-	$$.ttl = 0;
 }
 | hlim {
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
-	$$.flow_label = 0;
+	$$ = ip_info_new();
 	$$.ttl = $1;
 }
 | tos_spec ',' flow_label {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
+	$$ = ip_info_new();
+	$$.tos = $1;
 	$$.flow_label = $3;
-	$$.ttl = 0;
 }
 | tos_spec ',' hlim {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
-	$$.flow_label = 0;
+	$$ = ip_info_new();
+	$$.tos = $1;
 	$$.ttl = $3;
 }
 | flow_label ',' hlim {
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
+	$$ = ip_info_new();
 	$$.flow_label = $1;
 	$$.ttl = $3;
 }
 | tos_spec ',' flow_label ',' hlim {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
+	$$ = ip_info_new();
+	$$.tos = $1;
 	$$.flow_label = $3;
 	$$.ttl = $5;
 }
 | dscp	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP;
 	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = 0;
 }
 | dscp ',' ttl	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP;
 	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
 	$$.ttl = $3;
 }
 | dscp ',' hlim	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP;
 	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
 	$$.ttl = $3;
 }
 | dscp ',' flow_label	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP;
 	$$.tos.value = $1 << 2;
 	$$.flow_label = $3;
-	$$.ttl = 0;
 }
 | dscp ',' flow_label ',' hlim	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP;
 	$$.tos.value = $1 << 2;
 	$$.flow_label = $3;
 	$$.ttl = $5;
 }
 | dscp ',' ECN ip_ecn	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_TOS;
 	$$.tos.value = $1 << 2 | $4;
-	$$.flow_label = 0;
-	$$.ttl = 0;
 }
 | dscp ',' ECN ip_ecn ',' ttl	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_TOS;
 	$$.tos.value = $1 << 2 | $4;
-	$$.flow_label = 0;
 	$$.ttl = $6;
 }
 | dscp ',' ECN ip_ecn ',' hlim	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_TOS;
 	$$.tos.value = $1 << 2 | $4;
-	$$.flow_label = 0;
 	$$.ttl = $6;
 }
 | dscp ',' ECN ip_ecn ',' flow_label	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_TOS;
 	$$.tos.value = $1 << 2 | $4;
 	$$.flow_label = $6;
-	$$.ttl = 0;
 }
 | dscp ',' ECN ECT01	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
 	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = 0;
 }
 | dscp ',' ECN ECT01 ',' ttl	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
 	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
 	$$.ttl = $6;
 }
 | dscp ',' ECN ECT01 ',' hlim	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
 	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
 	$$.ttl = $6;
 }
 | dscp ',' ECN ECT01 ',' flow_label	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
 	$$.tos.value = $1 << 2;
 	$$.flow_label = $6;
-	$$.ttl = 0;
 }
 | dscp ',' ECN ECT01 ',' flow_label ',' hlim	{
+	$$ = ip_info_new();
 	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
 	$$.tos.value = $1 << 2;
 	$$.flow_label = $6;
@@ -2997,10 +2984,7 @@ ip_info
 
 opt_ip_info
 :			{
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
-	$$.flow_label = 0;
-	$$.ttl = 0;
+	$$ = ip_info_new();
 }
 | '(' ip_info ')'	{ $$ = $2; }
 | '[' ip_info ']'	{ $$ = $2; }

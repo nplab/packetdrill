@@ -151,6 +151,17 @@ struct ip_info {
 	u8 ttl;
 };
 
+static inline struct ip_info ip_info_new() {
+	struct ip_info info;
+
+	info.tos.check = TOS_CHECK_NONE;
+	info.tos.value = 0;
+	info.flow_label = 0;
+	info.ttl = 0;
+
+	return info;
+}
+
 /* Type to handle <integer>! for specifying absolute vs adjusted values.
  * The <integer>! means absolute integer. Just a plain <integer> is relative.
  */
