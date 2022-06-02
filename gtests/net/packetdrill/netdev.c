@@ -159,7 +159,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	if (config->mtu != TUN_DRIVER_DEFAULT_MTU) {
 		asprintf(&command, "ifconfig %s mtu %d", netdev->name, config->mtu);
 		if (verbose_system(command) != STATUS_OK)
-			die("");
+			die("Error executing %s\n", command);
 		free(command);
 	}
 }
@@ -192,7 +192,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 #if defined(__FreeBSD__)
 	if ((tun_fd < 0) && (errno == ENOENT)) {
 		if (verbose_system("kldload -q if_tun") != STATUS_OK) {
-			die_perror("");
+			die_perror("kldload -q if_tun");
 		}
 		tun_fd = open(tun_path, O_RDWR);
 	}
@@ -268,7 +268,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		asprintf(&command, "ethtool -s %s speed %u autoneg off",
 			 netdev->name, config->speed);
 		if (verbose_system(command) != STATUS_OK)
-			die("");
+            die("Error executing %s\n", command);
 		free(command);
 
 		/* Need to bring interface down and up so the interface speed
@@ -277,7 +277,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		asprintf(&command, "ifconfig %s down; sleep 1; ifconfig %s up; "
 			      "sleep 1", netdev->name, netdev->name);
 		if(verbose_system(command) != STATUS_OK)
-			die("");
+			die("Error executing %s\n", command);
 		free(command);
 	}
 
@@ -286,7 +286,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		asprintf(&command, "ifconfig %s mtu %d",
 			 netdev->name, config->mtu);
 		if(verbose_system(command) != STATUS_OK)
-			die("");
+            die("Error executing route command '%s'\n", command);
 		free(command);
 	}
 #endif
@@ -369,7 +369,8 @@ static void route_traffic_to_device(struct config *config,
 		assert(!"bad wire protocol");
 	}
 #endif /* defined(linux) */
-	verbose_system(route_command);
+    if(verbose_system(command) != STATUS_OK)
+        die("Error executing %s\n", command);
 	free(route_command);
 }
 
