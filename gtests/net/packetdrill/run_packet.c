@@ -195,6 +195,8 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 	socket->script.remote		= tuple.src;
 	socket->script.local		= tuple.dst;
 	socket->script.fd		= -1;
+	if (packet->tcp)
+		socket->script.remote_isn = ntohl(packet->tcp->seq);
 
 	/* Set up the live info for this socket based
 	 * on the script packet and our overall config.
@@ -204,6 +206,9 @@ static struct socket *setup_new_child_socket(struct state *state, const struct p
 	socket->live.local.ip		= config->live_local_ip;
 	socket->live.local.port		= htons(config->live_bind_port);
 	socket->live.fd			= -1;
+	if (packet->tcp)
+		socket->live.remote_isn = ntohl(packet->tcp->seq);
+
 	return socket;
 }
 
