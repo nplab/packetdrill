@@ -1,5 +1,5 @@
 packetdrill-ext-libs := -lpthread -lrt -ldl -lsctp -static
-CFLAGS = -Wall -Werror -Wno-address-of-packed-member
+CFLAGS += -Wall -Werror -Wno-address-of-packed-member
 osrelease := $(shell cat /proc/sys/kernel/osrelease | tr '[:upper:]' '[:lower:]')
 # Define WSL1, iff osrelease contains Microsoft, but not WSL2
 ifneq (,$(findstring microsoft,$(osrelease)))
