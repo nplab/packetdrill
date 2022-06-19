@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int debug_logging = 0;
+bool debug_logging = false;
 
 static void test_parse_sctp_ipv4_packet(void)
 {

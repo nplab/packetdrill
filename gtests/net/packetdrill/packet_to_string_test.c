@@ -31,7 +31,7 @@
 #include "packet_parser.h"
 #include "logging.h"
 
-int debug_logging = 0;
+bool debug_logging = false;
 #define DEBUG_LOGGING 1
 
 static void test_sctp_ipv4_packet_to_string(void)

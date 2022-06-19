@@ -32,7 +32,7 @@
 #include "tcp.h"
 #include "udplite.h"
 
-int debug_logging=0;
+bool debug_logging = false;
 
 static void test_tcp_udp_v4_checksum(void)
 {

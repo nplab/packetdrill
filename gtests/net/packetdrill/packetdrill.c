@@ -41,7 +41,7 @@
 #include "system.h"
 #include "wire_server.h"
 
-int debug_logging=0;
+bool debug_logging = false;
 
 static void run_init_scripts(struct config *config)
 {

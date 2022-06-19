@@ -28,7 +28,7 @@
 #include "types.h"
 
 /* Enable this to get debug logging. */
-extern int debug_logging;
+extern bool debug_logging;
 
 /* Use a gcc variadic macro to conditionally compile debug printing. */
 #if defined(DEBUG)
