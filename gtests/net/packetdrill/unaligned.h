@@ -43,6 +43,32 @@ static inline void __put_unaligned_be32(u32 val, u8 *p)
 	*p++ = val;
 }
 
+static inline u32 __get_unaligned_be24(const u8 *p)
+{
+	return (u32)p[0] << 16 |
+	       (u32)p[1] <<  8 |
+	       (u32)p[2];
+}
+
+static inline void __put_unaligned_be24(u32 val, u8 *p)
+{
+	*p++ = val >> 16;
+	*p++ = val >> 8;
+	*p++ = val;
+}
+
+static inline u16 __get_unaligned_be16(const u8 *p)
+{
+	return (u32)p[0] <<  8 |
+	       (u32)p[1];
+}
+
+static inline void __put_unaligned_be16(u16 val, u8 *p)
+{
+	*p++ = val >> 8;
+	*p++ = val;
+}
+
 static inline u32 get_unaligned_be32(const void *p)
 {
 	return __get_unaligned_be32((const u8 *)p);
@@ -51,6 +77,26 @@ static inline u32 get_unaligned_be32(const void *p)
 static inline void put_unaligned_be32(u32 val, void *p)
 {
 	__put_unaligned_be32(val, p);
+}
+
+static inline u32 get_unaligned_be24(const void *p)
+{
+	return __get_unaligned_be24((const u8 *)p);
+}
+
+static inline void put_unaligned_be24(u32 val, void *p)
+{
+	__put_unaligned_be24(val, p);
+}
+
+static inline u16 get_unaligned_be16(const void *p)
+{
+	return __get_unaligned_be16((const u8 *)p);
+}
+
+static inline void put_unaligned_be16(u16 val, void *p)
+{
+	__put_unaligned_be16(val, p);
 }
 
 #endif /* __UNALIGNED_H__ */

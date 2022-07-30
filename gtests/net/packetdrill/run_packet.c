@@ -589,12 +589,12 @@ static int offset_sack_blocks(struct packet *packet,
 			int i = 0;
 			for (i = 0; i < num_blocks; ++i) {
 				u32 val;
-				val = ntohl(option->data.sack.block[i].left);
+				val = get_unaligned_be32(&option->data.sack.block[i].left);
 				val += ack_offset;
-				option->data.sack.block[i].left = htonl(val);
-				val = ntohl(option->data.sack.block[i].right);
+				put_unaligned_be32(val, &option->data.sack.block[i].left);
+				val = get_unaligned_be32(&option->data.sack.block[i].right);
 				val += ack_offset;
-				option->data.sack.block[i].right = htonl(val);
+				put_unaligned_be32(val, &option->data.sack.block[i].right);
 			}
 		}
 	}

@@ -94,7 +94,7 @@ int tcp_options_to_string(struct packet *packet,
 			break;
 
 		case TCPOPT_MAXSEG:
-			fprintf(s, "mss %u", ntohs(option->data.mss.bytes));
+			fprintf(s, "mss %u", get_unaligned_be16(&option->data.mss.bytes));
 			break;
 
 		case TCPOPT_WINDOW:
@@ -117,15 +117,15 @@ int tcp_options_to_string(struct packet *packet,
 				if (i > 0)
 					fputc(' ', s);
 				fprintf(s, "%u:%u",
-					ntohl(option->data.sack.block[i].left),
-					ntohl(option->data.sack.block[i].right));
+					get_unaligned_be32(&option->data.sack.block[i].left),
+					get_unaligned_be32(&option->data.sack.block[i].right));
 			}
 			break;
 
 		case TCPOPT_TIMESTAMP:
 			fprintf(s, "TS val %u ecr %u",
-				ntohl(option->data.time_stamp.val),
-				ntohl(option->data.time_stamp.ecr));
+				get_unaligned_be32(&option->data.time_stamp.val),
+				get_unaligned_be32(&option->data.time_stamp.ecr));
 			break;
 
 		case TCPOPT_FASTOPEN:
