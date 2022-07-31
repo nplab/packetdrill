@@ -3117,18 +3117,18 @@ tcp_fast_open_cookie
 ;
 
 opt_ee0b
-:			{ $$ = -1 }
-| EE0B INTEGER		{ $$ = $2 }
+:			{ $$ = -1; }
+| EE0B INTEGER		{ $$ = $2; }
 ;
 
 opt_ee1b
-:			{ $$ = -1 }
-| EE1B INTEGER		{ $$ = $2 }
+:			{ $$ = -1; }
+| EE1B INTEGER		{ $$ = $2; }
 ;
 
 opt_eceb
-:			{ $$ = -1 }
-| ECEB INTEGER		{ $$ = $2 }
+:			{ $$ = -1; }
+| ECEB INTEGER		{ $$ = $2; }
 ;
 
 tcp_option
