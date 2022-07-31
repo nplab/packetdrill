@@ -44,6 +44,8 @@ struct tcp_option *tcp_option_new(u8 kind, u8 length)
 struct tcp_option *tcp_exp_option_new(u8 kind, u8 length, u16 magic)
 {
 	struct tcp_option *option = calloc(1, sizeof(struct tcp_option));
+
+	assert(kind == TCPOPT_EXP);
 	option->kind = kind;
 	option->length = length;
 	option->data.exp.magic = htons(magic);
