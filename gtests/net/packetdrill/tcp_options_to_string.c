@@ -109,7 +109,7 @@ static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
 		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option),
 		        acc_ecn_get_eceb(option),
 		        1 - order,
-		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option));
+		        order == 0 ? acc_ecn_get_ee1b(option) : acc_ecn_get_ee0b(option));
 		break;
 	}
 	return STATUS_OK;
