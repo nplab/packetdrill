@@ -68,6 +68,53 @@ static void tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *optio
 		fprintf(s, "%02x", option->data.exp.contents.fast_open.cookie[i]);
 }
 
+static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
+{
+	unsigned int order;
+
+	assert(option->kind == TCPOPT_ACC_ECN_0 ||
+	       option->kind == TCPOPT_ACC_ECN_1);
+	if ((option->length != ACC_ECN_ZERO_COUNTER_LEN) &&
+	    (option->length != ACC_ECN_ONE_COUNTER_LEN) &&
+	    (option->length != ACC_ECN_TWO_COUNTER_LEN) &&
+	    (option->length != ACC_ECN_THREE_COUNTER_LEN)) {
+		return STATUS_ERR;
+	}
+	switch (option->kind) {
+	case TCPOPT_ACC_ECN_0:
+		order = 0;
+		break;
+	case TCPOPT_ACC_ECN_1:
+		order = 1;
+		break;
+	}
+	switch (option->length) {
+	case ACC_ECN_ZERO_COUNTER_LEN:
+		fprintf(s, "AccECN%u", order);
+		break;
+	case ACC_ECN_ONE_COUNTER_LEN:
+		fprintf(s, "AccECN%u EE%uB %u",
+		        order, order,
+		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option));
+		break;
+	case ACC_ECN_TWO_COUNTER_LEN:
+		fprintf(s, "AccECN%u EE%uB %u ECEB %u",
+		        order, order,
+		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option),
+		        acc_ecn_get_eceb(option));
+		break;
+	case ACC_ECN_THREE_COUNTER_LEN:
+		fprintf(s, "AccECN%u EE%uB %u ECEB %u EE%uB %u",
+		        order, order,
+		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option),
+		        acc_ecn_get_eceb(option),
+		        1 - order,
+		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option));
+		break;
+	}
+	return STATUS_OK;
+}
+
 int tcp_options_to_string(struct packet *packet,
 				  char **ascii_string, char **error)
 {
@@ -137,64 +184,11 @@ int tcp_options_to_string(struct packet *packet,
 			break;
 
 		case TCPOPT_ACC_ECN_0:
-			if ((option->length != ACC_ECN_ZERO_COUNTER_LEN) &&
-			    (option->length != ACC_ECN_ONE_COUNTER_LEN) &&
-			    (option->length != ACC_ECN_TWO_COUNTER_LEN) &&
-			    (option->length != ACC_ECN_THREE_COUNTER_LEN)) {
-				asprintf(error, "AccECN0: invalid length: %u",
-				         option->length);
-				goto out;
-			}
-			switch (option->length) {
-			case ACC_ECN_ZERO_COUNTER_LEN:
-				fputs("AccECN0", s);
-				break;
-			case ACC_ECN_ONE_COUNTER_LEN:
-				fprintf(s, "AccECN0 EE0B %u",
-				        acc_ecn_get_ee0b(option));
-				break;
-			case ACC_ECN_TWO_COUNTER_LEN:
-				fprintf(s, "AccECN0 EE0B %u ECEB %u",
-				        acc_ecn_get_ee0b(option),
-				        acc_ecn_get_eceb(option));
-				break;
-			case ACC_ECN_THREE_COUNTER_LEN:
-				fprintf(s, "AccECN0 EE0B %u ECEB %u EE1B %u",
-				        acc_ecn_get_ee0b(option),
-				        acc_ecn_get_eceb(option),
-				        acc_ecn_get_ee1b(option));
-				break;
-			}
-			break;
-
 		case TCPOPT_ACC_ECN_1:
-			if ((option->length != ACC_ECN_ZERO_COUNTER_LEN) &&
-			    (option->length != ACC_ECN_ONE_COUNTER_LEN) &&
-			    (option->length != ACC_ECN_TWO_COUNTER_LEN) &&
-			    (option->length != ACC_ECN_THREE_COUNTER_LEN)) {
-				asprintf(error, "AccECN1: invalid length: %u",
+			if (tcp_acc_ecn_option_to_string(s, option)) {
+				asprintf(error, "AccECN invalid length: %u",
 				         option->length);
 				goto out;
-			}
-			switch (option->length) {
-			case ACC_ECN_ZERO_COUNTER_LEN:
-				fputs("AccECN1", s);
-				break;
-			case ACC_ECN_ONE_COUNTER_LEN:
-				fprintf(s, "AccECN1 EE1B %u",
-				        acc_ecn_get_ee1b(option));
-				break;
-			case ACC_ECN_TWO_COUNTER_LEN:
-				fprintf(s, "AccECN1 EE1B %u ECEB %u",
-				        acc_ecn_get_ee1b(option),
-				        acc_ecn_get_eceb(option));
-				break;
-			case ACC_ECN_THREE_COUNTER_LEN:
-				fprintf(s, "AccECN1 EE1B %u ECEB %u EE0B %u",
-				        acc_ecn_get_ee1b(option),
-				        acc_ecn_get_eceb(option),
-				        acc_ecn_get_ee0b(option));
-				break;
 			}
 			break;
 
