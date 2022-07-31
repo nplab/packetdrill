@@ -215,6 +215,7 @@ int tcp_options_to_string(struct packet *packet,
 				         get_unaligned_be16(&option->data.exp.magic));
 				goto out;
 			}
+			break;
 
 		default:
 			asprintf(error, "unexpected TCP option kind: %u",
