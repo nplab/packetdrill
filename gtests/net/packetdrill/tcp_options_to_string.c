@@ -28,6 +28,7 @@
 
 static int tcp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
 {
+	assert(option->kind == TCPOPT_FASTOPEN);
 	if (option->length < TCPOLEN_FASTOPEN_BASE) {
 		return STATUS_ERR;
 	}
@@ -49,23 +50,22 @@ static int tcp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
  * then print the TFO option and return STATUS_OK. Otherwise, return
  * STATUS_ERR.
  */
-static int tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
+static void tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
 {
-	if ((option->length < TCPOLEN_EXP_FASTOPEN_BASE) ||
-	    (ntohs(option->data.exp_fast_open.magic) != TCPOPT_FASTOPEN_MAGIC))
-		return STATUS_ERR;
+	int cookie_bytes, i;
+
+	assert(option->kind == TCPOPT_EXP);
+	assert(option->length >= TCPOLEN_EXP_FASTOPEN_BASE);
+	assert(option->data.exp.magic == htons(TCPOPT_FASTOPEN_MAGIC));
 
 	fputs("EXP-FO", s);
-	int cookie_bytes = option->length - TCPOLEN_EXP_FASTOPEN_BASE;
-	assert(cookie_bytes >= 0);
+	cookie_bytes = option->length - TCPOLEN_EXP_FASTOPEN_BASE;
 	assert(cookie_bytes <= MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES);
 	if (cookie_bytes > 0) {
 		fputs(" ", s);
 	}
-	int i;
 	for (i = 0; i < cookie_bytes; ++i)
-		fprintf(s, "%02x", option->data.exp_fast_open.cookie[i]);
-	return STATUS_OK;
+		fprintf(s, "%02x", option->data.exp.contents.fast_open.cookie[i]);
 }
 
 int tcp_options_to_string(struct packet *packet,
@@ -199,12 +199,22 @@ int tcp_options_to_string(struct packet *packet,
 			break;
 
 		case TCPOPT_EXP:
-			if (tcp_exp_fast_open_option_to_string(s, option)) {
+			if (option->length < MIN_EXP_OPTION_LEN) {
 				asprintf(error,
-					 "unknown experimental option");
+				         "experimental option too short: %u",
+				         option->length);
 				goto out;
 			}
-			break;
+			switch (get_unaligned_be16(&option->data.exp.magic)) {
+			case TCPOPT_FASTOPEN_MAGIC:
+				tcp_exp_fast_open_option_to_string(s, option);
+				break;
+			default:
+				asprintf(error,
+				         "unexpected experimental option magic: %u",
+				         get_unaligned_be16(&option->data.exp.magic));
+				goto out;
+			}
 
 		default:
 			asprintf(error, "unexpected TCP option kind: %u",

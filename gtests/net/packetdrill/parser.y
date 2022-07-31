@@ -456,16 +456,15 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 	}
 	u8 option_bytes = TCPOLEN_EXP_FASTOPEN_BASE + cookie_bytes;
 	struct tcp_option *option;
-	option = tcp_option_new(TCPOPT_EXP, option_bytes);
-	option->data.exp_fast_open.magic = htons(TCPOPT_FASTOPEN_MAGIC);
+	option = tcp_exp_option_new(TCPOPT_EXP, option_bytes, TCPOPT_FASTOPEN_MAGIC);
 	int parsed_bytes = 0;
 	/* Parse cookie. This should be an ASCII hex string
 	 * representing an even number of bytes (4-16 bytes). But we
 	 * do not enforce this, since we want to allow test cases that
 	 * supply invalid cookies.
 	 */
-	if (parse_hex_string(cookie_string, option->data.exp_fast_open.cookie,
-			     sizeof(option->data.exp_fast_open.cookie),
+	if (parse_hex_string(cookie_string, option->data.exp.contents.fast_open.cookie,
+			     sizeof(option->data.exp.contents.fast_open.cookie),
 			     &parsed_bytes)) {
 		free(option);
 		asprintf(error,

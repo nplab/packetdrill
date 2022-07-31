@@ -66,6 +66,8 @@
 #define ACC_ECN_SECOND_COUNTER_OFFSET	3
 #define ACC_ECN_THIRD_COUNTER_OFFSET	6
 
+#define MIN_EXP_OPTION_LEN		4
+
 /* Represents a list of TCP options in their wire format. */
 struct tcp_options {
 	u8 data[MAX_TCP_OPTION_BYTES];	/* The options data, in wire format */
@@ -101,15 +103,6 @@ struct tcp_option {
 			struct sack_block block[4];
 		} sack;
 		struct {
-			u16 magic;	/* must be TCPOPT_FASTOPEN_MAGIC */
-			/* The fast open chookie should be 4-16 bytes
-			 * of cookie, multiple of 2 bytes, but we
-			 * allow for larger sizes, so we can test what
-			 * stacks do with illegal options.
-			 */
-			u8 cookie[MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES];
-		} exp_fast_open;
-		struct {
 			/* The fast open chookie should be 4-16 bytes
 			 * of cookie, multiple of 2 bytes, but we
 			 * allow for larger sizes, so we can test what
@@ -125,6 +118,20 @@ struct tcp_option {
 			 */
 			u8 data[ACC_ECN_MAX_DATA_LEN];
 		} acc_ecn;
+		struct {
+			u16 magic;
+			union {
+				struct {
+					/* The fast open chookie should be
+					 * 4-16 bytes of cookie, multiple of
+					 * 2 bytes, but we allow for larger
+					 * sizes, so we can test what stacks
+					 * do with illegal options.
+					 */
+					u8 cookie[MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES];
+				} fast_open;
+			} contents;
+		} exp;
 	} data;
 } __packed;
 
@@ -133,6 +140,11 @@ extern struct tcp_options *tcp_options_new(void);
 
 /* Allocate a new option and initialize its kind and length fields. */
 extern struct tcp_option *tcp_option_new(u8 kind, u8 length);
+
+/* Allocate a new experimental option and initialize its kind, length,
+ * and magic fields.
+ */
+extern struct tcp_option *tcp_exp_option_new(u8 kind, u8 length, u16 magic);
 
 /* Appends the given option to the given list of options. Returns
  * STATUS_OK on success; on failure returns STATUS_ERR and sets
