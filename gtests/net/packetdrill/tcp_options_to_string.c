@@ -136,6 +136,68 @@ int tcp_options_to_string(struct packet *packet,
 			}
 			break;
 
+		case TCPOPT_ACC_ECN_0:
+			if ((option->length != ACC_ECN_ZERO_COUNTER_LEN) &&
+			    (option->length != ACC_ECN_ONE_COUNTER_LEN) &&
+			    (option->length != ACC_ECN_TWO_COUNTER_LEN) &&
+			    (option->length != ACC_ECN_THREE_COUNTER_LEN)) {
+				asprintf(error, "AccECN0: invalid length: %u",
+				         option->length);
+				goto out;
+			}
+			switch (option->length) {
+			case ACC_ECN_ZERO_COUNTER_LEN:
+				fputs("AccECN0", s);
+				break;
+			case ACC_ECN_ONE_COUNTER_LEN:
+				fprintf(s, "AccECN0 EE0B %u",
+				        acc_ecn_get_ee0b(option));
+				break;
+			case ACC_ECN_TWO_COUNTER_LEN:
+				fprintf(s, "AccECN0 EE0B %u ECEB %u",
+				        acc_ecn_get_ee0b(option),
+				        acc_ecn_get_eceb(option));
+				break;
+			case ACC_ECN_THREE_COUNTER_LEN:
+				fprintf(s, "AccECN0 EE0B %u ECEB %u EE1B %u",
+				        acc_ecn_get_ee0b(option),
+				        acc_ecn_get_eceb(option),
+				        acc_ecn_get_ee1b(option));
+				break;
+			}
+			break;
+
+		case TCPOPT_ACC_ECN_1:
+			if ((option->length != ACC_ECN_ZERO_COUNTER_LEN) &&
+			    (option->length != ACC_ECN_ONE_COUNTER_LEN) &&
+			    (option->length != ACC_ECN_TWO_COUNTER_LEN) &&
+			    (option->length != ACC_ECN_THREE_COUNTER_LEN)) {
+				asprintf(error, "AccECN1: invalid length: %u",
+				         option->length);
+				goto out;
+			}
+			switch (option->length) {
+			case ACC_ECN_ZERO_COUNTER_LEN:
+				fputs("AccECN1", s);
+				break;
+			case ACC_ECN_ONE_COUNTER_LEN:
+				fprintf(s, "AccECN1 EE1B %u",
+				        acc_ecn_get_ee1b(option));
+				break;
+			case ACC_ECN_TWO_COUNTER_LEN:
+				fprintf(s, "AccECN1 EE1B %u ECEB %u",
+				        acc_ecn_get_ee1b(option),
+				        acc_ecn_get_eceb(option));
+				break;
+			case ACC_ECN_THREE_COUNTER_LEN:
+				fprintf(s, "AccECN1 EE1B %u ECEB %u EE0B %u",
+				        acc_ecn_get_ee1b(option),
+				        acc_ecn_get_eceb(option),
+				        acc_ecn_get_ee0b(option));
+				break;
+			}
+			break;
+
 		case TCPOPT_EXP:
 			if (tcp_exp_fast_open_option_to_string(s, option)) {
 				asprintf(error,

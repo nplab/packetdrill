@@ -572,6 +572,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> URG EXP_FAST_OPEN FAST_OPEN
+%token <reserved> ACC_ECN_0 ACC_ECN_1 EE0B EE1B ECEB
 %token <reserved> CLASS TOS DSCP ECN HLIM FLOWLABEL
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
@@ -685,6 +686,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <integer> opt_icmp_mtu
 %type <integer> opt_icmp_echo_id
 %type <integer> dscp flow_label ttl hlim
+%type <integer> opt_ee0b opt_ee1b opt_eceb
 %type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
 %type <string> opt_note note word_list
@@ -3114,6 +3116,21 @@ tcp_fast_open_cookie
 | INTEGER { $$ = strdup(yytext); }
 ;
 
+opt_ee0b
+:			{ $$ = -1 }
+| EE0B INTEGER		{ $$ = $2 }
+;
+
+opt_ee1b
+:			{ $$ = -1 }
+| EE1B INTEGER		{ $$ = $2 }
+;
+
+opt_eceb
+:			{ $$ = -1 }
+| ECEB INTEGER		{ $$ = $2 }
+;
+
 tcp_option
 : NOP              { $$ = tcp_option_new(TCPOPT_NOP, 1); }
 | EOL              { $$ = tcp_option_new(TCPOPT_EOL, 1); }
@@ -3162,6 +3179,78 @@ tcp_option
 		assert(error != NULL);
 		semantic_error(error);
 		free(error);
+	}
+}
+| ACC_ECN_0 opt_ee0b opt_eceb opt_ee1b {
+	u8 len;
+
+	if ((($2 == -1) && (($3 != -1) || ($4 != -1))) ||
+	    (($3 == -1) && ($4 != -1))) {
+		semantic_error("AccECN0: illegal sequence");
+	}
+	if (($2 != -1) && !is_valid_u24($2)) {
+		semantic_error("AccECN0: EE0B out of range");
+	}
+	if (($3 != -1) && !is_valid_u24($3)) {
+		semantic_error("AccECN0: ECEB out of range");
+	}
+	if (($4 != -1) && !is_valid_u24($4)) {
+		semantic_error("AccECN0: EE1B out of range");
+	}
+	if ($2 == -1) {
+		len = ACC_ECN_ZERO_COUNTER_LEN;
+	} else if ($3 == -1) {
+		len = ACC_ECN_ONE_COUNTER_LEN;
+	} else if ($4 == -1) {
+		len = ACC_ECN_TWO_COUNTER_LEN;
+	} else {
+		len = ACC_ECN_THREE_COUNTER_LEN;
+	}
+	$$ = tcp_option_new(TCPOPT_ACC_ECN_0, len);
+	if ($2 != -1) {
+		put_unaligned_be24($2, &$$->data.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+	}
+	if ($3 != -1) {
+		put_unaligned_be24($3, &$$->data.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+	}
+	if ($4 != -1) {
+		put_unaligned_be24($4, &$$->data.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+	}
+}
+| ACC_ECN_1 opt_ee1b opt_eceb opt_ee0b {
+	u8 len;
+
+	if ((($2 == -1) && (($3 != -1) || ($4 != -1))) ||
+	    (($3 == -1) && ($4 != -1))) {
+		semantic_error("AccECN1: illegal sequence");
+	}
+	if (($2 != -1) && !is_valid_u24($2)) {
+		semantic_error("AccECN1: EE1B out of range");
+	}
+	if (($3 != -1) && !is_valid_u24($3)) {
+		semantic_error("AccECN1: ECEB out of range");
+	}
+	if (($4 != -1) && !is_valid_u24($4)) {
+		semantic_error("AccECN1: EE0B out of range");
+	}
+	if ($2 == -1) {
+		len = ACC_ECN_ZERO_COUNTER_LEN;
+	} else if ($3 == -1) {
+		len = ACC_ECN_ONE_COUNTER_LEN;
+	} else if ($4 == -1) {
+		len = ACC_ECN_TWO_COUNTER_LEN;
+	} else {
+		len = ACC_ECN_THREE_COUNTER_LEN;
+	}
+	$$ = tcp_option_new(TCPOPT_ACC_ECN_1, len);
+	if ($2 != -1) {
+		put_unaligned_be24($2, &$$->data.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+	}
+	if ($3 != -1) {
+		put_unaligned_be24($3, &$$->data.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+	}
+	if ($4 != -1) {
+		put_unaligned_be24($4, &$$->data.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {

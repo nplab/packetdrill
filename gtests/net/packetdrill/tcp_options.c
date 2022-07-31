@@ -68,3 +68,52 @@ int num_sack_blocks(u8 opt_len, int *num_blocks, char **error)
 	*num_blocks = num_bytes / sizeof(struct sack_block);
 	return STATUS_OK;
 }
+
+u32 acc_ecn_get_ee0b(struct tcp_option *option)
+{
+	u32 offset;
+
+	assert(option->kind == TCPOPT_ACC_ECN_0 ||
+	       option->kind == TCPOPT_ACC_ECN_1);
+	switch (option->kind) {
+	case TCPOPT_ACC_ECN_0:
+		assert(option->length >= ACC_ECN_ONE_COUNTER_LEN);
+		offset = ACC_ECN_FIRST_COUNTER_OFFSET;
+		break;
+	case TCPOPT_ACC_ECN_1:
+		assert(option->length >= ACC_ECN_THREE_COUNTER_LEN);
+		offset = ACC_ECN_THIRD_COUNTER_OFFSET;
+		break;
+	}
+	return get_unaligned_be24(&option->data.acc_ecn.data[offset]);
+}
+
+u32 acc_ecn_get_eceb(struct tcp_option *option)
+{
+	u32 offset;
+
+	assert(option->kind == TCPOPT_ACC_ECN_0 ||
+	       option->kind == TCPOPT_ACC_ECN_1);
+	assert(option->length >= ACC_ECN_TWO_COUNTER_LEN);
+	offset = ACC_ECN_SECOND_COUNTER_OFFSET;
+	return get_unaligned_be24(&option->data.acc_ecn.data[offset]);
+}
+
+u32 acc_ecn_get_ee1b(struct tcp_option *option)
+{
+	u32 offset;
+
+	assert(option->kind == TCPOPT_ACC_ECN_0 ||
+	       option->kind == TCPOPT_ACC_ECN_1);
+	switch (option->kind) {
+	case TCPOPT_ACC_ECN_0:
+		assert(option->length >= ACC_ECN_THREE_COUNTER_LEN);
+		offset = ACC_ECN_THIRD_COUNTER_OFFSET;
+		break;
+	case TCPOPT_ACC_ECN_1:
+		assert(option->length >= ACC_ECN_ONE_COUNTER_LEN);
+		offset = ACC_ECN_FIRST_COUNTER_OFFSET;
+		break;
+	}
+	return get_unaligned_be24(&option->data.acc_ecn.data[offset]);
+}

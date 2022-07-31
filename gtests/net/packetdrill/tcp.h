@@ -86,6 +86,8 @@
 #define TCPOPT_TIMESTAMP	8
 #define TCPOLEN_TIMESTAMP	10
 #define TCPOPT_FASTOPEN		34
+#define TCPOPT_ACC_ECN_0	0xAC	/* speculative, not yet assigned by IANA */
+#define TCPOPT_ACC_ECN_1	0xAE	/* speculative, not yet assigned by IANA */
 #define TCPOPT_EXP		254	/* Experimental */
 
 /* A portable TCP header definition (Linux and *BSD use different names). */

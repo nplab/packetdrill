@@ -234,6 +234,11 @@ static inline bool is_valid_u20(s64 x)
 	return (x >= 0) && (x <= 0xfffff);
 }
 
+static inline bool is_valid_u24(s64 x)
+{
+	return (x >= 0) && (x <= 0xffffff);
+}
+
 static inline bool is_valid_u32(s64 x)
 {
 	return (x >= 0) && (x <= UINT_MAX);

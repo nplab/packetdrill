@@ -56,6 +56,16 @@
 #define MAX_TCP_FAST_OPEN_COOKIE_BYTES				\
 	(MAX_TCP_OPTION_BYTES - TCPOLEN_FASTOPEN_BASE)
 
+/* AccECN is based on https://www.ietf.org/archive/id/draft-ietf-tcpm-accurate-ecn-20.html */
+#define ACC_ECN_MAX_DATA_LEN		9
+#define ACC_ECN_ZERO_COUNTER_LEN	2
+#define ACC_ECN_ONE_COUNTER_LEN		5
+#define ACC_ECN_TWO_COUNTER_LEN		8
+#define ACC_ECN_THREE_COUNTER_LEN	11
+#define ACC_ECN_FIRST_COUNTER_OFFSET	0
+#define ACC_ECN_SECOND_COUNTER_OFFSET	3
+#define ACC_ECN_THIRD_COUNTER_OFFSET	6
+
 /* Represents a list of TCP options in their wire format. */
 struct tcp_options {
 	u8 data[MAX_TCP_OPTION_BYTES];	/* The options data, in wire format */
@@ -107,6 +117,14 @@ struct tcp_option {
 			 */
 			u8 cookie[MAX_TCP_FAST_OPEN_COOKIE_BYTES];
 		} fast_open;
+		struct {
+			/* There are up to three 24-bit unsigned integers.
+			 * These are handled as a vector of u8. The number
+			 * of the integers is derived from the option length.
+			 * The option kind specifies the order of integers.
+			 */
+			u8 data[ACC_ECN_MAX_DATA_LEN];
+		} acc_ecn;
 	} data;
 } __packed;
 
@@ -128,5 +146,11 @@ extern int tcp_options_append(struct tcp_options *options,
  * on failure returns STATUS_ERR and sets error message.
  */
 extern int num_sack_blocks(u8 opt_len, int *num_blocks, char **error);
+
+extern u32 acc_ecn_get_ee0b(struct tcp_option *option);
+
+extern u32 acc_ecn_get_eceb(struct tcp_option *option);
+
+extern u32 acc_ecn_get_ee1b(struct tcp_option *option);
 
 #endif /* __TCP_OPTIONS_H__ */

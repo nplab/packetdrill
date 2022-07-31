@@ -49,6 +49,11 @@
 		<string>sackOK</string>
 		<string>TS</string>
 		<string>FO</string>
+		<string>AccECN0</string>
+		<string>AccECN1</string>
+		<string>EE0B</string>
+		<string>EE1B</string>
+		<string>ECEB</string>
 		<string>LS</string>
 		<string>gcn</string>
 		<string>minRTO</string>

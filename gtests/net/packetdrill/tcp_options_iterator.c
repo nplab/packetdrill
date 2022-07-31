@@ -63,6 +63,8 @@ static int get_expected_tcp_option_length(u8 kind, u8 *expected_length,
 
 	case TCPOPT_SACK:
 	case TCPOPT_FASTOPEN:
+	case TCPOPT_ACC_ECN_0:
+	case TCPOPT_ACC_ECN_1:
 	case TCPOPT_EXP:
 		*expected_length = 0;	/* variable-length option */
 		break;
