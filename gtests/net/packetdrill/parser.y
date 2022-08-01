@@ -572,6 +572,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> URG EXP_FAST_OPEN FAST_OPEN
 %token <reserved> ACC_ECN_0 ACC_ECN_1 EXP_ACC_ECN_0 EXP_ACC_ECN_1 EE0B EE1B ECEB
+%token <reserved> EXP_TARR
 %token <reserved> CLASS TOS DSCP ECN HLIM FLOWLABEL
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
@@ -3323,6 +3324,16 @@ tcp_option
 	if ($4 != -1) {
 		put_unaligned_be24($4, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
+}
+| EXP_TARR {
+	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN, TCPOPT_TARR_MAGIC);
+}
+| EXP_TARR INTEGER {
+	if (!is_valid_u11($2)) {
+		semantic_error("exp-tarr: r out of range");
+	}
+	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITH_RATE_LEN, TCPOPT_TARR_MAGIC);
+	put_unaligned_be16((u16)($2 << 5), &$$->data.exp.contents.tarr.data);
 }
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;

@@ -249,6 +249,7 @@ exp-AccECN1			return EXP_ACC_ECN_1;
 EE0B				return EE0B;
 EE1B				return EE1B;
 ECEB				return ECEB;
+exp-tarr			return EXP_TARR;
 val				return VAL;
 win				return WIN;
 urg				return URG;

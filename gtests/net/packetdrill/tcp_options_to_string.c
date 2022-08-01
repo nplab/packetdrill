@@ -162,6 +162,27 @@ static int tcp_exp_acc_ecn_option_to_string(FILE *s, u16 magic, struct tcp_optio
 	return STATUS_OK;
 }
 
+static int tcp_exp_tarr_option_to_string(FILE *s, u16 magic, struct tcp_option *option)
+{
+	u16 data;
+
+	assert(option->kind == TCPOPT_EXP);
+	assert(magic == TCPOPT_TARR_MAGIC);
+	if ((option->length != TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN) &&
+	    (option->length != TCPOLEN_EXP_TARR_WITH_RATE_LEN)) {
+		return STATUS_ERR;
+	}
+	switch (option->length) {
+	case TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN:
+		fputs("exp-tarr", s);
+		break;
+	case TCPOLEN_EXP_TARR_WITH_RATE_LEN:
+		data = get_unaligned_be16(&option->data.exp.contents.tarr.data);
+		fprintf(s, "exp-tarr %u", data >> 5);
+	}
+	return STATUS_OK;
+}
+
 int tcp_options_to_string(struct packet *packet,
 				  char **ascii_string, char **error)
 {
@@ -255,6 +276,13 @@ int tcp_options_to_string(struct packet *packet,
 			case TCPOPT_ACC_ECN_1_MAGIC:
 				if (tcp_exp_acc_ecn_option_to_string(s, magic, option)) {
 					asprintf(error, "exp-AccECN invalid length: %u",
+						 option->length);
+					goto out;
+				}
+				break;
+			case TCPOPT_TARR_MAGIC:
+				if (tcp_exp_tarr_option_to_string(s, magic, option)) {
+					asprintf(error, "exp-tarr invalid length: %u",
 						 option->length);
 					goto out;
 				}

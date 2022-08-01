@@ -224,6 +224,11 @@ static inline bool is_valid_u8(s64 x)
 	return (x >= 0) && (x <= UCHAR_MAX);
 }
 
+static inline bool is_valid_u11(s64 x)
+{
+	return (x >= 0) && (x <= 0x7ff);
+}
+
 static inline bool is_valid_u16(s64 x)
 {
 	return (x >= 0) && (x <= USHRT_MAX);
