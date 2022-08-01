@@ -149,7 +149,7 @@ struct tcp_option {
 				struct {
 					u16 data;
 				} tarr;
-			} contents;
+			};
 		} exp;
 	} data;
 } __packed;

@@ -463,8 +463,8 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 	 * do not enforce this, since we want to allow test cases that
 	 * supply invalid cookies.
 	 */
-	if (parse_hex_string(cookie_string, option->data.exp.contents.fast_open.cookie,
-			     sizeof(option->data.exp.contents.fast_open.cookie),
+	if (parse_hex_string(cookie_string, option->data.exp.fast_open.cookie,
+			     sizeof(option->data.exp.fast_open.cookie),
 			     &parsed_bytes)) {
 		free(option);
 		asprintf(error,
@@ -3280,13 +3280,13 @@ tcp_option
 	}
 	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_0_MAGIC);
 	if ($2 != -1) {
-		put_unaligned_be24($2, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+		put_unaligned_be24($2, &$$->data.exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
 	if ($3 != -1) {
-		put_unaligned_be24($3, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+		put_unaligned_be24($3, &$$->data.exp.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
 	}
 	if ($4 != -1) {
-		put_unaligned_be24($4, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+		put_unaligned_be24($4, &$$->data.exp.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | EXP_ACC_ECN_1 opt_ee1b opt_eceb opt_ee0b {
@@ -3316,13 +3316,13 @@ tcp_option
 	}
 	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_1_MAGIC);
 	if ($2 != -1) {
-		put_unaligned_be24($2, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+		put_unaligned_be24($2, &$$->data.exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
 	if ($3 != -1) {
-		put_unaligned_be24($3, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+		put_unaligned_be24($3, &$$->data.exp.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
 	}
 	if ($4 != -1) {
-		put_unaligned_be24($4, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+		put_unaligned_be24($4, &$$->data.exp.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | EXP_TARR {
@@ -3333,7 +3333,7 @@ tcp_option
 		semantic_error("exp-tarr: r out of range");
 	}
 	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITH_RATE_LEN, TCPOPT_TARR_MAGIC);
-	put_unaligned_be16((u16)($2 << 5), &$$->data.exp.contents.tarr.data);
+	put_unaligned_be16((u16)($2 << 5), &$$->data.exp.tarr.data);
 }
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;

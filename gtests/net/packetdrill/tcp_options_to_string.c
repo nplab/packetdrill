@@ -65,7 +65,7 @@ static void tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *optio
 		fputs(" ", s);
 	}
 	for (i = 0; i < cookie_bytes; ++i)
-		fprintf(s, "%02x", option->data.exp.contents.fast_open.cookie[i]);
+		fprintf(s, "%02x", option->data.exp.fast_open.cookie[i]);
 }
 
 static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
@@ -177,7 +177,7 @@ static int tcp_exp_tarr_option_to_string(FILE *s, u16 magic, struct tcp_option *
 		fputs("exp-tarr", s);
 		break;
 	case TCPOLEN_EXP_TARR_WITH_RATE_LEN:
-		data = get_unaligned_be16(&option->data.exp.contents.tarr.data);
+		data = get_unaligned_be16(&option->data.exp.tarr.data);
 		fprintf(s, "exp-tarr %u", data >> 5);
 	}
 	return STATUS_OK;
