@@ -560,9 +560,9 @@ static int find_tcp_timestamp(struct packet *packet, char **error)
 	     option = tcp_options_next(&iter, error))
 		if (option->kind == TCPOPT_TIMESTAMP) {
 			const size_t val_off = offsetof(struct tcp_option,
-			                                data.time_stamp.val);
+			                                time_stamp.val);
 			const size_t ecr_off = offsetof(struct tcp_option,
-			                                data.time_stamp.ecr);
+			                                time_stamp.ecr);
 			packet->tcp_ts_val = (__be32 *)((char *)option + val_off);
 			packet->tcp_ts_ecr = (__be32 *)((char *)option + ecr_off);
 		}
@@ -589,12 +589,12 @@ static int offset_sack_blocks(struct packet *packet,
 			int i = 0;
 			for (i = 0; i < num_blocks; ++i) {
 				u32 val;
-				val = get_unaligned_be32(&option->data.sack.block[i].left);
+				val = get_unaligned_be32(&option->sack.block[i].left);
 				val += ack_offset;
-				put_unaligned_be32(val, &option->data.sack.block[i].left);
-				val = get_unaligned_be32(&option->data.sack.block[i].right);
+				put_unaligned_be32(val, &option->sack.block[i].left);
+				val = get_unaligned_be32(&option->sack.block[i].right);
 				val += ack_offset;
-				put_unaligned_be32(val, &option->data.sack.block[i].right);
+				put_unaligned_be32(val, &option->sack.block[i].right);
 			}
 		}
 	}

@@ -59,7 +59,7 @@
  *      | MSS INTEGER   {
  *        $$ = tcp_option_new(...);
  *        ...
- *        $$->data.mss.bytes = htons($2);
+ *        $$->mss.bytes = htons($2);
  *      }
  *
  * This rule basically says:
@@ -425,8 +425,8 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 	 * do not enforce this, since we want to allow test cases that
 	 * supply invalid cookies.
 	 */
-	if (parse_hex_string(cookie_string, option->data.fast_open.cookie,
-			     sizeof(option->data.fast_open.cookie),
+	if (parse_hex_string(cookie_string, option->fast_open.cookie,
+			     sizeof(option->fast_open.cookie),
 			     &parsed_bytes)) {
 		free(option);
 		asprintf(error,
@@ -463,8 +463,8 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 	 * do not enforce this, since we want to allow test cases that
 	 * supply invalid cookies.
 	 */
-	if (parse_hex_string(cookie_string, option->data.exp.fast_open.cookie,
-			     sizeof(option->data.exp.fast_open.cookie),
+	if (parse_hex_string(cookie_string, option->exp.fast_open.cookie,
+			     sizeof(option->exp.fast_open.cookie),
 			     &parsed_bytes)) {
 		free(option);
 		asprintf(error,
@@ -3139,14 +3139,14 @@ tcp_option
 	if (!is_valid_u16($2)) {
 		semantic_error("mss value out of range");
 	}
-	$$->data.mss.bytes = htons($2);
+	$$->mss.bytes = htons($2);
 }
 | WSCALE INTEGER   {
 	$$ = tcp_option_new(TCPOPT_WINDOW, TCPOLEN_WINDOW);
 	if (!is_valid_u8($2)) {
 		semantic_error("window scale shift count out of range");
 	}
-	$$->data.window_scale.shift_count = $2;
+	$$->window_scale.shift_count = $2;
 }
 | SACKOK           {
 	$$ = tcp_option_new(TCPOPT_SACK_PERMITTED,
@@ -3168,8 +3168,8 @@ tcp_option
 	if (!is_valid_u32(ecr)) {
 		semantic_error("ecr val out of range");
 	}
-	$$->data.time_stamp.val = htonl(val);
-	$$->data.time_stamp.ecr = htonl(ecr);
+	$$->time_stamp.val = htonl(val);
+	$$->time_stamp.ecr = htonl(ecr);
 }
 | FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;
@@ -3208,13 +3208,13 @@ tcp_option
 	}
 	$$ = tcp_option_new(TCPOPT_ACC_ECN_0, len);
 	if ($2 != -1) {
-		put_unaligned_be24($2, &$$->data.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+		put_unaligned_be24($2, &$$->acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
 	if ($3 != -1) {
-		put_unaligned_be24($3, &$$->data.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+		put_unaligned_be24($3, &$$->acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
 	}
 	if ($4 != -1) {
-		put_unaligned_be24($4, &$$->data.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+		put_unaligned_be24($4, &$$->acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | ACC_ECN_1 opt_ee1b opt_eceb opt_ee0b {
@@ -3244,13 +3244,13 @@ tcp_option
 	}
 	$$ = tcp_option_new(TCPOPT_ACC_ECN_1, len);
 	if ($2 != -1) {
-		put_unaligned_be24($2, &$$->data.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+		put_unaligned_be24($2, &$$->acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
 	if ($3 != -1) {
-		put_unaligned_be24($3, &$$->data.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+		put_unaligned_be24($3, &$$->acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
 	}
 	if ($4 != -1) {
-		put_unaligned_be24($4, &$$->data.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+		put_unaligned_be24($4, &$$->acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | EXP_ACC_ECN_0 opt_ee0b opt_eceb opt_ee1b {
@@ -3280,13 +3280,13 @@ tcp_option
 	}
 	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_0_MAGIC);
 	if ($2 != -1) {
-		put_unaligned_be24($2, &$$->data.exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+		put_unaligned_be24($2, &$$->exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
 	if ($3 != -1) {
-		put_unaligned_be24($3, &$$->data.exp.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+		put_unaligned_be24($3, &$$->exp.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
 	}
 	if ($4 != -1) {
-		put_unaligned_be24($4, &$$->data.exp.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+		put_unaligned_be24($4, &$$->exp.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | EXP_ACC_ECN_1 opt_ee1b opt_eceb opt_ee0b {
@@ -3316,13 +3316,13 @@ tcp_option
 	}
 	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_1_MAGIC);
 	if ($2 != -1) {
-		put_unaligned_be24($2, &$$->data.exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+		put_unaligned_be24($2, &$$->exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
 	if ($3 != -1) {
-		put_unaligned_be24($3, &$$->data.exp.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+		put_unaligned_be24($3, &$$->exp.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
 	}
 	if ($4 != -1) {
-		put_unaligned_be24($4, &$$->data.exp.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+		put_unaligned_be24($4, &$$->exp.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | EXP_TARR {
@@ -3333,7 +3333,7 @@ tcp_option
 		semantic_error("exp-tarr: r out of range");
 	}
 	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITH_RATE_LEN, TCPOPT_TARR_MAGIC);
-	put_unaligned_be16((u16)($2 << 5), &$$->data.exp.tarr.data);
+	put_unaligned_be16((u16)($2 << 5), &$$->exp.tarr.data);
 }
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;
@@ -3365,7 +3365,7 @@ sack_block_list
 	assert((list_block_bytes % sizeof(struct sack_block)) == 0);
 	const int num_blocks = list_block_bytes / sizeof(struct sack_block);
 	/* Append this SACK block to the end of the array of blocks. */
-	memcpy($1->data.sack.block + num_blocks, $2->data.sack.block,
+	memcpy($1->sack.block + num_blocks, $2->sack.block,
 		sizeof(struct sack_block));
 	$1->length += sizeof(struct sack_block);
 	free($2);
@@ -3382,8 +3382,8 @@ sack_block
 	if (!is_valid_u32($3)) {
 		semantic_error("TCP SACK right sequence number out of range");
 	}
-	$$->data.sack.block[0].left = htonl($1);
-	$$->data.sack.block[0].right = htonl($3);
+	$$->sack.block[0].left = htonl($1);
+	$$->sack.block[0].right = htonl($3);
 }
 ;
 

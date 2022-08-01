@@ -151,7 +151,7 @@ struct tcp_option {
 				} tarr;
 			};
 		} exp;
-	} data;
+	};
 } __packed;
 
 /* Allocate a new options list. */

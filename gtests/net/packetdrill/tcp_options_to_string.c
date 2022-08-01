@@ -42,7 +42,7 @@ static int tcp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
 	}
 	int i;
 	for (i = 0; i < cookie_bytes; ++i)
-		fprintf(s, "%02x", option->data.fast_open.cookie[i]);
+		fprintf(s, "%02x", option->fast_open.cookie[i]);
 	return STATUS_OK;
 }
 
@@ -56,7 +56,7 @@ static void tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *optio
 
 	assert(option->kind == TCPOPT_EXP);
 	assert(option->length >= TCPOLEN_EXP_FASTOPEN_BASE);
-	assert(option->data.exp.magic == htons(TCPOPT_FASTOPEN_MAGIC));
+	assert(option->exp.magic == htons(TCPOPT_FASTOPEN_MAGIC));
 
 	fputs("EXP-FO", s);
 	cookie_bytes = option->length - TCPOLEN_EXP_FASTOPEN_BASE;
@@ -65,7 +65,7 @@ static void tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *optio
 		fputs(" ", s);
 	}
 	for (i = 0; i < cookie_bytes; ++i)
-		fprintf(s, "%02x", option->data.exp.fast_open.cookie[i]);
+		fprintf(s, "%02x", option->exp.fast_open.cookie[i]);
 }
 
 static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
@@ -177,7 +177,7 @@ static int tcp_exp_tarr_option_to_string(FILE *s, u16 magic, struct tcp_option *
 		fputs("exp-tarr", s);
 		break;
 	case TCPOLEN_EXP_TARR_WITH_RATE_LEN:
-		data = get_unaligned_be16(&option->data.exp.tarr.data);
+		data = get_unaligned_be16(&option->exp.tarr.data);
 		fprintf(s, "exp-tarr %u", data >> 5);
 	}
 	return STATUS_OK;
@@ -209,12 +209,12 @@ int tcp_options_to_string(struct packet *packet,
 			break;
 
 		case TCPOPT_MAXSEG:
-			fprintf(s, "mss %u", get_unaligned_be16(&option->data.mss.bytes));
+			fprintf(s, "mss %u", get_unaligned_be16(&option->mss.bytes));
 			break;
 
 		case TCPOPT_WINDOW:
 			fprintf(s, "wscale %u",
-				option->data.window_scale.shift_count);
+				option->window_scale.shift_count);
 			break;
 
 		case TCPOPT_SACK_PERMITTED:
@@ -232,15 +232,15 @@ int tcp_options_to_string(struct packet *packet,
 				if (i > 0)
 					fputc(' ', s);
 				fprintf(s, "%u:%u",
-					get_unaligned_be32(&option->data.sack.block[i].left),
-					get_unaligned_be32(&option->data.sack.block[i].right));
+					get_unaligned_be32(&option->sack.block[i].left),
+					get_unaligned_be32(&option->sack.block[i].right));
 			}
 			break;
 
 		case TCPOPT_TIMESTAMP:
 			fprintf(s, "TS val %u ecr %u",
-				get_unaligned_be32(&option->data.time_stamp.val),
-				get_unaligned_be32(&option->data.time_stamp.ecr));
+				get_unaligned_be32(&option->time_stamp.val),
+				get_unaligned_be32(&option->time_stamp.ecr));
 			break;
 
 		case TCPOPT_FASTOPEN:
@@ -267,7 +267,7 @@ int tcp_options_to_string(struct packet *packet,
 				         option->length);
 				goto out;
 			}
-			magic = get_unaligned_be16(&option->data.exp.magic);
+			magic = get_unaligned_be16(&option->exp.magic);
 			switch (magic) {
 			case TCPOPT_FASTOPEN_MAGIC:
 				tcp_exp_fast_open_option_to_string(s, option);
