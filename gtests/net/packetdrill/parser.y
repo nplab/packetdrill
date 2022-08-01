@@ -3313,7 +3313,7 @@ tcp_option
 	} else {
 		len = EXP_ACC_ECN_THREE_COUNTER_LEN;
 	}
-	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_0_MAGIC);
+	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_1_MAGIC);
 	if ($2 != -1) {
 		put_unaligned_be24($2, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
