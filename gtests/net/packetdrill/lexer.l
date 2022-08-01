@@ -244,6 +244,8 @@ EXP-FO				return EXP_FAST_OPEN;
 FO				return FAST_OPEN;
 AccECN0				return ACC_ECN_0;
 AccECN1				return ACC_ECN_1;
+exp-AccECN0			return EXP_ACC_ECN_0;
+exp-AccECN1			return EXP_ACC_ECN_1;
 EE0B				return EE0B;
 EE1B				return EE1B;
 ECEB				return ECEB;

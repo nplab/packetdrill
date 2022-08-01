@@ -571,7 +571,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
 %token <reserved> URG EXP_FAST_OPEN FAST_OPEN
-%token <reserved> ACC_ECN_0 ACC_ECN_1 EE0B EE1B ECEB
+%token <reserved> ACC_ECN_0 ACC_ECN_1 EXP_ACC_ECN_0 EXP_ACC_ECN_1 EE0B EE1B ECEB
 %token <reserved> CLASS TOS DSCP ECN HLIM FLOWLABEL
 %token <reserved> IOV_BASE IOV_LEN
 %token <reserved> ECT0 ECT1 CE ECT01 NO_ECN
@@ -3250,6 +3250,78 @@ tcp_option
 	}
 	if ($4 != -1) {
 		put_unaligned_be24($4, &$$->data.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+	}
+}
+| EXP_ACC_ECN_0 opt_ee0b opt_eceb opt_ee1b {
+	u8 len;
+
+	if ((($2 == -1) && (($3 != -1) || ($4 != -1))) ||
+	    (($3 == -1) && ($4 != -1))) {
+		semantic_error("exp-AccECN0: illegal sequence");
+	}
+	if (($2 != -1) && !is_valid_u24($2)) {
+		semantic_error("exp-AccECN0: EE0B out of range");
+	}
+	if (($3 != -1) && !is_valid_u24($3)) {
+		semantic_error("exp-AccECN0: ECEB out of range");
+	}
+	if (($4 != -1) && !is_valid_u24($4)) {
+		semantic_error("exp-AccECN0: EE1B out of range");
+	}
+	if ($2 == -1) {
+		len = EXP_ACC_ECN_ZERO_COUNTER_LEN;
+	} else if ($3 == -1) {
+		len = EXP_ACC_ECN_ONE_COUNTER_LEN;
+	} else if ($4 == -1) {
+		len = EXP_ACC_ECN_TWO_COUNTER_LEN;
+	} else {
+		len = EXP_ACC_ECN_THREE_COUNTER_LEN;
+	}
+	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_0_MAGIC);
+	if ($2 != -1) {
+		put_unaligned_be24($2, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+	}
+	if ($3 != -1) {
+		put_unaligned_be24($3, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+	}
+	if ($4 != -1) {
+		put_unaligned_be24($4, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
+	}
+}
+| EXP_ACC_ECN_1 opt_ee1b opt_eceb opt_ee0b {
+	u8 len;
+
+	if ((($2 == -1) && (($3 != -1) || ($4 != -1))) ||
+	    (($3 == -1) && ($4 != -1))) {
+		semantic_error("exp-AccECN1: illegal sequence");
+	}
+	if (($2 != -1) && !is_valid_u24($2)) {
+		semantic_error("exp-AccECN1: EE1B out of range");
+	}
+	if (($3 != -1) && !is_valid_u24($3)) {
+		semantic_error("exp-AccECN1: ECEB out of range");
+	}
+	if (($4 != -1) && !is_valid_u24($4)) {
+		semantic_error("exp-AccECN1: EE0B out of range");
+	}
+	if ($2 == -1) {
+		len = EXP_ACC_ECN_ZERO_COUNTER_LEN;
+	} else if ($3 == -1) {
+		len = EXP_ACC_ECN_ONE_COUNTER_LEN;
+	} else if ($4 == -1) {
+		len = EXP_ACC_ECN_TWO_COUNTER_LEN;
+	} else {
+		len = EXP_ACC_ECN_THREE_COUNTER_LEN;
+	}
+	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_0_MAGIC);
+	if ($2 != -1) {
+		put_unaligned_be24($2, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
+	}
+	if ($3 != -1) {
+		put_unaligned_be24($3, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_SECOND_COUNTER_OFFSET]);
+	}
+	if ($4 != -1) {
+		put_unaligned_be24($4, &$$->data.exp.contents.acc_ecn.data[ACC_ECN_THIRD_COUNTER_OFFSET]);
 	}
 }
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {

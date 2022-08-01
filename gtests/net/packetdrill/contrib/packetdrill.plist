@@ -51,6 +51,8 @@
 		<string>FO</string>
 		<string>AccECN0</string>
 		<string>AccECN1</string>
+		<string>exp-AccECN0</string>
+		<string>exp-AccECN1</string>
 		<string>EE0B</string>
 		<string>EE1B</string>
 		<string>ECEB</string>

@@ -128,3 +128,62 @@ u32 acc_ecn_get_ee1b(struct tcp_option *option)
 	}
 	return get_unaligned_be24(&option->data.acc_ecn.data[offset]);
 }
+
+u32 exp_acc_ecn_get_ee0b(struct tcp_option *option)
+{
+	u32 offset;
+	u16 magic;
+
+	assert(option->kind == TCPOPT_EXP);
+	magic = get_unaligned_be16(&option->data.exp.magic);
+	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
+	switch (magic) {
+	case TCPOPT_ACC_ECN_0_MAGIC:
+		assert(option->length >= EXP_ACC_ECN_ONE_COUNTER_LEN);
+		offset = ACC_ECN_FIRST_COUNTER_OFFSET;
+		break;
+	case TCPOPT_ACC_ECN_1_MAGIC:
+		assert(option->length >= EXP_ACC_ECN_THREE_COUNTER_LEN);
+		offset = ACC_ECN_THIRD_COUNTER_OFFSET;
+		break;
+	}
+	return get_unaligned_be24(&option->data.exp.contents.acc_ecn.data[offset]);
+}
+
+u32 exp_acc_ecn_get_eceb(struct tcp_option *option)
+{
+	u32 offset;
+#ifndef NDEBUG
+	u16 magic;
+#endif
+
+	assert(option->kind == TCPOPT_EXP);
+#ifndef NDEBUG
+	magic = get_unaligned_be16(&option->data.exp.magic);
+#endif
+	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
+	assert(option->length >= EXP_ACC_ECN_TWO_COUNTER_LEN);
+	offset = ACC_ECN_SECOND_COUNTER_OFFSET;
+	return get_unaligned_be24(&option->data.exp.contents.acc_ecn.data[offset]);
+}
+
+u32 exp_acc_ecn_get_ee1b(struct tcp_option *option)
+{
+	u32 offset;
+	u16 magic;
+
+	assert(option->kind == TCPOPT_EXP);
+	magic = get_unaligned_be16(&option->data.exp.magic);
+	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
+	switch (magic) {
+	case TCPOPT_ACC_ECN_0_MAGIC:
+		assert(option->length >= EXP_ACC_ECN_THREE_COUNTER_LEN);
+		offset = ACC_ECN_THIRD_COUNTER_OFFSET;
+		break;
+	case TCPOPT_ACC_ECN_1_MAGIC:
+		assert(option->length >= EXP_ACC_ECN_ONE_COUNTER_LEN);
+		offset = ACC_ECN_FIRST_COUNTER_OFFSET;
+		break;
+	}
+	return get_unaligned_be24(&option->data.exp.contents.acc_ecn.data[offset]);
+}

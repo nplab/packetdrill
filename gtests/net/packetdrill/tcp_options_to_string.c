@@ -115,17 +115,64 @@ static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
 	return STATUS_OK;
 }
 
+static int tcp_exp_acc_ecn_option_to_string(FILE *s, u16 magic, struct tcp_option *option)
+{
+	unsigned int order;
+
+	assert(option->kind == TCPOPT_EXP);
+	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
+	if ((option->length != EXP_ACC_ECN_ZERO_COUNTER_LEN) &&
+	    (option->length != EXP_ACC_ECN_ONE_COUNTER_LEN) &&
+	    (option->length != EXP_ACC_ECN_TWO_COUNTER_LEN) &&
+	    (option->length != EXP_ACC_ECN_THREE_COUNTER_LEN)) {
+		return STATUS_ERR;
+	}
+	switch (magic) {
+	case TCPOPT_ACC_ECN_0_MAGIC:
+		order = 0;
+		break;
+	case TCPOPT_ACC_ECN_1_MAGIC:
+		order = 1;
+		break;
+	}
+	switch (option->length) {
+	case EXP_ACC_ECN_ZERO_COUNTER_LEN:
+		fprintf(s, "exp-AccECN%u", order);
+		break;
+	case EXP_ACC_ECN_ONE_COUNTER_LEN:
+		fprintf(s, "exp-AccECN%u EE%uB %u",
+		        order, order,
+		        order == 0 ? exp_acc_ecn_get_ee0b(option) : exp_acc_ecn_get_ee1b(option));
+		break;
+	case EXP_ACC_ECN_TWO_COUNTER_LEN:
+		fprintf(s, "exp-AccECN%u EE%uB %u ECEB %u",
+		        order, order,
+		        order == 0 ? exp_acc_ecn_get_ee0b(option) : exp_acc_ecn_get_ee1b(option),
+		        exp_acc_ecn_get_eceb(option));
+		break;
+	case EXP_ACC_ECN_THREE_COUNTER_LEN:
+		fprintf(s, "exp-AccECN%u EE%uB %u ECEB %u EE%uB %u",
+		        order, order,
+		        order == 0 ? exp_acc_ecn_get_ee0b(option) : exp_acc_ecn_get_ee1b(option),
+		        exp_acc_ecn_get_eceb(option),
+		        1 - order,
+		        order == 0 ? exp_acc_ecn_get_ee1b(option) : exp_acc_ecn_get_ee0b(option));
+		break;
+	}
+	return STATUS_OK;
+}
+
 int tcp_options_to_string(struct packet *packet,
 				  char **ascii_string, char **error)
 {
-	int result = STATUS_ERR;	/* return value */
+	struct tcp_options_iterator iter;
+	struct tcp_option *option;
 	size_t size = 0;
 	FILE *s = open_memstream(ascii_string, &size);  /* output string */
-
+	int result = STATUS_ERR;	/* return value */
+	u16 magic;
 	int index = 0;	/* number of options seen so far */
 
-	struct tcp_options_iterator iter;
-	struct tcp_option *option = NULL;
 	for (option = tcp_options_begin(packet, &iter);
 	     option != NULL; option = tcp_options_next(&iter, error)) {
 		if (index > 0)
@@ -199,14 +246,23 @@ int tcp_options_to_string(struct packet *packet,
 				         option->length);
 				goto out;
 			}
-			switch (get_unaligned_be16(&option->data.exp.magic)) {
+			magic = get_unaligned_be16(&option->data.exp.magic);
+			switch (magic) {
 			case TCPOPT_FASTOPEN_MAGIC:
 				tcp_exp_fast_open_option_to_string(s, option);
+				break;
+			case TCPOPT_ACC_ECN_0_MAGIC:
+			case TCPOPT_ACC_ECN_1_MAGIC:
+				if (tcp_exp_acc_ecn_option_to_string(s, magic, option)) {
+					asprintf(error, "exp-AccECN invalid length: %u",
+						 option->length);
+					goto out;
+				}
 				break;
 			default:
 				asprintf(error,
 				         "unexpected experimental option magic: %u",
-				         get_unaligned_be16(&option->data.exp.magic));
+				         magic);
 				goto out;
 			}
 			break;

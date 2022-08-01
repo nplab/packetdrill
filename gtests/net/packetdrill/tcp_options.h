@@ -65,8 +65,15 @@
 #define ACC_ECN_FIRST_COUNTER_OFFSET	0
 #define ACC_ECN_SECOND_COUNTER_OFFSET	3
 #define ACC_ECN_THIRD_COUNTER_OFFSET	6
+#define EXP_ACC_ECN_ZERO_COUNTER_LEN	4
+#define EXP_ACC_ECN_ONE_COUNTER_LEN	7
+#define EXP_ACC_ECN_TWO_COUNTER_LEN	10
+#define EXP_ACC_ECN_THREE_COUNTER_LEN	13
 
 #define MIN_EXP_OPTION_LEN		4
+
+#define TCPOPT_ACC_ECN_0_MAGIC		0xACC0
+#define TCPOPT_ACC_ECN_1_MAGIC		0xACC1
 
 /* Represents a list of TCP options in their wire format. */
 struct tcp_options {
@@ -130,6 +137,10 @@ struct tcp_option {
 					 */
 					u8 cookie[MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES];
 				} fast_open;
+				struct {
+					/* See description above. */
+					u8 data[ACC_ECN_MAX_DATA_LEN];
+				} acc_ecn;
 			} contents;
 		} exp;
 	} data;
@@ -164,5 +175,11 @@ extern u32 acc_ecn_get_ee0b(struct tcp_option *option);
 extern u32 acc_ecn_get_eceb(struct tcp_option *option);
 
 extern u32 acc_ecn_get_ee1b(struct tcp_option *option);
+
+extern u32 exp_acc_ecn_get_ee0b(struct tcp_option *option);
+
+extern u32 exp_acc_ecn_get_eceb(struct tcp_option *option);
+
+extern u32 exp_acc_ecn_get_ee1b(struct tcp_option *option);
 
 #endif /* __TCP_OPTIONS_H__ */
