@@ -456,7 +456,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 	}
 	u8 option_bytes = TCPOLEN_EXP_FASTOPEN_BASE + cookie_bytes;
 	struct tcp_option *option;
-	option = tcp_exp_option_new(TCPOPT_EXP, option_bytes, TCPOPT_FASTOPEN_MAGIC);
+	option = tcp_exp_option_new(TCPOPT_EXP, option_bytes, TCPOPT_FASTOPEN_EXID);
 	int parsed_bytes = 0;
 	/* Parse cookie. This should be an ASCII hex string
 	 * representing an even number of bytes (4-16 bytes). But we
@@ -3278,7 +3278,7 @@ tcp_option
 	} else {
 		len = EXP_ACC_ECN_THREE_COUNTER_LEN;
 	}
-	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_0_MAGIC);
+	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_0_EXID);
 	if ($2 != -1) {
 		put_unaligned_be24($2, &$$->exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
@@ -3314,7 +3314,7 @@ tcp_option
 	} else {
 		len = EXP_ACC_ECN_THREE_COUNTER_LEN;
 	}
-	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_1_MAGIC);
+	$$ = tcp_exp_option_new(TCPOPT_EXP, len, TCPOPT_ACC_ECN_1_EXID);
 	if ($2 != -1) {
 		put_unaligned_be24($2, &$$->exp.acc_ecn.data[ACC_ECN_FIRST_COUNTER_OFFSET]);
 	}
@@ -3326,13 +3326,13 @@ tcp_option
 	}
 }
 | EXP_TARR {
-	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN, TCPOPT_TARR_MAGIC);
+	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN, TCPOPT_TARR_EXID);
 }
 | EXP_TARR INTEGER {
 	if (!is_valid_u11($2)) {
 		semantic_error("exp-tarr: r out of range");
 	}
-	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITH_RATE_LEN, TCPOPT_TARR_MAGIC);
+	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITH_RATE_LEN, TCPOPT_TARR_EXID);
 	put_unaligned_be16((u16)($2 << 5), &$$->exp.tarr.data);
 }
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {

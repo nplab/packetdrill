@@ -31,7 +31,7 @@
 
 #define MAX_TCP_OPTION_BYTES (MAX_TCP_HEADER_BYTES - (int)sizeof(struct tcp))
 
-/* TCP Fast Open uses the following magic number to be after the
+/* TCP Fast Open uses the following ExID number to be after the
  * option value for sharing TCP experimental options.
  *
  * For a description of experimental options, see:
@@ -40,9 +40,9 @@
  * For a description of TFO, see:
  *   https://tools.ietf.org/html/rfc7413
  */
-#define TCPOPT_FASTOPEN_MAGIC	0xF989
+#define TCPOPT_FASTOPEN_EXID	0xF989
 
-/* TFO option must have: 1-byte kind, 1-byte length, and 2-byte magic: */
+/* TFO option must have: 1-byte kind, 1-byte length, and 2-byte ExID: */
 #define TCPOLEN_EXP_FASTOPEN_BASE 4	/* smallest legal TFO option size */
 
 /* The TFO option base prefix leaves this amount of space: */
@@ -72,11 +72,11 @@
 
 #define MIN_EXP_OPTION_LEN		4
 
-#define TCPOPT_ACC_ECN_0_MAGIC		0xACC0
-#define TCPOPT_ACC_ECN_1_MAGIC		0xACC1
+#define TCPOPT_ACC_ECN_0_EXID		0xACC0
+#define TCPOPT_ACC_ECN_1_EXID		0xACC1
 
 /* TARR is based on https://datatracker.ietf.org/doc/html/draft-gomez-tcpm-ack-rate-request-05 */
-#define TCPOPT_TARR_MAGIC			0x00AC
+#define TCPOPT_TARR_EXID			0x00AC
 #define TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN	4
 #define TCPOLEN_EXP_TARR_WITH_RATE_LEN		6
 
@@ -131,7 +131,7 @@ struct tcp_option {
 			u8 data[ACC_ECN_MAX_DATA_LEN];
 		} acc_ecn;
 		struct {
-			u16 magic;
+			u16 exid;
 			union {
 				struct {
 					/* The fast open chookie should be
@@ -161,9 +161,9 @@ extern struct tcp_options *tcp_options_new(void);
 extern struct tcp_option *tcp_option_new(u8 kind, u8 length);
 
 /* Allocate a new experimental option and initialize its kind, length,
- * and magic fields.
+ * and ExID fields.
  */
-extern struct tcp_option *tcp_exp_option_new(u8 kind, u8 length, u16 magic);
+extern struct tcp_option *tcp_exp_option_new(u8 kind, u8 length, u16 exid);
 
 /* Appends the given option to the given list of options. Returns
  * STATUS_OK on success; on failure returns STATUS_ERR and sets

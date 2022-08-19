@@ -41,14 +41,14 @@ struct tcp_option *tcp_option_new(u8 kind, u8 length)
 	return option;
 }
 
-struct tcp_option *tcp_exp_option_new(u8 kind, u8 length, u16 magic)
+struct tcp_option *tcp_exp_option_new(u8 kind, u8 length, u16 exid)
 {
 	struct tcp_option *option = calloc(1, sizeof(struct tcp_option));
 
 	assert(kind == TCPOPT_EXP);
 	option->kind = kind;
 	option->length = length;
-	option->exp.magic = htons(magic);
+	option->exp.exid = htons(exid);
 	return option;
 }
 
@@ -132,17 +132,17 @@ u32 acc_ecn_get_ee1b(struct tcp_option *option)
 u32 exp_acc_ecn_get_ee0b(struct tcp_option *option)
 {
 	u32 offset;
-	u16 magic;
+	u16 exid;
 
 	assert(option->kind == TCPOPT_EXP);
-	magic = get_unaligned_be16(&option->exp.magic);
-	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
-	switch (magic) {
-	case TCPOPT_ACC_ECN_0_MAGIC:
+	exid = get_unaligned_be16(&option->exp.exid);
+	assert(exid == TCPOPT_ACC_ECN_0_EXID || exid == TCPOPT_ACC_ECN_1_EXID);
+	switch (exid) {
+	case TCPOPT_ACC_ECN_0_EXID:
 		assert(option->length >= EXP_ACC_ECN_ONE_COUNTER_LEN);
 		offset = ACC_ECN_FIRST_COUNTER_OFFSET;
 		break;
-	case TCPOPT_ACC_ECN_1_MAGIC:
+	case TCPOPT_ACC_ECN_1_EXID:
 		assert(option->length >= EXP_ACC_ECN_THREE_COUNTER_LEN);
 		offset = ACC_ECN_THIRD_COUNTER_OFFSET;
 		break;
@@ -154,14 +154,14 @@ u32 exp_acc_ecn_get_eceb(struct tcp_option *option)
 {
 	u32 offset;
 #ifndef NDEBUG
-	u16 magic;
+	u16 exid;
 #endif
 
 	assert(option->kind == TCPOPT_EXP);
 #ifndef NDEBUG
-	magic = get_unaligned_be16(&option->exp.magic);
+	exid = get_unaligned_be16(&option->exp.exid);
 #endif
-	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
+	assert(exid == TCPOPT_ACC_ECN_0_EXID || exid == TCPOPT_ACC_ECN_1_EXID);
 	assert(option->length >= EXP_ACC_ECN_TWO_COUNTER_LEN);
 	offset = ACC_ECN_SECOND_COUNTER_OFFSET;
 	return get_unaligned_be24(&option->exp.acc_ecn.data[offset]);
@@ -170,17 +170,17 @@ u32 exp_acc_ecn_get_eceb(struct tcp_option *option)
 u32 exp_acc_ecn_get_ee1b(struct tcp_option *option)
 {
 	u32 offset;
-	u16 magic;
+	u16 exid;
 
 	assert(option->kind == TCPOPT_EXP);
-	magic = get_unaligned_be16(&option->exp.magic);
-	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
-	switch (magic) {
-	case TCPOPT_ACC_ECN_0_MAGIC:
+	exid = get_unaligned_be16(&option->exp.exid);
+	assert(exid == TCPOPT_ACC_ECN_0_EXID || exid == TCPOPT_ACC_ECN_1_EXID);
+	switch (exid) {
+	case TCPOPT_ACC_ECN_0_EXID:
 		assert(option->length >= EXP_ACC_ECN_THREE_COUNTER_LEN);
 		offset = ACC_ECN_THIRD_COUNTER_OFFSET;
 		break;
-	case TCPOPT_ACC_ECN_1_MAGIC:
+	case TCPOPT_ACC_ECN_1_EXID:
 		assert(option->length >= EXP_ACC_ECN_ONE_COUNTER_LEN);
 		offset = ACC_ECN_FIRST_COUNTER_OFFSET;
 		break;

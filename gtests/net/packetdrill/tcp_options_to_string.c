@@ -56,7 +56,7 @@ static void tcp_exp_fast_open_option_to_string(FILE *s, struct tcp_option *optio
 
 	assert(option->kind == TCPOPT_EXP);
 	assert(option->length >= TCPOLEN_EXP_FASTOPEN_BASE);
-	assert(option->exp.magic == htons(TCPOPT_FASTOPEN_MAGIC));
+	assert(option->exp.exid == htons(TCPOPT_FASTOPEN_EXID));
 
 	fputs("EXP-FO", s);
 	cookie_bytes = option->length - TCPOLEN_EXP_FASTOPEN_BASE;
@@ -115,23 +115,23 @@ static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
 	return STATUS_OK;
 }
 
-static int tcp_exp_acc_ecn_option_to_string(FILE *s, u16 magic, struct tcp_option *option)
+static int tcp_exp_acc_ecn_option_to_string(FILE *s, u16 exid, struct tcp_option *option)
 {
 	unsigned int order;
 
 	assert(option->kind == TCPOPT_EXP);
-	assert(magic == TCPOPT_ACC_ECN_0_MAGIC || magic == TCPOPT_ACC_ECN_1_MAGIC);
+	assert(exid == TCPOPT_ACC_ECN_0_EXID || exid == TCPOPT_ACC_ECN_1_EXID);
 	if ((option->length != EXP_ACC_ECN_ZERO_COUNTER_LEN) &&
 	    (option->length != EXP_ACC_ECN_ONE_COUNTER_LEN) &&
 	    (option->length != EXP_ACC_ECN_TWO_COUNTER_LEN) &&
 	    (option->length != EXP_ACC_ECN_THREE_COUNTER_LEN)) {
 		return STATUS_ERR;
 	}
-	switch (magic) {
-	case TCPOPT_ACC_ECN_0_MAGIC:
+	switch (exid) {
+	case TCPOPT_ACC_ECN_0_EXID:
 		order = 0;
 		break;
-	case TCPOPT_ACC_ECN_1_MAGIC:
+	case TCPOPT_ACC_ECN_1_EXID:
 		order = 1;
 		break;
 	}
@@ -162,12 +162,12 @@ static int tcp_exp_acc_ecn_option_to_string(FILE *s, u16 magic, struct tcp_optio
 	return STATUS_OK;
 }
 
-static int tcp_exp_tarr_option_to_string(FILE *s, u16 magic, struct tcp_option *option)
+static int tcp_exp_tarr_option_to_string(FILE *s, u16 exid, struct tcp_option *option)
 {
 	u16 data;
 
 	assert(option->kind == TCPOPT_EXP);
-	assert(magic == TCPOPT_TARR_MAGIC);
+	assert(exid == TCPOPT_TARR_EXID);
 	if ((option->length != TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN) &&
 	    (option->length != TCPOLEN_EXP_TARR_WITH_RATE_LEN)) {
 		return STATUS_ERR;
@@ -191,7 +191,7 @@ int tcp_options_to_string(struct packet *packet,
 	size_t size = 0;
 	FILE *s = open_memstream(ascii_string, &size);  /* output string */
 	int result = STATUS_ERR;	/* return value */
-	u16 magic;
+	u16 exid;
 	int index = 0;	/* number of options seen so far */
 
 	for (option = tcp_options_begin(packet, &iter);
@@ -267,21 +267,21 @@ int tcp_options_to_string(struct packet *packet,
 				         option->length);
 				goto out;
 			}
-			magic = get_unaligned_be16(&option->exp.magic);
-			switch (magic) {
-			case TCPOPT_FASTOPEN_MAGIC:
+			exid = get_unaligned_be16(&option->exp.exid);
+			switch (exid) {
+			case TCPOPT_FASTOPEN_EXID:
 				tcp_exp_fast_open_option_to_string(s, option);
 				break;
-			case TCPOPT_ACC_ECN_0_MAGIC:
-			case TCPOPT_ACC_ECN_1_MAGIC:
-				if (tcp_exp_acc_ecn_option_to_string(s, magic, option)) {
+			case TCPOPT_ACC_ECN_0_EXID:
+			case TCPOPT_ACC_ECN_1_EXID:
+				if (tcp_exp_acc_ecn_option_to_string(s, exid, option)) {
 					asprintf(error, "exp-AccECN invalid length: %u",
 						 option->length);
 					goto out;
 				}
 				break;
-			case TCPOPT_TARR_MAGIC:
-				if (tcp_exp_tarr_option_to_string(s, magic, option)) {
+			case TCPOPT_TARR_EXID:
+				if (tcp_exp_tarr_option_to_string(s, exid, option)) {
 					asprintf(error, "exp-tarr invalid length: %u",
 						 option->length);
 					goto out;
@@ -289,8 +289,8 @@ int tcp_options_to_string(struct packet *packet,
 				break;
 			default:
 				asprintf(error,
-				         "unexpected experimental option magic: %u",
-				         magic);
+				         "unexpected experimental option ExID: %u",
+				         exid);
 				goto out;
 			}
 			break;
