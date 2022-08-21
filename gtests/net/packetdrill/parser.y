@@ -2901,7 +2901,7 @@ ack_and_ace
 ;
 
 flags
-: WORD opt_ack_flag    { asprintf(&($$), "%s%s", $1, $2); free($1); free($2); }
+: WORD opt_ack_flag opt_word { asprintf(&($$), "%s%s%s", $1, $2, $3); free($1); free($2); free($3); }
 | opt_word ack_and_ace { asprintf(&($$), "%s%s", $1, $2); free($1); free($2); }
 | '.'          { $$ = strdup("."); }
 | '-'          { $$ = strdup(""); }  /* no TCP flags set in segment */
