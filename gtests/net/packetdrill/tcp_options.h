@@ -30,6 +30,10 @@
 #include "packet.h"
 
 #define MAX_TCP_OPTION_BYTES (MAX_TCP_HEADER_BYTES - (int)sizeof(struct tcp))
+#define TCP_OPTION_HEADER_BYTES 2
+#define TCP_EXP_OPTION_HEADER_BYTES 4
+#define MAX_TCP_OPTION_DATA_BYTES (MAX_TCP_OPTION_BYTES - TCP_OPTION_HEADER_BYTES)
+#define MAX_TCP_EXP_OPTION_DATA_BYTES (MAX_TCP_OPTION_BYTES - TCP_EXP_OPTION_HEADER_BYTES)
 
 /* TCP Fast Open uses the following ExID number to be after the
  * option value for sharing TCP experimental options.
@@ -149,8 +153,14 @@ struct tcp_option {
 				struct {
 					u16 data;
 				} tarr;
+				struct {
+					u8 data[MAX_TCP_EXP_OPTION_DATA_BYTES];
+				} generic;
 			};
 		} exp;
+		struct {
+			u8 data[MAX_TCP_OPTION_DATA_BYTES];
+		} generic;
 	};
 } __packed;
 

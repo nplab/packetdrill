@@ -190,44 +190,59 @@ int tcp_options_to_string(struct packet *packet,
 	struct tcp_option *option;
 	size_t size = 0;
 	FILE *s = open_memstream(ascii_string, &size);  /* output string */
-	int result = STATUS_ERR;	/* return value */
+	int i, num_blocks, result;
+	unsigned int index = 0;	/* number of options seen so far */
 	u16 exid;
-	int index = 0;	/* number of options seen so far */
+	bool written;
 
 	for (option = tcp_options_begin(packet, &iter);
 	     option != NULL; option = tcp_options_next(&iter, error)) {
+		written = false;
 		if (index > 0)
 			fputc(',', s);
 
 		switch (option->kind) {
 		case TCPOPT_EOL:
 			fputs("eol", s);
+			written = true;
 			break;
 
 		case TCPOPT_NOP:
 			fputs("nop", s);
+			written = true;
 			break;
 
 		case TCPOPT_MAXSEG:
-			fprintf(s, "mss %u", get_unaligned_be16(&option->mss.bytes));
+			if (option->length == TCPOLEN_MAXSEG) {
+				fprintf(s, "mss %u",
+				        get_unaligned_be16(&option->mss.bytes));
+				written = true;
+			}
 			break;
 
 		case TCPOPT_WINDOW:
-			fprintf(s, "wscale %u",
-				option->window_scale.shift_count);
+			if (option->length == TCPOLEN_WINDOW) {
+				fprintf(s, "wscale %u",
+				        option->window_scale.shift_count);
+				written = true;
+			}
 			break;
 
 		case TCPOPT_SACK_PERMITTED:
-			fputs("sackOK", s);
+			if (option->length == TCPOLEN_SACK_PERMITTED) {
+				fputs("sackOK", s);
+				written = true;
+			}
 			break;
 
 		case TCPOPT_SACK:
-			fprintf(s, "sack ");
-			int num_blocks = 0;
 			if (num_sack_blocks(option->length,
-						    &num_blocks, error))
-				goto out;
-			int i = 0;
+			                    &num_blocks, error)) {
+				free(*error);
+				*error = NULL;
+				break;
+			}
+			fputs("sack ", s);
 			for (i = 0; i < num_blocks; ++i) {
 				if (i > 0)
 					fputc(' ', s);
@@ -235,79 +250,74 @@ int tcp_options_to_string(struct packet *packet,
 					get_unaligned_be32(&option->sack.block[i].left),
 					get_unaligned_be32(&option->sack.block[i].right));
 			}
+			written = true;
 			break;
 
 		case TCPOPT_TIMESTAMP:
-			fprintf(s, "TS val %u ecr %u",
-				get_unaligned_be32(&option->time_stamp.val),
-				get_unaligned_be32(&option->time_stamp.ecr));
+			if (option->length == TCPOLEN_TIMESTAMP) {
+				fprintf(s, "TS val %u ecr %u",
+				        get_unaligned_be32(&option->time_stamp.val),
+				        get_unaligned_be32(&option->time_stamp.ecr));
+				written = true;
+			}
 			break;
 
 		case TCPOPT_FASTOPEN:
-			if (tcp_fast_open_option_to_string(s, option)) {
-				asprintf(error, "invalid length: %u",
-					 option->length);
-				goto out;
-			}
+			written = tcp_fast_open_option_to_string(s, option) == STATUS_OK;
 			break;
 
 		case TCPOPT_ACC_ECN_0:
 		case TCPOPT_ACC_ECN_1:
-			if (tcp_acc_ecn_option_to_string(s, option)) {
-				asprintf(error, "AccECN invalid length: %u",
-				         option->length);
-				goto out;
-			}
+			written = tcp_acc_ecn_option_to_string(s, option) == STATUS_OK;
 			break;
 
 		case TCPOPT_EXP:
-			if (option->length < MIN_EXP_OPTION_LEN) {
-				asprintf(error,
-				         "experimental option too short: %u",
-				         option->length);
-				goto out;
-			}
-			exid = get_unaligned_be16(&option->exp.exid);
-			switch (exid) {
-			case TCPOPT_FASTOPEN_EXID:
-				tcp_exp_fast_open_option_to_string(s, option);
-				break;
-			case TCPOPT_ACC_ECN_0_EXID:
-			case TCPOPT_ACC_ECN_1_EXID:
-				if (tcp_exp_acc_ecn_option_to_string(s, exid, option)) {
-					asprintf(error, "exp-AccECN invalid length: %u",
-						 option->length);
-					goto out;
+			if (option->length >= MIN_EXP_OPTION_LEN) {
+				exid = get_unaligned_be16(&option->exp.exid);
+				switch (exid) {
+				case TCPOPT_FASTOPEN_EXID:
+					tcp_exp_fast_open_option_to_string(s, option);
+					written = true;
+					break;
+				case TCPOPT_ACC_ECN_0_EXID:
+				case TCPOPT_ACC_ECN_1_EXID:
+					written = tcp_exp_acc_ecn_option_to_string(s, exid, option) == STATUS_OK;
+					break;
+				case TCPOPT_TARR_EXID:
+					written = tcp_exp_tarr_option_to_string(s, exid, option) == STATUS_OK;
+					break;
 				}
-				break;
-			case TCPOPT_TARR_EXID:
-				if (tcp_exp_tarr_option_to_string(s, exid, option)) {
-					asprintf(error, "exp-tarr invalid length: %u",
-						 option->length);
-					goto out;
+				if (!written) {
+					fprintf(s, "exp-%04x", exid);
+					if (option->length > TCP_EXP_OPTION_HEADER_BYTES) {
+						fputs(" ", s);
+					}
+					for (i = 0; i < option->length - TCP_EXP_OPTION_HEADER_BYTES; i++) {
+						fprintf(s, "%02x", option->exp.generic.data[i]);
+					}
+					written = true;
 				}
-				break;
-			default:
-				asprintf(error,
-				         "unexpected experimental option ExID: %u",
-				         exid);
-				goto out;
 			}
 			break;
+		}
 
-		default:
-			asprintf(error, "unexpected TCP option kind: %u",
-				 option->kind);
-			goto out;
+		if (!written) {
+			fprintf(s, "gen-%u", option->kind);
+			if (option->length > TCP_OPTION_HEADER_BYTES) {
+				fputs(" ", s);
+			}
+			for (i = 0; i < option->length - TCP_OPTION_HEADER_BYTES; i++) {
+				fprintf(s, "%02x", option->generic.data[i]);
+			}
 		}
 		++index;
 	}
-	if (*error != NULL)  /* bogus TCP options prevented iteration */
-		goto out;
-
-	result = STATUS_OK;
-
-out:
+	if (*error != NULL) {
+		/* bogus TCP options prevented iteration */
+		result = STATUS_ERR;
+	} else {
+		result = STATUS_OK;
+	}
 	fclose(s);
 	return result;
 

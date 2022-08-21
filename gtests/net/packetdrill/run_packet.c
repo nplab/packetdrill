@@ -558,7 +558,8 @@ static int find_tcp_timestamp(struct packet *packet, char **error)
 	packet->tcp_ts_ecr = NULL;
 	for (option = tcp_options_begin(packet, &iter); option != NULL;
 	     option = tcp_options_next(&iter, error))
-		if (option->kind == TCPOPT_TIMESTAMP) {
+		if (option->kind == TCPOPT_TIMESTAMP &&
+		    option->length == TCPOLEN_TIMESTAMP) {
 			const size_t val_off = offsetof(struct tcp_option,
 			                                time_stamp.val);
 			const size_t ecr_off = offsetof(struct tcp_option,
@@ -583,8 +584,7 @@ static int offset_sack_blocks(struct packet *packet,
 	     option = tcp_options_next(&iter, error)) {
 		if (option->kind == TCPOPT_SACK) {
 			int num_blocks = 0;
-			if (num_sack_blocks(option->length,
-						    &num_blocks, error))
+			if (num_sack_blocks(option->length, &num_blocks, error))
 				return STATUS_ERR;
 			int i = 0;
 			for (i = 0; i < num_blocks; ++i) {

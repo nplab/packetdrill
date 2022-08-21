@@ -380,8 +380,8 @@ static int parse_hex_byte(const char *hex, u8 *byte)
  * out_len. Works for hex strings of arbitrary size, such as very long
  * TCP Fast Open cookies.
  */
-static int parse_hex_string(const char *hex, u8 *buf, int buf_len,
-			    int *out_len)
+static int parse_hex_string(const char *hex, u8 *buf, size_t buf_len,
+			    size_t *out_len)
 {
 	u8 *out = buf;
 	u8 *buf_end = buf + buf_len;
@@ -402,24 +402,27 @@ static int parse_hex_string(const char *hex, u8 *buf, int buf_len,
 static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 						   char **error)
 {
-	int cookie_string_len = strlen(cookie_string);
-	if (cookie_string_len & 1) {
-		asprintf(error,
-			 "TCP fast open cookie has an odd number of digits");
-		return NULL;
-	}
-	int cookie_bytes = cookie_string_len / 2;  /* 2 hex chars per byte */
-	if (cookie_bytes > MAX_TCP_FAST_OPEN_COOKIE_BYTES) {
-		asprintf(error, "TCP fast open cookie too long");
-		asprintf(error, "TCP fast open cookie of %d bytes "
-			 "exceeds maximum cookie length of %d bytes",
-			 cookie_bytes, MAX_TCP_FAST_OPEN_COOKIE_BYTES);
-		return NULL;
-	}
-	u8 option_bytes = TCPOLEN_FASTOPEN_BASE + cookie_bytes;
 	struct tcp_option *option;
+	size_t cookie_string_len;
+	size_t cookie_bytes;
+	size_t parsed_bytes;
+	u8 option_bytes;
+
+	cookie_string_len = strlen(cookie_string);
+	if ((cookie_string_len & 1) != 0) {
+		asprintf(error,
+		         "TCP fast open cookie has an odd number of digits");
+		return NULL;
+	}
+	cookie_bytes = cookie_string_len / 2;  /* 2 hex chars per byte */
+	if (cookie_bytes > MAX_TCP_FAST_OPEN_COOKIE_BYTES) {
+		asprintf(error, "TCP fast open cookie of %zu bytes "
+		         "exceeds maximum length of %d bytes",
+		         cookie_bytes, MAX_TCP_FAST_OPEN_COOKIE_BYTES);
+		return NULL;
+	}
+	option_bytes = (u8)(TCPOLEN_FASTOPEN_BASE + cookie_bytes);
 	option = tcp_option_new(TCPOPT_FASTOPEN, option_bytes);
-	int parsed_bytes = 0;
 	/* Parse cookie. This should be an ASCII hex string
 	 * representing an even number of bytes (4-16 bytes). But we
 	 * do not enforce this, since we want to allow test cases that
@@ -440,24 +443,27 @@ static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string,
 						       char **error)
 {
-	int cookie_string_len = strlen(cookie_string);
-	if (cookie_string_len & 1) {
+	struct tcp_option *option;
+	size_t cookie_string_len;
+	size_t cookie_bytes;
+	size_t parsed_bytes;
+	u8 option_bytes;
+
+	cookie_string_len = strlen(cookie_string);
+	if ((cookie_string_len & 1) != 0) {
 		asprintf(error,
 			 "TCP fast open cookie has an odd number of digits");
 		return NULL;
 	}
-	int cookie_bytes = cookie_string_len / 2;  /* 2 hex chars per byte */
+	cookie_bytes = cookie_string_len / 2;  /* 2 hex chars per byte */
 	if (cookie_bytes > MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES) {
-		asprintf(error, "TCP fast open cookie too long");
-		asprintf(error, "TCP fast open cookie of %d bytes "
-			 "exceeds maximum cookie length of %d bytes",
+		asprintf(error, "TCP fast open cookie of %zu bytes "
+			 "exceeds maximum length of %d bytes",
 			 cookie_bytes, MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES);
 		return NULL;
 	}
-	u8 option_bytes = TCPOLEN_EXP_FASTOPEN_BASE + cookie_bytes;
-	struct tcp_option *option;
+	option_bytes = (u8)(TCPOLEN_EXP_FASTOPEN_BASE + cookie_bytes);
 	option = tcp_exp_option_new(TCPOPT_EXP, option_bytes, TCPOPT_FASTOPEN_EXID);
-	int parsed_bytes = 0;
 	/* Parse cookie. This should be an ASCII hex string
 	 * representing an even number of bytes (4-16 bytes). But we
 	 * do not enforce this, since we want to allow test cases that
@@ -472,6 +478,80 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 		return NULL;
 	}
 	assert(parsed_bytes == cookie_bytes);
+	return option;
+}
+
+static struct tcp_option *new_tcp_generic_option(u8 kind,
+                                                 const char *data_string,
+                                                 char **error)
+{
+	struct tcp_option *option;
+	size_t data_string_len;
+	size_t option_data_bytes;
+	size_t parsed_bytes;
+	u8 option_bytes;
+
+	data_string_len = strlen(data_string);
+	if ((data_string_len & 1) != 0) {
+		asprintf(error,
+		         "TCP option data has an odd number of digits");
+		return NULL;
+	}
+	option_data_bytes = data_string_len / 2;  /* 2 hex chars per byte */
+	if (option_data_bytes > MAX_TCP_OPTION_DATA_BYTES) {
+		asprintf(error, "TCP option data of %zu bytes "
+		         "exceeds maximum length of %d bytes",
+		         option_data_bytes, MAX_TCP_OPTION_DATA_BYTES);
+		return NULL;
+	}
+	option_bytes = (u8)(TCP_OPTION_HEADER_BYTES + option_data_bytes);
+	option = tcp_option_new(kind, option_bytes);
+	if (parse_hex_string(data_string, option->generic.data,
+	                     sizeof(option->generic.data),
+	                     &parsed_bytes)) {
+		free(option);
+		asprintf(error,
+			 "TCP option data is not a valid hex string");
+		return NULL;
+	}
+	assert(parsed_bytes == option_data_bytes);
+	return option;
+}
+
+static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
+                                                     const char *data_string,
+                                                     char **error)
+{
+	struct tcp_option *option;
+	size_t data_string_len;
+	size_t data_bytes;
+	size_t parsed_bytes;
+	u8 option_bytes;
+
+	data_string_len = strlen(data_string);
+	if ((data_string_len & 1) != 0) {
+		asprintf(error,
+			 "TCP experimental option data has an odd number of digits");
+		return NULL;
+	}
+	data_bytes = data_string_len / 2;  /* 2 hex chars per byte */
+	if (data_bytes > MAX_TCP_EXP_FAST_OPEN_COOKIE_BYTES) {
+		asprintf(error, "TCP experimental option data of %zu bytes "
+			 "exceeds maximum length of %d bytes",
+			 data_bytes, MAX_TCP_EXP_OPTION_DATA_BYTES);
+		return NULL;
+	}
+	option_bytes = (u8)(TCP_EXP_OPTION_HEADER_BYTES + data_bytes);
+	option = tcp_exp_option_new(TCPOPT_EXP, option_bytes, exid);
+	if (parse_hex_string(data_string, option->exp.generic.data,
+			     sizeof(option->exp.generic.data),
+			     &parsed_bytes)) {
+		free(option);
+		asprintf(error,
+			 "TCP experimental option data is not a valid hex string");
+		return NULL;
+	}
+	assert(parsed_bytes == data_bytes);
 	return option;
 }
 
@@ -662,6 +742,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %token <reserved> SUE_ASSOC_ID SUE_ADDRESS SUE_PORT
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
+%token <integer> GENERIC_OPTION EXP_GENERIC_OPTION
 %token <string> WORD STRING BACK_QUOTED CODE IPV4_ADDR IPV6_ADDR
 %type <abs_integer> abs_integer
 %type <ignore_integer> ignore_integer
@@ -689,6 +770,7 @@ static struct tcp_option *new_tcp_exp_fast_open_option(const char *cookie_string
 %type <integer> opt_ee0b opt_ee1b opt_eceb
 %type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
 %type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
+%type <string> opt_tcp_generic_option_data tcp_generic_option_data
 %type <string> opt_note note word_list
 %type <string> option_flag option_value script
 %type <window> opt_window
@@ -3106,6 +3188,16 @@ tcp_option_list
 }
 ;
 
+opt_tcp_generic_option_data
+:				{ $$ = strdup(""); }
+| tcp_generic_option_data	{ $$ = $1; }
+;
+
+tcp_generic_option_data
+: WORD    { $$ = strdup(yytext); }
+| INTEGER { $$ = strdup(yytext); }
+;
+
 opt_tcp_fast_open_cookie
 :			{ $$ = strdup(""); }
 | tcp_fast_open_cookie	{ $$ = $1; }
@@ -3174,6 +3266,19 @@ tcp_option
 | FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;
 	$$ = new_tcp_fast_open_option($2, &error);
+	free($2);
+	if ($$ == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+}
+| GENERIC_OPTION opt_tcp_generic_option_data {
+	char *error = NULL;
+	if (!is_valid_u8($1)) {
+		semantic_error("TCP option kind out of range");
+	}
+	$$ = new_tcp_generic_option($1, $2, &error);
 	free($2);
 	if ($$ == NULL) {
 		assert(error != NULL);
@@ -3338,6 +3443,19 @@ tcp_option
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;
 	$$ = new_tcp_exp_fast_open_option($2, &error);
+	free($2);
+	if ($$ == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+}
+| EXP_GENERIC_OPTION opt_tcp_generic_option_data {
+	char *error = NULL;
+	if (!is_valid_u16($1)) {
+		semantic_error("TCP ExID out of range");
+	}
+	$$ = new_tcp_exp_generic_option($1, $2, &error);
 	free($2);
 	if ($$ == NULL) {
 		assert(error != NULL);
