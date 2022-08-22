@@ -241,6 +241,7 @@ sack				return SACK;
 sackOK				return SACKOK;
 TS				return TIMESTAMP;
 EXP-FO				return EXP_FAST_OPEN;
+exp-FO				return EXP_FAST_OPEN;
 FO				return FAST_OPEN;
 AccECN0				return ACC_ECN_0;
 AccECN1				return ACC_ECN_1;
