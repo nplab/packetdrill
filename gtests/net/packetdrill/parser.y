@@ -572,7 +572,6 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 	s64 time_usecs;
 	enum direction_t direction;
 	u8 ip_ecn;
-	struct tos_spec tos_spec;
 	struct ip_info ip_info;
 	struct mpls_stack *mpls_stack;
 	struct mpls mpls_stack_entry;
@@ -748,7 +747,6 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %type <ignore_integer> ignore_integer
 %type <direction> direction
 %type <ip_info> ip_info opt_ip_info
-%type <tos_spec> tos_spec
 %type <ip_ecn> ip_ecn
 %type <option> option options opt_options
 %type <event> event events event_time action
@@ -2836,39 +2834,6 @@ dscp
 | DSCP LE { $$ = DSCP_LE; }
 ;
 
-tos_spec
-: ip_ecn		{ $$.check = TOS_CHECK_ECN; $$.value = $1; }
-| ECT01			{ $$.check = TOS_CHECK_ECN_ECT01; $$.value = 0; }
-| TOS HEX_INTEGER	{
-	s64 tos = $2;
-
-	if (!is_valid_u8(tos)) {
-		semantic_error("tos out of range for 8 bits");
-	}
-
-	$$.check = TOS_CHECK_TOS;
-	$$.value = tos;
-}
-| CLASS HEX_INTEGER	{
-	s64 class = $2;
-
-	if (!is_valid_u8(class)) {
-		semantic_error("class out of range for 8 bits");
-	}
-
-	$$.check = TOS_CHECK_TOS;
-	$$.value = class;
-}
-| ECN ip_ecn	{
-	$$.check = TOS_CHECK_ECN;
-	$$.value = $2;
-}
-| ECN ECT01	{
-	$$.check = TOS_CHECK_ECN_ECT01;
-	$$.value = 0;
-}
-;
-
 ip_ecn
 : NO_ECN	{ $$ = IP_ECN_NONE; }
 | ECT0		{ $$ = IP_ECN_ECT0; }
@@ -2939,152 +2904,219 @@ hlim
 }
 
 ip_info
-: tos_spec	{
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
-	$$.flow_label = 0;
-	$$.ttl = 0;
-}
-| ttl {
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
-	$$.flow_label = 0;
+: ttl {
+	$$ = ip_info_new();
 	$$.ttl = $1;
 }
-| tos_spec ',' ttl {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
-	$$.flow_label = 0;
+| ip_info ',' ttl {
+	$$ = $1;
 	$$.ttl = $3;
-}
-| flow_label	{
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
-	$$.flow_label = $1;
-	$$.ttl = 0;
 }
 | hlim {
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
-	$$.flow_label = 0;
+	$$ = ip_info_new();
 	$$.ttl = $1;
 }
-| tos_spec ',' flow_label {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
-	$$.flow_label = $3;
-	$$.ttl = 0;
-}
-| tos_spec ',' hlim {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
-	$$.flow_label = 0;
+| ip_info ',' hlim {
+	$$ = $1;
 	$$.ttl = $3;
 }
-| flow_label ',' hlim {
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
+| flow_label {
+	$$ = ip_info_new();
 	$$.flow_label = $1;
-	$$.ttl = $3;
 }
-| tos_spec ',' flow_label ',' hlim {
-	$$.tos.check = $1.check;
-	$$.tos.value = $1.value;
+| ip_info ',' flow_label {
+	$$ = $1;
 	$$.flow_label = $3;
-	$$.ttl = $5;
 }
-| dscp	{
-	$$.tos.check = TOS_CHECK_DSCP;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = 0;
-}
-| dscp ',' ttl	{
-	$$.tos.check = TOS_CHECK_DSCP;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = $3;
-}
-| dscp ',' hlim	{
-	$$.tos.check = TOS_CHECK_DSCP;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = $3;
-}
-| dscp ',' flow_label	{
-	$$.tos.check = TOS_CHECK_DSCP;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = $3;
-	$$.ttl = 0;
-}
-| dscp ',' flow_label ',' hlim	{
-	$$.tos.check = TOS_CHECK_DSCP;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = $3;
-	$$.ttl = $5;
-}
-| dscp ',' ECN ip_ecn	{
+/* different possibilities to set the tos/class field */
+// set entire field
+| TOS HEX_INTEGER {
+	$$ = ip_info_new();
+	s64 tos = $2;
+
+	if (!is_valid_u8(tos)) {
+		semantic_error("tos out of range for 8 bits");
+	}
+
 	$$.tos.check = TOS_CHECK_TOS;
-	$$.tos.value = $1 << 2 | $4;
-	$$.flow_label = 0;
-	$$.ttl = 0;
+	$$.tos.value = tos;
 }
-| dscp ',' ECN ip_ecn ',' ttl	{
+| ip_info ',' TOS HEX_INTEGER {
+	$$ = $1;
+	s64 tos = $4;
+
+	if ($1.tos.check != TOS_CHECK_NONE) {
+		semantic_error("tos already set");
+	}
+
+	if (!is_valid_u8(tos)) {
+		semantic_error("tos out of range for 8 bits");
+	}
+
 	$$.tos.check = TOS_CHECK_TOS;
-	$$.tos.value = $1 << 2 | $4;
-	$$.flow_label = 0;
-	$$.ttl = $6;
+	$$.tos.value = tos;
 }
-| dscp ',' ECN ip_ecn ',' hlim	{
+| CLASS HEX_INTEGER {
+	$$ = ip_info_new();
+	s64 class = $2;
+
+	if (!is_valid_u8(class)) {
+		semantic_error("class out of range for 8 bits");
+	}
+
 	$$.tos.check = TOS_CHECK_TOS;
-	$$.tos.value = $1 << 2 | $4;
-	$$.flow_label = 0;
-	$$.ttl = $6;
+	$$.tos.value = class;
 }
-| dscp ',' ECN ip_ecn ',' flow_label	{
+| ip_info ',' CLASS HEX_INTEGER {
+	$$ = $1;
+	s64 class = $4;
+
+	if ($1.tos.check != TOS_CHECK_NONE) {
+		semantic_error("class already set");
+	}
+
+	if (!is_valid_u8(class)) {
+		semantic_error("class out of range for 8 bits");
+	}
+
 	$$.tos.check = TOS_CHECK_TOS;
-	$$.tos.value = $1 << 2 | $4;
-	$$.flow_label = $6;
-	$$.ttl = 0;
+	$$.tos.value = class;
 }
-| dscp ',' ECN ECT01	{
-	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+// set only dscp part
+| dscp {
+	$$ = ip_info_new();
+	$$.tos.check = TOS_CHECK_DSCP;
 	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = 0;
 }
-| dscp ',' ECN ECT01 ',' ttl	{
-	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = $6;
+| ip_info ',' dscp {
+	$$ = $1;
+
+	switch ($$.tos.check) {
+	case TOS_CHECK_NONE:
+		$$.tos.check = TOS_CHECK_DSCP;
+		$$.tos.value = $3 << 2;
+		break;
+	case TOS_CHECK_ECN:
+		$$.tos.check = TOS_CHECK_TOS;
+		$$.tos.value = $3 << 2 | ($$.tos.value & IP_ECN_MASK);
+		break;
+	case TOS_CHECK_ECN_ECT01:
+		$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+		$$.tos.value = $3 << 2;
+		break;
+	case TOS_CHECK_TOS:
+	case TOS_CHECK_DSCP:
+	case TOS_CHECK_DSCP_ECN_ECT01:
+		semantic_error("can't set dscp, tos already set");
+		break;
+	}
 }
-| dscp ',' ECN ECT01 ',' hlim	{
-	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = 0;
-	$$.ttl = $6;
+// set ecn part
+| ECN ip_ecn {
+	$$ = ip_info_new();
+	$$.tos.check = TOS_CHECK_ECN;
+	$$.tos.value = $2;
 }
-| dscp ',' ECN ECT01 ',' flow_label	{
-	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = $6;
-	$$.ttl = 0;
+| ip_info ',' ECN ip_ecn {
+	$$ = $1;
+
+	switch ($$.tos.check) {
+	case TOS_CHECK_NONE:
+		$$.tos.check = TOS_CHECK_ECN;
+		$$.tos.value = $4;
+		break;
+	case TOS_CHECK_DSCP:
+		$$.tos.check = TOS_CHECK_TOS;
+		$$.tos.value = ($$.tos.value & !IP_ECN_MASK) | $4;
+		break;
+	case TOS_CHECK_ECN:
+	case TOS_CHECK_ECN_ECT01:
+	case TOS_CHECK_TOS:
+	case TOS_CHECK_DSCP_ECN_ECT01:
+		semantic_error("can't set ecn, tos already set");
+		break;
+	}
 }
-| dscp ',' ECN ECT01 ',' flow_label ',' hlim	{
-	$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
-	$$.tos.value = $1 << 2;
-	$$.flow_label = $6;
-	$$.ttl = $8;
+| ip_ecn {
+	$$ = ip_info_new();
+	$$.tos.check = TOS_CHECK_ECN;
+	$$.tos.value = $1;
+}
+| ip_info ',' ip_ecn {
+	$$ = $1;
+
+	switch ($$.tos.check) {
+	case TOS_CHECK_NONE:
+		$$.tos.check = TOS_CHECK_ECN;
+		$$.tos.value = $3;
+		break;
+	case TOS_CHECK_DSCP:
+		$$.tos.check = TOS_CHECK_TOS;
+		$$.tos.value = ($$.tos.value & !IP_ECN_MASK) | $3;
+		break;
+	case TOS_CHECK_ECN:
+	case TOS_CHECK_ECN_ECT01:
+	case TOS_CHECK_TOS:
+	case TOS_CHECK_DSCP_ECN_ECT01:
+		semantic_error("can't set ecn, tos already set");
+		break;
+	}
+}
+| ECN ECT01 {
+	$$ = ip_info_new();
+	$$.tos.check = TOS_CHECK_ECN_ECT01;
+	$$.tos.value = 0;
+}
+| ip_info ',' ECN ECT01 {
+	$$ = $1;
+
+	switch ($$.tos.check) {
+	case TOS_CHECK_NONE:
+		$$.tos.check = TOS_CHECK_ECN_ECT01;
+		$$.tos.value = 0;
+		break;
+	case TOS_CHECK_DSCP:
+		$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+		$$.tos.value = 0;
+		break;
+	case TOS_CHECK_ECN:
+	case TOS_CHECK_ECN_ECT01:
+	case TOS_CHECK_TOS:
+	case TOS_CHECK_DSCP_ECN_ECT01:
+		semantic_error("can't set ECT01, tos already set");
+		break;
+	}
+}
+| ECT01 {
+	$$ = ip_info_new();
+	$$.tos.check = TOS_CHECK_ECN_ECT01;
+	$$.tos.value = 0;
+}
+| ip_info ',' ECT01 {
+	$$ = $1;
+
+	switch ($$.tos.check) {
+	case TOS_CHECK_NONE:
+		$$.tos.check = TOS_CHECK_ECN_ECT01;
+		$$.tos.value = 0;
+		break;
+	case TOS_CHECK_DSCP:
+		$$.tos.check = TOS_CHECK_DSCP_ECN_ECT01;
+		$$.tos.value = 0;
+		break;
+	case TOS_CHECK_ECN:
+	case TOS_CHECK_ECN_ECT01:
+	case TOS_CHECK_TOS:
+	case TOS_CHECK_DSCP_ECN_ECT01:
+		semantic_error("can't set ECT01, tos already set");
+		break;
+	}
 }
 ;
 
 opt_ip_info
 :			{
-	$$.tos.check = TOS_CHECK_NONE;
-	$$.tos.value = 0;
-	$$.flow_label = 0;
-	$$.ttl = 0;
+	$$ = ip_info_new();
 }
 | '(' ip_info ')'	{ $$ = $2; }
 | '[' ip_info ']'	{ $$ = $2; }

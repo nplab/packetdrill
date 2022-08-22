@@ -3662,7 +3662,7 @@ int reset_connection(struct state *state, struct socket *socket)
 	u32 seq = 0, ack_seq = 0;
 	struct packet *packet = NULL;
 	struct tuple live_inbound;
-	const struct ip_info ip_info = {{TOS_CHECK_NONE, 0}, 0};
+	const struct ip_info ip_info = ip_info_new();
 	int result = STATUS_OK;
 	u16 udp_src_port;
 	u16 udp_dst_port;
@@ -3734,7 +3734,7 @@ int abort_association(struct state *state, struct socket *socket)
 	struct sctp_chunk_list *chunk_list;
 	struct sctp_cause_list *cause_list;
 	struct tuple live_inbound;
-	const struct ip_info ip_info = {{TOS_CHECK_NONE, 0}, 0};
+	const struct ip_info ip_info = ip_info_new();
 	int result;
 	s64 flgs;
 	u16 udp_src_port;
