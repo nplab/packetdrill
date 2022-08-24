@@ -276,7 +276,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		 * used by TCP's cwnd bound. */
 		asprintf(&command, "ifconfig %s down; sleep 1; ifconfig %s up; "
 			      "sleep 1", netdev->name, netdev->name);
-		if(verbose_system(command) != STATUS_OK)
+		if (verbose_system(command) != STATUS_OK)
 			die("Error executing %s\n", command);
 		free(command);
 	}
@@ -285,7 +285,7 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 		char *command;
 		asprintf(&command, "ifconfig %s mtu %d",
 			 netdev->name, config->mtu);
-		if(verbose_system(command) != STATUS_OK)
+		if (verbose_system(command) != STATUS_OK)
             die("Error executing route command '%s'\n", command);
 		free(command);
 	}
@@ -369,7 +369,7 @@ static void route_traffic_to_device(struct config *config,
 		assert(!"bad wire protocol");
 	}
 #endif /* defined(linux) */
-    if(verbose_system(command) != STATUS_OK)
+    if (verbose_system(command) != STATUS_OK)
         die("Error executing %s\n", command);
 	free(route_command);
 }
