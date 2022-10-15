@@ -3466,11 +3466,11 @@ tcp_option
 	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN, TCPOPT_TARR_EXID);
 }
 | EXP_TARR INTEGER {
-	if (!is_valid_u11($2)) {
+	if (!is_valid_u7($2)) {
 		semantic_error("exp-tarr: r out of range");
 	}
 	$$ = tcp_exp_option_new(TCPOPT_EXP, TCPOLEN_EXP_TARR_WITH_RATE_LEN, TCPOPT_TARR_EXID);
-	put_unaligned_be16((u16)($2 << 5), &$$->exp.tarr.data);
+	$$->exp.tarr.data = ($2 << 1);
 }
 | EXP_FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;

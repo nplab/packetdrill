@@ -230,14 +230,14 @@ static inline bool is_valid_u6(s64 x)
 	return (x >= 0) && (x <= 0x3f);
 }
 
+static inline bool is_valid_u7(s64 x)
+{
+	return (x >= 0) && (x <= 0x7f);
+}
+
 static inline bool is_valid_u8(s64 x)
 {
 	return (x >= 0) && (x <= UCHAR_MAX);
-}
-
-static inline bool is_valid_u11(s64 x)
-{
-	return (x >= 0) && (x <= 0x7ff);
 }
 
 static inline bool is_valid_u16(s64 x)

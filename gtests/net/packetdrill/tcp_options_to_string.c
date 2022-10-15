@@ -164,8 +164,6 @@ static int tcp_exp_acc_ecn_option_to_string(FILE *s, u16 exid, struct tcp_option
 
 static int tcp_exp_tarr_option_to_string(FILE *s, u16 exid, struct tcp_option *option)
 {
-	u16 data;
-
 	assert(option->kind == TCPOPT_EXP);
 	assert(exid == TCPOPT_TARR_EXID);
 	if ((option->length != TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN) &&
@@ -177,8 +175,7 @@ static int tcp_exp_tarr_option_to_string(FILE *s, u16 exid, struct tcp_option *o
 		fputs("exp-tarr", s);
 		break;
 	case TCPOLEN_EXP_TARR_WITH_RATE_LEN:
-		data = get_unaligned_be16(&option->exp.tarr.data);
-		fprintf(s, "exp-tarr %u", data >> 5);
+		fprintf(s, "exp-tarr %u", option->exp.tarr.data >> 1);
 	}
 	return STATUS_OK;
 }

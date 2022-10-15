@@ -82,7 +82,7 @@
 /* TARR is based on https://datatracker.ietf.org/doc/html/draft-gomez-tcpm-ack-rate-request-05 */
 #define TCPOPT_TARR_EXID			0x00AC
 #define TCPOLEN_EXP_TARR_WITHOUT_RATE_LEN	4
-#define TCPOLEN_EXP_TARR_WITH_RATE_LEN		6
+#define TCPOLEN_EXP_TARR_WITH_RATE_LEN		5
 
 /* Represents a list of TCP options in their wire format. */
 struct tcp_options {
@@ -151,7 +151,7 @@ struct tcp_option {
 					u8 data[ACC_ECN_MAX_DATA_LEN];
 				} acc_ecn;
 				struct {
-					u16 data;
+					u8 data;
 				} tarr;
 				struct {
 					u8 data[MAX_TCP_EXP_OPTION_DATA_BYTES];
