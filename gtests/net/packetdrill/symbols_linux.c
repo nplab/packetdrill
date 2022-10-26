@@ -288,12 +288,24 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_FASTOPEN_CONNECT,             "TCP_FASTOPEN_CONNECT"            },
 	{ TCP_ULP,                          "TCP_ULP"                         },
 	{ TCP_MD5SIG_EXT,                   "TCP_MD5SIG_EXT"                  },
+#ifdef TCP_FASTOPEN_KEY
 	{ TCP_FASTOPEN_KEY,                 "TCP_FASTOPEN_KEY"                },
+#endif
+#ifdef TCP_FASTOPEN_NO_COOKIE
 	{ TCP_FASTOPEN_NO_COOKIE,           "TCP_FASTOPEN_NO_COOKIE"          },
+#endif
+#ifdef TCP_ZEROCOPY_RECEIVE
 	{ TCP_ZEROCOPY_RECEIVE,             "TCP_ZEROCOPY_RECEIVE"            },
+#endif
+#ifdef TCP_INQ
 	{ TCP_INQ,                          "TCP_INQ"                         },
+#endif
+#ifdef TCP_CM_INQ
 	{ TCP_CM_INQ,                       "TCP_CM_INQ"                      },
+#endif
+#ifdef TCP_TX_DELAY
 	{ TCP_TX_DELAY,                     "TCP_TX_DELAY"                    },
+#endif
 
 	{ UDPLITE_RECV_CSCOV,               "UDPLITE_RECV_CSCOV"              },
 	{ UDPLITE_SEND_CSCOV,               "UDPLITE_SEND_CSCOV"              },
