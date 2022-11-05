@@ -261,6 +261,7 @@ static void write_tcp_info(struct code_state *code,
 	emit_var(code, "tcpi_rcv_ooopack",        info->tcpi_rcv_ooopack);
 	emit_var(code, "tcpi_snd_zerowin",        info->tcpi_snd_zerowin);
 
+	emit_var(code, "tcpi_delivered_ce",       info->tcpi_delivered_ce);
 	emit_var(code, "tcpi_received_ce",        info->tcpi_received_ce);
 	emit_var(code, "tcpi_delivered_e1_bytes", info->tcpi_delivered_e1_bytes);
 	emit_var(code, "tcpi_delivered_e0_bytes", info->tcpi_delivered_e0_bytes);
