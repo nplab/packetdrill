@@ -227,6 +227,7 @@ struct _tcp_info {
 	u_int32_t	tcpi_snd_zerowin;
 
 	 /* Accurate ECN counters. */
+	u_int32_t	tcpi_delivered_ce;
 	u_int32_t	tcpi_received_ce;               /* # of CE marks received */
 	u_int32_t	tcpi_delivered_e1_bytes;
 	u_int32_t	tcpi_delivered_e0_bytes;
