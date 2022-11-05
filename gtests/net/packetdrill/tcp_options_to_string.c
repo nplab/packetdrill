@@ -93,18 +93,18 @@ static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
 		fprintf(s, "AccECN%u", order);
 		break;
 	case ACC_ECN_ONE_COUNTER_LEN:
-		fprintf(s, "AccECN%u EE%uB %u",
+		fprintf(s, "AccECN%u ee%ub %u",
 		        order, order,
 		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option));
 		break;
 	case ACC_ECN_TWO_COUNTER_LEN:
-		fprintf(s, "AccECN%u EE%uB %u ECEB %u",
+		fprintf(s, "AccECN%u ee%ub %u eceb %u",
 		        order, order,
 		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option),
 		        acc_ecn_get_eceb(option));
 		break;
 	case ACC_ECN_THREE_COUNTER_LEN:
-		fprintf(s, "AccECN%u EE%uB %u ECEB %u EE%uB %u",
+		fprintf(s, "AccECN%u ee%ub %u eceb %u ee%ub %u",
 		        order, order,
 		        order == 0 ? acc_ecn_get_ee0b(option) : acc_ecn_get_ee1b(option),
 		        acc_ecn_get_eceb(option),
