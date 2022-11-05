@@ -237,29 +237,37 @@ static void write_tcp_info(struct code_state *code,
 	write_symbols(code);
 
 	/* Emit the recorded values of tcpi_foo values. */
-	emit_var(code, "tcpi_state",		info->tcpi_state);
-	emit_var(code, "tcpi_options",		info->tcpi_options);
-	emit_var(code, "tcpi_snd_wscale",	info->tcpi_snd_wscale);
-	emit_var(code, "tcpi_rcv_wscale",	info->tcpi_rcv_wscale);
-	emit_var(code, "tcpi_rto",		info->tcpi_rto);
-	emit_var(code, "tcpi_snd_mss",		info->tcpi_snd_mss);
-	emit_var(code, "tcpi_rcv_mss",		info->tcpi_rcv_mss);
-	emit_var(code, "tcpi_last_data_recv",	info->tcpi_last_data_recv);
-	emit_var(code, "tcpi_rtt",		info->tcpi_rtt);
-	emit_var(code, "tcpi_rttvar",		info->tcpi_rttvar);
-	emit_var(code, "tcpi_snd_ssthresh",	info->tcpi_snd_ssthresh);
-	emit_var(code, "tcpi_snd_cwnd",		info->tcpi_snd_cwnd);
-	emit_var(code, "tcpi_rcv_space",	info->tcpi_rcv_space);
+	emit_var(code, "tcpi_state",              info->tcpi_state);
+	emit_var(code, "tcpi_options",            info->tcpi_options);
+	emit_var(code, "tcpi_snd_wscale",         info->tcpi_snd_wscale);
+	emit_var(code, "tcpi_rcv_wscale",         info->tcpi_rcv_wscale);
+	emit_var(code, "tcpi_rto",                info->tcpi_rto);
+	emit_var(code, "tcpi_snd_mss",            info->tcpi_snd_mss);
+	emit_var(code, "tcpi_rcv_mss",            info->tcpi_rcv_mss);
+	emit_var(code, "tcpi_last_data_recv",     info->tcpi_last_data_recv);
+	emit_var(code, "tcpi_rtt",                info->tcpi_rtt);
+	emit_var(code, "tcpi_rttvar",             info->tcpi_rttvar);
+	emit_var(code, "tcpi_snd_ssthresh",       info->tcpi_snd_ssthresh);
+	emit_var(code, "tcpi_snd_cwnd",           info->tcpi_snd_cwnd);
+	emit_var(code, "tcpi_rcv_space",          info->tcpi_rcv_space);
 
 	/* FreeBSD extensions to tcp_info. */
-	emit_var(code, "tcpi_snd_wnd",		info->tcpi_snd_wnd);
-	emit_var(code, "tcpi_snd_bwnd",		info->tcpi_snd_bwnd);
-	emit_var(code, "tcpi_snd_nxt",		info->tcpi_snd_nxt);
-	emit_var(code, "tcpi_rcv_nxt",		info->tcpi_rcv_nxt);
-	emit_var(code, "tcpi_toe_tid",		info->tcpi_toe_tid);
-	emit_var(code, "tcpi_snd_rexmitpack",	info->tcpi_snd_rexmitpack);
-	emit_var(code, "tcpi_rcv_ooopack",	info->tcpi_rcv_ooopack);
-	emit_var(code, "tcpi_snd_zerowin",	info->tcpi_snd_zerowin);
+	emit_var(code, "tcpi_snd_wnd",            info->tcpi_snd_wnd);
+	emit_var(code, "tcpi_snd_bwnd",           info->tcpi_snd_bwnd);
+	emit_var(code, "tcpi_snd_nxt",            info->tcpi_snd_nxt);
+	emit_var(code, "tcpi_rcv_nxt",            info->tcpi_rcv_nxt);
+	emit_var(code, "tcpi_toe_tid",            info->tcpi_toe_tid);
+	emit_var(code, "tcpi_snd_rexmitpack",     info->tcpi_snd_rexmitpack);
+	emit_var(code, "tcpi_rcv_ooopack",        info->tcpi_rcv_ooopack);
+	emit_var(code, "tcpi_snd_zerowin",        info->tcpi_snd_zerowin);
+
+	emit_var(code, "tcpi_received_ce",        info->tcpi_received_ce);
+	emit_var(code, "tcpi_delivered_e1_bytes", info->tcpi_delivered_e1_bytes);
+	emit_var(code, "tcpi_delivered_e0_bytes", info->tcpi_delivered_e0_bytes);
+	emit_var(code, "tcpi_delivered_ce_bytes", info->tcpi_delivered_ce_bytes);
+	emit_var(code, "tcpi_received_e1_bytes",  info->tcpi_received_e1_bytes);
+	emit_var(code, "tcpi_received_e0_bytes",  info->tcpi_received_e0_bytes);
+	emit_var(code, "tcpi_received_ce_bytes",  info->tcpi_received_ce_bytes);
 
 	emit_var_end(code);
 }
