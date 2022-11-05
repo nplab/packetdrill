@@ -410,6 +410,23 @@ static int sctp_ecn_capable_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_zero_checksum_acceptable_parameter_to_string(
+	FILE *s,
+	struct sctp_zero_checksum_acceptable_parameter *parameter,
+	char **error)
+{
+	u16 length;
+
+	length = ntohs(parameter->length);
+	if (length != sizeof(struct sctp_zero_checksum_acceptable_parameter)) {
+		asprintf(error, "ZERO_CHECKSUM_ACCEPTABLE parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
+	fputs("ZERO_CHECKSUM_ACCEPTABLE[]", s);
+	return STATUS_OK;
+}
+
 static int sctp_chunks_parameter_to_string(
 	FILE *s,
 	struct sctp_chunks_parameter *parameter,
@@ -797,6 +814,10 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_ECN_CAPABLE_PARAMETER_TYPE:
 		result = sctp_ecn_capable_parameter_to_string(s,
 			(struct sctp_ecn_capable_parameter *)parameter, error);
+		break;
+	case SCTP_ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_TYPE:
+		result = sctp_zero_checksum_acceptable_parameter_to_string(s,
+			(struct sctp_zero_checksum_acceptable_parameter *)parameter, error);
 		break;
 	case SCTP_CHUNKS_PARAMETER_TYPE:
 		result = sctp_chunks_parameter_to_string(s,

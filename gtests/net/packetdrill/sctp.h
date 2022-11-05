@@ -315,6 +315,7 @@ struct _sctp_i_forward_tsn_chunk {
 #define SCTP_ADD_OUTGOING_STREAMS_REQUEST_PARAMETER_TYPE	0x0011
 #define SCTP_ADD_INCOMING_STREAMS_REQUEST_PARAMETER_TYPE	0x0012
 #define SCTP_ECN_CAPABLE_PARAMETER_TYPE				0x8000
+#define SCTP_ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_TYPE		0x8001
 #define SCTP_RANDOM_PARAMETER_TYPE				0x8002
 #define SCTP_CHUNKS_PARAMETER_TYPE				0x8003
 #define SCTP_HMAC_ALGO_PARAMETER_TYPE				0x8004
@@ -435,6 +436,11 @@ struct sctp_add_incoming_streams_request_parameter {
 } __packed;
 
 struct sctp_ecn_capable_parameter {
+	__be16 type;
+	__be16 length;
+} __packed;
+
+struct sctp_zero_checksum_acceptable_parameter {
 	__be16 type;
 	__be16 length;
 } __packed;

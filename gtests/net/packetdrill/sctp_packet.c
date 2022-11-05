@@ -2446,6 +2446,20 @@ sctp_ecn_capable_parameter_new(void)
 }
 
 struct sctp_parameter_list_item *
+sctp_zero_checksum_acceptable_parameter_new(void)
+{
+	struct sctp_zero_checksum_acceptable_parameter *parameter;
+
+	parameter = malloc(sizeof(struct sctp_zero_checksum_acceptable_parameter));
+	assert(parameter != NULL);
+	parameter->type = htons(SCTP_ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_TYPE);
+	parameter->length = htons(sizeof(struct sctp_zero_checksum_acceptable_parameter));
+	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
+	                                    sizeof(struct sctp_zero_checksum_acceptable_parameter),
+	                                    0);
+}
+
+struct sctp_parameter_list_item *
 sctp_forward_tsn_supported_parameter_new()
 {
 	struct sctp_forward_tsn_supported_parameter *parameter;
