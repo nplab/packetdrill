@@ -138,6 +138,9 @@ static int sctp_packet_to_string(FILE *s, struct packet *packet, int i,
 	if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
 		fputs("(bad_crc32c)", s);
 	}
+	if (packet->flags & FLAGS_SCTP_ZERO_CHECKSUM) {
+		fputs("(zero_checksum)", s);
+	}
 
 	if (packet->headers[i + 1].type == HEADER_UDP) {
 		struct udp *udp = packet->headers[i + 1].h.udp;

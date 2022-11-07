@@ -2498,6 +2498,13 @@ static int verify_sctp(
 	                error) == STATUS_ERR) {
 	    return STATUS_ERR;
 	}
+	if (flags & FLAGS_SCTP_ZERO_CHECKSUM &&
+	    check_field("sctp_checksum",
+	                ntohl(0),
+	                ntohl(actual_packet->sctp->crc32c),
+	                error) == STATUS_ERR) {
+	    return STATUS_ERR;
+	}
 	for (actual_chunk = sctp_chunks_begin((struct packet *)actual_packet, &iter, error),
 	     script_chunk_item = script_packet->chunk_list->first;
 	     actual_chunk != NULL && script_chunk_item != NULL;
@@ -3763,7 +3770,7 @@ int abort_association(struct state *state, struct socket *socket)
 	chunk_list = sctp_chunk_list_new();
 	sctp_chunk_list_append(chunk_list, sctp_abort_chunk_new(flgs, cause_list));
 	packet = new_sctp_packet(socket->address_family,
-				 DIRECTION_INBOUND, ip_info, 0, 0, -1, false,
+				 DIRECTION_INBOUND, ip_info, 0, 0, -1, false, false,
 				 chunk_list, udp_src_port, udp_dst_port,
 				 &error);
 	if (packet == NULL)

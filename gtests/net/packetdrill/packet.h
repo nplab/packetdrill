@@ -111,17 +111,18 @@ struct packet {
 	s64 time_usecs;		/* wall time of receive/send if non-zero */
 
 	u32 flags;		  /* various meta-flags */
-#define FLAG_WIN_NOCHECK          0x1  /* don't check TCP receive window */
-#define FLAG_OPTIONS_NOCHECK      0x2  /* don't check TCP options */
-#define FLAG_ABSOLUTE_TS_ECR      0x4  /* don't adjust TCP TS ecr */
-#define FLAG_ABSOLUTE_SEQ         0x8  /* don't adjust TCP.SEQ */
-#define FLAGS_SCTP_BAD_CRC32C     0x10 /* compute bad CRC32C for SCTP packets */
-#define FLAGS_SCTP_EXPLICIT_TAG   0x20 /* verification tag specified */
-#define FLAGS_SCTP_GENERIC_PACKET 0x40 /* set if it is a generic packet */
-#define FLAGS_UDP_ENCAPSULATED    0x80 /* TCP/UDP or SCTP/UDP encapsulated */
-#define FLAG_IGNORE_TS_VAL        0x100 /* set to ignore processing of TS val */
-#define FLAG_IGNORE_SEQ           0x200 /* set to ignore processing of sequence numbers */
-#define FLAG_PARSE_ACE            0x400 /* output parsed AccECN ACE field */
+#define FLAG_WIN_NOCHECK          0x00000001 /* don't check TCP receive window */
+#define FLAG_OPTIONS_NOCHECK      0x00000002 /* don't check TCP options */
+#define FLAG_ABSOLUTE_TS_ECR      0x00000004 /* don't adjust TCP TS ecr */
+#define FLAG_ABSOLUTE_SEQ         0x00000008 /* don't adjust TCP.SEQ */
+#define FLAGS_SCTP_BAD_CRC32C     0x00000010 /* compute bad CRC32C for SCTP packets */
+#define FLAGS_SCTP_ZERO_CHECKSUM  0x00000020 /* compute zero checksum for SCTP packets */
+#define FLAGS_SCTP_EXPLICIT_TAG   0x00000040 /* verification tag specified */
+#define FLAGS_SCTP_GENERIC_PACKET 0x00000080 /* set if it is a generic packet */
+#define FLAGS_UDP_ENCAPSULATED    0x00000100 /* TCP/UDP or SCTP/UDP encapsulated */
+#define FLAG_IGNORE_TS_VAL        0x00000200 /* set to ignore processing of TS val */
+#define FLAG_IGNORE_SEQ           0x00000400 /* set to ignore processing of sequence numbers */
+#define FLAG_PARSE_ACE            0x00000800 /* output parsed AccECN ACE field */
 
 	enum tos_chk_t tos_chk;	/* how to treat the TOS byte of a packet */
 

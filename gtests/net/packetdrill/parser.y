@@ -603,6 +603,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 		u16 udp_dst_port;
 	} udp_encaps_info;
 	struct {
+		bool zero_checksum;
 		bool bad_crc32c;
 		s64 tag;
 	} sctp_header_spec;
@@ -707,7 +708,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> SASOC_LOCAL_RWND SASOC_COOKIE_LIFE SE_ASSOC_ID SE_TYPE SE_ON
 %token <reserved> SSP_ASSOC_ID SSP_ADDR
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SND_ASSOC_ID SSB_ADAPTATION_IND
-%token <reserved> BAD_CRC32C NULL_
+%token <reserved> BAD_CRC32C ZERO_CHECKSUM NULL_
 %token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT SINFO_ASSOC_ID
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN SINFO_PR_VALUE SERINFO_NEXT_FLAGS
 %token <reserved> SERINFO_NEXT_STREAM SERINFO_NEXT_AID SERINFO_NEXT_LENGTH SERINFO_NEXT_PPID
@@ -1128,17 +1129,25 @@ opt_udp_encaps_info
 
 sctp_header_spec
 : SCTP {
+	$$.zero_checksum = false;
 	$$.bad_crc32c = false;
 	$$.tag = -1;
 }
 | SCTP '(' BAD_CRC32C ')' {
+	$$.zero_checksum = false;
 	$$.bad_crc32c = true;
+	$$.tag = -1;
+}
+| SCTP '(' ZERO_CHECKSUM ')' {
+	$$.zero_checksum = true;
+	$$.bad_crc32c = false;
 	$$.tag = -1;
 }
 | SCTP '(' TAG '=' INTEGER ')' {
 	if (!is_valid_u32($5)) {
 		semantic_error("tag value out of range");
 	}
+	$$.zero_checksum = false;
 	$$.bad_crc32c = false;
 	$$.tag = $5;
 }
@@ -1146,7 +1155,16 @@ sctp_header_spec
 	if (!is_valid_u32($7)) {
 		semantic_error("tag value out of range");
 	}
+	$$.zero_checksum = false;
 	$$.bad_crc32c = true;
+	$$.tag = $7;
+}
+| SCTP '(' ZERO_CHECKSUM ',' TAG '=' INTEGER ')' {
+	if (!is_valid_u32($7)) {
+		semantic_error("tag value out of range");
+	}
+	$$.zero_checksum = true;
+	$$.bad_crc32c = false;
 	$$.tag = $7;
 }
 ;
@@ -1159,8 +1177,8 @@ sctp_packet_spec
 
 	inner = new_sctp_packet(in_config->wire_protocol, direction, $2,
 	                        $3.src_port, $3.dst_port,
-	                        $4.tag, $4.bad_crc32c, $7,
-	                        $5.udp_src_port, $5.udp_dst_port,
+	                        $4.tag, $4.zero_checksum, $4.bad_crc32c,
+	                        $7, $5.udp_src_port, $5.udp_dst_port,
 	                        &error);
 	if (inner == NULL) {
 		assert(error != NULL);
@@ -1177,8 +1195,8 @@ sctp_packet_spec
 
 	inner = new_sctp_generic_packet(in_config->wire_protocol, direction, $2,
 	                                $3.src_port, $3.dst_port,
-	                                $4.tag, $4.bad_crc32c, $8,
-	                                $5.udp_src_port, $5.udp_dst_port,
+	                                $4.tag, $4.zero_checksum, $4.bad_crc32c,
+	                                $8, $5.udp_src_port, $5.udp_dst_port,
 	                                &error);
 	if (inner == NULL) {
 		assert(error != NULL);

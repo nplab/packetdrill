@@ -3076,6 +3076,7 @@ new_sctp_packet(int address_family,
                 u16 src_port,
                 u16 dst_port,
                 s64 tag,
+                bool zero_checksum,
                 bool bad_crc32c,
                 struct sctp_chunk_list *list,
                 u16 udp_src_port,
@@ -3487,6 +3488,9 @@ new_sctp_packet(int address_family,
 	memset(packet->buffer, 0, overbook ? MAX_SCTP_DATAGRAM_BYTES : ip_bytes);
 	packet->direction = direction;
 	packet->flags = encapsulate ? FLAGS_UDP_ENCAPSULATED : 0;
+	if (zero_checksum) {
+		packet->flags |= FLAGS_SCTP_ZERO_CHECKSUM;
+	}
 	if (bad_crc32c) {
 		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
 	}
@@ -3576,6 +3580,7 @@ new_sctp_generic_packet(int address_family,
 			u16 src_port,
 			u16 dst_port,
 			s64 tag,
+			bool zero_checksum,
 			bool bad_crc32c,
 			struct sctp_byte_list *bytes,
 			u16 udp_src_port,
@@ -3630,14 +3635,14 @@ new_sctp_generic_packet(int address_family,
 
 	packet->direction = direction;
 	packet->flags = FLAGS_SCTP_GENERIC_PACKET;
+	if (zero_checksum) {
+		packet->flags |= FLAGS_SCTP_ZERO_CHECKSUM;
+	}
 	if (bad_crc32c) {
 		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
 	}
 	if (tag != -1) {
 		packet->flags |= FLAGS_SCTP_EXPLICIT_TAG;
-	}
-	if (encapsulate) {
-		packet->flags |= FLAGS_SCTP_BAD_CRC32C;
 	}
 	packet->tos_chk = ip_info.tos.check;
 

@@ -50,13 +50,15 @@ static void checksum_ipv4_packet(struct packet *packet)
 		struct udp *udp;
 
 		sctp->crc32c = htonl(0);
-		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
-			sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
-		} else {
-			sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
-		}
-		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
-			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
+		if ((packet->flags & FLAGS_SCTP_ZERO_CHECKSUM) == 0) {
+			if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+				sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
+			} else {
+				sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+			}
+			if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
+				sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
+			}
 		}
 		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			udp = ((struct udp *)sctp) - 1;
@@ -138,13 +140,15 @@ static void checksum_ipv6_packet(struct packet *packet)
 		struct udp *udp;
 
 		sctp->crc32c = htonl(0);
-		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
-			sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
-		} else {
-			sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
-		}
-		if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
-			sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
+		if ((packet->flags & FLAGS_SCTP_ZERO_CHECKSUM) == 0) {
+			if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
+				sctp->crc32c = sctp_crc32c(sctp, l4_bytes - sizeof(struct udp));
+			} else {
+				sctp->crc32c = sctp_crc32c(sctp, l4_bytes);
+			}
+			if (packet->flags & FLAGS_SCTP_BAD_CRC32C) {
+				sctp->crc32c = htonl(ntohl(sctp->crc32c) + 1);
+			}
 		}
 		if (packet->flags & FLAGS_UDP_ENCAPSULATED) {
 			udp = ((struct udp *)sctp) - 1;

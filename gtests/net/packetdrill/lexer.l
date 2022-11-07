@@ -605,6 +605,7 @@ staleness			return STALENESS;
 param				return PARAM;
 chk				return CHK;
 bad_crc32c			return BAD_CRC32C;
+zero_checksum			return ZERO_CHECKSUM;
 NULL				return NULL_;
 gen-[0-9]+			yylval.integer	= atoll(yytext + 4); return GENERIC_OPTION;
 exp-[0-9a-fA-F]+		yylval.integer	= strtol(yytext + 4, NULL, 16); return EXP_GENERIC_OPTION;
