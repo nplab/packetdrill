@@ -248,6 +248,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_INTERLEAVING_SUPPORTED,      "SCTP_INTERLEAVING_SUPPORTED"     },
 #endif
 	{ SCTP_REMOTE_UDP_ENCAPS_PORT,      "SCTP_REMOTE_UDP_ENCAPS_PORT"     },
+#if defined(SCTP_ACCEPT_ZERO_CHECKSUM)
+	{ SCTP_ACCEPT_ZERO_CHECKSUM,        "SCTP_ACCEPT_ZERO_CHECKSUM"       },
+#endif
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
 	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },
