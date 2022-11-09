@@ -357,13 +357,15 @@ static int parse_sctp(struct packet *packet, u8 *layer4_start, int layer4_bytes,
 	packet->sctp = (struct sctp_common_header *) p;
 
 	received_crc32c = ntohl(packet->sctp->crc32c);
-	packet->sctp->crc32c = htonl(0);
-	computed_crc32c = ntohl(sctp_crc32c(packet->sctp, layer4_bytes));
-	packet->sctp->crc32c = htonl(received_crc32c);
-	if (received_crc32c != computed_crc32c) {
-		asprintf(error, "Bad SCTP checksum 0x%08x (expected 0x%08x)",
-			 received_crc32c, computed_crc32c);
-		goto error_out;
+	if (received_crc32c != 0) {
+		packet->sctp->crc32c = htonl(0);
+		computed_crc32c = ntohl(sctp_crc32c(packet->sctp, layer4_bytes));
+		packet->sctp->crc32c = htonl(received_crc32c);
+		if (received_crc32c != computed_crc32c) {
+			asprintf(error, "Bad SCTP checksum 0x%08x (expected 0x%08x)",
+				 received_crc32c, computed_crc32c);
+			goto error_out;
+		}
 	}
 	const int sctp_header_len = sizeof(struct sctp_common_header);
 	sctp_header = packet_append_header(packet, HEADER_SCTP,
