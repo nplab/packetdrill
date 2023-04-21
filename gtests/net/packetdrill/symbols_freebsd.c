@@ -446,6 +446,16 @@ struct int_symbol platform_symbols_table[] = {
 #endif
 #if defined(TCP_LOG)
 	{ TCP_LOG,                          "TCP_LOG"                         },
+	{ TCP_LOG_STATE_CLEAR,              "TCP_LOG_STATE_CLEAR"             },
+	{ TCP_LOG_STATE_OFF,                "TCP_LOG_STATE_OFF"               },
+	{ TCP_LOG_STATE_TAIL,               "TCP_LOG_STATE_TAIL"              },
+	{ TCP_LOG_STATE_HEAD,               "TCP_LOG_STATE_HEAD"              },
+	{ TCP_LOG_STATE_HEAD_AUTO,          "TCP_LOG_STATE_HEAD_AUTO"         },
+	{ TCP_LOG_STATE_CONTINUAL,          "TCP_LOG_STATE_CONTINUAL"         },
+	{ TCP_LOG_STATE_TAIL_AUTO,          "TCP_LOG_STATE_TAIL_AUTO"         },
+#if __FreeBSD_version >= 1400000
+	{ TCP_LOG_VIA_BBPOINTS,             "TCP_LOG_VIA_BBPOINTS"            },
+#endif
 #endif
 #if defined(TCP_RACK_TIMER_SLOP)
 	{ TCP_RACK_TIMER_SLOP,              "TCP_RACK_TIMER_SLOP"             },

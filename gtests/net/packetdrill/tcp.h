@@ -34,6 +34,9 @@
 #include "types.h"
 
 #include <netinet/tcp.h>
+#if defined(__FreeBSD__)
+#include <netinet/tcp_log_buf.h>
+#endif
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__SunOS_5_11)
 #include <netinet/tcp_fsm.h>
 #endif
