@@ -261,19 +261,16 @@ struct int_symbol platform_symbols_table[] = {
 	{ SCTP_SHUTDOWN_RECEIVED,           "SCTP_SHUTDOWN_RECEIVED"          },
 	{ SCTP_SHUTDOWN_ACK_SENT,           "SCTP_SHUTDOWN_ACK_SENT"          },
 	{ SCTP_SHUTDOWN_PENDING,            "SCTP_SHUTDOWN_PENDING"           },
-	/* The following constants are from
-	 * https://tools.ietf.org/html/draft-ietf-tsvwg-sctp-ndata-04
-	 * The old symbols currently being deployed are also provided.
-	 */
-	{ SCTP_PLUGGABLE_SS,                "SCTP_PLUGGABLE_SS"               },
-	{ SCTP_SS_VALUE,                    "SCTP_SS_VALUE"                   },
-	{ SCTP_SS_DEFAULT,                  "SCTP_SS_DEFAULT"                 },
-	{ SCTP_SS_ROUND_ROBIN,              "SCTP_SS_ROUND_ROBIN"             },
-	{ SCTP_SS_ROUND_ROBIN_PACKET,       "SCTP_SS_ROUND_ROBIN_PACKET"      },
-	{ SCTP_SS_PRIORITY,                 "SCTP_SS_PRIORITY"                },
 	/* The following is a typo in FreeBSD's sctp.h */
-	{ SCTP_SS_FAIR_BANDWITH,            "SCTP_SS_FAIR_BANDWITH"           },
-	{ SCTP_SS_FIRST_COME,               "SCTP_SS_FIRST_COME"              },
+#if defined(SCTP_STREAM_SCHEDULER)
+	{ SCTP_STREAM_SCHEDULER,            "SCTP_STREAM_SCHEDULER"           },
+#endif
+#if defined(SCTP_STREAM_SCHEDULER)
+	{ SCTP_STREAM_SCHEDULER_VALUE,      "SCTP_STREAM_SCHEDULER_VALUE"     },
+#endif
+#if defined(SCTP_SS_DEFAULT)
+	{ SCTP_SS_DEFAULT,                  "SCTP_SS_DEFAULT"                 },
+#endif
 #if defined(SCTP_SS_FCFS)
 	{ SCTP_SS_FCFS,                     "SCTP_SS_FCFS"                    },
 #endif
@@ -291,21 +288,6 @@ struct int_symbol platform_symbols_table[] = {
 #endif
 #if defined(SCTP_SS_WFQ)
 	{ SCTP_SS_WFQ,                      "SCTP_SS_WFQ"                     },
-#endif
-#if defined(SCTP_SS_RR_INTER)
-	{ SCTP_SS_RR_INTER,                 "SCTP_SS_RR_INTER"                },
-#endif
-#if defined(SCTP_SS_RR_PKT_INTER)
-	{ SCTP_SS_RR_PKT_INTER,             "SCTP_SS_RR_PKT_INTER"            },
-#endif
-#if defined(SCTP_SS_PRIO_INTER)
-	{ SCTP_SS_PRIO_INTER,               "SCTP_SS_PRIO_INTER"              },
-#endif
-#if defined(SCTP_SS_FB_INTER)
-	{ SCTP_SS_FB_INTER,                 "SCTP_SS_FB_INTER"                },
-#endif
-#if defined(SCTP_SS_WFQ_INTER)
-	{ SCTP_SS_WFQ_INTER,                "SCTP_SS_WFQ_INTER"               },
 #endif
 	{ SCTP_UNCONFIRMED,                 "SCTP_UNCONFIRMED"                },
 	{ SCTP_ACTIVE,                      "SCTP_ACTIVE"                     },
