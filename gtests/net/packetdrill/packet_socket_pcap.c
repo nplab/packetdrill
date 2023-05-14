@@ -246,12 +246,14 @@ int packet_socket_receive(struct packet_socket *psock,
 			break;		/* got a packet */
 		else if (status == 0)
 			return STATUS_ERR;	/* no packet yet */
-		else if (status == -1)
-			die("%s: %s\n", "pcap_inject", pcap_geterr(psock->pcap));
-		else if (status == -2)
+		else if (status == PCAP_ERROR)
+			die("%s: %s\n", "pcap_next_ex", pcap_geterr(psock->pcap));
+		else if (status == PCAP_ERROR_BREAK)
 			die("pcap_next_ex: EOF in save file?!\n");
+		else if (status == PCAP_ERROR_NOT_ACTIVATED)
+			die("pcap_next_ex: handle not activated?!\n");
 		else
-			die("pcap_next_ex: status: %d\n", status);
+			die("pcap_next_ex: unexpected status: %d\n", status);
 	}
 
 	DEBUGP("time: %u . %u\n",
