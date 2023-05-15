@@ -103,6 +103,7 @@ enum expression_t {
 	EXPR_SCTP_ASSOC_RESET_EVENT,  /* expression tree for sctp_assoc_reset_event struct for sctp notifications */
 	EXPR_SCTP_STREAM_CHANGE_EVENT, /* expression tree for sctp_stream_change_event struct for sctp notifications */
 	EXPR_SCTP_UDPENCAPS,      /* expression tree for sctp_udpencaps struct for [gs]etsockopt */
+	EXPR_SOCK_EXTENDED_ERR,	  /* scm_sock_extended_err expression */
 	NUM_EXPR_TYPES,
 };
 /* Convert an expression type to a human-readable string */
@@ -178,6 +179,7 @@ struct expression {
 		struct sctp_assoc_reset_event_expr *sctp_assoc_reset_event;
 		struct sctp_stream_change_event_expr *sctp_stream_change_event;
 		struct sctp_udpencaps_expr *sctp_udpencaps;
+		struct sock_extended_err_expr *sock_extended_err;
 	} value;
 	const char *format;	/* the printf format for printing the value */
 };
@@ -670,6 +672,16 @@ struct sctp_udpencaps_expr {
 	struct expression *sue_assoc_id;
 	struct expression *sue_address;
 	struct expression *sue_port;
+};
+
+/* Parse tree for a sock_extended_err item in a recvmsg syscall. */
+struct sock_extended_err_expr {
+	struct expression *ee_errno;
+	struct expression *ee_origin;
+	struct expression *ee_type;
+	struct expression *ee_code;
+	struct expression *ee_info;
+	struct expression *ee_data;
 };
 
 /* The errno-related info from strace to summarize a system call error */

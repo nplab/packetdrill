@@ -62,6 +62,9 @@
 #endif
 #include <time.h>
 #include <unistd.h>
+#if defined(linux)
+#include <linux/errqueue.h>
+#endif
 #include "assert.h"
 #include "logging.h"
 #include "run.h"
@@ -118,6 +121,11 @@ static int check_sctp_nxtinfo(struct sctp_nxtinfo_expr *expr, struct sctp_nxtinf
 static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error);
+#endif
+#if IP_RECVERR || IPV6_RECVERR
+static int check_sock_extended_err(struct sock_extended_err_expr *expr,
+			      struct sock_extended_err *actual,
+			      char **error);
 #endif
 
 #if defined(linux)
@@ -1146,6 +1154,18 @@ static int cmsg_new(struct expression *expression,
 			cmsg_size += CMSG_SPACE(sizeof(struct in6_addr));
 			break;
 #endif
+#if IP_RECVERR || IPV6_RECVERR
+		case EXPR_SOCK_EXTENDED_ERR:
+			/* ip(v6)_recv_error returns a struct defined in
+			 * function scope that appends a sockaddr.
+			 */
+			cmsg_size += CMSG_SPACE(sizeof(struct sock_extended_err));
+			if (cmsg_expr->value.cmsghdr->cmsg_level->value.num == IPPROTO_IP)
+				cmsg_size += sizeof(struct sockaddr_in);
+			else
+				cmsg_size += sizeof(struct sockaddr_in6);
+			break;
+#endif
 		default:
 			asprintf(error,"cmsg %d type not valid", i);
 			return STATUS_ERR;
@@ -1260,6 +1280,16 @@ static int cmsg_new(struct expression *expression,
 		case EXPR_SOCKET_ADDRESS_IPV6:
 			memcpy(CMSG_DATA(cmsg), &cmsg_expr->cmsg_data->value.socket_address_ipv6->sin6_addr, sizeof(struct in6_addr));
 			cmsg = (struct cmsghdr *)((caddr_t)cmsg + CMSG_SPACE(sizeof(struct in6_addr)));
+			break;
+#endif
+#if IP_RECVERR || IPV6_RECVERR
+		case EXPR_SOCK_EXTENDED_ERR:
+			cmsg_size = CMSG_SPACE(sizeof(struct sock_extended_err));
+			if (cmsg_expr->cmsg_level->value.num == IPPROTO_IP)
+				cmsg_size += sizeof(struct sockaddr_in);
+			else
+				cmsg_size += sizeof(struct sockaddr_in6);
+			cmsg = (struct cmsghdr *)((caddr_t)cmsg + cmsg_size);
 			break;
 #endif
 		default:
@@ -1425,6 +1455,20 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 							 expected_addr, live_addr);
 						return STATUS_ERR;
 					}
+				}
+				break;
+#endif
+#if IP_RECVERR
+			case IP_RECVERR:
+#endif
+#if IPV6_RECVERR
+			case IPV6_RECVERR:
+#endif
+#if IP_RECVERR || IPV6_RECVERR
+				if (check_sock_extended_err(expr->cmsg_data->value.sock_extended_err,
+						       (struct sock_extended_err *) CMSG_DATA(cmsg_ptr),
+						       error)) {
+					return STATUS_ERR;
 				}
 				break;
 #endif
@@ -2472,7 +2516,6 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 	}
 #endif
 	status = check_cmsghdr(msg_expression->value.msghdr->msg_control, msg, error);
-
 error_out:
 	msghdr_free(msg, iov_len);
 	return status;
@@ -6431,6 +6474,28 @@ static int check_sctp_notification(struct socket *socket,
 		i++;
 		iovec_expr_list = iovec_expr_list->next;
 	}
+	return STATUS_OK;
+}
+#endif
+
+#if IP_RECVERR || IPV6_RECVERR
+static int check_sock_extended_err(struct sock_extended_err_expr *expr,
+			      struct sock_extended_err *actual,
+			      char **error)
+{
+	if (check_u32_expr(expr->ee_errno, actual->ee_errno, "sock_extended_err.ee_errno", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->ee_origin, actual->ee_origin, "sock_extended_err.ee_origin", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->ee_type, actual->ee_type, "sock_extended_err.ee_type", error))
+		return STATUS_ERR;
+	if (check_u8_expr(expr->ee_code, actual->ee_code, "sock_extended_err.ee_code", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->ee_info, actual->ee_info, "sock_extended_err.ee_info", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->ee_data, actual->ee_data, "sock_extended_err.ee_data", error))
+		return STATUS_ERR;
+
 	return STATUS_OK;
 }
 #endif

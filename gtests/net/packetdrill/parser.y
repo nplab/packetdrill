@@ -741,6 +741,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> ASSOCRESET_TYPE ASSOCRESET_FLAGS ASSOCRESET_LENGTH ASSOCRESET_ASSOC_ID ASSOCRESET_LOCAL_TSN ASSOCRESET_REMOTE_TSN
 %token <reserved> STRCHANGE_TYPE STRCHANGE_FLAGS STRCHANGE_LENGTH STRCHANGE_ASSOC_ID STRCHANGE_INSTRMS STRCHANGE_OUTSTRMS
 %token <reserved> SUE_ASSOC_ID SUE_ADDRESS SUE_PORT
+%token <reserved> EE_ERRNO EE_CODE EE_DATA EE_INFO EE_ORIGIN EE_TYPE
 %token <floating> FLOAT
 %token <integer> INTEGER HEX_INTEGER
 %token <integer> GENERIC_OPTION EXP_GENERIC_OPTION
@@ -785,6 +786,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %type <expression> expression binary_expression array
 %type <expression> decimal_integer hex_integer data
 %type <expression> inaddr sockaddr msghdr cmsghdr cmsg_level cmsg_type cmsg_data
+%type <expression> sock_extended_err_expr
 %type <expression> sf_hdtr iovec pollfd opt_revents
 %type <expression> linger l_onoff l_linger
 %type <expression> accept_filter_arg af_name af_arg
@@ -3762,6 +3764,9 @@ expression
 | sctp_udpencaps  {
 	$$ = $1;
 }
+| sock_extended_err_expr {
+	$$ = $1;
+}
 | null              {
 	$$ = $1;
 }
@@ -3923,6 +3928,7 @@ cmsg_data
 | _CMSG_DATA_ '=' sctp_prinfo      { $$ = $3; }
 | _CMSG_DATA_ '=' sctp_authinfo    { $$ = $3; }
 | _CMSG_DATA_ '=' sockaddr         { $$ = $3; }
+| _CMSG_DATA_ '=' sock_extended_err_expr { $$ = $3; }
 ;
 
 cmsghdr
@@ -6534,6 +6540,26 @@ sctp_udpencaps
 	$$->value.sctp_udpencaps->sue_assoc_id = new_expression(EXPR_ELLIPSIS);
 	$$->value.sctp_udpencaps->sue_address = $2;
 	$$->value.sctp_udpencaps->sue_port = $4;
+}
+;
+
+sock_extended_err_expr
+: '{' EE_ERRNO '=' expression ','
+      EE_ORIGIN '=' expression ','
+      EE_TYPE '=' expression ','
+      EE_CODE '=' expression ','
+      EE_INFO '=' expression ','
+      EE_DATA '=' expression '}' {
+	struct sock_extended_err_expr *ee_expr =
+		calloc(1, sizeof(struct sock_extended_err_expr));
+	ee_expr->ee_errno = $4;
+	ee_expr->ee_origin = $8;
+	ee_expr->ee_type = $12;
+	ee_expr->ee_code = $16;
+	ee_expr->ee_info = $20;
+	ee_expr->ee_data = $24;
+	$$ = new_expression(EXPR_SOCK_EXTENDED_ERR);
+	$$->value.sock_extended_err = ee_expr;
 }
 ;
 
