@@ -7107,11 +7107,11 @@ static int await_idle_thread(struct state *state)
 #if !defined(__SunOS_5_11)
 static int yield(void)
 {
-#if defined(linux) || defined(__NetBSD__)
-	return sched_yield();
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 	pthread_yield();
 	return 0;
+#elif defined(__NetBSD__) || defined(linux)
+	return sched_yield();
 #elif defined(__APPLE__)
 	pthread_yield_np();
 	return 0;
