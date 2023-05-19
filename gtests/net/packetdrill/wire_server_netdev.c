@@ -68,7 +68,7 @@ void wire_server_netdev_init(const char *netdev_name)
 	 * aggregated by LRO or GRO.
 	 *
 	 * TOOD: if netdev_name is a bonding interface then we should
-	 * programmatically figure out all the slave interfaces for
+	 * programmatically figure out all the physical interfaces for
 	 * the given netdev_name.
 	 */
 	asprintf(&command,
