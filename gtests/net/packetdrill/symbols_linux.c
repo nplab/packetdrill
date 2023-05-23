@@ -31,6 +31,8 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/udp.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,6 +43,7 @@
 #include <sys/unistd.h>
 
 #include <linux/sockios.h>
+#include <linux/errqueue.h>
 
 #include "tcp.h"
 
@@ -88,6 +91,8 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_DOMAIN,                        "SO_DOMAIN"                       },
 	{ SO_TYPE,                          "SO_TYPE"                         },
 	{ SO_PROTOCOL,                      "SO_PROTOCOL"                     },
+	{ SO_EE_ORIGIN_ICMP,                "SO_EE_ORIGIN_ICMP"               },
+	{ SO_EE_ORIGIN_ICMP6,               "SO_EE_ORIGIN_ICMP6"              },
 
 	{ IP_TOS,                           "IP_TOS"                          },
 	{ IP_MTU_DISCOVER,                  "IP_MTU_DISCOVER"                 },
@@ -95,12 +100,17 @@ struct int_symbol platform_symbols_table[] = {
 	{ IP_PMTUDISC_DONT,                 "IP_PMTUDISC_DONT"                },
 	{ IP_PMTUDISC_DO,                   "IP_PMTUDISC_DO"                  },
 	{ IP_PMTUDISC_PROBE,                "IP_PMTUDISC_PROBE"               },
+	{ IP_RECVERR,                       "IP_RECVERR"                      },
+	{ IPV6_RECVERR,                     "IPV6_RECVERR"                    },
 #ifdef IP_MTU
 	{ IP_MTU,                           "IP_MTU"                          },
 #endif
 #ifdef IPV6_MTU
 	{ IPV6_MTU,                         "IPV6_MTU"                        },
 #endif
+	{ ICMP_UNREACH,                     "ICMP_UNREACH"                    },
+	{ ICMP_UNREACH_NEEDFRAG,            "ICMP_UNREACH_NEEDFRAG"           },
+	{ ICMP6_PACKET_TOO_BIG,             "ICMP6_PACKET_TOO_BIG"            },
 
 	{ SCTP_RTOINFO,                     "SCTP_RTOINFO"                    },
 	{ SCTP_ASSOCINFO,                   "SCTP_ASSOCINFO"                  },

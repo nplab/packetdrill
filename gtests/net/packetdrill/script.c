@@ -175,6 +175,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_SCTP_ASSOC_RESET_EVENT,      "sctp_assoc_reset_event"          },
 	{ EXPR_SCTP_STREAM_CHANGE_EVENT,    "sctp_stream_change_event"        },
 	{ EXPR_SCTP_UDPENCAPS,              "sctp_udpencaps"                  },
+	{ EXPR_SOCK_EXTENDED_ERR,           "sock_extended_err"               },
 	{ NUM_EXPR_TYPES,                   NULL                              }
 };
 
@@ -850,6 +851,16 @@ void free_expression(struct expression *expression)
 		free_expression(expression->value.sctp_udpencaps->sue_address);
 		free_expression(expression->value.sctp_udpencaps->sue_port);
 		free(expression->value.sctp_udpencaps);
+		break;
+	case EXPR_SOCK_EXTENDED_ERR:
+		assert(expression->value.sock_extended_err);
+		free_expression(expression->value.sock_extended_err->ee_errno);
+		free_expression(expression->value.sock_extended_err->ee_origin);
+		free_expression(expression->value.sock_extended_err->ee_type);
+		free_expression(expression->value.sock_extended_err->ee_code);
+		free_expression(expression->value.sock_extended_err->ee_info);
+		free_expression(expression->value.sock_extended_err->ee_data);
+		free(expression->value.sock_extended_err);
 		break;
 	case EXPR_WORD:
 		assert(expression->value.string);
@@ -3051,6 +3062,37 @@ static int evaluate_sctp_udpencaps_expression(struct expression *in,
 	return STATUS_OK;
 }
 
+static int evaluate_sock_extended_err(struct expression *in,
+				      struct expression *out, char **error)
+{
+	struct sock_extended_err_expr *in_ee_err;
+	struct sock_extended_err_expr *out_ee_err;
+
+	assert(in->type == EXPR_SOCK_EXTENDED_ERR);
+	assert(in->value.sock_extended_err);
+	assert(out->type == EXPR_SOCK_EXTENDED_ERR);
+
+	out->value.sock_extended_err =
+		calloc(1, sizeof(struct sock_extended_err_expr));
+
+	in_ee_err = in->value.sock_extended_err;
+	out_ee_err = out->value.sock_extended_err;
+
+	if (evaluate(in_ee_err->ee_errno, &out_ee_err->ee_errno, error))
+		return STATUS_ERR;
+	if (evaluate(in_ee_err->ee_origin, &out_ee_err->ee_origin, error))
+		return STATUS_ERR;
+	if (evaluate(in_ee_err->ee_type, &out_ee_err->ee_type, error))
+		return STATUS_ERR;
+	if (evaluate(in_ee_err->ee_code, &out_ee_err->ee_code, error))
+		return STATUS_ERR;
+	if (evaluate(in_ee_err->ee_info, &out_ee_err->ee_info, error))
+		return STATUS_ERR;
+	if (evaluate(in_ee_err->ee_data, &out_ee_err->ee_data, error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
 
 static int evaluate(struct expression *in,
 		    struct expression **out_ptr, char **error)
@@ -3229,6 +3271,9 @@ static int evaluate(struct expression *in,
 		break;
 	case EXPR_SCTP_UDPENCAPS:
 		result = evaluate_sctp_udpencaps_expression(in, out, error);
+		break;
+	case EXPR_SOCK_EXTENDED_ERR:
+		result = evaluate_sock_extended_err(in, out, error);
 		break;
 	case EXPR_WORD:
 		out->type = EXPR_INTEGER;

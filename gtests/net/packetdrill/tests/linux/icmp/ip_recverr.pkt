@@ -1,0 +1,25 @@
+ 0.000 socket(..., SOCK_DGRAM, IPPROTO_UDP) = 3
++0.000 setsockopt(3, IPPROTO_IP, IP_RECVERR, [1], 4) = 0
++0.100 connect(3, ..., ...) = 0
++1.000 send(3, ..., 1400, 0) = 1400
++0.000 > udp(1400)
++0.050 < icmp unreachable frag_needed mtu 1300 [udp(8)]
++0.050 recvmsg(3, {
+	msg_name(...)=...,
+	msg_iov(1)=[{iov_base=..., iov_len=0}], // UDP payload of reflected packet (no payload reflected in packetdrill)
+	msg_control(48)=[{
+		cmsg_len=48,
+		cmsg_level=IPPROTO_IP,
+		cmsg_type=IP_RECVERR,
+		cmsg_data={
+			ee_errno=EMSGSIZE,
+			ee_origin=SO_EE_ORIGIN_ICMP,
+			ee_type=ICMP_UNREACH,
+			ee_code=ICMP_UNREACH_NEEDFRAG,
+			ee_info=1300,
+			ee_data=0
+		}
+	}],
+	msg_flags=MSG_ERRQUEUE
+}, MSG_ERRQUEUE) = 0
++1.000 close(3) = 0
