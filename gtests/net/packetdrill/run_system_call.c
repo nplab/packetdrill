@@ -122,7 +122,7 @@ static int check_sctp_sndrcvinfo(struct sctp_sndrcvinfo_expr *expr,
 				 struct sctp_sndrcvinfo *sctp_sndrcvinfo,
 				 char** error);
 #endif
-#if IP_RECVERR || IPV6_RECVERR
+#if defined(linux)
 static int check_sock_extended_err(struct sock_extended_err_expr *expr,
 			      struct sock_extended_err *actual,
 			      char **error);
@@ -1154,7 +1154,7 @@ static int cmsg_new(struct expression *expression,
 			cmsg_size += CMSG_SPACE(sizeof(struct in6_addr));
 			break;
 #endif
-#if IP_RECVERR || IPV6_RECVERR
+#if defined(linux)
 		case EXPR_SOCK_EXTENDED_ERR:
 			/* ip(v6)_recv_error returns a struct defined in
 			 * function scope that appends a sockaddr.
@@ -1282,7 +1282,7 @@ static int cmsg_new(struct expression *expression,
 			cmsg = (struct cmsghdr *)((caddr_t)cmsg + CMSG_SPACE(sizeof(struct in6_addr)));
 			break;
 #endif
-#if IP_RECVERR || IPV6_RECVERR
+#if defined(linux)
 		case EXPR_SOCK_EXTENDED_ERR:
 			cmsg_size = CMSG_SPACE(sizeof(struct sock_extended_err));
 			if (cmsg_expr->cmsg_level->value.num == IPPROTO_IP)
@@ -1458,13 +1458,9 @@ static int check_cmsghdr(struct expression *expr_list, struct msghdr *msg, char 
 				}
 				break;
 #endif
-#if IP_RECVERR
+#if defined(linux)
 			case IP_RECVERR:
-#endif
-#if IPV6_RECVERR
 			case IPV6_RECVERR:
-#endif
-#if IP_RECVERR || IPV6_RECVERR
 				if (check_sock_extended_err(expr->cmsg_data->value.sock_extended_err,
 						       (struct sock_extended_err *) CMSG_DATA(cmsg_ptr),
 						       error)) {
@@ -2516,6 +2512,7 @@ static int syscall_recvmsg(struct state *state, struct syscall_spec *syscall,
 	}
 #endif
 	status = check_cmsghdr(msg_expression->value.msghdr->msg_control, msg, error);
+
 error_out:
 	msghdr_free(msg, iov_len);
 	return status;
@@ -6478,7 +6475,7 @@ static int check_sctp_notification(struct socket *socket,
 }
 #endif
 
-#if IP_RECVERR || IPV6_RECVERR
+#if defined(linux)
 static int check_sock_extended_err(struct sock_extended_err_expr *expr,
 			      struct sock_extended_err *actual,
 			      char **error)
