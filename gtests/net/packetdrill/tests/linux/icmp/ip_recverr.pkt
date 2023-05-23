@@ -3,7 +3,7 @@
 +0.100 connect(3, ..., ...) = 0
 +1.000 send(3, ..., 1400, 0) = 1400
 +0.000 > udp(1400)
-+0.050 < icmp unreachable frag_needed mtu 1300 [udp(8)]
++0.050 < icmp unreachable frag_needed mtu 1300 [udp(1400)]
 +0.050 recvmsg(3, {
 	msg_name(...)=...,
 	msg_iov(1)=[{iov_base=..., iov_len=0}], // UDP payload of reflected packet (no payload reflected in packetdrill)
