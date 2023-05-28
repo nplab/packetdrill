@@ -406,12 +406,88 @@ struct int_symbol platform_symbols_table[] = {
 	{ TCP_NOOPT,                        "TCP_NOOPT"                       },
 	{ TCP_MD5SIG,                       "TCP_MD5SIG"                      },
 	{ TCP_INFO,                         "TCP_INFO"                        },
+	{ TCP_STATS,                        "TCP_STATS"                       },
+#if defined(TCP_LOG)
+	{ TCP_LOG,                          "TCP_LOG"                         },
+#endif
+#if defined(TCP_LOGBUF)
+	{ TCP_LOGBUF,                       "TCP_LOGBUF"                      },
+#endif
+#if defined(TCP_LOGID)
+	{ TCP_LOGID,                        "TCP_LOGID"                       },
+#endif
+#if defined(TCP_LOGDUMP)
+	{ TCP_LOGDUMP,                      "TCP_LOGDUMP"                     },
+#endif
+#if defined(TCP_LOGDUMPID)
+	{ TCP_LOGDUMPID,                    "TCP_LOGDUMPID"                   },
+#endif
+#if defined(TCP_TXTLS_ENABLE)
+	{ TCP_TXTLS_ENABLE,                 "TCP_TXTLS_ENABLE"                },
+#endif
+#if defined(TCP_TXTLS_MODE)
+	{ TCP_TXTLS_MODE,                   "TCP_TXTLS_MODE"                  },
+#endif
+#if defined(TCP_RXTLS_ENABLE)
+	{ TCP_RXTLS_ENABLE,                 "TCP_RXTLS_ENABLE"                },
+#endif
+#if defined(TCP_RXTLS_MODE)
+	{ TCP_RXTLS_MODE,                   "TCP_RXTLS_MODE"                  },
+#endif
+#if defined(TCP_IWND_NB)
+	{ TCP_IWND_NB,                      "TCP_IWND_NB"                     },
+#endif
+#if defined(TCP_IWND_NSEG)
+	{ TCP_IWND_NSEG,                    "TCP_IWND_NSEG"                   },
+#endif
+#if defined(TCP_LOGID_CNT)
+	{ TCP_LOGID_CNT,                    "TCP_LOGID_CNT"                   },
+#endif
+#if defined(TCP_LOG_TAG)
+	{ TCP_LOG_TAG,                      "TCP_LOG_TAG"                     },
+#endif
+#if defined(TCP_USER_LOG)
+	{ TCP_USER_LOG,                     "TCP_USER_LOG"                    },
+#endif
 	{ TCP_CONGESTION,                   "TCP_CONGESTION"                  },
 #if defined(TCP_CCALGOOPT)
 	{ TCP_CCALGOOPT,                    "TCP_CCALGOOPT"                   },
 #endif
 #if defined(TCP_MAXUNACKTIME)
 	{ TCP_MAXUNACKTIME,                 "TCP_MAXUNACKTIME"                },
+#endif
+#if defined(TCP_MAXPEAKRATE)
+	{ TCP_MAXPEAKRATE,                  "TCP_MAXPEAKRATE"                 },
+#endif
+#if defined(TCP_IDLE_REDUCE)
+	{ TCP_IDLE_REDUCE,                  "TCP_IDLE_REDUCE"                 },
+#endif
+#if defined(TCP_REMOTE_UDP_ENCAPS_PORT)
+	{ TCP_REMOTE_UDP_ENCAPS_PORT,       "TCP_REMOTE_UDP_ENCAPS_PORT"      },
+#endif
+#if defined(TCP_DELACK)
+	{ TCP_DELACK,                       "TCP_DELACK"                      },
+#endif
+#if defined(TCP_FIN_IS_RST)
+	{ TCP_FIN_IS_RST,                   "TCP_FIN_IS_RST"                  },
+#endif
+#if defined(TCP_LOG_LIMIT)
+	{ TCP_LOG_LIMIT,                    "TCP_LOG_LIMIT"                   },
+#endif
+#if defined(TCP_SHARED_CWND_ALLOWED)
+	{ TCP_SHARED_CWND_ALLOWED,          "TCP_SHARED_CWND_ALLOWED"         },
+#endif
+#if defined(TCP_PROC_ACCOUNTING)
+	{ TCP_PROC_ACCOUNTING,              "TCP_PROC_ACCOUNTING"             },
+#endif
+#if defined(TCP_USE_CMP_ACKS)
+	{ TCP_USE_CMP_ACKS,                 "TCP_USE_CMP_ACKS"                },
+#endif
+#if defined(TCP_PERF_INFO)
+	{ TCP_PERF_INFO,                    "TCP_PERF_INFO"                   },
+#endif
+#if defined(TCP_LRD)
+	{ TCP_LRD,                          "TCP_LRD"                         },
 #endif
 	{ TCP_KEEPINIT,                     "TCP_KEEPINIT"                    },
 	{ TCP_KEEPIDLE,                     "TCP_KEEPIDLE"                    },
@@ -420,14 +496,345 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(TCP_FASTOPEN)
 	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
 #endif
+	{ TCP_PCAP_OUT,                     "TCP_PCAP_OUT"                    },
+	{ TCP_PCAP_IN,                      "TCP_PCAP_IN"                     },
 #if defined(TCP_FUNCTION_BLK)
 	{ TCP_FUNCTION_BLK,                 "TCP_FUNCTION_BLK"                },
 #endif
-#if defined(TCP_REMOTE_UDP_ENCAPS_PORT)
-	{ TCP_REMOTE_UDP_ENCAPS_PORT,       "TCP_REMOTE_UDP_ENCAPS_PORT"      },
+#if defined(TCP_FUNCTION_ALIAS)
+	{ TCP_FUNCTION_ALIAS,               "TCP_FUNCTION_ALIAS"              },
 #endif
+#if defined(TCP_REUSPORT_LB_NUMA)
+	{ TCP_REUSPORT_LB_NUMA,             "TCP_REUSPORT_LB_NUMA"            },
+#endif
+#if defined(TCP_RACK_MBUF_QUEUE)
+	{ TCP_RACK_MBUF_QUEUE,              "TCP_RACK_MBUF_QUEUE"             },
+#endif
+#if defined(TCP_RACK_PROP)
+	{ TCP_RACK_PROP,                    "TCP_RACK_PROP"                   },
+#endif
+#if defined(TCP_RACK_TLP_REDUCE)
+	{ TCP_RACK_TLP_REDUCE,              "TCP_RACK_TLP_REDUCE"             },
+#endif
+#if defined(TCP_RACK_PACE_REDUCE)
+	{ TCP_RACK_PACE_REDUCE,             "TCP_RACK_PACE_REDUCE"            },
+#endif
+#if defined(TCP_RACK_PACE_MAX_SEG)
+	{ TCP_RACK_PACE_MAX_SEG,            "TCP_RACK_PACE_MAX_SEG"           },
+#endif
+#if defined(TCP_RACK_PACE_ALWAYS)
+	{ TCP_RACK_PACE_ALWAYS,             "TCP_RACK_PACE_ALWAYS"            },
+#endif
+#if defined(TCP_RACK_PROP_RATE)
+	{ TCP_RACK_PROP_RATE,               "TCP_RACK_PROP_RATE"              },
+#endif
+#if defined(TCP_RACK_PRR_SENDALOT)
+	{ TCP_RACK_PRR_SENDALOT,            "TCP_RACK_PRR_SENDALOT"           },
+#endif
+#if defined(TCP_RACK_MIN_TO)
+	{ TCP_RACK_MIN_TO,                  "TCP_RACK_MIN_TO"                 },
+#endif
+#if defined(TCP_RACK_EARLY_RECOV)
+	{ TCP_RACK_EARLY_RECOV,             "TCP_RACK_EARLY_RECOV"            },
+#endif
+#if defined(TCP_RACK_EARLY_SEG)
+	{ TCP_RACK_EARLY_SEG,               "TCP_RACK_EARLY_SEG"              },
+#endif
+#if defined(TCP_RACK_REORD_THRESH)
+	{ TCP_RACK_REORD_THRESH,            "TCP_RACK_REORD_THRESH"           },
+#endif
+#if defined(TCP_RACK_REORD_FADE)
+	{ TCP_RACK_REORD_FADE,              "TCP_RACK_REORD_FADE"             },
+#endif
+#if defined(TCP_RACK_TLP_THRESH)
+	{ TCP_RACK_TLP_THRESH,              "TCP_RACK_TLP_THRESH"             },
+#endif
+#if defined(TCP_RACK_PKT_DELAY)
+	{ TCP_RACK_PKT_DELAY,               "TCP_RACK_PKT_DELAY"              },
+#endif
+#if defined(TCP_RACK_TLP_INC_VAR)
+	{ TCP_RACK_TLP_INC_VAR,             "TCP_RACK_TLP_INC_VAR"            },
+#endif
+#if defined(TCP_BBR_IWINTSO)
+	{ TCP_BBR_IWINTSO,                  "TCP_BBR_IWINTSO"                 },
+#endif
+#if defined(TCP_BBR_RECFORCE)
+	{ TCP_BBR_RECFORCE,                 "TCP_BBR_RECFORCE"                },
+#endif
+#if defined(TCP_BBR_STARTUP_PG)
+	{ TCP_BBR_STARTUP_PG,               "TCP_BBR_STARTUP_PG"              },
+#endif
+#if defined(TCP_BBR_DRAIN_PG)
+	{ TCP_BBR_DRAIN_PG,                 "TCP_BBR_DRAIN_PG"                },
+#endif
+#if defined(TCP_BBR_RWND_IS_APP)
+	{ TCP_BBR_RWND_IS_APP,              "TCP_BBR_RWND_IS_APP"             },
+#endif
+#if defined(TCP_BBR_PROBE_RTT_INT)
+	{ TCP_BBR_PROBE_RTT_INT,            "TCP_BBR_PROBE_RTT_INT"           },
+#endif
+#if defined(TCP_BBR_ONE_RETRAN)
+	{ TCP_BBR_ONE_RETRAN,               "TCP_BBR_ONE_RETRAN"              },
+#endif
+#if defined(TCP_BBR_STARTUP_LOSS_EXIT)
+	{ TCP_BBR_STARTUP_LOSS_EXIT,        "TCP_BBR_STARTUP_LOSS_EXIT"       },
+#endif
+#if defined(TCP_BBR_USE_LOWGAIN)
+	{ TCP_BBR_USE_LOWGAIN,              "TCP_BBR_USE_LOWGAIN"             },
+#endif
+#if defined(TCP_BBR_LOWGAIN_THRESH)
+	{ TCP_BBR_LOWGAIN_THRESH,           "TCP_BBR_LOWGAIN_THRESH"          },
+#endif
+#if defined(TCP_BBR_TSLIMITS)
+	{ TCP_BBR_TSLIMITS,                 "TCP_BBR_TSLIMITS"                },
+#endif
+#if defined(TCP_BBR_LOWGAIN_HALF)
+	{ TCP_BBR_LOWGAIN_HALF,             "TCP_BBR_LOWGAIN_HALF"            },
+#endif
+#if defined(TCP_BBR_PACE_OH)
+	{ TCP_BBR_PACE_OH,                  "TCP_BBR_PACE_OH"                 },
+#endif
+#if defined(TCP_BBR_LOWGAIN_FD)
+	{ TCP_BBR_LOWGAIN_FD,               "TCP_BBR_LOWGAIN_FD"              },
+#endif
+#if defined(TCP_BBR_HOLD_TARGET)
+	{ TCP_BBR_HOLD_TARGET,              "TCP_BBR_HOLD_TARGET"             },
+#endif
+#if defined(TCP_BBR_USEDEL_RATE)
+	{ TCP_BBR_USEDEL_RATE,              "TCP_BBR_USEDEL_RATE"             },
+#endif
+#if defined(TCP_BBR_MIN_RTO)
+	{ TCP_BBR_MIN_RTO,                  "TCP_BBR_MIN_RTO"                 },
+#endif
+#if defined(TCP_BBR_MAX_RTO)
+	{ TCP_BBR_MAX_RTO,                  "TCP_BBR_MAX_RTO"                 },
+#endif
+#if defined(TCP_BBR_REC_OVER_HPTS)
+	{ TCP_BBR_REC_OVER_HPTS,            "TCP_BBR_REC_OVER_HPTS"           },
+#endif
+#if defined(TCP_BBR_UNLIMITED)
+	{ TCP_BBR_UNLIMITED,                "TCP_BBR_UNLIMITED"               },
+#endif
+#if defined(TCP_BBR_ALGORITHM)
+	{ TCP_BBR_ALGORITHM,                "TCP_BBR_ALGORITHM"               },
+#endif
+#if defined(TCP_BBR_DRAIN_INC_EXTRA)
+	{ TCP_BBR_DRAIN_INC_EXTRA,          "TCP_BBR_DRAIN_INC_EXTRA"         },
+#endif
+#if defined(TCP_BBR_STARTUP_EXIT_EPOCH)
+	{ TCP_BBR_STARTUP_EXIT_EPOCH ,      "TCP_BBR_STARTUP_EXIT_EPOCH"      },
+#endif
+#if defined(TCP_BBR_PACE_PER_SEC)
+	{ TCP_BBR_PACE_PER_SEC,             "TCP_BBR_PACE_PER_SEC"            },
+#endif
+#if defined(TCP_BBR_PACE_DEL_TAR)
+	{ TCP_BBR_PACE_DEL_TAR,             "TCP_BBR_PACE_DEL_TAR"            },
+#endif
+#if defined(TCP_BBR_PACE_SEG_MAX)
+	{ TCP_BBR_PACE_SEG_MAX,             "TCP_BBR_PACE_SEG_MAX"            },
+#endif
+#if defined(TCP_BBR_PACE_SEG_MIN)
+	{ TCP_BBR_PACE_SEG_MIN,             "TCP_BBR_PACE_SEG_MIN"            },
+#endif
+#if defined(TCP_BBR_PACE_CROSS)
+	{ TCP_BBR_PACE_CROSS,               "TCP_BBR_PACE_CROSS"              },
+#endif
+#if defined(TCP_RACK_IDLE_REDUCE_HIGH)
+	{ TCP_RACK_IDLE_REDUCE_HIGH,        "TCP_RACK_IDLE_REDUCE_HIGH"       },
+#endif
+#if defined(TCP_RACK_MIN_PACE)
+	{ TCP_RACK_MIN_PACE,                "TCP_RACK_MIN_PACE"               },
+#endif
+#if defined(TCP_RACK_MIN_PACE_SEG)
+	{ TCP_RACK_MIN_PACE_SEG,            "TCP_RACK_MIN_PACE_SEG"           },
+#endif
+#if defined(TCP_RACK_GP_INCREASE)
+	{ TCP_RACK_GP_INCREASE,             "TCP_RACK_GP_INCREASE"            },
+#endif
+#if defined(TCP_RACK_TLP_USE)
+	{ TCP_RACK_TLP_USE,                 "TCP_RACK_TLP_USE"                },
+#endif
+#if defined(TCP_BBR_ACK_COMP_ALG)
+	{ TCP_BBR_ACK_COMP_ALG,             "TCP_BBR_ACK_COMP_ALG"            },
+#endif
+#if defined(TCP_BBR_TMR_PACE_OH)
+	{ TCP_BBR_TMR_PACE_OH,              "TCP_BBR_TMR_PACE_OH"             },
+#endif
+#if defined(TCP_BBR_EXTRA_GAIN)
+	{ TCP_BBR_EXTRA_GAIN,               "TCP_BBR_EXTRA_GAIN"              },
+#endif
+#if defined(TCP_RACK_DO_DETECTION)
+	{ TCP_RACK_DO_DETECTION,            "TCP_RACK_DO_DETECTION"           },
+#endif
+#if defined(TCP_BBR_RACK_RTT_USE)
+	{ TCP_BBR_RACK_RTT_USE,             "TCP_BBR_RACK_RTT_USE"            },
+#endif
+#if defined(TCP_BBR_RETRAN_WTSO)
+	{ TCP_BBR_RETRAN_WTSO,              "TCP_BBR_RETRAN_WTSO"             },
+#endif
+#if defined(TCP_DATA_AFTER_CLOSE)
+	{ TCP_DATA_AFTER_CLOSE,             "TCP_DATA_AFTER_CLOSE"            },
+#endif
+#if defined(TCP_BBR_PROBE_RTT_GAIN)
+	{ TCP_BBR_PROBE_RTT_GAIN,           "TCP_BBR_PROBE_RTT_GAIN"          },
+#endif
+#if defined(TCP_BBR_PROBE_RTT_LEN)
+	{ TCP_BBR_PROBE_RTT_LEN,            "TCP_BBR_PROBE_RTT_LEN"           },
+#endif
+#if defined(TCP_BBR_SEND_IWND_IN_TSO)
+	{ TCP_BBR_SEND_IWND_IN_TSO,         "TCP_BBR_SEND_IWND_IN_TSO"        },
+#endif
+#if defined(TCP_BBR_USE_RACK_RR)
+	{ TCP_BBR_USE_RACK_RR,              "TCP_BBR_USE_RACK_RR"             },
+#endif
+#if defined(TCP_BBR_USE_RACK_CHEAT)
+	{ TCP_BBR_USE_RACK_CHEAT,           "TCP_BBR_USE_RACK_CHEAT"          },
+#endif
+#if defined(TCP_BBR_HDWR_PACE)
+	{ TCP_BBR_HDWR_PACE,                "TCP_BBR_HDWR_PACE"               },
+#endif
+#if defined(TCP_BBR_UTTER_MAX_TSO)
+	{ TCP_BBR_UTTER_MAX_TSO,            "TCP_BBR_UTTER_MAX_TSO"           },
+#endif
+#if defined(TCP_BBR_EXTRA_STATE)
+	{ TCP_BBR_EXTRA_STATE,              "TCP_BBR_EXTRA_STATE"             },
+#endif
+#if defined(TCP_BBR_FLOOR_MIN_TSO)
+	{ TCP_BBR_FLOOR_MIN_TSO,            "TCP_BBR_FLOOR_MIN_TSO"           },
+#endif
+#if defined(TCP_BBR_MIN_TOPACEOUT)
+	{ TCP_BBR_MIN_TOPACEOUT,            "TCP_BBR_MIN_TOPACEOUT"           },
+#endif
+#if defined(TCP_BBR_TSTMP_RAISES)
+	{ TCP_BBR_TSTMP_RAISES,             "TCP_BBR_TSTMP_RAISES"            },
+#endif
+#if defined(TCP_BBR_POLICER_DETECT)
+	{ TCP_BBR_POLICER_DETECT,           "TCP_BBR_POLICER_DETECT"          },
+#endif
+#if defined(TCP_BBR_RACK_INIT_RATE)
+	{ TCP_BBR_RACK_INIT_RATE,           "TCP_BBR_RACK_INIT_RATE"          },
+#endif
+#if defined(TCP_RACK_RR_CONF)
+	{ TCP_RACK_RR_CONF,                 "TCP_RACK_RR_CONF"                },
+#endif
+#if defined(TCP_RACK_CHEAT_NOT_CONF_RATE)
+	{ TCP_RACK_CHEAT_NOT_CONF_RATE,     "TCP_RACK_CHEAT_NOT_CONF_RATE"    },
+#endif
+#if defined(TCP_RACK_GP_INCREASE_CA)
+	{ TCP_RACK_GP_INCREASE_CA,          "TCP_RACK_GP_INCREASE_CA"         },
+#endif
+#if defined(TCP_RACK_GP_INCREASE_SS)
+	{ TCP_RACK_GP_INCREASE_SS,          "TCP_RACK_GP_INCREASE_SS"         },
+#endif
+#if defined(TCP_RACK_GP_INCREASE_REC)
+	{ TCP_RACK_GP_INCREASE_REC,         "TCP_RACK_GP_INCREASE_REC"        },
+#endif
+#if defined(TCP_RACK_FORCE_MSEG)
+	{ TCP_RACK_FORCE_MSEG,              "TCP_RACK_FORCE_MSEG"             },
+#endif
+#if defined(TCP_RACK_PACE_RATE_CA)
+	{ TCP_RACK_PACE_RATE_CA,            "TCP_RACK_PACE_RATE_CA"           },
+#endif
+#if defined(TCP_RACK_PACE_RATE_SS)
+	{ TCP_RACK_PACE_RATE_SS,            "TCP_RACK_PACE_RATE_SS"           },
+#endif
+#if defined(TCP_RACK_PACE_RATE_REC)
+	{ TCP_RACK_PACE_RATE_REC,           "TCP_RACK_PACE_RATE_REC"          },
+#endif
+#if defined(TCP_NO_PRR)
+	{ TCP_NO_PRR,                       "TCP_NO_PRR"                      },
+#endif
+#if defined(TCP_RACK_NONRXT_CFG_RATE)
+	{ TCP_RACK_NONRXT_CFG_RATE,         "TCP_RACK_NONRXT_CFG_RATE"        },
+#endif
+#if defined(TCP_SHARED_CWND_ENABLE)
+	{ TCP_SHARED_CWND_ENABLE,           "TCP_SHARED_CWND_ENABLE"          },
+#endif
+#if defined(TCP_TIMELY_DYN_ADJ)
+	{ TCP_TIMELY_DYN_ADJ,               "TCP_TIMELY_DYN_ADJ"              },
+#endif
+#if defined(TCP_RACK_NO_PUSH_AT_MAX)
+	{ TCP_RACK_NO_PUSH_AT_MAX,          "TCP_RACK_NO_PUSH_AT_MAX"         },
+#endif
+#if defined(TCP_RACK_PACE_TO_FILL)
+	{ TCP_RACK_PACE_TO_FILL,            "TCP_RACK_PACE_TO_FILL"           },
+#endif
+#if defined(TCP_SHARED_CWND_TIME_LIMIT)
+	{ TCP_SHARED_CWND_TIME_LIMIT,       "TCP_SHARED_CWND_TIME_LIMIT"      },
+#endif
+#if defined(TCP_RACK_PROFILE)
+	{ TCP_RACK_PROFILE,                 "TCP_RACK_PROFILE"                },
+#endif
+#if defined(TCP_HDWR_RATE_CAP)
+	{ TCP_HDWR_RATE_CAP,                "TCP_HDWR_RATE_CAP"               },
+#endif
+#if defined(TCP_PACING_RATE_CAP)
+	{ TCP_PACING_RATE_CAP,              "TCP_PACING_RATE_CAP"             },
+#endif
+#if defined(TCP_HDWR_UP_ONLY)
+	{ TCP_HDWR_UP_ONLY,                 "TCP_HDWR_UP_ONLY"                },
+#endif
+#if defined(TCP_RACK_ABC_VAL)
+	{ TCP_RACK_ABC_VAL,                 "TCP_RACK_ABC_VAL"                },
+#endif
+#if defined(TCP_REC_ABC_VAL)
+	{ TCP_REC_ABC_VAL,                  "TCP_REC_ABC_VAL"                 },
+#endif
+#if defined(TCP_RACK_MEASURE_CNT)
+	{ TCP_RACK_MEASURE_CNT,             "TCP_RACK_MEASURE_CNT"            },
+#endif
+#if defined(TCP_DEFER_OPTIONS)
+	{ TCP_DEFER_OPTIONS,                "TCP_DEFER_OPTIONS"               },
+#endif
+#if defined(TCP_FAST_RSM_HACK)
+	{ TCP_FAST_RSM_HACK,                "TCP_FAST_RSM_HACK"               },
+#endif
+#if defined(TCP_RACK_PACING_BETA)
+	{ TCP_RACK_PACING_BETA,             "TCP_RACK_PACING_BETA"            },
+#endif
+#if defined(TCP_RACK_PACING_BETA_ECN)
+	{ TCP_RACK_PACING_BETA_ECN,         "TCP_RACK_PACING_BETA_ECN"        },
+#endif
+#if defined(TCP_RACK_TIMER_SLOP)
+	{ TCP_RACK_TIMER_SLOP,              "TCP_RACK_TIMER_SLOP"             },
+#endif
+#if defined(TCP_RACK_DSACK_OPT)
+	{ TCP_RACK_DSACK_OPT,               "TCP_RACK_DSACK_OPT"              },
+#endif
+#if defined(TCP_RACK_ENABLE_HYSTART)
+	{ TCP_RACK_ENABLE_HYSTART,          "TCP_RACK_ENABLE_HYSTART"         },
+#endif
+#if defined(TCP_RACK_SET_RXT_OPTIONS)
+	{ TCP_RACK_SET_RXT_OPTIONS,         "TCP_RACK_SET_RXT_OPTIONS"        },
+#endif
+#if defined(TCP_RACK_HI_BETA)
+	{ TCP_RACK_HI_BETA,                 "TCP_RACK_HI_BETA"                },
+#endif
+#if defined(TCP_RACK_SPLIT_LIMIT)
+	{ TCP_RACK_SPLIT_LIMIT,             "TCP_RACK_SPLIT_LIMIT"            },
+#endif
+#if defined(TCP_RACK_PACING_DIVISOR)
+	{ TCP_RACK_PACING_DIVISOR,          "TCP_RACK_PACING_DIVISOR"         },
+#endif
+#if defined(TCP_RACK_PACE_MIN_SEG)
+	{ TCP_RACK_PACE_MIN_SEG,            "TCP_RACK_PACE_MIN_SEG"           },
+#endif
+#if defined(TCP_RACK_DGP_IN_REC)
+	{ TCP_RACK_DGP_IN_REC,              "TCP_RACK_DGP_IN_REC"             },
+#endif
+#if defined(TCP_RXT_CLAMP)
+	{ TCP_RXT_CLAMP,                    "TCP_RXT_CLAMP"                   },
+#endif
+#if defined(TCP_HYBRID_PACING)
+	{ TCP_HYBRID_PACING,                "TCP_HYBRID_PACING"               },
+#endif
+#if defined(TCP_PACING_DND)
+	{ TCP_PACING_DND,                   "TCP_PACING_DND"                  },
+#endif
+
+	/* /usr/include/netinet/tcp_log_buf.h */
 #if defined(TCP_LOG)
-	{ TCP_LOG,                          "TCP_LOG"                         },
+	/* The following constants are enum tcp_log_states. */
 	{ TCP_LOG_STATE_CLEAR,              "TCP_LOG_STATE_CLEAR"             },
 	{ TCP_LOG_STATE_OFF,                "TCP_LOG_STATE_OFF"               },
 	{ TCP_LOG_STATE_TAIL,               "TCP_LOG_STATE_TAIL"              },
@@ -438,9 +845,6 @@ struct int_symbol platform_symbols_table[] = {
 #if __FreeBSD_version >= 1400000
 	{ TCP_LOG_VIA_BBPOINTS,             "TCP_LOG_VIA_BBPOINTS"            },
 #endif
-#endif
-#if defined(TCP_RACK_TIMER_SLOP)
-	{ TCP_RACK_TIMER_SLOP,              "TCP_RACK_TIMER_SLOP"             },
 #endif
 
 #if defined(UDPLITE_RECV_CSCOV) && defined(UDPLITE_SEND_CSCOV)
