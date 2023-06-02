@@ -7123,9 +7123,12 @@ error_out:
 	 *
 	 * So not calling state_free(state, 1);
 	 */
-	die("%s:%d: runtime error in %s call: %s\n",
-	    script_path, event->line_number,
-	    syscall->name, error);
+	if (result == STATUS_ERR && state->config->non_fatal_syscall)
+		fprintf(stderr, "%s:%d: runtime warning in %s call: %s\n",
+		    script_path, event->line_number, syscall->name, error);
+	else
+		die("%s:%d: runtime error in %s call: %s\n",
+		    script_path, event->line_number, syscall->name, error);
 	free(script_path);
 	free(error);
 }
