@@ -119,6 +119,9 @@ struct tcp_option {
 			struct sack_block block[4];
 		} sack;
 		struct {
+			u8 digest[TCP_MD5_DIGEST_LEN];
+		} md5; /* TCP MD5 Signature Option: RFC 2385 */
+		struct {
 			/* The fast open chookie should be 4-16 bytes
 			 * of cookie, multiple of 2 bytes, but we
 			 * allow for larger sizes, so we can test what

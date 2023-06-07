@@ -132,6 +132,7 @@ static s64 hextol(const char *s)
 {
 	return strtol(yytext + 2, NULL, 16);
 }
+
 %}
 
 %{
@@ -240,6 +241,7 @@ nop				return NOP;
 sack				return SACK;
 sackOK				return SACKOK;
 TS				return TIMESTAMP;
+md5				return MD5;
 EXP-FO				return EXP_FAST_OPEN;
 exp-FO				return EXP_FAST_OPEN;
 FO				return FAST_OPEN;

@@ -399,6 +399,37 @@ static int parse_hex_string(const char *hex, u8 *buf, size_t buf_len,
 	return STATUS_OK;
 }
 
+static struct tcp_option *new_md5_option(const char *digest_string,
+					 char **error)
+{
+	struct tcp_option *option;
+	size_t digest_string_len = strlen(digest_string);
+	size_t digest_bytes = digest_string_len / 2;
+	size_t parsed_bytes = 0;
+
+	if (digest_bytes > TCP_MD5_DIGEST_LEN) {
+		asprintf(error, "TCP MD5 digest longer than 16 bytes");
+		return NULL;
+	}
+
+	option = tcp_option_new(TCPOPT_MD5SIG, TCPOLEN_MD5_BASE + digest_bytes);
+
+	/* Parse MD5 digest. This should be an ASCII hex string representing 16
+	 * bytes. But we allow smaller buffers, since we want to allow test
+	 * cases that supply invalid cookies.
+	 */
+	if (parse_hex_string(digest_string,
+			     option->md5.digest,
+			     sizeof(option->md5.digest),
+			     &parsed_bytes)) {
+		free(option);
+		asprintf(error, "TCP MD5 digest is not a valid hex string");
+		return NULL;
+	}
+	assert(parsed_bytes <= digest_bytes);
+	return option;
+}
+
 static struct tcp_option *new_tcp_fast_open_option(const char *cookie_string,
 						   char **error)
 {
@@ -650,7 +681,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
-%token <reserved> URG EXP_FAST_OPEN FAST_OPEN
+%token <reserved> URG MD5 EXP_FAST_OPEN FAST_OPEN
 %token <reserved> ACC_ECN_0 ACC_ECN_1 EXP_ACC_ECN_0 EXP_ACC_ECN_1 EE0B EE1B ECEB
 %token <reserved> EXP_TARR
 %token <reserved> CLASS TOS DSCP ECN HLIM FLOWLABEL
@@ -770,7 +801,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %type <integer> dscp flow_label ttl hlim
 %type <integer> opt_ee0b opt_ee1b opt_eceb
 %type <string> icmp_type opt_icmp_code opt_ack_flag opt_word ack_and_ace flags
-%type <string> opt_tcp_fast_open_cookie tcp_fast_open_cookie
+%type <string> opt_tcp_fast_open_cookie hex_blob
 %type <string> opt_tcp_generic_option_data tcp_generic_option_data
 %type <string> opt_note note word_list
 %type <string> option_flag option_value script
@@ -3259,11 +3290,11 @@ tcp_generic_option_data
 ;
 
 opt_tcp_fast_open_cookie
-:			{ $$ = strdup(""); }
-| tcp_fast_open_cookie	{ $$ = $1; }
+:		{ $$ = strdup(""); }
+| hex_blob	{ $$ = $1; }
 ;
 
-tcp_fast_open_cookie
+hex_blob
 : WORD    { $$ = strdup(yytext); }
 | INTEGER { $$ = strdup(yytext); }
 ;
@@ -3322,6 +3353,16 @@ tcp_option
 	}
 	$$->time_stamp.val = htonl(val);
 	$$->time_stamp.ecr = htonl(ecr);
+}
+| MD5 hex_blob  {
+	char *error = NULL;
+	$$ = new_md5_option($2, &error);
+	free($2);
+	if ($$ == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
 }
 | FAST_OPEN opt_tcp_fast_open_cookie  {
 	char *error = NULL;

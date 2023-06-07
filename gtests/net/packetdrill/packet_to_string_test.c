@@ -1102,6 +1102,48 @@ static void test_gre_mpls_tcp_ipv4_packet_to_string(void)
 	packet_free(packet);
 }
 
+static void test_tcp_md5_option_to_string(void)
+{
+	/* An IPv4/TCP packet. */
+	u8 data[] = {
+		/* IPv4, TCP: */
+		0x45, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x06, 0x89, 0x56, 0xc0, 0x00, 0x02, 0x01,
+		0xc0, 0xa8, 0xaf, 0xbb, 0x8a, 0x6f, 0x1f, 0x90,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0xa0, 0x02, 0x01, 0x00, 0x36, 0x14, 0x00, 0x00,
+		0x13, 0x12, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+		0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+		0x0e, 0x0f, 0x01, 0x01
+	};
+
+	struct packet *packet = packet_new(sizeof(data));
+
+	/* Populate and parse a packet */
+	memcpy(packet->buffer, data, sizeof(data));
+	char *error = NULL;
+	enum packet_parse_result_t result =
+		parse_packet(packet, sizeof(data), ETHERTYPE_IP, 0, &error);
+	assert(result == PACKET_OK);
+	assert(error == NULL);
+
+	int status = 0;
+	char *dump = NULL, *expected = NULL;
+
+	/* Test a DUMP_SHORT dump */
+	status = packet_to_string(packet, DUMP_SHORT, &dump, &error);
+	assert(status == STATUS_OK);
+	assert(error == NULL);
+	printf("dump = '%s'\n", dump);
+	expected =
+		"S 1:1(0) win 256 "
+		"<md5 000102030405060708090a0b0c0d0e0f,nop,nop>";
+	assert(strcmp(dump, expected) == 0);
+	free(dump);
+
+	packet_free(packet);
+}
+
 static void test_udplite_ipv4_packet_to_string(void)
 {
 	/* An IPv4/GRE/IPv4/UDPLite packet. */
@@ -1266,6 +1308,7 @@ int main(void)
 	test_tcp_udp_ipv4_packet_to_string();
 	test_tcp_udp_ipv6_packet_to_string();
 	test_gre_mpls_tcp_ipv4_packet_to_string();
+	test_tcp_md5_option_to_string();
 	test_udplite_ipv4_packet_to_string();
 	test_udplite_ipv6_packet_to_string();
 	return 0;

@@ -88,10 +88,15 @@
 #define TCPOPT_SACK		5
 #define TCPOPT_TIMESTAMP	8
 #define TCPOLEN_TIMESTAMP	10
+#define TCPOPT_MD5SIG		19	/* MD5 Signature (RFC2385) */
+#define TCPOLEN_MD5SIG		18
+#define TCPOLEN_MD5_BASE	2
 #define TCPOPT_FASTOPEN		34
 #define TCPOPT_ACC_ECN_0	0xAC	/* early assignment by IANA */
 #define TCPOPT_ACC_ECN_1	0xAE	/* early assignment by IANA */
 #define TCPOPT_EXP		254	/* Experimental */
+
+#define TCP_MD5_DIGEST_LEN	16	/* bytes in RFC2385 TCP MD5 digest */
 
 /* A portable TCP header definition (Linux and *BSD use different names). */
 struct tcp {

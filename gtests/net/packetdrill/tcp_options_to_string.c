@@ -26,6 +26,29 @@
 
 #include "tcp_options_iterator.h"
 
+/* If the MD5 digest option is in the valid range of sizes, print the MD5
+ * option and digest and return STATUS_OK. Otherwise, return STATUS_ERR.
+ */
+static int tcp_md5_option_to_string(FILE *s, struct tcp_option *option)
+{
+	int digest_bytes, i;
+
+	assert(option->kind == TCPOPT_MD5SIG);
+	if (option->length < TCPOLEN_MD5_BASE ||
+	    option->length > TCPOLEN_MD5SIG)
+		return STATUS_ERR;
+
+	digest_bytes = option->length - TCPOLEN_MD5_BASE;
+	assert(digest_bytes >= 0);
+	assert(digest_bytes <= TCP_MD5_DIGEST_LEN);
+	fputs("md5", s);
+	if (digest_bytes > 0)
+		fputs(" ", s);
+	for (i = 0; i < digest_bytes; ++i)
+		fprintf(s, "%02x", option->md5.digest[i]);
+	return STATUS_OK;
+}
+
 static int tcp_fast_open_option_to_string(FILE *s, struct tcp_option *option)
 {
 	assert(option->kind == TCPOPT_FASTOPEN);
@@ -257,6 +280,10 @@ int tcp_options_to_string(struct packet *packet,
 				        get_unaligned_be32(&option->time_stamp.ecr));
 				written = true;
 			}
+			break;
+
+		case TCPOPT_MD5SIG:
+			written = tcp_md5_option_to_string(s, option) == STATUS_OK;
 			break;
 
 		case TCPOPT_FASTOPEN:
