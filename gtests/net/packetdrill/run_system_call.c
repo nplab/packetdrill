@@ -4120,7 +4120,7 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 	case EXPR_STRING:
 		optval = val_expression->value.string;
 		if (!optlen_provided) {
-			optlen = (socklen_t)strlen(val_expression->value.string);
+			optlen = (socklen_t)(strlen(val_expression->value.string) + 1);
 		}
 		break;
 	case EXPR_LIST:
