@@ -3476,6 +3476,10 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		live_optval = malloc(sizeof(struct linger));
 		live_optlen = (socklen_t)sizeof(struct linger);
 		break;
+	case EXPR_STRING:
+		live_optval = malloc(strlen(val_expression->value.string) + 1);
+		live_optlen = (socklen_t)(strlen(val_expression->value.string) + 1);
+		break;
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
 		live_optval = malloc(sizeof(struct sctp_rtoinfo));
@@ -3825,6 +3829,14 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 	switch (val_expression->type) {
 	case EXPR_LINGER:
 		result = check_linger(val_expression->value.linger, live_optval, error);
+		break;
+	case EXPR_STRING:
+		if (memcmp(val_expression->value.string, live_optval, live_optlen) != 0) {
+			asprintf(error, "optval: expected: %.*s actual: %.*s",
+			         live_optlen, val_expression->value.string,
+			         live_optlen, (char *)live_optval);
+			result = STATUS_ERR;
+		}
 		break;
 #ifdef SCTP_RTOINFO
 	case EXPR_SCTP_RTOINFO:
