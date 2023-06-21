@@ -386,6 +386,7 @@ static struct socket *handle_connect_for_script_packet(
 	if (direction != DIRECTION_OUTBOUND)
 		return NULL;
 	if (packet->tcp != NULL) {
+		init = NULL; /* pacify NetBSD's compiler */
 		match = (packet->tcp->syn && !packet->tcp->ack);
 	} else {
 		assert(packet->chunk_list != NULL);
