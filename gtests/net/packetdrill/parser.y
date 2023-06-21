@@ -403,30 +403,46 @@ static struct tcp_option *new_md5_option(const char *digest_string,
 					 char **error)
 {
 	struct tcp_option *option;
-	size_t digest_string_len = strlen(digest_string);
-	size_t digest_bytes = digest_string_len / 2;
+	size_t digest_string_len;
+	size_t digest_bytes;
 	size_t parsed_bytes = 0;
 
-	if (digest_bytes > TCP_MD5_DIGEST_LEN) {
-		asprintf(error, "TCP MD5 digest longer than 16 bytes");
-		return NULL;
+	if (digest_string != NULL) {
+		digest_string_len = strlen(digest_string);
+		digest_bytes = digest_string_len / 2;
+		if (digest_bytes > TCP_MD5_DIGEST_LEN) {
+			asprintf(error, "TCP MD5 digest longer than 16 bytes");
+			return NULL;
+		}
+	} else {
+		digest_bytes = TCP_MD5_DIGEST_LEN;
 	}
 
 	option = tcp_option_new(TCPOPT_MD5SIG, TCPOLEN_MD5_BASE + digest_bytes);
 
-	/* Parse MD5 digest. This should be an ASCII hex string representing 16
-	 * bytes. But we allow smaller buffers, since we want to allow test
-	 * cases that supply invalid cookies.
-	 */
-	if (parse_hex_string(digest_string,
-			     option->md5.digest,
-			     sizeof(option->md5.digest),
-			     &parsed_bytes)) {
+	if (digest_string != NULL) {
+		/* Parse MD5 digest. This should be an ASCII hex string
+		 * representing 16 bytes. But we allow smaller buffers, since
+		 * we want to allow test cases that supply invalid cookies.
+		 */
+		if (parse_hex_string(digest_string,
+				     option->md5.digest,
+				     sizeof(option->md5.digest),
+				     &parsed_bytes)) {
+			free(option);
+			asprintf(error, "TCP MD5 digest is not a valid hex string");
+			return NULL;
+		}
+		assert(parsed_bytes <= digest_bytes);
+	} else {
+#if defined(__APPLE__)
 		free(option);
-		asprintf(error, "TCP MD5 digest is not a valid hex string");
+		asprintf(error, "Computing a valid TCP MD5 digest not supported");
 		return NULL;
+#else
+		option->flags = TCP_OPTIONS_FLAGS_VALID_MD5;
+#endif
 	}
-	assert(parsed_bytes <= digest_bytes);
 	return option;
 }
 
@@ -681,7 +697,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
-%token <reserved> URG MD5 EXP_FAST_OPEN FAST_OPEN
+%token <reserved> URG MD5 VALID EXP_FAST_OPEN FAST_OPEN
 %token <reserved> ACC_ECN_0 ACC_ECN_1 EXP_ACC_ECN_0 EXP_ACC_ECN_1 EE0B EE1B ECEB
 %token <reserved> EXP_TARR
 %token <reserved> CLASS TOS DSCP ECN HLIM FLOWLABEL
@@ -3358,6 +3374,15 @@ tcp_option
 	char *error = NULL;
 	$$ = new_md5_option($2, &error);
 	free($2);
+	if ($$ == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+}
+| MD5 VALID  {
+	char *error = NULL;
+	$$ = new_md5_option(NULL, &error);
 	if ($$ == NULL) {
 		assert(error != NULL);
 		semantic_error(error);

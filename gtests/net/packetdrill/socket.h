@@ -116,6 +116,7 @@ struct socket {
 	u32 last_outbound_tcp_payload_len;
 	struct tcp last_injected_tcp_header;
 	u32 last_injected_tcp_payload_len;
+	bool last_outbound_used_md5;
 
 	u16 last_outbound_udp_encaps_dst_port;
 	u16 last_outbound_udp_encaps_src_port;

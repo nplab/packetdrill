@@ -1,3 +1,3 @@
-packetdrill-ext-libs := -lprocstat -lutil -lkvm -lelf -lpthread -lpcap
+packetdrill-ext-libs := -lprocstat -lutil -lkvm -lelf -lpthread -lpcap -lcrypto
 CFLAGS += -Wall -Werror
 .include "Makefile.common"

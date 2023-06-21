@@ -30,6 +30,10 @@
 #include "packet.h"
 #include "tcp_options.h"
 
+void tcp_compute_md5_digest(struct packet *packet,
+                            u8 *secret, u32 secret_length,
+                            u8 digest[]);
+
 /* Create and initialize a new struct packet containing a TCP segment.
  * The 'flags' are a tcpdump-style sequence of TCP header flags.
  * On success, returns a newly-allocated packet. On failure, returns NULL

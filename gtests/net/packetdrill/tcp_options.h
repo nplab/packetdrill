@@ -88,6 +88,8 @@
 struct tcp_options {
 	u8 data[MAX_TCP_OPTION_BYTES];	/* The options data, in wire format */
 	u8 length;		/* The length, in bytes, of the data */
+	u32 flags;		/* meta information, not going on the wire */
+#define TCP_OPTIONS_FLAGS_VALID_MD5 0x00000001 /* Compute valid MD5 option */
 };
 
 /* Specification of a TCP SACK block (RFC 2018) */
@@ -165,6 +167,7 @@ struct tcp_option {
 			u8 data[MAX_TCP_OPTION_DATA_BYTES];
 		} generic;
 	};
+	u32 flags;  /* meta information, not going on the wire */
 } __packed;
 
 /* Allocate a new options list. */

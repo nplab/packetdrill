@@ -541,15 +541,17 @@ static void set_outbound_ts_val_mapping(
 			     script_timestamp, live_timestamp);
 }
 
-/* A helper to find the TCP timestamp option in a packet. Parse the
- * TCP options and fill in packet->tcp_ts_val with the location of the
- * TCP timestamp value field (or NULL if there isn't one), and
+/* A helper to find the TCP timestamp option and the MD5 option in a packet.
+ * Parse the TCP options and fill in packet->tcp_ts_val with the location of the
+ * TCP timestamp value field (or NULL if there isn't one),
  * likewise fill in packet->tcp_ts_ecr with the location of the TCP
- * timestamp echo reply field (or NULL if there isn't one). Returns
- * STATUS_OK on success; on failure returns STATUS_ERR and sets
+ * timestamp echo reply field (or NULL if there isn't one), and
+ * fill in packet->tcp_md5_digest with the location of the TCP MD5 digest
+ * (or NULL if there isn't one).
+ * Returns STATUS_OK on success; on failure returns STATUS_ERR and sets
  * error message.
  */
-static int find_tcp_timestamp(struct packet *packet, char **error)
+static int find_tcp_options(struct packet *packet, char **error)
 {
 	struct tcp_options_iterator iter;
 	struct tcp_option *option = NULL;
@@ -557,7 +559,7 @@ static int find_tcp_timestamp(struct packet *packet, char **error)
 	packet->tcp_ts_val = NULL;
 	packet->tcp_ts_ecr = NULL;
 	for (option = tcp_options_begin(packet, &iter); option != NULL;
-	     option = tcp_options_next(&iter, error))
+	     option = tcp_options_next(&iter, error)) {
 		if (option->kind == TCPOPT_TIMESTAMP &&
 		    option->length == TCPOLEN_TIMESTAMP) {
 			const size_t val_off = offsetof(struct tcp_option,
@@ -567,6 +569,13 @@ static int find_tcp_timestamp(struct packet *packet, char **error)
 			packet->tcp_ts_val = (__be32 *)((char *)option + val_off);
 			packet->tcp_ts_ecr = (__be32 *)((char *)option + ecr_off);
 		}
+		if (option->kind == TCPOPT_MD5SIG &&
+		    option->length == TCPOLEN_MD5SIG) {
+			const size_t digest_off = offsetof(struct tcp_option,
+			                                   md5.digest);
+			packet->tcp_md5_digest = (u8 *)option + digest_off;
+		}
+	}
 	return *error ? STATUS_ERR : STATUS_OK;
 }
 
@@ -1015,21 +1024,22 @@ static int map_inbound_packet(
 	if (offset_sack_blocks(live_packet, ack_offset, error))
 		return STATUS_ERR;
 
-	/* Find the timestamp echo reply is, so we can remap that below. */
-	if (find_tcp_timestamp(live_packet, error))
+	/* Find the timestamp echo reply is, so we can remap that below.
+	 * Find also the TCP MD5 option
+	 */
+	if (find_tcp_options(live_packet, error))
 		return STATUS_ERR;
 
-	/* If we are using absolute ecr values, do not adjust the ecr. */
-	if (live_packet->flags & FLAG_ABSOLUTE_TS_ECR) {
-		return STATUS_OK;
-	}
 	/* Remap TCP timestamp echo reply from script value to a live
 	 * value. We say "a" rather than "the" live value because
 	 * there could be multiple live values corresponding to the
 	 * same script value if a live test replay flips to a new
 	 * jiffie in a spot where the script did not.
+	 * If we are using absolute ecr values, do not adjust the ecr.
 	 */
-	if (live_packet->tcp->ack && (live_packet->tcp_ts_ecr != NULL)) {
+	if (((live_packet->flags & FLAG_ABSOLUTE_TS_ECR) == 0) &&
+	    live_packet->tcp->ack &&
+	    (live_packet->tcp_ts_ecr != NULL)) {
 		u32 live_ts_ecr = 0;
 
 		if (get_outbound_ts_val_mapping(socket,
@@ -1042,7 +1052,6 @@ static int map_inbound_packet(
 		}
 		packet_set_tcp_ts_ecr(live_packet, live_ts_ecr);
 	}
-
 	return STATUS_OK;
 }
 
@@ -1274,11 +1283,6 @@ static int map_outbound_live_packet(
 	if (offset_sack_blocks(actual_packet, ack_offset, error))
 		return STATUS_ERR;
 
-	/* Extract location of script and actual TCP timestamp values. */
-	if (find_tcp_timestamp(script_packet, error))
-		return STATUS_ERR;
-	if (find_tcp_timestamp(actual_packet, error))
-		return STATUS_ERR;
 	if ((script_packet->tcp_ts_val != NULL) &&
 	    (actual_packet->tcp_ts_val != NULL)) {
 		u32 script_ts_val = packet_tcp_ts_val(script_packet);
@@ -3016,9 +3020,35 @@ static int verify_outbound_live_packet(
 	s64 actual_usecs = live_time_to_script_time_usecs(
 		state, live_packet->time_usecs);
 
+	/* Extract location of script TCP options. */
+	if (find_tcp_options(script_packet, error))
+		goto out;
+
 	/* Before mapping, see if the live outgoing checksums are correct. */
 	if (verify_outbound_live_checksums(live_packet, error))
 		goto out;
+
+	/* If the script packet should contain a valid TCP MD5 digest, compute
+	 * it based on the live packet and store it in the script packet.
+	 * It will be verified later, when the script packet is compared with
+	 * the actual packet.
+	 */
+	if (script_packet->flags & FLAG_VALID_TCP_MD5 &&
+	    live_packet->tcp != NULL) {
+		u8 digest[TCP_MD5_DIGEST_LEN];
+		u16 check;
+
+		assert(script_packet->tcp != NULL);
+		assert(script_packet->tcp_md5_digest != NULL);
+		check = live_packet->tcp->check;
+		live_packet->tcp->check = htons(0);
+		tcp_compute_md5_digest(live_packet,
+		                       state->config->tcp_md5_secret,
+		                       state->config->tcp_md5_secret_length,
+		                       digest);
+		live_packet->tcp->check = check;
+		packet_set_tcp_md5_digest(script_packet, digest);
+	}
 
 	/* Map live packet values into script space for easy comparison. */
 	if (map_outbound_live_packet(
@@ -3371,6 +3401,9 @@ static int do_outbound_script_packet(
 			socket->last_outbound_udp_encaps_src_port = ntohs(udp->src_port);
 			socket->last_outbound_udp_encaps_dst_port = ntohs(udp->dst_port);
 		}
+		if (find_tcp_options(live_packet, error))
+			goto out;
+		socket->last_outbound_used_md5 = live_packet->tcp_md5_digest != NULL;
 	}
 
 	if (live_packet->sctp) {
@@ -3566,10 +3599,6 @@ static int do_inbound_script_packet(
 			       error))
 		goto out;
 
-	verbose_packet_dump(state, "inbound injected", live_packet,
-			    live_time_to_script_time_usecs(
-				    state, now_usecs()));
-
 	if (live_packet->tcp) {
 		/* Save the TCP header so we can reset the connection later. */
 		socket->last_injected_tcp_header = *(live_packet->tcp);
@@ -3603,6 +3632,22 @@ static int do_inbound_script_packet(
 			socket_get_inbound(&state->socket_under_test->live, &live_inbound);
 			set_packet_tuple(live_packet, &live_inbound, state->config->udp_encaps != 0);
 	}
+
+	if (live_packet->flags & FLAG_VALID_TCP_MD5) {
+		u8 digest[TCP_MD5_DIGEST_LEN];
+
+		assert(live_packet->tcp_md5_digest != NULL);
+		tcp_compute_md5_digest(live_packet,
+		                       state->config->tcp_md5_secret,
+		                       state->config->tcp_md5_secret_length,
+		                       digest);
+		packet_set_tcp_md5_digest(live_packet, digest);
+	}
+
+	verbose_packet_dump(state, "inbound injected", live_packet,
+			    live_time_to_script_time_usecs(
+				    state, now_usecs()));
+
 
 	/* Inject live packet into kernel. */
 	result = send_live_ip_packet(state->netdev, live_packet);
@@ -3670,6 +3715,7 @@ int reset_connection(struct state *state, struct socket *socket)
 	char *error = NULL;
 	u32 seq = 0, ack_seq = 0;
 	struct packet *packet = NULL;
+	struct tcp_options *tcp_options;
 	struct tuple live_inbound;
 	const struct ip_info ip_info = ip_info_new();
 	int result = STATUS_OK;
@@ -3712,10 +3758,20 @@ int reset_connection(struct state *state, struct socket *socket)
 		return result;
 	}
 
+	if (socket->last_outbound_used_md5) {
+		tcp_options = tcp_options_new();
+		tcp_options_append(tcp_options, tcp_option_new(TCPOPT_NOP, 1));
+		tcp_options_append(tcp_options, tcp_option_new(TCPOPT_NOP, 1));
+		tcp_options_append(tcp_options, tcp_option_new(TCPOPT_MD5SIG, TCPOLEN_MD5SIG));
+	} else {
+		tcp_options = NULL;
+	}
+
 	packet = new_tcp_packet(socket->address_family,
 				DIRECTION_INBOUND, ip_info, 0, 0,
-				ack_bit ? "R." : "R", seq, 0, ack_seq, 0, 0, NULL, false, false,
-				false, false, udp_src_port, udp_dst_port, &error);
+				ack_bit ? "R." : "R", seq, 0, ack_seq, 0, 0,
+				tcp_options, false, false, false, false,
+				udp_src_port, udp_dst_port, &error);
 	if (packet == NULL)
 		die("%s", error);
 
@@ -3723,9 +3779,22 @@ int reset_connection(struct state *state, struct socket *socket)
 	socket_get_inbound(&socket->live, &live_inbound);
 	set_packet_tuple(packet, &live_inbound, state->config->udp_encaps != 0);
 
+	if (tcp_options != NULL &&
+	    find_tcp_options(packet, &error) == STATUS_OK) {
+		u8 digest[TCP_MD5_DIGEST_LEN];
+
+		assert(packet->tcp_md5_digest != NULL);
+		tcp_compute_md5_digest(packet,
+		                       state->config->tcp_md5_secret,
+		                       state->config->tcp_md5_secret_length,
+		                       digest);
+		packet_set_tcp_md5_digest(packet, digest);
+	}
+
 	/* Inject live packet into kernel. */
 	result = send_live_ip_packet(state->netdev, packet);
 
+	free(tcp_options);
 	packet_free(packet);
 
 	return result;

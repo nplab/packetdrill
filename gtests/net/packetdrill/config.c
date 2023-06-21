@@ -61,6 +61,7 @@ enum option_codes {
 	OPT_NON_FATAL,
 	OPT_DRY_RUN,
 	OPT_DEBUG,
+	OPT_TCP_MD5_SECRET,
 	OPT_UDP_ENCAPS,
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	OPT_TUN_DEV,
@@ -101,6 +102,7 @@ struct option options[] = {
 	{ "define",               .has_arg = true,  NULL, OPT_DEFINE },
 	{ "verbose",              .has_arg = false, NULL, OPT_VERBOSE },
 	{ "debug",                .has_arg = false, NULL, OPT_DEBUG },
+	{ "tcp_md5_secret",       .has_arg = true,  NULL, OPT_TCP_MD5_SECRET },
 	{ "udp_encapsulation",    .has_arg = true,  NULL, OPT_UDP_ENCAPS },
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	{ "tun_dev",              .has_arg = true,  NULL, OPT_TUN_DEV },
@@ -141,6 +143,7 @@ void show_usage(void)
 		"\t[--define symbol1=val1 --define symbol2=val2 ...]\n"
 		"\t[--verbose|-v]\n"
 		"\t[--debug] * requires compilation with DEBUG *\n"
+		"\t[--tcp_md5_secret=secret]\n"
 		"\t[--udp_encapsulation=[sctp,tcp]]\n"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 		"\t[--tun_dev=<tun_dev_name>]\n"
@@ -420,6 +423,8 @@ void cleanup_config(struct config *config)
 	}
 	free(config->argv);
 	free(config->script_path);
+	free(config->tcp_md5_secret);
+	config->tcp_md5_secret_length = 0;
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	free(config->tun_device);
 #endif
@@ -610,6 +615,11 @@ static void process_option(int opt, char *optarg, struct config *config,
 		die("error: --debug requires building with DEBUG on.\n");
 #endif
 		debug_logging = true;
+		break;
+	case OPT_TCP_MD5_SECRET:
+		assert(optarg != NULL);
+		config->tcp_md5_secret = (u8 *)strdup(optarg);
+		config->tcp_md5_secret_length = strlen(optarg);
 		break;
 	case OPT_UDP_ENCAPS:
 		assert(optarg != NULL);

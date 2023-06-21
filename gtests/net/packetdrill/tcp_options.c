@@ -52,14 +52,14 @@ struct tcp_option *tcp_exp_option_new(u8 kind, u8 length, u16 exid)
 	return option;
 }
 
-int tcp_options_append(struct tcp_options *options,
-			       struct tcp_option *option)
+int tcp_options_append(struct tcp_options *options, struct tcp_option *option)
 {
 	if (options->length + option->length > sizeof(options->data))
 		return STATUS_ERR;
 	memcpy(options->data + options->length, option, option->length);
 	options->length += option->length;
 	assert(options->length <= sizeof(options->data));
+	options->flags |= option->flags;
 	free(option);
 	return STATUS_OK;
 }

@@ -123,11 +123,13 @@ struct packet {
 #define FLAG_IGNORE_TS_VAL        0x00000200 /* set to ignore processing of TS val */
 #define FLAG_IGNORE_SEQ           0x00000400 /* set to ignore processing of sequence numbers */
 #define FLAG_PARSE_ACE            0x00000800 /* output parsed AccECN ACE field */
+#define FLAG_VALID_TCP_MD5        0x00001000 /* compute valid TCP MD5 */
 
 	enum tos_chk_t tos_chk;	/* how to treat the TOS byte of a packet */
 
 	__be32 *tcp_ts_val;	/* location of TCP timestamp val, or NULL */
 	__be32 *tcp_ts_ecr;	/* location of TCP timestamp ecr, or NULL */
+	u8 *tcp_md5_digest;	/* location of TCP MD5 digest, or NULL */
 };
 
 /* Allocate and initialize a packet. */
@@ -308,6 +310,11 @@ static inline u32 packet_tcp_ts_ecr(const struct packet *packet)
 	return get_unaligned_be32(packet->tcp_ts_ecr);
 }
 
+static inline u8 *packet_tcp_md5_digest(const struct packet *packet)
+{
+	return packet->tcp_md5_digest;
+}
+
 static inline void packet_set_tcp_ts_val(struct packet *packet, u32 ts_val)
 {
 	put_unaligned_be32(ts_val, packet->tcp_ts_val);
@@ -316,6 +323,11 @@ static inline void packet_set_tcp_ts_val(struct packet *packet, u32 ts_val)
 static inline void packet_set_tcp_ts_ecr(struct packet *packet, u32 ts_ecr)
 {
 	put_unaligned_be32(ts_ecr, packet->tcp_ts_ecr);
+}
+
+static inline void packet_set_tcp_md5_digest(struct packet *packet, u8 *digest)
+{
+	memcpy(packet->tcp_md5_digest, digest, TCP_MD5_DIGEST_LEN);
 }
 
 /* Return a pointer to the TCP/UDP data payload. */

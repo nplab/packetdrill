@@ -242,6 +242,7 @@ sack				return SACK;
 sackOK				return SACKOK;
 TS				return TIMESTAMP;
 md5				return MD5;
+valid				return VALID;
 EXP-FO				return EXP_FAST_OPEN;
 exp-FO				return EXP_FAST_OPEN;
 FO				return FAST_OPEN;

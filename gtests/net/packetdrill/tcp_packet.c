@@ -26,6 +26,7 @@
 
 #include "ip_packet.h"
 #include "tcp.h"
+#include <openssl/md5.h>
 
 /*
  * The full list of valid TCP bit flag characters.
@@ -85,6 +86,58 @@ static inline int tcp_flag_ace_count(const char *flags)
 			return (0x100 | ((int)*s - (int)'0'));
 	}
 	return 0;
+}
+
+/* Compute the MD5 digest of a TCP segment as specified in RFC 2385. */
+void tcp_compute_md5_digest(struct packet *packet,
+                            u8 *secret, u32 secret_length,
+                            u8 digest[])
+{
+#if defined(__APPLE__)
+	die("tcp_compute_md5_digest() called.");
+#else
+	MD5_CTX context;
+	struct ipv4_pseudo_header {
+		struct in_addr src_ip;
+		struct in_addr dst_ip;
+		u8 zero;
+		u8 protocol;
+		u16 length;
+	} __packed ipv4_pseudo_header;
+	struct ipv6_pseudo_header {
+		struct in6_addr src_ip;
+		struct in6_addr dst_ip;
+		u32 length;
+		u8 zero[3];
+		u8 next_header;
+	} __packed ipv6_pseudo_header;
+
+	assert(packet->tcp != NULL);
+	assert(packet->tcp->check == htons(0));
+	MD5_Init(&context);
+	switch (packet_address_family(packet)) {
+	case AF_INET:
+		ipv4_pseudo_header.src_ip = packet->ipv4->src_ip;
+		ipv4_pseudo_header.dst_ip = packet->ipv4->dst_ip;
+		ipv4_pseudo_header.zero = 0;
+		ipv4_pseudo_header.protocol = IPPROTO_TCP;
+		ipv4_pseudo_header.length = htons(packet_tcp_header_len(packet) + packet_payload_len(packet));
+		MD5_Update(&context, &ipv4_pseudo_header, sizeof(struct ipv4_pseudo_header));
+		break;
+	case AF_INET6:
+		ipv6_pseudo_header.src_ip = packet->ipv6->src_ip;
+		ipv6_pseudo_header.dst_ip = packet->ipv6->dst_ip;
+		ipv6_pseudo_header.length = htonl(packet_tcp_header_len(packet) + packet_payload_len(packet));
+		memset(ipv6_pseudo_header.zero, 0, sizeof(ipv6_pseudo_header.zero));
+		ipv6_pseudo_header.next_header = IPPROTO_TCP;
+		MD5_Update(&context, &ipv6_pseudo_header, sizeof(struct ipv6_pseudo_header));
+		break;
+	}
+	MD5_Update(&context, packet->tcp, sizeof(struct tcp));
+	MD5_Update(&context, packet_payload(packet), packet_payload_len(packet));
+	MD5_Update(&context, secret, secret_length);
+	MD5_Final(digest, &context);
+#endif
 }
 
 
@@ -255,6 +308,10 @@ struct packet *new_tcp_packet(int address_family,
 	}
 	if (ignore_seq) {
 		packet->flags |= FLAG_IGNORE_SEQ;
+	}
+	if (tcp_options != NULL &&
+	    tcp_options->flags & TCP_OPTIONS_FLAGS_VALID_MD5) {
+		packet->flags |= FLAG_VALID_TCP_MD5;
 	}
 
 	packet->ip_bytes = ip_bytes;

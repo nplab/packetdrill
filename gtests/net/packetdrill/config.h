@@ -161,6 +161,9 @@ struct config {
 					    * connections when exiting
 					    */
 
+	u8 *tcp_md5_secret;		/* secret for TCP MD5 computations */
+	u32 tcp_md5_secret_length;
+
 	/* For local testing using a tun interface. */
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	char *tun_device;
