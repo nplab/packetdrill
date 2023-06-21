@@ -26,7 +26,9 @@
 
 #include "ip_packet.h"
 #include "tcp.h"
+#if !defined(__APPLE__)
 #include <openssl/md5.h>
+#endif
 
 /*
  * The full list of valid TCP bit flag characters.
