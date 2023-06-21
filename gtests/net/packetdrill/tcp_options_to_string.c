@@ -103,13 +103,10 @@ static int tcp_acc_ecn_option_to_string(FILE *s, struct tcp_option *option)
 	    (option->length != ACC_ECN_THREE_COUNTER_LEN)) {
 		return STATUS_ERR;
 	}
-	switch (option->kind) {
-	case TCPOPT_ACC_ECN_0:
+	if (option->kind == TCPOPT_ACC_ECN_0) {
 		order = 0;
-		break;
-	case TCPOPT_ACC_ECN_1:
+	} else {
 		order = 1;
-		break;
 	}
 	switch (option->length) {
 	case ACC_ECN_ZERO_COUNTER_LEN:
