@@ -3022,8 +3022,10 @@ static int verify_outbound_live_packet(
 		state, live_packet->time_usecs);
 
 	/* Extract location of script TCP options. */
-	if (find_tcp_options(script_packet, error))
-		goto out;
+	if (script_packet->tcp != NULL) {
+		if (find_tcp_options(script_packet, error))
+			goto out;
+	}
 
 	/* Before mapping, see if the live outgoing checksums are correct. */
 	if (verify_outbound_live_checksums(live_packet, error))
