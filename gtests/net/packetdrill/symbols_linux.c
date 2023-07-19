@@ -96,6 +96,7 @@ struct int_symbol platform_symbols_table[] = {
 
 	{ IP_TOS,                           "IP_TOS"                          },
 	{ IP_MTU_DISCOVER,                  "IP_MTU_DISCOVER"                 },
+	{ IPV6_MTU_DISCOVER,                "IPV6_MTU_DISCOVER"               },
 	{ IP_PMTUDISC_WANT,                 "IP_PMTUDISC_WANT"                },
 	{ IP_PMTUDISC_DONT,                 "IP_PMTUDISC_DONT"                },
 	{ IP_PMTUDISC_DO,                   "IP_PMTUDISC_DO"                  },
