@@ -2446,17 +2446,26 @@ sctp_ecn_capable_parameter_new(void)
 }
 
 struct sctp_parameter_list_item *
-sctp_zero_checksum_acceptable_parameter_new(void)
+sctp_zero_checksum_acceptable_parameter_new(s64 edmid)
 {
 	struct sctp_zero_checksum_acceptable_parameter *parameter;
+	u32 flags;
 
+	flags = 0;
 	parameter = malloc(sizeof(struct sctp_zero_checksum_acceptable_parameter));
 	assert(parameter != NULL);
 	parameter->type = htons(SCTP_ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_TYPE);
 	parameter->length = htons(sizeof(struct sctp_zero_checksum_acceptable_parameter));
+	if (edmid == -1) {
+		parameter->edmid = htonl(0);
+		flags |= FLAG_PARAMETER_VALUE_NOCHECK;
+	} else {
+		assert(is_valid_u32(edmid));
+		parameter->edmid = htonl((u32)edmid);
+	}
 	return sctp_parameter_list_item_new((struct sctp_parameter *)parameter,
 	                                    sizeof(struct sctp_zero_checksum_acceptable_parameter),
-	                                    0);
+	                                    flags);
 }
 
 struct sctp_parameter_list_item *

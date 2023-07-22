@@ -738,7 +738,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> RECONFIG_RESPONSE RESULT SENDER_NEXT_TSN RECEIVER_NEXT_TSN
 %token <reserved> SSN_TSN_RESET ADD_INCOMING_STREAMS NUMBER_OF_NEW_STREAMS
 %token <reserved> ADD_OUTGOING_STREAMS RECONFIG_REQUEST_GENERIC
-%token <reserved> ADDR INCR TYPES PARAMS
+%token <reserved> ADDR INCR EDMID TYPES PARAMS
 %token <reserved> IPV4_TYPE IPV6_TYPE HOSTNAME_TYPE
 %token <reserved> CAUSE
 %token <reserved> CAUSE_CODE CAUSE_INFO
@@ -756,6 +756,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> SSP_ASSOC_ID SSP_ADDR
 %token <reserved> SND_SID SND_FLAGS SND_PPID SND_CONTEXT SND_ASSOC_ID SSB_ADAPTATION_IND
 %token <reserved> BAD_CRC32C ZERO_CHECKSUM NULL_
+%token <reserved> EDMID_SCTP_OVER_DTLS
 %token <reserved> SINFO_STREAM SINFO_SSN SINFO_FLAGS SINFO_PPID SINFO_CONTEXT SINFO_ASSOC_ID
 %token <reserved> SINFO_TIMETOLIVE SINFO_TSN SINFO_CUMTSN SINFO_PR_VALUE SERINFO_NEXT_FLAGS
 %token <reserved> SERINFO_NEXT_STREAM SERINFO_NEXT_AID SERINFO_NEXT_LENGTH SERINFO_NEXT_PPID
@@ -945,6 +946,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %type <integer> opt_mid opt_fsn
 %type <integer> opt_cum_tsn opt_ppid opt_sender_next_tsn opt_receiver_next_tsn
 %type <integer> opt_req_sn opt_resp_sn opt_last_tsn opt_result opt_number_of_new_streams
+%type <integer> edmid
 %type <byte_list> opt_val opt_info byte_list chunk_types_list
 %type <byte_list_item> byte
 %type <u16_list> u16_list
@@ -2359,9 +2361,23 @@ sctp_ecn_capable_parameter_spec
 	$$ = sctp_ecn_capable_parameter_new();
 }
 
+edmid
+: INTEGER {
+	if (!is_valid_u32($1)) {
+		semantic_error("type value out of range");
+	}
+	$$ = $1;
+}
+| EDMID_SCTP_OVER_DTLS {
+	$$ = SCTP_OVER_DTLS_EDMID;
+}
+
 sctp_zero_checksum_acceptable_parameter_spec
-: ZERO_CHECKSUM_ACCEPTABLE '[' ']' {
-	$$ = sctp_zero_checksum_acceptable_parameter_new();
+: ZERO_CHECKSUM_ACCEPTABLE '[' EDMID '=' edmid ']' {
+	if (!is_valid_u32($5)) {
+		semantic_error("edmid value out of range");
+	}
+	$$ = sctp_zero_checksum_acceptable_parameter_new($5);
 }
 
 sctp_fornward_tsn_supported_spec

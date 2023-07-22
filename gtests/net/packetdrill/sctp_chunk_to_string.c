@@ -415,6 +415,7 @@ static int sctp_zero_checksum_acceptable_parameter_to_string(
 	struct sctp_zero_checksum_acceptable_parameter *parameter,
 	char **error)
 {
+	u32 edmid;
 	u16 length;
 
 	length = ntohs(parameter->length);
@@ -423,7 +424,17 @@ static int sctp_zero_checksum_acceptable_parameter_to_string(
 			 length);
 		return STATUS_ERR;
 	}
-	fputs("ZERO_CHECKSUM_ACCEPTABLE[]", s);
+	edmid = ntohl(parameter->edmid);
+	fputs("ZERO_CHECKSUM_ACCEPTABLE[edmid=", s);
+	switch (edmid) {
+	case SCTP_OVER_DTLS_EDMID:
+		fputs("SCTP_OVER_DTLS", s);
+		break;
+	default:
+		fprintf(s, "%u", edmid);
+		break;
+	}
+	fputs("]", s);
 	return STATUS_OK;
 }
 

@@ -251,6 +251,12 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(SCTP_ACCEPT_ZERO_CHECKSUM)
 	{ SCTP_ACCEPT_ZERO_CHECKSUM,        "SCTP_ACCEPT_ZERO_CHECKSUM"       },
 #endif
+#if defined(SCTP_EDMID_NONE)
+	{ SCTP_EDMID_NONE,                  "SCTP_EDMID_NONE"                 },
+#endif
+#if defined(SCTP_EDMID_LOWER_LAYER_DTLS)
+	{ SCTP_EDMID_LOWER_LAYER_DTLS,      "SCTP_EDMID_LOWER_LAYER_DTLS"     },
+#endif
 	{ SCTP_CLOSED,                      "SCTP_CLOSED"                     },
 	{ SCTP_BOUND,                       "SCTP_BOUND"                      },
 	{ SCTP_LISTEN,                      "SCTP_LISTEN"                     },
