@@ -958,20 +958,20 @@ static int sctp_stale_cookie_error_cause_to_string(
 	return STATUS_OK;
 }
 
-static int sctp_out_of_resources_cause_to_string(
+static int sctp_out_of_resource_cause_to_string(
 	FILE *s,
-	struct sctp_out_of_resources_cause *cause,
+	struct sctp_out_of_resource_cause *cause,
 	char **error)
 {
 	u16 length;
 
 	length = ntohs(cause->length);
-	if (length != sizeof(struct sctp_out_of_resources_cause)) {
-		asprintf(error, "OUT_OF_RESOURCES cause invalid (length=%u)",
+	if (length != sizeof(struct sctp_out_of_resource_cause)) {
+		asprintf(error, "OUT_OF_RESOURCE cause invalid (length=%u)",
 			 length);
 		return STATUS_ERR;
 	}
-	fputs("OUT_OF_RESOURCES[]", s);
+	fputs("OUT_OF_RESOURCE[]", s);
 	return STATUS_OK;
 }
 
@@ -1268,9 +1268,9 @@ static int sctp_cause_to_string(FILE *s, struct sctp_cause *cause, char **error)
 		result = sctp_stale_cookie_error_cause_to_string(s,
 			(struct sctp_stale_cookie_error_cause *)cause, error);
 		break;
-	case SCTP_OUT_OF_RESOURCES_CAUSE_CODE:
-		result = sctp_out_of_resources_cause_to_string(s,
-			(struct sctp_out_of_resources_cause *)cause, error);
+	case SCTP_OUT_OF_RESOURCE_CAUSE_CODE:
+		result = sctp_out_of_resource_cause_to_string(s,
+			(struct sctp_out_of_resource_cause *)cause, error);
 		break;
 	case SCTP_UNRESOLVABLE_ADDRESS_CAUSE_CODE:
 		result = sctp_unresolvable_address_cause_to_string(s,

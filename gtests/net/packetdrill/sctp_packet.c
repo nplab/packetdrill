@@ -2698,16 +2698,16 @@ sctp_stale_cookie_error_cause_new(s64 staleness)
 }
 
 struct sctp_cause_list_item *
-sctp_out_of_resources_cause_new(void)
+sctp_out_of_resource_cause_new(void)
 {
-	struct sctp_out_of_resources_cause *cause;
+	struct sctp_out_of_resource_cause *cause;
 
-	cause = malloc(sizeof(struct sctp_out_of_resources_cause));
+	cause = malloc(sizeof(struct sctp_out_of_resource_cause));
 	assert(cause != NULL);
-	cause->code = htons(SCTP_OUT_OF_RESOURCES_CAUSE_CODE);
-	cause->length = htons(sizeof(struct sctp_out_of_resources_cause));
+	cause->code = htons(SCTP_OUT_OF_RESOURCE_CAUSE_CODE);
+	cause->length = htons(sizeof(struct sctp_out_of_resource_cause));
 	return sctp_cause_list_item_new((struct sctp_cause *)cause,
-	                                sizeof(struct sctp_out_of_resources_cause),
+	                                sizeof(struct sctp_out_of_resource_cause),
 	                                0);
 }
 

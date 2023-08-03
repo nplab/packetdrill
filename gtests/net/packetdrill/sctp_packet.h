@@ -520,7 +520,7 @@ struct sctp_cause_list_item *
 sctp_stale_cookie_error_cause_new(s64 staleness);
 
 struct sctp_cause_list_item *
-sctp_out_of_resources_cause_new(void);
+sctp_out_of_resource_cause_new(void);
 
 struct sctp_cause_list_item *
 sctp_unresolvable_address_cause_new(struct sctp_parameter_list_item *item);

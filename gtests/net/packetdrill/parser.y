@@ -929,7 +929,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %type <cause_list_item> sctp_invalid_stream_identifier_cause_spec
 %type <cause_list_item> sctp_missing_mandatory_parameter_cause_spec
 %type <cause_list_item> sctp_stale_cookie_error_cause_spec
-%type <cause_list_item> sctp_out_of_resources_cause_spec
+%type <cause_list_item> sctp_out_of_resource_cause_spec
 %type <cause_list_item> sctp_unresolvable_address_cause_spec
 %type <cause_list_item> sctp_unrecognized_chunk_type_cause_spec
 %type <cause_list_item> sctp_invalid_mandatory_parameter_cause_spec
@@ -2447,7 +2447,7 @@ sctp_cause_spec
 | sctp_invalid_stream_identifier_cause_spec      { $$ = $1; }
 | sctp_missing_mandatory_parameter_cause_spec    { $$ = $1; }
 | sctp_stale_cookie_error_cause_spec             { $$ = $1; }
-| sctp_out_of_resources_cause_spec               { $$ = $1; }
+| sctp_out_of_resource_cause_spec                { $$ = $1; }
 | sctp_unresolvable_address_cause_spec           { $$ = $1; }
 | sctp_unrecognized_chunk_type_cause_spec        { $$ = $1; }
 | sctp_invalid_mandatory_parameter_cause_spec    { $$ = $1; }
@@ -2536,9 +2536,9 @@ sctp_stale_cookie_error_cause_spec
 	$$ = sctp_stale_cookie_error_cause_new(-1);
 }
 
-sctp_out_of_resources_cause_spec
+sctp_out_of_resource_cause_spec
 : OUT_OF_RESOURCE '[' ']' {
-	$$ = sctp_out_of_resources_cause_new();
+	$$ = sctp_out_of_resource_cause_new();
 }
 
 sctp_unresolvable_address_cause_spec

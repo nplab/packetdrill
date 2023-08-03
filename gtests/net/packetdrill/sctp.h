@@ -489,7 +489,7 @@ struct sctp_forward_tsn_supported_parameter {
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001
 #define SCTP_MISSING_MANDATORY_PARAMETER_CAUSE_CODE	0x0002
 #define SCTP_STALE_COOKIE_ERROR_CAUSE_CODE		0x0003
-#define SCTP_OUT_OF_RESOURCES_CAUSE_CODE		0x0004
+#define SCTP_OUT_OF_RESOURCE_CAUSE_CODE			0x0004
 #define SCTP_UNRESOLVABLE_ADDRESS_CAUSE_CODE		0x0005
 #define SCTP_UNRECOGNIZED_CHUNK_TYPE_CAUSE_CODE		0x0006
 #define SCTP_INVALID_MANDATORY_PARAMETER_CAUSE_CODE	0x0007
@@ -532,7 +532,7 @@ struct sctp_stale_cookie_error_cause {
 	__be32 staleness;
 } __packed;
 
-struct sctp_out_of_resources_cause {
+struct sctp_out_of_resource_cause {
 	__be16 code;
 	__be16 length;
 } __packed;
