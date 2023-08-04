@@ -95,6 +95,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ IP_PORTRANGE,                     "IP_PORTRANGE"                    },
 	{ IP_RECVIF,                        "IP_RECVIF"                       },
 	{ IP_RECVTTL,                       "IP_RECVTTL"                      },
+	{ IP_DONTFRAG,                      "IP_DONTFRAG"                     },
 	{ IP_PKTINFO,                       "IP_PKTINFO,"                     },
 	{ IP_RECVPKTINFO,                   "IP_RECVPKTINFO"                  },
 #if defined(IP_RECVTOS)
@@ -117,6 +118,7 @@ struct int_symbol platform_symbols_table[] = {
 	{ IPV6_BINDV6ONLY,                  "IPV6_BINDV6ONLY"                 },
 	{ IPV6_RECVTCLASS,                  "IPV6_RECVTCLASS"                 },
 	{ IPV6_TCLASS,                      "IPV6_TCLASS"                     },
+	{ IPV6_DONTFRAG,                    "IPV6_DONTFRAG"                   },
 	{ IPV6_RTHDRDSTOPTS,                "IPV6_RTHDRDSTOPTS"               },
 	{ IPV6_RECVPKTINFO,                 "IPV6_RECVPKTINFO"                },
 	{ IPV6_RECVHOPLIMIT,                "IPV6_RECVHOPLIMIT"               },
