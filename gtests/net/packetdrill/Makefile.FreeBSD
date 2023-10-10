@@ -1,3 +1,3 @@
 packetdrill-ext-libs := -lprocstat -lutil -lkvm -lelf -lpthread -lpcap -lcrypto
-CFLAGS += -Wall -Werror
+CFLAGS += -Wall -Werror -Wno-deprecated-declarations
 .include "Makefile.common"
