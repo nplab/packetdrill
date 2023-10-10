@@ -1,6 +1,6 @@
 all: binaries
 
-CFLAGS += -g
+CFLAGS += -g -DDEBUG
 
 parser.o: parser.y
 	bison --output=parser.c --defines=parser.h --report=state parser.y
