@@ -67,6 +67,10 @@ enum option_codes {
 	OPT_TUN_DEV,
 	OPT_PERSISTENT_TUN_DEV,
 #endif
+#if defined(__FreeBSD__)
+	OPT_TAP_DEV,
+	OPT_PERSISTENT_TAP_DEV,
+#endif
 	OPT_NO_CLEANUP,
 	OPT_DEFINE = 'D',	/* a '-D' single-letter option */
 	OPT_VERBOSE = 'v',	/* a '-v' single-letter option */
@@ -108,6 +112,10 @@ struct option options[] = {
 	{ "tun_dev",              .has_arg = true,  NULL, OPT_TUN_DEV },
 	{ "persistent_tun_dev",   .has_arg = false, NULL, OPT_PERSISTENT_TUN_DEV },
 #endif
+#if defined(__FreeBSD__)
+	{ "tap_dev",              .has_arg = true,  NULL, OPT_TAP_DEV },
+	{ "persistent_tap_dev",   .has_arg = false, NULL, OPT_PERSISTENT_TAP_DEV },
+#endif
 	{ "no_cleanup",           .has_arg = false, NULL, OPT_NO_CLEANUP },
 	{ NULL },
 };
@@ -148,6 +156,10 @@ void show_usage(void)
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 		"\t[--tun_dev=<tun_dev_name>]\n"
 		"\t[--persistent_tun_dev]\n"
+#endif
+#if defined(__FreeBSD__)
+		"\t[--tap_dev=<tap_dev_name>]\n"
+		"\t[--persistent_tap_dev]\n"
 #endif
 		"\t[--no_cleanup]\n"
 		"\tscript_path ...\n");
@@ -402,10 +414,28 @@ void finalize_config(struct config *config)
 	}
 	if ((config->is_wire_client) || (config->is_wire_server)){
 		if (config->tun_device != NULL) {
-			die("tun_dev specified specified\n");
+			die("tun_dev specified\n");
 		}
 		if (config->persistent_tun_device == true) {
 			die("persistent_tun_dev requested\n");
+		}
+	}
+#endif
+#if defined(__FreeBSD__)
+	if ((config->tap_device == NULL) &&
+	    (config->persistent_tap_device == true)) {
+		die("tap_dev not specified\n");
+	}
+	if ((config->tun_device != NULL) &&
+	    (config->tap_device != NULL)) {
+		die("tun_dev and tap_dev specified");
+	}
+	if ((config->is_wire_client) || (config->is_wire_server)){
+		if (config->tap_device != NULL) {
+			die("tap_dev specified\n");
+		}
+		if (config->persistent_tap_device == true) {
+			die("persistent_tap_dev requested\n");
 		}
 	}
 #endif
@@ -427,6 +457,9 @@ void cleanup_config(struct config *config)
 	config->tcp_md5_secret_length = 0;
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	free(config->tun_device);
+#endif
+#if defined(__FreeBSD__)
+	free(config->tap_device);
 #endif
 	cur_def = config->defines;
 	while (cur_def != NULL) {
@@ -637,6 +670,15 @@ static void process_option(int opt, char *optarg, struct config *config,
 		break;
 	case OPT_PERSISTENT_TUN_DEV:
 		config->persistent_tun_device = true;
+		break;
+#endif
+#if defined(__FreeBSD__)
+	case OPT_TAP_DEV:
+		assert(optarg != NULL);
+		config->tap_device = strdup(optarg);
+		break;
+	case OPT_PERSISTENT_TAP_DEV:
+		config->persistent_tap_device = true;
 		break;
 #endif
 	case OPT_NO_CLEANUP:

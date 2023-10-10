@@ -169,6 +169,12 @@ struct config {
 	char *tun_device;
 	bool persistent_tun_device;
 #endif
+	/* For local testing using a tap interface. */
+#if defined(__FreeBSD__)
+	char *tap_device;
+	/* XXXMT: merge this with persistent_tun_device? */
+	bool persistent_tap_device;
+#endif
 
 	/* List of FOO=bar definitions from command line. */
 	struct definition *defines;
