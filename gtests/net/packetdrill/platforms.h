@@ -54,6 +54,7 @@
 #include <netinet/udplite.h>
 #define USE_LIBPCAP             1
 #define TUN_DIR                 _PATH_DEV
+#define TAP_DIR                 _PATH_DEV
 #define HAVE_TCP_INFO           1
 #define HAVE_FMEMOPEN           1
 #define HAVE_OPEN_MEMSTREAM     1

@@ -42,6 +42,9 @@
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #include <net/if_tun.h>
+#if defined(__FreeBSD__)
+#include <net/if_tap.h>
+#endif
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
 #if defined(__APPLE__)
 #include <sys/ioctl.h>
@@ -60,6 +63,7 @@
 #include "packet_parser.h"
 #include "packet_socket.h"
 #include "tcp.h"
+#include "run.h"
 #include "tun.h"
 
 /* Internal private state for the netdev for purely local tests. */
@@ -72,7 +76,10 @@ struct local_netdev {
 	int ipv6_control_fd;	/* fd for IPv6 configuration of tun interface */
 	int index;		/* interface index from if_nametoindex */
 	struct packet_socket *psock;	/* for sniffing packets (owned) */
+	struct ether_addr local_ether_addr;
+	struct ether_addr remote_ether_addr;
 	bool persistent;
+	bool is_tap_dev;
 };
 
 struct netdev_ops local_netdev_ops;
@@ -175,41 +182,54 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 static void create_device(struct config *config, struct local_netdev *netdev)
 {
 	/* Open the tun device, which "clones" it for our purposes. */
-	int tun_fd;
-	char *tun_path;
+	int dev_fd;
+	char *dev_path;
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	struct stat buf;
 #endif
 
+	netdev->is_tap_dev = false;
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 	netdev->persistent = config->persistent_tun_device;
 	if (config->tun_device != NULL) {
-		asprintf(&tun_path, "%s/%s", TUN_DIR, config->tun_device);
+		asprintf(&dev_path, "%s/%s", TUN_DIR, config->tun_device);
 	} else {
 #if defined(__FreeBSD__)
-		asprintf(&tun_path, "%s/%s", TUN_DIR, "tun");
+		if (config->tap_device != NULL) {
+			netdev->is_tap_dev = true;
+			asprintf(&dev_path, "%s/%s", TAP_DIR, config->tap_device);
+		} else {
+			asprintf(&dev_path, "%s/%s", TUN_DIR, "tun");
+		}
 #else
-		asprintf(&tun_path, "%s/%s", TUN_DIR, "tun0");
+		asprintf(&dev_path, "%s/%s", TUN_DIR, "tun0");
 #endif
 	}
+#else
+	netdev->persistent = false;
 #endif
 #if defined(linux)
-	asprintf(&tun_path, "%s/%s", TUN_DIR, "tun");
+	asprintf(&dev_path, "%s/%s", TUN_DIR, "tun");
 #endif
-	tun_fd = open(tun_path, O_RDWR);
+	dev_fd = open(dev_path, O_RDWR);
 #if defined(__FreeBSD__)
-	if ((tun_fd < 0) && (errno == ENOENT)) {
-		if (system("kldload -q if_tun") < 0) {
-			die_perror("kldload -q if_tun");
+	if ((dev_fd < 0) && (errno == ENOENT)) {
+		if (system("kldload -q if_tuntap") < 0) {
+			die_perror("kldload -q if_tuntap");
 		}
-		tun_fd = open(tun_path, O_RDWR);
+		dev_fd = open(dev_path, O_RDWR);
 	}
 #endif
-	free(tun_path);
-	if (tun_fd < 0) {
-		die_perror("open tun device");
+	free(dev_path);
+	if (dev_fd < 0) {
+		if (netdev->is_tap_dev) {
+			die_perror("open tap device");
+		} else {
+			die_perror("open tup device");
+		}
 	}
-	netdev->tun_fd = tun_fd;
+	netdev->tun_fd = dev_fd;
+	DEBUGP("dev_fd: %d\n", netdev->tun_fd);
 
 #ifdef linux
 	/* Create the device. Since we do not specify a device name, the
@@ -227,9 +247,17 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 #endif
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-	const int mode = IFF_BROADCAST | IFF_MULTICAST;
-	if (ioctl(netdev->tun_fd, TUNSIFMODE, &mode, sizeof(mode)) < 0)
-		die_perror("TUNSIFMODE");
+	if (netdev->is_tap_dev) {
+		struct ether_addr ether_addr_router = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}}; /* XXXMT: read from config */
+		if (ioctl(netdev->tun_fd, SIOCGIFADDR, &netdev->local_ether_addr, sizeof(struct ether_addr)) < 0)
+			die_perror("SIOCGIFADDR");
+		ether_copy(&netdev->remote_ether_addr, &ether_addr_router);
+	} else {
+		const int mode = IFF_BROADCAST | IFF_MULTICAST;
+
+		if (ioctl(netdev->tun_fd, TUNSIFMODE, &mode, sizeof(mode)) < 0)
+			die_perror("TUNSIFMODE");
+	}
 	if (fstat(netdev->tun_fd, &buf) < 0) {
 		die_perror("fstat tun device");
 	}
@@ -241,34 +269,55 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 	 * to prepend the address family when injecting tun packets.
 	 * OpenBSD presumes we are doing this, even without the ioctl.
 	 */
-	const int header = 1;
-	if (ioctl(netdev->tun_fd, TUNSIFHEAD, &header, sizeof(header)) < 0)
-		die_perror("TUNSIFHEAD");
+	if (!netdev->is_tap_dev) {
+		const int header = 1;
+
+		if (ioctl(netdev->tun_fd, TUNSIFHEAD, &header, sizeof(header)) < 0)
+			die_perror("TUNSIFHEAD");
+	}
 #endif /* defined(__FreeBSD__) ||  defined(__NetBSD__) */
 
-	DEBUGP("tun name: '%s'\n", netdev->name);
+	DEBUGP("dev name: '%s'\n", netdev->name);
 
 	netdev->index = if_nametoindex(netdev->name);
 	if (netdev->index == 0)
 		die_perror("if_nametoindex");
 
-	DEBUGP("tun index: '%d'\n", netdev->index);
+	DEBUGP("%s index: '%d'\n", netdev->is_tap_dev ? "tap" : "tun", netdev->index);
 
 #ifdef __FreeBSD__
-	struct tuninfo tuninfo;
+	if (netdev->is_tap_dev) {
+		struct tapinfo tapinfo;
 
-	if (ioctl(netdev->tun_fd, TUNGIFINFO, &tuninfo, sizeof(tuninfo)) < 0)
-		die_perror("TUNGIFINFO");
-	DEBUGP("Interface baudrate: %d bps, mtu: %d\n",
-	        tuninfo.baudrate, tuninfo.mtu);
-	DEBUGP("Requested baudrate: %ju bps, mtu: %d\n",
-	       IF_Mbps(config->speed), config->mtu);
-	if ((tuninfo.baudrate != IF_Mbps(config->speed)) ||
-	    (tuninfo.mtu != config->mtu)) {
-		tuninfo.baudrate = IF_Mbps(config->speed);
-		tuninfo.mtu = config->mtu;
-		if (ioctl(netdev->tun_fd, TUNSIFINFO, &tuninfo, sizeof(tuninfo)) < 0)
-			die_perror("TUNSIFINFO");
+		if (ioctl(netdev->tun_fd, TAPGIFINFO, &tapinfo, sizeof(struct tapinfo)) < 0)
+			die_perror("TAPGIFINFO");
+		DEBUGP("Interface baudrate: %d bps, mtu: %d\n",
+		        tapinfo.baudrate, tapinfo.mtu);
+		DEBUGP("Requested baudrate: %ju bps, mtu: %d\n",
+		       IF_Mbps(config->speed), config->mtu);
+		if ((tapinfo.baudrate != IF_Mbps(config->speed)) ||
+		    (tapinfo.mtu != config->mtu)) {
+			tapinfo.baudrate = IF_Mbps(config->speed);
+			tapinfo.mtu = config->mtu;
+			if (ioctl(netdev->tun_fd, TAPSIFINFO, &tapinfo, sizeof(struct tapinfo)) < 0)
+				die_perror("TAPSIFINFO");
+		}
+	} else {
+		struct tuninfo tuninfo;
+
+		if (ioctl(netdev->tun_fd, TUNGIFINFO, &tuninfo, sizeof(tuninfo)) < 0)
+			die_perror("TUNGIFINFO");
+		DEBUGP("Interface baudrate: %d bps, mtu: %d\n",
+		        tuninfo.baudrate, tuninfo.mtu);
+		DEBUGP("Requested baudrate: %ju bps, mtu: %d\n",
+		       IF_Mbps(config->speed), config->mtu);
+		if ((tuninfo.baudrate != IF_Mbps(config->speed)) ||
+		    (tuninfo.mtu != config->mtu)) {
+			tuninfo.baudrate = IF_Mbps(config->speed);
+			tuninfo.mtu = config->mtu;
+			if (ioctl(netdev->tun_fd, TUNSIFINFO, &tuninfo, sizeof(tuninfo)) < 0)
+				die_perror("TUNSIFINFO");
+		}
 	}
 #else
 	if (config->speed != TUN_DRIVER_SPEED_CUR) {
@@ -349,7 +398,12 @@ static void bring_up_device(struct local_netdev *netdev)
 static void route_traffic_to_device(struct config *config,
 				    struct local_netdev *netdev)
 {
+	int result;
 	char *route_command = NULL;
+#if defined(__FreeBSD__)
+	char *arp_command = NULL;
+#endif
+
 #if defined(linux)
 	asprintf(&route_command,
 		 "ip route del %s > /dev/null 2>&1 ; "
@@ -377,12 +431,31 @@ static void route_traffic_to_device(struct config *config,
 		assert(!"bad wire protocol");
 	}
 #endif /* defined(linux) */
-	int result = system(route_command);
+	result = system(route_command);
 	if ((result == -1) || (WEXITSTATUS(result) != 0)) {
 		die("error executing route command '%s'\n",
 		    route_command);
 	}
 	free(route_command);
+#if defined(__FreeBSD__)
+	if (netdev->is_tap_dev) {
+		asprintf(&arp_command,
+		         "arp -s %s %02x:%02x:%02x:%02x:%02x:%02x",
+		         config->live_gateway_ip_string,
+		         netdev->remote_ether_addr.ether_addr_octet[0],
+		         netdev->remote_ether_addr.ether_addr_octet[1],
+		         netdev->remote_ether_addr.ether_addr_octet[2],
+		         netdev->remote_ether_addr.ether_addr_octet[3],
+		         netdev->remote_ether_addr.ether_addr_octet[4],
+		         netdev->remote_ether_addr.ether_addr_octet[5]);
+		result = system(arp_command);
+		if ((result == -1) || (WEXITSTATUS(result) != 0)) {
+			die("error executing arp command '%s'\n",
+			    arp_command);
+		}
+		free(arp_command);
+	}
+#endif
 }
 
 struct netdev *local_netdev_new(struct config *config)
@@ -410,9 +483,10 @@ struct netdev *local_netdev_new(struct config *config)
 	netdev->psock = packet_socket_new(netdev->name);
 #if !defined(linux)
 	/* Make sure we only see packets from the machine under test. */
-	packet_socket_set_filter(netdev->psock,
-				 NULL,
-				 &config->live_local_ip);  /* client IP */
+	if (!netdev->is_tap_dev) {
+		packet_socket_set_filter(netdev->psock, NULL,
+		                         &config->live_local_ip);
+	}
 #endif /* !defined(linux) */
 
 	return (struct netdev *)netdev;
@@ -460,14 +534,28 @@ static void local_netdev_free(struct netdev *a_netdev)
 static void bsd_tun_write(struct local_netdev *netdev,
 			  struct packet *packet)
 {
-	int address_family = htonl(packet_address_family(packet));
-	struct iovec vector[2] = {
-		{ &address_family, sizeof(address_family) },
-		{ packet_start(packet), packet->ip_bytes }
-	};
+	DEBUGP("Writing IP packet of size %u\n", packet->ip_bytes);
 
-	if (writev(netdev->tun_fd, vector, ARRAY_SIZE(vector)) < 0)
-		die_perror("BSD tun write()");
+	if (netdev->is_tap_dev) {
+		struct ether_header ether;
+		struct iovec vector[2] = {
+			{ &ether, sizeof(struct ether_header) },
+			{ packet_start(packet), packet->ip_bytes }
+		};
+		ether_copy(&ether.ether_dhost, &netdev->local_ether_addr);
+		ether_copy(&ether.ether_shost, &netdev->remote_ether_addr);
+		ether.ether_type = htons(ether_type_for_family(packet_address_family(packet)));
+		if (writev(netdev->tun_fd, vector, ARRAY_SIZE(vector)) < 0)
+			die_perror("BSD tap write()");
+	} else {
+		int address_family = htonl(packet_address_family(packet));
+		struct iovec vector[2] = {
+			{ &address_family, sizeof(address_family) },
+			{ packet_start(packet), packet->ip_bytes }
+		};
+		if (writev(netdev->tun_fd, vector, ARRAY_SIZE(vector)) < 0)
+			die_perror("BSD tun write()");
+	}
 }
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
 
@@ -513,6 +601,7 @@ static int local_netdev_send(struct netdev *a_netdev,
  * need the packet contents, but on Linux we need to read at least 1
  * byte of packet data to consume the packet.
  */
+# if 0
 static void local_netdev_read_queue(struct local_netdev *netdev,
 				    int num_packets)
 {
@@ -531,20 +620,54 @@ static void local_netdev_read_queue(struct local_netdev *netdev,
 		}
 	}
 }
+#endif
 
 static int local_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 				struct packet **packet, char **error)
 {
 	struct local_netdev *netdev = to_local_netdev(a_netdev);
-	int status = STATUS_ERR;
-	int num_packets = 0;
+	struct ether_header ether;
+	struct iovec iov[2];
+	int result = STATUS_ERR;
+	int in_bytes;
+	int family;
+	u16 ether_type;
 
 	DEBUGP("local_netdev_receive\n");
 
-	status = netdev_receive_loop(netdev->psock, DIRECTION_OUTBOUND,
-				     udp_encaps,packet, &num_packets, error);
-	local_netdev_read_queue(netdev, num_packets);
-	return status;
+	assert(*packet == NULL);
+	if (netdev->is_tap_dev) {
+		iov[0].iov_base = &ether;
+		iov[0].iov_len = sizeof(struct ether_header);
+	} else {
+		iov[0].iov_base = &family;
+		iov[0].iov_len = sizeof(int);
+	}
+	while (1) {
+		*packet = packet_new(PACKET_READ_BYTES);
+		iov[1].iov_base = (*packet)->buffer;
+		iov[1].iov_len = (*packet)->buffer_bytes;
+		in_bytes = readv(netdev->tun_fd, iov, 2);
+		(*packet)->time_usecs = now_usecs();
+		if (netdev->is_tap_dev) {
+			ether_type = ntohs(ether.ether_type);
+		} else {
+			ether_type = ether_type_for_family(ntohl(family));
+		}
+		result = parse_packet(*packet, in_bytes, ether_type, udp_encaps, error);
+
+		if (result == PACKET_OK)
+			return STATUS_OK;
+
+		packet_free(*packet);
+		*packet = NULL;
+
+		if (result == PACKET_BAD)
+			return STATUS_ERR;
+
+		DEBUGP("parse_result:%d; error parsing packet: %s\n",
+		       result, *error);
+	}
 }
 
 int netdev_receive_loop(struct packet_socket *psock,
