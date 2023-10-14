@@ -31,6 +31,7 @@
 
 #include "logging.h"
 #include "net_utils.h"
+#include "system.h"
 
 struct wire_client_netdev {
 	struct netdev netdev;		/* "inherit" from netdev */
@@ -99,7 +100,7 @@ static void route_traffic_to_wire_server(struct config *config,
 	 * since they can happen if there is no previously existing
 	 * route.
 	 */
-	system(route_command);
+	verbose_system(route_command);
 
 	free(route_command);
 }
