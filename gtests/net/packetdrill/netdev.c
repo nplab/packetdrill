@@ -483,10 +483,8 @@ struct netdev *local_netdev_new(struct config *config)
 	netdev->psock = packet_socket_new(netdev->name);
 #if !defined(linux)
 	/* Make sure we only see packets from the machine under test. */
-	if (!netdev->is_tap_dev) {
-		packet_socket_set_filter(netdev->psock, NULL,
-		                         &config->live_local_ip);
-	}
+	packet_socket_set_filter(netdev->psock, NULL,
+				 &config->live_local_ip);
 #endif /* !defined(linux) */
 
 	return (struct netdev *)netdev;
@@ -601,7 +599,6 @@ static int local_netdev_send(struct netdev *a_netdev,
  * need the packet contents, but on Linux we need to read at least 1
  * byte of packet data to consume the packet.
  */
-# if 0
 static void local_netdev_read_queue(struct local_netdev *netdev,
 				    int num_packets)
 {
@@ -620,54 +617,20 @@ static void local_netdev_read_queue(struct local_netdev *netdev,
 		}
 	}
 }
-#endif
 
 static int local_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 				struct packet **packet, char **error)
 {
 	struct local_netdev *netdev = to_local_netdev(a_netdev);
-	struct ether_header ether;
-	struct iovec iov[2];
-	int result = STATUS_ERR;
-	int in_bytes;
-	int family;
-	u16 ether_type;
+	int status = STATUS_ERR;
+	int num_packets = 0;
 
 	DEBUGP("local_netdev_receive\n");
 
-	assert(*packet == NULL);
-	if (netdev->is_tap_dev) {
-		iov[0].iov_base = &ether;
-		iov[0].iov_len = sizeof(struct ether_header);
-	} else {
-		iov[0].iov_base = &family;
-		iov[0].iov_len = sizeof(int);
-	}
-	while (1) {
-		*packet = packet_new(PACKET_READ_BYTES);
-		iov[1].iov_base = (*packet)->buffer;
-		iov[1].iov_len = (*packet)->buffer_bytes;
-		in_bytes = readv(netdev->tun_fd, iov, 2);
-		(*packet)->time_usecs = now_usecs();
-		if (netdev->is_tap_dev) {
-			ether_type = ntohs(ether.ether_type);
-		} else {
-			ether_type = ether_type_for_family(ntohl(family));
-		}
-		result = parse_packet(*packet, in_bytes, ether_type, udp_encaps, error);
-
-		if (result == PACKET_OK)
-			return STATUS_OK;
-
-		packet_free(*packet);
-		*packet = NULL;
-
-		if (result == PACKET_BAD)
-			return STATUS_ERR;
-
-		DEBUGP("parse_result:%d; error parsing packet: %s\n",
-		       result, *error);
-	}
+	status = netdev_receive_loop(netdev->psock, DIRECTION_OUTBOUND,
+				     udp_encaps,packet, &num_packets, error);
+	local_netdev_read_queue(netdev, num_packets);
+	return status;
 }
 
 int netdev_receive_loop(struct packet_socket *psock,
