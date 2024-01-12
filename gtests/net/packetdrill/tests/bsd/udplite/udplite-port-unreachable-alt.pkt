@@ -3,9 +3,9 @@
 +0.000 bind(3, ..., ...) = 0
 +0.000 connect(3, ..., ...) = 0
 // Trigger the ICMP message.
-+0.050 write(3, ..., 1000) = 1000 
++0.050 write(3, ..., 1000) = 1000
 +0.000 > udplite(1000, 0)
-+0.000 < [udplite(1000, 0)] icmp unreachable port_unreachable
++0.000 < icmp unreachable port_unreachable [udplite(1000, 0)]
 // Check if applications get notified.
 +0.050 getsockopt(3, SOL_SOCKET, SO_ERROR, [ECONNREFUSED], [4]) = 0
 +0.050 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
