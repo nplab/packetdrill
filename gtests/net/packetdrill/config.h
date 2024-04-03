@@ -118,7 +118,7 @@ struct config {
 
 	int live_prefix_len;		/* IPv4/IPv6 interface prefix len */
 
-	int tolerance_usecs;		/* tolerance for time divergence */
+	long tolerance_usecs;		/* tolerance for time divergence */
 	int tcp_ts_tick_usecs;		/* microseconds per TS val tick */
 
 	u32 speed;			/* speed reported by tun driver;

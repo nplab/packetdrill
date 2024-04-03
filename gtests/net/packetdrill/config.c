@@ -557,7 +557,7 @@ static void process_option(int opt, char *optarg, struct config *config,
 		break;
 	case OPT_TOLERANCE_USECS:
 		assert(optarg != NULL);
-		config->tolerance_usecs = atoi(optarg);
+		config->tolerance_usecs = atol(optarg);
 		if (config->tolerance_usecs <= 0)
 			die("%s: bad --tolerance_usecs: %s\n", where, optarg);
 		break;

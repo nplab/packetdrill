@@ -219,7 +219,7 @@ int verify_time(struct state *state, enum event_time_t time_type,
 	s64 expected_usecs_end = script_usecs_end -
 		state->script_start_time_usecs;
 	s64 actual_usecs = live_usecs - state->live_start_time_usecs;
-	int tolerance_usecs = state->config->tolerance_usecs;
+	long tolerance_usecs = state->config->tolerance_usecs;
 
 	DEBUGP("expected: %.3f actual: %.3f  (secs)\n",
 	       usecs_to_secs(script_usecs), usecs_to_secs(actual_usecs));
