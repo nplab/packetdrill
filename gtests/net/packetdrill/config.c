@@ -245,6 +245,11 @@ void set_default_config(struct config *config)
 	config->live_bind_port		= 8080;
 	config->live_connect_port	= 8080;
 
+#if defined(__FreeBSD__)
+	/* FreeBSD has a default precision of 5%. */
+
+	config->tolerance_percent	= 5;
+#else
 	/* No more slack on modern (v4.8) linux kernels for jiffie based timers
 	 * According to commit 500462a9de657f86edaa102f8ab6bff7f7e43fc2
 	 * ("timers: Switch to a non-cascading wheel"),
@@ -252,6 +257,7 @@ void set_default_config(struct config *config)
 	 */
 
 	config->tolerance_percent	= 12.5;
+#endif
 
 	config->tolerance_usecs		= 4000;
 	config->speed			= TUN_DRIVER_SPEED_CUR;
