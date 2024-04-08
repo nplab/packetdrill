@@ -213,7 +213,8 @@ s64 now_usecs(void)
  */
 int verify_time(struct state *state, enum event_time_t time_type,
 		s64 script_usecs, s64 script_usecs_end,
-		s64 live_usecs, const char *description, char **error)
+		s64 live_usecs, s64 last_event_usecs,
+		const char *description, char **error)
 {
 	s64 expected_usecs = script_usecs - state->script_start_time_usecs;
 	s64 expected_usecs_end = script_usecs_end -
@@ -226,6 +227,15 @@ int verify_time(struct state *state, enum event_time_t time_type,
 
 	if (time_type == ANY_TIME)
 		return STATUS_OK;
+
+	if (last_event_usecs != NO_TIME_RANGE) {
+		s64 delta = script_usecs - last_event_usecs;
+		long dynamic_tolerance;
+
+		dynamic_tolerance = (state->config->tolerance_percent / 100.0) * delta;
+		if (dynamic_tolerance > tolerance_usecs)
+			tolerance_usecs = dynamic_tolerance;
+	}
 
 	if (time_type == ABSOLUTE_RANGE_TIME ||
 	    time_type == RELATIVE_RANGE_TIME) {
@@ -317,7 +327,9 @@ void check_event_time(struct state *state, s64 live_usecs)
 	if (verify_time(state,
 			state->event->time_type,
 			state->event->time_usecs,
-			state->event->time_usecs_end, live_usecs,
+			state->event->time_usecs_end,
+			live_usecs,
+			last_event_time_usecs(state),
 			description, &error)) {
 		die("%s:%d: %s\n",
 		    state->config->script_path,

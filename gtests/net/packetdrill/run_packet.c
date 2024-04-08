@@ -2996,6 +2996,8 @@ static int verify_outbound_tcp_option(
 	u32 script_ts_val, actual_ts_val;
 	int ts_val_tick_usecs;
 	long tolerance_usecs;
+	double dynamic_tolerance;
+	s64 delta;
 
 	tolerance_usecs = config->tolerance_usecs;
 	/* Note that for TCP TS, we do not want to compute the tolerance based
@@ -3003,6 +3005,12 @@ static int verify_outbound_tcp_option(
 	 * last event might have happened few ms in the past.
 	 * What matters here is the cumulative time (from the beginning of the test)
 	 */
+	delta = state->event->time_usecs - state->script_start_time_usecs;
+
+
+	dynamic_tolerance = (config->tolerance_percent / 100.0) * delta;
+	if (dynamic_tolerance > tolerance_usecs)
+		tolerance_usecs = dynamic_tolerance;
 
 	switch (actual_option->kind) {
 	case TCPOPT_EOL:
@@ -3194,6 +3202,7 @@ static int verify_outbound_live_packet(
 	DEBUGP("packet time_usecs: %lld\n", live_packet->time_usecs);
 	if (verify_time(state, time_type, script_usecs,
 				script_usecs_end, live_packet->time_usecs,
+				last_event_time_usecs(state),
 				"outbound packet", error)) {
 		non_fatal = true;
 		goto out;
