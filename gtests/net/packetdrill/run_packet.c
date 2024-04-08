@@ -2984,64 +2984,103 @@ static int verify_outbound_live_headers(
 	return STATUS_OK;
 }
 
-/* Return true iff the TCP options for the packets are bytewise identical. */
-static bool same_tcp_options(struct packet *packet_a,
-			     struct packet *packet_b)
-{
-	return ((packet_tcp_options_len(packet_a) ==
-		 packet_tcp_options_len(packet_b)) &&
-		(memcmp(packet_tcp_options(packet_a),
-			packet_tcp_options(packet_b),
-			packet_tcp_options_len(packet_a)) == 0));
-}
-
-/* Verify that the TCP option values matched expected values. */
-static int verify_outbound_live_tcp_options(
-	struct config *config,
+static int verify_outbound_tcp_option(
+	struct state *state,
 	struct packet *actual_packet,
-	struct packet *script_packet, char **error)
+	struct packet *script_packet,
+	struct tcp_option *actual_option,
+	struct tcp_option *script_option,
+	char **error)
 {
-	/* See if we should validate TCP options at all. */
-	if (script_packet->flags & FLAG_OPTIONS_NOCHECK)
-		return STATUS_OK;
+	struct config *config = state->config;
+	u32 script_ts_val, actual_ts_val;
+	int ts_val_tick_usecs;
+	long tolerance_usecs;
 
-	/* Simplest case: see if full options are bytewise identical. */
-	if (same_tcp_options(actual_packet, script_packet))
-		return STATUS_OK;
+	tolerance_usecs = config->tolerance_usecs;
+	/* Note that for TCP TS, we do not want to compute the tolerance based
+	 * on last event (as we do in verify_time())
+	 * last event might have happened few ms in the past.
+	 * What matters here is the cumulative time (from the beginning of the test)
+	 */
 
-	/* Otherwise, see if we just have a slight difference in TS val. */
-	if (script_packet->tcp_ts_val != NULL &&
-	    actual_packet->tcp_ts_val != NULL) {
-		u32 script_ts_val = packet_tcp_ts_val(script_packet);
-		u32 actual_ts_val = packet_tcp_ts_val(actual_packet);
+	switch (actual_option->kind) {
+	case TCPOPT_EOL:
+	case TCPOPT_NOP:
+		break;
+	case TCPOPT_TIMESTAMP:
+		script_ts_val = packet_tcp_ts_val(script_packet);
+		actual_ts_val = packet_tcp_ts_val(actual_packet);
+
+		ts_val_tick_usecs = config->tcp_ts_tick_usecs;
 
 		/* See if the deviation from the script TS val is
 		 * within our configured tolerance.
 		 */
-		if (config->tcp_ts_tick_usecs &&
+		if (ts_val_tick_usecs &&
 		    ((abs((s32)(actual_ts_val - script_ts_val)) *
-		      config->tcp_ts_tick_usecs) >
-		     config->tolerance_usecs)) {
-			asprintf(error, "bad outbound TCP timestamp value");
+		      ts_val_tick_usecs) >
+		     tolerance_usecs)) {
+			asprintf(error, "bad outbound TCP timestamp value, tolerance %ld", tolerance_usecs);
+			return STATUS_ERR;
+		}
+		break;
+
+	default:
+		if (script_option->length != actual_option->length) {
+			asprintf(error,
+				 "bad lengths for outbound TCP option %d",
+				 script_option->kind);
+			return STATUS_ERR;
+		}
+		if (script_option->length > 2 &&
+		    memcmp(&actual_option->generic.data, &script_option->generic.data,
+			   actual_option->length - 2) != 0) {
+			asprintf(error, "bad value outbound TCP option %d",
+				 script_option->kind);
+			return STATUS_ERR;
+		}
+	}
+
+	return STATUS_OK;
+}
+
+/* Verify that the TCP option values matched expected values. */
+static int verify_outbound_live_tcp_options(
+	struct state *state,
+	struct packet *actual_packet,
+	struct packet *script_packet, char **error)
+{
+	struct tcp_options_iterator a_iter, s_iter;
+
+	struct tcp_option *a_opt, *s_opt;
+
+	/* See if we should validate TCP options at all. */
+	if (script_packet->flags & FLAG_OPTIONS_NOCHECK)
+		return STATUS_OK;
+
+	a_opt = tcp_options_begin(actual_packet, &a_iter),
+	s_opt = tcp_options_begin(script_packet, &s_iter);
+
+	/* TCP options are expected to be a deterministic order. */
+	while (a_opt != NULL || s_opt != NULL) {
+		if (a_opt == NULL || s_opt == NULL ||
+		    a_opt->kind != s_opt->kind) {
+			asprintf(error, "bad outbound TCP options");
 			return STATUS_ERR;
 		}
 
-		/* Now see if the rest of the TCP options outside the
-		 * TS val match: temporarily re-write the actual TS
-		 * val to the script TS val and then see if the full
-		 * options are now bytewise identical.
-		 */
-		packet_set_tcp_ts_val(actual_packet, script_ts_val);
-		bool is_same = same_tcp_options(actual_packet, script_packet);
-		packet_set_tcp_ts_val(actual_packet, actual_ts_val);
-		if (is_same)
-			return STATUS_OK;
+		if (verify_outbound_tcp_option(state, actual_packet,
+					       script_packet, a_opt, s_opt,
+					       error) != STATUS_OK) {
+			return STATUS_ERR;
+		}
+
+		a_opt = tcp_options_next(&a_iter, error);
+		s_opt = tcp_options_next(&s_iter, error);
 	}
-
-	asprintf(error, "bad outbound TCP options");
-	return STATUS_ERR;	/* The TCP options did not match */
+	return STATUS_OK;
 }
-
 
 /* Verify TCP/UDP payload matches expected value. */
 static int verify_outbound_live_payload(
@@ -3138,7 +3177,7 @@ static int verify_outbound_live_packet(
 	if (script_packet->tcp) {
 		/* Verify TCP options matched expected values. */
 		if (verify_outbound_live_tcp_options(
-			    state->config, actual_packet, script_packet,
+			    state, actual_packet, script_packet,
 			    error)) {
 			non_fatal = true;
 			goto out;
