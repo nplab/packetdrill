@@ -25,6 +25,7 @@
 #include "run_command.h"
 
 #include <errno.h>
+#include <libgen.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +38,11 @@ void run_command_event(
 	struct state *state, struct event *event, struct command_spec *command)
 {
 	char *script_path = NULL;
+	char cwd[300];
+	getcwd((char *)&cwd, sizeof(cwd));
+	script_path = strdup(state->config->script_path);
+	chdir(dirname(script_path));
+
 	DEBUGP("%d: command: `%s`\n", event->line_number,
 	       command->command_line);
 
@@ -46,10 +52,12 @@ void run_command_event(
 	char *error = NULL;
 	if (safe_system(command->command_line, &error))
 		goto error_out;
+	free(script_path);
+	chdir(cwd);
 	return;
 
 error_out:
-	script_path = strdup(state->config->script_path);
+	chdir(cwd);
 	state_free(state, 1);
 	die("%s:%d: error executing `%s` command: %s\n",
 	    script_path, event->line_number,
