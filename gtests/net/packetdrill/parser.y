@@ -916,7 +916,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %type <parameter_list_item> sctp_supported_address_types_parameter_spec
 %type <parameter_list_item> sctp_ecn_capable_parameter_spec
 %type <parameter_list_item> sctp_zero_checksum_acceptable_parameter_spec
-%type <parameter_list_item> sctp_fornward_tsn_supported_spec
+%type <parameter_list_item> sctp_forward_tsn_supported_spec
 %type <parameter_list_item> sctp_supported_extensions_parameter_spec
 %type <parameter_list_item> sctp_adaptation_indication_parameter_spec
 %type <parameter_list_item> sctp_pad_parameter_spec
@@ -2195,7 +2195,7 @@ sctp_parameter_spec
 | sctp_supported_address_types_parameter_spec  { $$ = $1; }
 | sctp_ecn_capable_parameter_spec              { $$ = $1; }
 | sctp_zero_checksum_acceptable_parameter_spec { $$ = $1; }
-| sctp_fornward_tsn_supported_spec             { $$ = $1; }
+| sctp_forward_tsn_supported_spec              { $$ = $1; }
 | sctp_supported_extensions_parameter_spec     { $$ = $1; }
 | sctp_adaptation_indication_parameter_spec    { $$ = $1; }
 | sctp_pad_parameter_spec                      { $$ = $1; }
@@ -2380,7 +2380,7 @@ sctp_zero_checksum_acceptable_parameter_spec
 	$$ = sctp_zero_checksum_acceptable_parameter_new($5);
 }
 
-sctp_fornward_tsn_supported_spec
+sctp_forward_tsn_supported_spec
 : FORWARD_TSN_SUPPORTED '[' ']' {
 	$$ = sctp_forward_tsn_supported_parameter_new();
 }
