@@ -438,6 +438,31 @@ static int sctp_zero_checksum_acceptable_parameter_to_string(
 	return STATUS_OK;
 }
 
+static int sctp_random_parameter_to_string(
+	FILE *s,
+	struct sctp_random_parameter *parameter,
+	char **error)
+{
+	u16 length, nr_bytes, i;
+
+	length = ntohs(parameter->length);
+	if (length < sizeof(struct sctp_random_parameter)) {
+		asprintf(error,
+			 "RANDOM parameter illegal (length=%u)",
+			 length);
+		return STATUS_ERR;
+	}
+	nr_bytes = length - sizeof(struct sctp_random_parameter);
+	fputs("RANDOM[number=[", s);
+	for (i = 0; i < nr_bytes; i++) {
+		if (i > 0)
+			fputs(", ", s);
+		fprintf(s, "0x%02x", parameter->random[i]);
+	}
+	fputs("]]", s);
+	return STATUS_OK;
+}
+
 static int sctp_chunks_parameter_to_string(
 	FILE *s,
 	struct sctp_chunks_parameter *parameter,
@@ -829,6 +854,11 @@ static int sctp_parameter_to_string(FILE *s,
 	case SCTP_ZERO_CHECKSUM_ACCEPTABLE_PARAMETER_TYPE:
 		result = sctp_zero_checksum_acceptable_parameter_to_string(s,
 			(struct sctp_zero_checksum_acceptable_parameter *)parameter, error);
+		break;
+	case SCTP_RANDOM_PARAMETER_TYPE:
+		result = sctp_random_parameter_to_string(s,
+			(struct sctp_random_parameter *)parameter,
+			error);
 		break;
 	case SCTP_CHUNKS_PARAMETER_TYPE:
 		result = sctp_chunks_parameter_to_string(s,

@@ -448,6 +448,12 @@ struct sctp_zero_checksum_acceptable_parameter {
 	__be32 edmid;
 } __packed;
 
+struct sctp_random_parameter {
+	__be16 type;
+	__be16 length;
+	__u8 random[];
+} __packed;
+
 struct sctp_chunks_parameter {
 	__be16 type;
 	__be16 length;
