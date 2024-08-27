@@ -45,6 +45,7 @@
 #include "types.h"
 
 #include <netinet/in.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "script.h"
@@ -78,6 +79,12 @@ static char *quoted(const char *s)
 	return strndup(s + delim_len, strlen(s) - 2*delim_len);
 }
 
+/* Convert a hex string prefixed by "0x" to an integer value. */
+static s64 hextol(const char *s)
+{
+	return strtol(s + 2, NULL, 16);
+}
+
 /* Check to see if the word in yytext is a user-defined symbol, and if so then
  * return its value. Otherwise return the word itself.
  */
@@ -95,6 +102,12 @@ int word(void)
 		} else if (value[0] == '`') {
 			yylval.string = quoted(value);		/* SYM=`val` */
 			return BACK_QUOTED;
+		} else if (value[0] =='0' && value[1] == 'x') {
+			yylval.integer = hextol(value);
+			return HEX_INTEGER;
+		} else if (isdigit(value[0])) {
+			yylval.integer = atoll(value);
+			return INTEGER;
 		} else {
 			yylval.string = strdup(value);		/* SYM=val */
 			return WORD;
@@ -125,12 +138,6 @@ static char *code(const char *s)
 
 	const int code_len = end - start + 1;
 	return strndup(start, code_len);
-}
-
-/* Convert a hex string prefixed by "0x" to an integer value. */
-static s64 hextol(const char *s)
-{
-	return strtol(yytext + 2, NULL, 16);
 }
 
 %}

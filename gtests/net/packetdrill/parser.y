@@ -1021,6 +1021,14 @@ option_value
 	asprintf(&($$), "%s=%lld", lhs, rhs);
 	free(lhs);
 }
+| WORD '=' HEX_INTEGER {
+	/* For consistency, allow syntax like: --define=PROTO=0xff */
+	char *lhs = $1;
+	s64 rhs = $3;
+
+	asprintf(&($$), "%s=%lld", lhs, rhs);
+	free(lhs);
+}
 | WORD '=' WORD {
 	/* For consistency, allow syntax like: --define=PROTO=IPPROTO_TCP */
 	char *lhs = $1, *rhs = $3;
