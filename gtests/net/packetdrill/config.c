@@ -143,7 +143,7 @@ void show_usage(void)
 		"\t[--wire_client_dev=<eth_dev_name>]\n"
 		"\t[--wire_server_dev=<eth_dev_name>]\n"
 		"\t[--dry_run]\n"
-		"\t[--define symbol1=val1 --define symbol2=val2 ...]\n"
+		"\t[--define=symbol=val|-D symbol=val]\n"
 		"\t[--verbose|-v]\n"
 		"\t[--debug] * requires compilation with DEBUG *\n"
 		"\t[--tcp_md5_secret=secret]\n"
