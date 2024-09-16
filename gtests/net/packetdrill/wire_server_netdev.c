@@ -35,6 +35,7 @@
 #include "packet.h"
 #include "packet_socket.h"
 #include "packet_parser.h"
+#include "system.h"
 
 struct wire_server_netdev {
 	struct netdev netdev;		/* "inherit" from netdev */
@@ -76,7 +77,7 @@ void wire_server_netdev_init(const char *netdev_name)
 		 netdev_name);
 	/* For now, intentionally ignoring errors. TODO: clean up.
 	 */
-	system(command);
+	verbose_system(command);
 	free(command);
 
 	/* Block outgoing IPv6 "destination unreachable" messages, to
@@ -89,7 +90,7 @@ void wire_server_netdev_init(const char *netdev_name)
 		 "ip6tables -F OUTPUT; "
 		 "ip6tables -A OUTPUT -p icmpv6 --icmpv6-type 1 -j DROP");
 	/* For now, intentionally ignoring. TODO: clean up. */
-	system(command);
+	verbose_system(command);
 	free(command);
 #endif
 }
