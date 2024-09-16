@@ -38,14 +38,14 @@
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=200, sack_freq=2}, 13) = -1 EINVAL (Invalid argument)
 +0 setsockopt(3, IPPROTO_SCTP, SCTP_DELAYED_SACK, {sack_delay=200, sack_freq=2}, 11) = -1 EINVAL (Invalid argument)
 
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 8) = 0
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=0}, 8) = 0
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1024}, 8) = 0
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 9) = -1 EINVAL (Invalid argument)
-+0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_value=1}, 7) = -1 EINVAL (Invalid argument)
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_id=0, assoc_value=1}, 8) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_id=0, assoc_value=0}, 8) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_id=0, assoc_value=1024}, 8) = 0
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_id=0, assoc_value=1}, 9) = -1 EINVAL (Invalid argument)
++0 setsockopt(3, IPPROTO_SCTP, SCTP_MAX_BURST, {assoc_id=0, assoc_value=1}, 7) = -1 EINVAL (Invalid argument)
 
-+0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address=..., spp_hbinterval=30000, spp_pathmaxrxt=100, spp_pathmtu=1468, spp_flags=0, spp_ipv6_flowlabel=0, spp_dscp=0}, [152]) = 0
+//+0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address=..., spp_hbinterval=30000, spp_pathmaxrxt=100, spp_pathmtu=1468, spp_flags=0, spp_ipv6_flowlabel=0, spp_dscp=0}, [152]) = 0
 +0 getsockopt(3, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, {spp_address={sa_family=AF_INET, sin_port=htons(0), sin_addr=inet_addr("0.0.0.0")},
-spp_hbinterval=30000, spp_pathmaxrxt=6, spp_pathmtu=..., spp_flags=..., spp_ipv6_flowlabel=..., spp_dscp=...}, [152]) = 0
+spp_hbinterval=30000, spp_pathmaxrxt=5, spp_pathmtu=..., spp_flags=..., spp_ipv6_flowlabel=..., spp_dscp=...}, [152]) = 0
 
 +0 close(3) = 0
