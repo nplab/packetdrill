@@ -2820,10 +2820,8 @@ static int syscall_close(struct state *state, struct syscall_spec *syscall,
 	result = close(live_fd);
 
 	status = end_syscall(state, syscall, CHECK_EXACT, result, error);
-	if (result == 0) {
-		if (run_syscall_close(state, script_fd, live_fd, error))
-			status = STATUS_ERR;
-	}
+	if (run_syscall_close(state, script_fd, live_fd, error))
+		status = STATUS_ERR;
 
 	return status;
 }
