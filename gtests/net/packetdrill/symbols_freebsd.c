@@ -502,8 +502,12 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(TCP_FASTOPEN)
 	{ TCP_FASTOPEN,                     "TCP_FASTOPEN"                    },
 #endif
+#if defined(TCP_PCAP_OUT)
 	{ TCP_PCAP_OUT,                     "TCP_PCAP_OUT"                    },
+#endif
+#if defined(TCP_PCAP_IN)
 	{ TCP_PCAP_IN,                      "TCP_PCAP_IN"                     },
+#endif
 #if defined(TCP_FUNCTION_BLK)
 	{ TCP_FUNCTION_BLK,                 "TCP_FUNCTION_BLK"                },
 #endif
