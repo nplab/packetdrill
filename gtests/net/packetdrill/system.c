@@ -31,21 +31,41 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-int safe_system(const char *command, char **error)
+#include "logging.h"
+
+static void checked_system(const char *command, char **error)
 {
-	int status = system(command);
+	int status;
+    status = system(command);
 	if (status == -1) {
 		asprintf(error, "%s", strerror(errno));
-		return STATUS_ERR;
-	}
-	if (WIFSIGNALED(status) &&
-	    (WTERMSIG(status) == SIGINT || WTERMSIG(status) == SIGQUIT)) {
+	} else if (WIFSIGNALED(status) &&
+			   (WTERMSIG(status) == SIGINT || WTERMSIG(status) == SIGQUIT)) {
 		asprintf(error, "got signal %d (%s)",
-			 WTERMSIG(status), strsignal(WTERMSIG(status)));
-		return STATUS_ERR;
-	}
-	if (WEXITSTATUS(status) != 0) {
+				 WTERMSIG(status), strsignal(WTERMSIG(status)));
+	} else if (WEXITSTATUS(status) != 0) {
 		asprintf(error, "non-zero status %d", WEXITSTATUS(status));
+	} else {
+		*error = NULL;
+	}
+}
+
+int safe_system(const char *command, char **error)
+{
+	checked_system(command, error);
+	if (*error != NULL)
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+
+int verbose_system(const char *command)
+{
+	char *error = NULL;
+
+	DEBUGP("running: '%s'\n", command);
+	checked_system(command, &error);
+	if (*error != NULL) {
+		DEBUGP("error: %s executing command '%s'\n", error, command);
 		return STATUS_ERR;
 	}
 	return STATUS_OK;
