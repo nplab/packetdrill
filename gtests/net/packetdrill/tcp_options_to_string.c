@@ -207,11 +207,20 @@ int tcp_options_to_string(struct packet *packet,
 	struct tcp_option *option;
 	size_t size = 0;
 	FILE *s = open_memstream(ascii_string, &size);  /* output string */
-	int i, num_blocks, result;
+	int i, num_blocks, options_length, result;
 	unsigned int index = 0;	/* number of options seen so far */
 	u16 exid;
+	u8 *options;
 	bool written;
 
+	if (packet->flags & FLAG_TCP_OPTIONS_RAW) {
+		options = packet_tcp_options(packet);
+		options_length = packet_tcp_options_len(packet);
+		for (i = 0; i < options_length; ++i)
+			fprintf(s, "%02x", options[i]);
+		fclose(s);
+		return STATUS_OK;
+	}
 	for (option = tcp_options_begin(packet, &iter);
 	     option != NULL; option = tcp_options_next(&iter, error)) {
 		written = false;

@@ -399,6 +399,41 @@ static int parse_hex_string(const char *hex, u8 *buf, size_t buf_len,
 	return STATUS_OK;
 }
 
+static struct tcp_options *tcp_options_raw(const char *options_string,
+					   char **error)
+{
+	struct tcp_options *options;
+	size_t options_string_len;
+	size_t options_bytes;
+	size_t parsed_bytes;
+
+	options_string_len = strlen(options_string);
+	if ((options_string_len & 1) != 0) {
+		asprintf(error,
+		         "TCP options have an odd number of digits");
+		return NULL;
+	}
+	options_bytes = options_string_len / 2;  /* 2 hex chars per byte */
+	if (options_bytes > MAX_TCP_OPTION_BYTES) {
+		asprintf(error, "TCP options of %zu bytes "
+		         "exceeds maximum length of %d bytes",
+		         options_bytes, MAX_TCP_OPTION_BYTES);
+		return NULL;
+	}
+	options = tcp_options_new();
+	if (parse_hex_string(options_string, options->data,
+			     MAX_TCP_OPTION_BYTES, &parsed_bytes)) {
+		free(options);
+		asprintf(error,
+			 "TCP options are not a valid hex string");
+		return NULL;
+	}
+	options->length = options_bytes;
+	options->flags |= TCP_OPTIONS_FLAGS_RAW;
+	assert(parsed_bytes == options_bytes);
+	return options;
+}
+
 static struct tcp_option *new_md5_option(const char *digest_string,
 					 char **error)
 {
@@ -3300,6 +3335,17 @@ opt_urg_ptr
 
 opt_tcp_options
 :                             { $$ = tcp_options_new(); }
+| '<' hex_blob '>'            {
+	char *error = NULL;
+
+	$$ = tcp_options_raw($2, &error);
+	free($2);
+	if ($$ == NULL) {
+		assert(error != NULL);
+		semantic_error(error);
+		free(error);
+	}
+}
 | '<' tcp_option_list '>'     { $$ = $2; }
 | '<' ELLIPSIS '>'            { $$ = NULL; /* FLAG_OPTIONS_NOCHECK */ }
 ;

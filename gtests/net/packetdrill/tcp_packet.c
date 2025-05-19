@@ -311,9 +311,13 @@ struct packet *new_tcp_packet(int address_family,
 	if (ignore_seq) {
 		packet->flags |= FLAG_IGNORE_SEQ;
 	}
-	if (tcp_options != NULL &&
-	    tcp_options->flags & TCP_OPTIONS_FLAGS_VALID_MD5) {
-		packet->flags |= FLAG_VALID_TCP_MD5;
+	if (tcp_options != NULL) {
+		if (tcp_options->flags & TCP_OPTIONS_FLAGS_VALID_MD5) {
+			packet->flags |= FLAG_VALID_TCP_MD5;
+		}
+		if (tcp_options->flags & TCP_OPTIONS_FLAGS_RAW) {
+			packet->flags |= FLAG_TCP_OPTIONS_RAW;
+		}
 	}
 
 	packet->ip_bytes = ip_bytes;

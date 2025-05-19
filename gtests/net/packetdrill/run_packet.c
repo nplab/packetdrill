@@ -628,6 +628,8 @@ static int find_tcp_options(struct packet *packet, char **error)
 
 	packet->tcp_ts_val = NULL;
 	packet->tcp_ts_ecr = NULL;
+	if (packet->flags & FLAG_TCP_OPTIONS_RAW)
+		return STATUS_OK;
 	for (option = tcp_options_begin(packet, &iter); option != NULL;
 	     option = tcp_options_next(&iter, error)) {
 		if (option->kind == TCPOPT_TIMESTAMP &&
@@ -659,6 +661,9 @@ static int offset_sack_blocks(struct packet *packet,
 {
 	struct tcp_options_iterator iter;
 	struct tcp_option *option = NULL;
+
+	if (packet->flags & FLAG_TCP_OPTIONS_RAW)
+		return STATUS_OK;
 	for (option = tcp_options_begin(packet, &iter); option != NULL;
 	     option = tcp_options_next(&iter, error)) {
 		if (option->kind == TCPOPT_SACK) {
@@ -3060,12 +3065,25 @@ static int verify_outbound_live_tcp_options(
 	struct packet *script_packet, char **error)
 {
 	struct tcp_options_iterator a_iter, s_iter;
-
 	struct tcp_option *a_opt, *s_opt;
+	struct tcp_options *a_opts, *s_opts;
 
 	/* See if we should validate TCP options at all. */
 	if (script_packet->flags & FLAG_OPTIONS_NOCHECK)
 		return STATUS_OK;
+	if (script_packet->flags & FLAG_TCP_OPTIONS_RAW) {
+		a_opts = (struct tcp_options *)packet_tcp_options(actual_packet);
+		s_opts = (struct tcp_options *)packet_tcp_options(script_packet);
+		if (a_opts->length != s_opts->length) {
+			asprintf(error, "bad outbound TCP options length");
+			return STATUS_ERR;
+		}
+		if (memcmp(&a_opts->data, &s_opts->data, a_opts->length) != 0) {
+			asprintf(error, "bad outbound TCP options");
+			return STATUS_ERR;
+		}
+		return STATUS_OK;
+	}
 
 	a_opt = tcp_options_begin(actual_packet, &a_iter),
 	s_opt = tcp_options_begin(script_packet, &s_iter);

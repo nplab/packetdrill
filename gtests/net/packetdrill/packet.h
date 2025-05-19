@@ -124,6 +124,7 @@ struct packet {
 #define FLAG_IGNORE_SEQ           0x00000400 /* set to ignore processing of sequence numbers */
 #define FLAG_PARSE_ACE            0x00000800 /* output parsed AccECN ACE field */
 #define FLAG_VALID_TCP_MD5        0x00001000 /* compute valid TCP MD5 */
+#define FLAG_TCP_OPTIONS_RAW      0x00002000 /* raw bytes were specified */
 
 	enum tos_chk_t tos_chk;	/* how to treat the TOS byte of a packet */
 

@@ -90,6 +90,7 @@ struct tcp_options {
 	u8 length;		/* The length, in bytes, of the data */
 	u32 flags;		/* meta information, not going on the wire */
 #define TCP_OPTIONS_FLAGS_VALID_MD5 0x00000001 /* Compute valid MD5 option */
+#define TCP_OPTIONS_FLAGS_RAW       0x00000002 /* raw bytes were specified */
 };
 
 /* Specification of a TCP SACK block (RFC 2018) */
