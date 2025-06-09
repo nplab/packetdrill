@@ -297,6 +297,7 @@ iov_base			return IOV_BASE;
 iov_len				return IOV_LEN;
 headers				return SF_HDTR_HEADERS;
 trailers			return SF_HDTR_TRAILERS;
+id				return ID;
 [.][.][.]			return ELLIPSIS;
 af_name				return AF_NAME;
 af_arg				return AF_ARG;
