@@ -29,17 +29,7 @@
 #include <unistd.h>
 
 #include "logging.h"
-
-static void verbose_system(const char *command)
-{
-	int result;
-
-	DEBUGP("running: '%s'\n", command);
-	result = system(command);
-	DEBUGP("result: %d\n", result);
-	if (result != 0)
-		DEBUGP("error executing command '%s'\n", command);
-}
+#include "system.h"
 
 /* Configure a local IPv4 address and netmask for the device */
 static void net_add_ipv4_address(const char *dev_name,
