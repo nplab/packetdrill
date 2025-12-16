@@ -167,7 +167,7 @@ struct tcp_option {
 		struct {
 			u8 data[MAX_TCP_OPTION_DATA_BYTES];
 		} generic;
-	};
+	} __packed;
 	u32 flags;  /* meta information, not going on the wire */
 } __packed;
 
