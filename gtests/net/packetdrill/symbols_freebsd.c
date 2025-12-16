@@ -933,7 +933,9 @@ struct int_symbol platform_symbols_table[] = {
 #ifdef SF_NOCACHE
 	{ SF_NOCACHE,                       "SF_NOCACHE"                      },
 #endif
+#ifdef SF_SYNC
 	{ SF_SYNC,                          "SF_SYNC"                         },
+#endif
 
 	/* /usr/include/sys/unistd.h */
 	{ SEEK_SET,                         "SEEK_SET"                        },
