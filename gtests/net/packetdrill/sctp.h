@@ -469,27 +469,27 @@ struct sctp_hmac_algo_parameter {
 	__be16 hmac_id[];
 } __packed;
 
-struct sctp_supported_extensions_parameter {
-	__be16 type;
-	__be16 length;
-	__u8 chunk_type[];
-} __packed;
-
 struct sctp_pad_parameter {
 	__be16 type;
 	__be16 length;
 	__be16 padding_data[];
 } __packed;
 
-struct sctp_adaptation_indication_parameter {
+struct sctp_supported_extensions_parameter {
 	__be16 type;
 	__be16 length;
-	__be32 adaptation_code_point;
+	__u8 chunk_type[];
 } __packed;
 
 struct sctp_forward_tsn_supported_parameter {
 	__be16 type;
 	__be16 length;
+} __packed;
+
+struct sctp_adaptation_indication_parameter {
+	__be16 type;
+	__be16 length;
+	__be32 adaptation_code_point;
 } __packed;
 
 #define SCTP_INVALID_STREAM_IDENTIFIER_CAUSE_CODE	0x0001
