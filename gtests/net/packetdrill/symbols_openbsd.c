@@ -66,7 +66,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ SO_RCVTIMEO,                      "SO_RCVTIMEO"                     },
 	{ SO_ERROR,                         "SO_ERROR"                        },
 	{ SO_TYPE,                          "SO_TYPE"                         },
+#ifdef SO_NETPROC
 	{ SO_NETPROC,                       "SO_NETPROC"                      },
+#endif
 	{ SO_RTABLE,                        "SO_RTABLE"                       },
 	{ SO_PEERCRED,                      "SO_PEERCRED"                     },
 	{ SO_SPLICE,                        "SO_SPLICE"                       },
