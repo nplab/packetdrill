@@ -685,6 +685,10 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 		u16 udp_dst_port;
 	} udp_encaps_info;
 	struct {
+		u16 code;
+		u32 pen;
+	} rst_diag_payload;
+	struct {
 		bool zero_checksum;
 		bool bad_crc32c;
 		s64 tag;
@@ -747,6 +751,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> AF_NAME AF_ARG
 %token <reserved> FUNCTION_SET_NAME PCBCNT
 %token <reserved> ENABLE PSK
+%token <reserved> TRR_FLAGS TRR_CODE TRR_PEN
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
@@ -875,6 +880,8 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %type <expression> accept_filter_arg af_name af_arg
 %type <expression> tcp_function_set function_set_name pcbcnt
 %type <expression> tcp_fastopen enable psk
+%type <expression> tcp_rst_reason trr_flags trr_code trr_pen
+%type <rst_diag_payload> opt_rst_diag_payload
 %type <udp_encaps_info> opt_udp_encaps_info
 %type <sctp_header_spec> sctp_header_spec
 %type <expression> sctp_assoc_id
@@ -2653,8 +2660,25 @@ sctp_protocol_violation_cause_spec
 	$$ = sctp_protocol_violation_cause_new(NULL);
 }
 
+opt_rst_diag_payload
+:	{
+	$$.code = 0;
+	$$.pen = 0;
+}
+| '[' INTEGER '/' INTEGER ']'{
+	if (!is_valid_u16($2)) {
+		semantic_error("code out of range");
+	}
+	if (!is_valid_u32($4)) {
+		semantic_error("pen out of range");
+	}
+	$$.code = $2;
+	$$.pen = $4;
+}
+;
+
 tcp_packet_spec
-: packet_prefix opt_ip_info opt_port_info flags seq opt_ack opt_window opt_urg_ptr opt_tcp_options opt_udp_encaps_info {
+: packet_prefix opt_ip_info opt_port_info flags seq opt_ack opt_window opt_urg_ptr opt_tcp_options opt_rst_diag_payload opt_udp_encaps_info {
 	char *error = NULL;
 	struct packet *outer = $1, *inner = NULL;
 	enum direction_t direction = outer->direction;
@@ -2673,7 +2697,8 @@ tcp_packet_spec
 			       absolute_ts_ecr,
 			       $5.absolute,
 			       $5.ignore,
-			       $10.udp_src_port, $10.udp_dst_port,
+			       $10.code, $10.pen,
+			       $11.udp_src_port, $11.udp_dst_port,
 			       &error);
 	ignore_ts_val = false;
 	absolute_ts_ecr = false;
@@ -3801,6 +3826,9 @@ expression
 | tcp_fastopen      {
 	$$ = $1;
 }
+| tcp_rst_reason    {
+	$$ = $1;
+}
 | sf_hdtr           {
 	$$ = $1;
 }
@@ -4265,6 +4293,36 @@ tcp_fastopen
 #else
 	$$ = NULL;
 #endif
+}
+;
+
+trr_flags
+: TRR_FLAGS '=' expression {
+	$$ = $3;
+}
+
+trr_code
+: TRR_CODE '=' INTEGER {
+	if (!is_valid_u16($3)) {
+		semantic_error("trr_code out of range");
+	}
+	$$ = new_integer_expression($3, "%lu");
+}
+
+trr_pen
+: TRR_PEN '=' INTEGER {
+	if (!is_valid_u32($3)) {
+		semantic_error("trr_pen out of range");
+	}
+	$$ = new_integer_expression($3, "%lu");
+}
+tcp_rst_reason
+: '{' trr_flags ',' trr_code ',' trr_pen '}' {
+	$$ = new_expression(EXPR_TCP_RST_REASON);
+	$$->value.tcp_rst_reason = calloc(1, sizeof(struct tcp_rst_reason_expr));
+	$$->value.tcp_rst_reason->trr_flags = $2;
+	$$->value.tcp_rst_reason->trr_code = $4;
+	$$->value.tcp_rst_reason->trr_pen = $6;
 }
 ;
 

@@ -3914,7 +3914,7 @@ int reset_connection(struct state *state, struct socket *socket)
 				DIRECTION_INBOUND, ip_info, 0, 0,
 				ack_bit ? "R." : "R", seq, 0, ack_seq, 0, 0,
 				tcp_options, false, false, false, false,
-				udp_src_port, udp_dst_port, &error);
+				0, 0, udp_src_port, udp_dst_port, &error);
 	if (packet == NULL)
 		die("%s", error);
 

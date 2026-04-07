@@ -55,6 +55,8 @@ extern struct packet *new_tcp_packet(int address_family,
 				     bool abs_ts_ecr,
 				     bool abs_seq,
 				     bool ignore_seq,
+				     u16 trr_code,
+				     u32 trr_pen,
 				     u16 udp_src_port,
 				     u16 udp_dst_port,
 				     char **error);

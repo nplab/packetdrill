@@ -3433,6 +3433,23 @@ static int check_tcp_fastopen(struct tcp_fastopen_expr *expr,
 }
 #endif
 
+#ifdef TCP_RST_REASON_CODE
+static int check_tcp_rst_reason(struct tcp_rst_reason_expr *expr,
+				struct tcp_rst_reason *tcp_rst_reason,
+				char **error) {
+	if (check_u16_expr(expr->trr_flags, tcp_rst_reason->trr_flags,
+	                   "tcp_rst_reason.trr_flags", error))
+		return STATUS_ERR;
+	if (check_u16_expr(expr->trr_code, tcp_rst_reason->trr_code,
+	                   "tcp_rst_reason.trr_code", error))
+		return STATUS_ERR;
+	if (check_u32_expr(expr->trr_pen, tcp_rst_reason->trr_pen,
+	                   "tcp_rst_reason.trr_pen", error))
+		return STATUS_ERR;
+	return STATUS_OK;
+}
+#endif
+
 static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 			      struct expression_list *args, char **error)
 {
@@ -3791,6 +3808,16 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		break;
 	}
 #endif
+#ifdef TCP_RST_REASON_CODE
+	case EXPR_TCP_RST_REASON: {
+		struct tcp_rst_reason *live_tcp_rst_reason = malloc(sizeof(struct tcp_rst_reason));
+
+		memset(live_tcp_rst_reason, 0, sizeof(struct tcp_rst_reason));
+		live_optval = live_tcp_rst_reason;
+		live_optlen = (socklen_t)sizeof(struct tcp_rst_reason);
+		break;
+	}
+#endif
 	case EXPR_LIST:
 		s32_bracketed_arg(args, 3, &script_optval, error);
 		live_optval = malloc(sizeof(int));
@@ -3966,6 +3993,11 @@ static int syscall_getsockopt(struct state *state, struct syscall_spec *syscall,
 		result = check_tcp_fastopen(val_expression->value.tcp_fastopen, live_optval, error);
 		break;
 #endif
+#ifdef TCP_RST_REASON_CODE
+	case EXPR_TCP_RST_REASON:
+		result = check_tcp_rst_reason(val_expression->value.tcp_rst_reason, live_optval, error);
+		break;
+#endif
 	case EXPR_LIST:
 		if (*(int*)live_optval != script_optval) {
 			asprintf(error, "optval: expected: %d actual: %d",
@@ -4075,6 +4107,9 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 #endif
 #ifdef __FreeBSD__
 	struct tcp_fastopen tcp_fastopen;
+#endif
+#ifdef TCP_RST_REASON_CODE
+	struct tcp_rst_reason tcp_rst_reason;
 #endif
 
 	if (check_arg_count(args, 5, error))
@@ -4807,6 +4842,27 @@ static int syscall_setsockopt(struct state *state, struct syscall_spec *syscall,
 		}
 		break;
 	}
+#endif
+#ifdef TCP_RST_REASON_CODE
+	case EXPR_TCP_RST_REASON:
+		memset(&tcp_rst_reason, 0, sizeof(struct tcp_rst_reason));
+		if (get_u16(val_expression->value.tcp_rst_reason->trr_flags,
+			    &tcp_rst_reason.trr_flags, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u16(val_expression->value.tcp_rst_reason->trr_code,
+			    &tcp_rst_reason.trr_code, error)) {
+			return STATUS_ERR;
+		}
+		if (get_u32(val_expression->value.tcp_rst_reason->trr_pen,
+			    &tcp_rst_reason.trr_pen, error)) {
+			return STATUS_ERR;
+		}
+		optval = &tcp_rst_reason;
+		if (!optlen_provided) {
+			optlen = (socklen_t)sizeof(struct tcp_rst_reason);
+		}
+		break;
 #endif
 	default:
 		asprintf(error, "unsupported value type: %s",

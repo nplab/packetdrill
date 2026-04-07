@@ -56,6 +56,7 @@ enum expression_t {
 	EXPR_TCP_FUNCTION_SET,	  /* struct tcp_function_set */
 	EXPR_TCP_FASTOPEN,	  /* struct tcp_fastopen */
 #endif
+	EXPR_TCP_RST_REASON,	  /* struct tcp_rst_reason */
 	EXPR_SCTP_RTOINFO,	  /* struct sctp_rtoinfo for SCTP_RTOINFO */
 	EXPR_SCTP_INITMSG,	  /* struct sctp_initmsg for SCTP_INITMSG */
 	EXPR_SCTP_ASSOC_VALUE,	  /* struct sctp_assoc_value */
@@ -132,6 +133,7 @@ struct expression {
 		struct tcp_function_set_expr *tcp_function_set;
 		struct tcp_fastopen_expr *tcp_fastopen;
 #endif
+		struct tcp_rst_reason_expr *tcp_rst_reason;
 		struct sctp_rtoinfo_expr *sctp_rtoinfo;
 		struct sctp_initmsg_expr *sctp_initmsg;
 		struct sctp_hmacalgo_expr *sctp_hmacalgo;
@@ -263,6 +265,12 @@ struct tcp_fastopen_expr {
 	struct expression *psk;
 };
 #endif
+
+struct tcp_rst_reason_expr {
+	struct expression *trr_flags;
+	struct expression *trr_code;
+	struct expression *trr_pen;
+};
 
 /* Parse tree for a sctp_rtoinfo struct in a [gs]etsockopt syscall. */
 struct sctp_rtoinfo_expr {

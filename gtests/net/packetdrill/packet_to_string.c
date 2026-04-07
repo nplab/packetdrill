@@ -246,6 +246,15 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 		free(tcp_options);
 	}
 
+	if (packet->tcp->rst && packet_payload_len(packet) == 8) {
+		struct tcp_rst_diag_payload *dp;
+
+		dp = (struct tcp_rst_diag_payload *)packet_payload(packet);
+		if (dp->magic_nr == htons(0x33AA))
+			fprintf(s, " [%u/%u]",
+			        ntohs(dp->rst_code), ntohl(dp->rst_pen));
+	}
+
 	if (packet->headers[i + 1].type == HEADER_UDP) {
 		struct udp *udp = packet->headers[i + 1].h.udp;
 

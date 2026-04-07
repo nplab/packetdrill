@@ -144,27 +144,30 @@ void tcp_compute_md5_digest(struct packet *packet,
 
 
 struct packet *new_tcp_packet(int address_family,
-			       enum direction_t direction,
-			       struct ip_info ip_info,
-			       u16 src_port,
-			       u16 dst_port,
-			       const char *flags,
-			       u32 start_sequence,
-			       u16 tcp_payload_bytes,
-			       u32 ack_sequence,
-			       s32 window,
-			       u16 urg_ptr,
-			       const struct tcp_options *tcp_options,
-			       bool ignore_ts_val,
-			       bool abs_ts_ecr,
-			       bool abs_seq,
-			       bool ignore_seq,
-			       u16 udp_src_port,
-			       u16 udp_dst_port,
-			       char **error)
+			      enum direction_t direction,
+			      struct ip_info ip_info,
+			      u16 src_port,
+			      u16 dst_port,
+			      const char *flags,
+			      u32 start_sequence,
+			      u16 tcp_payload_bytes,
+			      u32 ack_sequence,
+			      s32 window,
+			      u16 urg_ptr,
+			      const struct tcp_options *tcp_options,
+			      bool ignore_ts_val,
+			      bool abs_ts_ecr,
+			      bool abs_seq,
+			      bool ignore_seq,
+			      u16 trr_code,
+			      u32 trr_pen,
+			      u16 udp_src_port,
+			      u16 udp_dst_port,
+			      char **error)
 {
 	struct packet *packet = NULL;  /* the newly-allocated result packet */
 	struct header *tcp_header, *udp_header;
+	struct tcp_rst_diag_payload *dp;
 	/* Calculate lengths in bytes of all sections of the packet */
 	const int ip_option_bytes = 0;
 	const int tcp_option_bytes = tcp_options ? tcp_options->length : 0;
@@ -196,6 +199,21 @@ struct packet *new_tcp_packet(int address_family,
 	if (tcp_header_bytes > MAX_TCP_HEADER_BYTES) {
 		asprintf(error, "TCP header too large");
 		return NULL;
+	}
+
+	if (trr_code != 0 || trr_pen != 0) {
+		if (tcp_payload_bytes != 8) {
+			asprintf(error, "unexpected payload length of %u for "
+			                "RST diagnostic payload",
+			                tcp_payload_bytes);
+			return NULL;
+		}
+		if (!is_tcp_flag_set('R', flags)) {
+			asprintf(error, "RST diagnostic payload of code/pen = "
+			                "%u/%u for non RST segment",
+			                trr_code, trr_pen);
+			return NULL;
+		}
 	}
 
 	ip_bytes = ip_header_bytes + tcp_header_bytes + tcp_payload_bytes;
@@ -318,6 +336,13 @@ struct packet *new_tcp_packet(int address_family,
 		if (tcp_options->flags & TCP_OPTIONS_FLAGS_RAW) {
 			packet->flags |= FLAG_TCP_OPTIONS_RAW;
 		}
+	}
+
+	if (trr_code != 0 || trr_pen != 0) {
+		dp = (struct tcp_rst_diag_payload *)(tcp_option_start + tcp_option_bytes);
+		dp->magic_nr = htons(0x33AA);
+		dp->rst_code = htons(trr_code);
+		dp->rst_pen = htonl(trr_pen);
 	}
 
 	packet->ip_bytes = ip_bytes;

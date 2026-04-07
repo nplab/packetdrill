@@ -136,6 +136,12 @@ struct tcp {
 	__be16	urg_ptr;
 };
 
+struct tcp_rst_diag_payload {
+	__be16	magic_nr;
+	__be16	rst_code;
+	__be32	rst_pen;
+};
+
 #ifdef linux
 
 /* Data returned by the TCP_INFO socket option. */

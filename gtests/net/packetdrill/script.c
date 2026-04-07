@@ -128,6 +128,7 @@ struct expression_type_entry expression_type_table[] = {
 	{ EXPR_TCP_FUNCTION_SET,            "tcp_function_set"                },
 	{ EXPR_TCP_FASTOPEN,                "tcp_fastopen"                    },
 #endif
+	{ EXPR_TCP_RST_REASON,              "tcp_rst_reason"                  },
 	{ EXPR_SCTP_RTOINFO,                "sctp_rtoinfo"                    },
 	{ EXPR_SCTP_INITMSG,                "sctp_initmsg"                    },
 	{ EXPR_SCTP_ASSOC_VALUE,            "sctp_assoc_value"                },
@@ -442,6 +443,13 @@ void free_expression(struct expression *expression)
 		free(expression->value.tcp_fastopen);
 		break;
 #endif
+	case EXPR_TCP_RST_REASON:
+		assert(expression->value.tcp_rst_reason);
+		free_expression(expression->value.tcp_rst_reason->trr_flags);
+		free_expression(expression->value.tcp_rst_reason->trr_code);
+		free_expression(expression->value.tcp_rst_reason->trr_pen);
+		free(expression->value.tcp_rst_reason);
+		break;
 	case EXPR_SCTP_RTOINFO:
 		assert(expression->value.sctp_rtoinfo);
 		free_expression(expression->value.sctp_rtoinfo->srto_assoc_id);
@@ -1246,6 +1254,39 @@ static int evaluate_sf_hdtr_expression(struct expression *in,
 	return STATUS_OK;
 }
 #endif
+
+static int evaluate_tcp_rst_reason_expression(struct expression *in,
+					      struct expression *out,
+					      char **error)
+{
+	struct tcp_rst_reason_expr *in_tcp_rst_reason;
+	struct tcp_rst_reason_expr *out_tcp_rst_reason;
+
+	assert(in->type == EXPR_TCP_RST_REASON);
+	assert(in->value.tcp_rst_reason);
+	assert(out->type == EXPR_TCP_RST_REASON);
+
+	out->value.tcp_rst_reason = calloc(1, sizeof(struct tcp_rst_reason_expr));
+
+	in_tcp_rst_reason = in->value.tcp_rst_reason;
+	out_tcp_rst_reason = out->value.tcp_rst_reason;
+
+	if (evaluate(in_tcp_rst_reason->trr_flags,
+		     &out_tcp_rst_reason->trr_flags,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_tcp_rst_reason->trr_code,
+		     &out_tcp_rst_reason->trr_code,
+		     error))
+		return STATUS_ERR;
+	if (evaluate(in_tcp_rst_reason->trr_pen,
+		     &out_tcp_rst_reason->trr_pen,
+		     error))
+		return STATUS_ERR;
+
+	return STATUS_OK;
+}
+
 static int evaluate_sctp_rtoinfo_expression(struct expression *in,
 					    struct expression *out,
 					    char **error)
@@ -3131,6 +3172,9 @@ static int evaluate(struct expression *in,
 		result = evaluate_tcp_fastopen_expression(in, out, error);
 		break;
 #endif
+	case EXPR_TCP_RST_REASON:
+		result = evaluate_tcp_rst_reason_expression(in, out, error);
+		break;
 	case EXPR_SCTP_RTOINFO:
 		result = evaluate_sctp_rtoinfo_expression(in, out, error);
 		break;

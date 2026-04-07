@@ -843,6 +843,15 @@ struct int_symbol platform_symbols_table[] = {
 #if defined(TCP_PACING_DND)
 	{ TCP_PACING_DND,                   "TCP_PACING_DND"                  },
 #endif
+#if defined(TCP_RST_REASON_ENABLE)
+	{ TCP_RST_REASON_ENABLE,            "TCP_RST_REASON_ENABLE"           },
+#endif
+#if defined(TCP_RST_REASON_CODE)
+	{ TCP_RST_REASON_CODE,              "TCP_RST_REASON_CODE"             },
+#endif
+#if defined(TCP_RR_RST_ON_CLOSE)
+	{ TCP_RR_RST_ON_CLOSE,              "TCP_RR_RST_ON_CLOSE"             },
+#endif
 
 	/* /usr/include/netinet/tcp_log_buf.h */
 #if defined(TCP_LOG)
