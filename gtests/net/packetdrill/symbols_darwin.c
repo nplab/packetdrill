@@ -95,7 +95,9 @@ struct int_symbol platform_symbols_table[] = {
 	{ IP_PORTRANGE,                     "IP_PORTRANGE"                    },
 	{ IP_RECVIF,                        "IP_RECVIF"                       },
 	{ IP_RECVTTL,                       "IP_RECVTTL"                      },
+#ifdef IP_DONTFRAG
 	{ IP_DONTFRAG,                      "IP_DONTFRAG"                     },
+#endif
 	{ IP_PKTINFO,                       "IP_PKTINFO,"                     },
 	{ IP_RECVPKTINFO,                   "IP_RECVPKTINFO"                  },
 #if defined(IP_RECVTOS)
