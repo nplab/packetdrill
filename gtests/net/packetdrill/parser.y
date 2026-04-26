@@ -751,7 +751,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
 %token <reserved> AF_NAME AF_ARG
 %token <reserved> FUNCTION_SET_NAME PCBCNT
 %token <reserved> ENABLE PSK
-%token <reserved> TRR_FLAGS TRR_CODE TRR_PEN
+%token <reserved> TRR_FLAGS TRR_CODE TRR_PEN PEN
 %token <reserved> SRTO_ASSOC_ID SRTO_INITIAL SRTO_MAX SRTO_MIN
 %token <reserved> SINIT_NUM_OSTREAMS SINIT_MAX_INSTREAMS SINIT_MAX_ATTEMPTS
 %token <reserved> SINIT_MAX_INIT_TIMEO
@@ -2665,15 +2665,15 @@ opt_rst_diag_payload
 	$$.code = 0;
 	$$.pen = 0;
 }
-| '[' INTEGER '/' INTEGER ']'{
-	if (!is_valid_u16($2)) {
+| '[' CAUSE_CODE INTEGER ',' PEN INTEGER ']'{
+	if (!is_valid_u16($3)) {
 		semantic_error("code out of range");
 	}
-	if (!is_valid_u32($4)) {
+	if (!is_valid_u32($6)) {
 		semantic_error("pen out of range");
 	}
-	$$.code = $2;
-	$$.pen = $4;
+	$$.code = $3;
+	$$.pen = $6;
 }
 ;
 

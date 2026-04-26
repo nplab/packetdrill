@@ -251,7 +251,7 @@ static int tcp_packet_to_string(FILE *s, struct packet *packet, int i,
 
 		dp = (struct tcp_rst_diag_payload *)packet_payload(packet);
 		if (dp->magic_nr == htons(0x33AA))
-			fprintf(s, " [%u/%u]",
+			fprintf(s, " [code %u, pen %u]",
 			        ntohs(dp->rst_code), ntohl(dp->rst_pen));
 	}
 

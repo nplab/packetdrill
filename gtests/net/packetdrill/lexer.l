@@ -305,6 +305,7 @@ function_set_name		return FUNCTION_SET_NAME;
 pcbcnt				return PCBCNT;
 enable				return ENABLE;
 psk				return PSK;
+pen					return PEN;
 trr_flags			return TRR_FLAGS;
 trr_code			return TRR_CODE;
 trr_pen				return TRR_PEN;
