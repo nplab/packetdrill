@@ -210,6 +210,7 @@ msg_name			return MSG_NAME;
 msg_iov				return MSG_IOV;
 msg_control			return MSG_CONTROL;
 msg_flags			return MSG_FLAGS;
+msg_len				return MSG_LEN;
 cmsg_len			return _CMSG_LEN_;
 cmsg_level			return CMSG_LEVEL;
 cmsg_type			return CMSG_TYPE;

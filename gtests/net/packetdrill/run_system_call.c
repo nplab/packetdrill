@@ -2711,6 +2711,238 @@ error_out:
 	return status;
 }
 
+#if defined(linux) || defined(__FreeBSD__)
+static int
+check_mmsg_len(struct expression *expression, ssize_t actual, char **error)
+{
+	if (expression == NULL) {
+		asprintf(error, "mmsghdr requires a msg_len field");
+		return STATUS_ERR;
+	}
+	if (expression->type == EXPR_ELLIPSIS)
+		return STATUS_OK;
+	if (check_type(expression, EXPR_INTEGER, error))
+		return STATUS_ERR;
+	if (expression->value.num != actual) {
+		asprintf(error, "msg_len: expected: %lld actual: %zd",
+		    expression->value.num, actual);
+		return STATUS_ERR;
+	}
+	return STATUS_OK;
+}
+
+static int
+syscall_sendmmsg(struct state *state, struct syscall_spec *syscall,
+		 struct expression_list *args, char **error)
+{
+	int live_fd, script_fd, flags;
+	ssize_t result;
+	size_t vlen, msgvec_len, i;
+	struct expression *msgvec_expression;
+	struct expression_list *list;
+	struct mmsghdr *msgvec = NULL;
+	struct msghdr **msgs = NULL;
+	size_t *iov_lens = NULL;
+	int status = STATUS_ERR;
+
+	if (check_arg_count(args, 4, error) ||
+	    s32_arg(args, 0, &script_fd, error) ||
+	    to_live_fd(state, script_fd, &live_fd, error))
+		goto error_out;
+	msgvec_expression = get_arg(args, 1, error);
+	if (msgvec_expression == NULL ||
+	    check_type(msgvec_expression, EXPR_LIST, error))
+		goto error_out;
+	list = msgvec_expression->value.list;
+	msgvec_len = expression_list_length(list);
+	if (get_size_t(get_arg(args, 2, error), &vlen, error) ||
+	    vlen != msgvec_len) {
+		if (*error == NULL)
+			asprintf(error,
+			    "vlen %zu does not match %zu-element mmsghdr array",
+			    vlen, msgvec_len);
+		goto error_out;
+	}
+	if (s32_arg(args, 3, &flags, error))
+		goto error_out;
+
+	if (msgvec_len != 0) {
+		msgvec = calloc(msgvec_len, sizeof(*msgvec));
+		msgs = calloc(msgvec_len, sizeof(*msgs));
+		iov_lens = calloc(msgvec_len, sizeof(*iov_lens));
+		if (msgvec == NULL || msgs == NULL || iov_lens == NULL) {
+			asprintf(error, "unable to allocate mmsghdr array");
+			goto error_out;
+		}
+	}
+	for (i = 0; i < msgvec_len; ++i, list = list->next) {
+		struct msghdr *msg = NULL;
+		struct msghdr_expr *msg_expr;
+
+		if (msghdr_new(list->expression, &msg, &iov_lens[i], true,
+		    error)) {
+			msgs[i] = msg;
+			goto error_out;
+		}
+		msgs[i] = msg;
+		msg_expr = list->expression->value.msghdr;
+		if (msg_expr->msg_len == NULL) {
+			asprintf(error, "sendmmsg mmsghdr requires msg_len");
+			goto error_out;
+		}
+		if (msg->msg_name != NULL &&
+		    run_syscall_connect(state, script_fd, false, msg->msg_name,
+		    &msg->msg_namelen, error))
+			goto error_out;
+		if (msg->msg_flags != 0) {
+			asprintf(error, "sendmmsg ignores msg_flags field in msghdr");
+			goto error_out;
+		}
+		msgvec[i].msg_hdr = *msg;
+	}
+
+	begin_syscall(state, syscall);
+	result = sendmmsg(live_fd, msgvec, vlen, flags);
+	if (result > INT_MAX) {
+		asprintf(error, "sendmmsg result is too large for packetdrill");
+		goto error_out;
+	}
+	if (end_syscall(state, syscall, CHECK_EXACT, (int)result, error))
+		goto error_out;
+
+	list = msgvec_expression->value.list;
+	for (i = 0; result > 0 && i < (size_t)result; ++i, list = list->next) {
+		struct msghdr_expr *msg_expr = list->expression->value.msghdr;
+		if (check_mmsg_len(msg_expr->msg_len, msgvec[i].msg_len, error) ||
+		    check_cmsghdr(msg_expr->msg_control, &msgvec[i].msg_hdr,
+		    error))
+			goto error_out;
+	}
+	status = STATUS_OK;
+
+error_out:
+	if (msgs != NULL) {
+		for (i = 0; i < msgvec_len; ++i)
+			msghdr_free(msgs[i], iov_lens != NULL ? iov_lens[i] : 0);
+	}
+	free(iov_lens);
+	free(msgs);
+	free(msgvec);
+	return status;
+}
+
+static int
+syscall_recvmmsg(struct state *state, struct syscall_spec *syscall,
+		 struct expression_list *args, char **error)
+{
+	int live_fd, script_fd, flags;
+	ssize_t result;
+	size_t vlen, msgvec_len, i;
+	struct expression *msgvec_expression;
+	struct expression_list *list;
+	struct mmsghdr *msgvec = NULL;
+	struct msghdr **msgs = NULL;
+	size_t *iov_lens = NULL;
+	int *expected_flags = NULL;
+	int status = STATUS_ERR;
+
+	if (check_arg_count(args, 5, error) ||
+	    s32_arg(args, 0, &script_fd, error) ||
+	    to_live_fd(state, script_fd, &live_fd, error))
+		goto error_out;
+	msgvec_expression = get_arg(args, 1, error);
+	if (msgvec_expression == NULL ||
+	    check_type(msgvec_expression, EXPR_LIST, error))
+		goto error_out;
+	list = msgvec_expression->value.list;
+	msgvec_len = expression_list_length(list);
+	if (get_size_t(get_arg(args, 2, error), &vlen, error) ||
+	    vlen != msgvec_len) {
+		if (*error == NULL)
+			asprintf(error,
+			    "vlen %zu does not match %zu-element mmsghdr array",
+			    vlen, msgvec_len);
+		goto error_out;
+	}
+	if (s32_arg(args, 3, &flags, error) || ellipsis_arg(args, 4, error))
+		goto error_out;
+
+	if (msgvec_len != 0) {
+		msgvec = calloc(msgvec_len, sizeof(*msgvec));
+		msgs = calloc(msgvec_len, sizeof(*msgs));
+		iov_lens = calloc(msgvec_len, sizeof(*iov_lens));
+		expected_flags = calloc(msgvec_len, sizeof(*expected_flags));
+		if (msgvec == NULL || msgs == NULL || iov_lens == NULL ||
+		    expected_flags == NULL) {
+			asprintf(error, "unable to allocate mmsghdr array");
+			goto error_out;
+		}
+	}
+	for (i = 0; i < msgvec_len; ++i, list = list->next) {
+		struct msghdr *msg = NULL;
+		struct msghdr_expr *msg_expr;
+
+		if (msghdr_new(list->expression, &msg, &iov_lens[i], false,
+		    error)) {
+			msgs[i] = msg;
+			goto error_out;
+		}
+		msgs[i] = msg;
+		msg_expr = list->expression->value.msghdr;
+		if (msg_expr->msg_len == NULL) {
+			asprintf(error, "recvmmsg mmsghdr requires msg_len");
+			goto error_out;
+		}
+		expected_flags[i] = msg->msg_flags;
+		msgvec[i].msg_hdr = *msg;
+	}
+
+	begin_syscall(state, syscall);
+	result = recvmmsg(live_fd, msgvec, vlen, flags, NULL);
+	if (result > INT_MAX) {
+		asprintf(error, "recvmmsg result is too large for packetdrill");
+		goto error_out;
+	}
+	if (end_syscall(state, syscall, CHECK_EXACT, (int)result, error))
+		goto error_out;
+
+	list = msgvec_expression->value.list;
+	for (i = 0; result > 0 && i < (size_t)result; ++i, list = list->next) {
+		struct msghdr_expr *msg_expr = list->expression->value.msghdr;
+		struct msghdr *msg = &msgvec[i].msg_hdr;
+
+		if (check_mmsg_len(msg_expr->msg_len, msgvec[i].msg_len, error))
+			goto error_out;
+		if (msg->msg_flags != expected_flags[i]) {
+			asprintf(error, "Expected msg_flags 0x%08X but got 0x%08X",
+			    expected_flags[i], msg->msg_flags);
+			goto error_out;
+		}
+		if (msg->msg_flags & MSG_NOTIFICATION) {
+			struct socket *socket =
+				find_socket_by_script_fd(state, script_fd);
+			if (check_sctp_notification(socket, msg->msg_iov,
+				msg_expr->msg_iov, error))
+				goto error_out;
+		}
+		if (check_cmsghdr(msg_expr->msg_control, msg, error))
+			goto error_out;
+	}
+	status = STATUS_OK;
+
+error_out:
+	if (msgs != NULL) {
+		for (i = 0; i < msgvec_len; ++i)
+			msghdr_free(msgs[i], iov_lens != NULL ? iov_lens[i] : 0);
+	}
+	free(expected_flags);
+	free(iov_lens);
+	free(msgs);
+	free(msgvec);
+	return status;
+}
+#endif
+
 static int syscall_fcntl(struct state *state, struct syscall_spec *syscall,
 			 struct expression_list *args, char **error)
 {
@@ -7127,6 +7359,8 @@ struct system_call_entry system_call_table[] = {
 	{"open",            syscall_open},
 #if defined(linux) || defined(__FreeBSD__)
 	{"sendfile",        syscall_sendfile},
+	{"sendmmsg",        syscall_sendmmsg},
+	{"recvmmsg",        syscall_recvmmsg},
 #endif
 	{"sctp_bindx",      syscall_sctp_bindx},
 	{"sctp_peeloff",    syscall_sctp_peeloff},

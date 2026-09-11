@@ -1083,6 +1083,8 @@ static int evaluate_msghdr_expression(struct expression *in,
 		return STATUS_ERR;
 	if (evaluate(in_msg->msg_flags,		&out_msg->msg_flags,	error))
 		return STATUS_ERR;
+	if (evaluate(in_msg->msg_len,		&out_msg->msg_len,	error))
+		return STATUS_ERR;
 
 	return STATUS_OK;
 }
