@@ -1,0 +1,69 @@
+--tolerance_usecs=100000
+
+0.0 socket(..., SOCK_STREAM, IPPROTO_SCTP) = 3
+
++0.0 setsockopt(3, IPPROTO_SCTP, SCTP_NODELAY, [1], 4) = 0
+
++0.0 fcntl(3, F_GETFL) = 0x2 (flags O_RDWR)
++0.0 fcntl(3, F_SETFL, O_RDWR|O_NONBLOCK) = 0
++0.0 bind(3, ..., ...) = 0
+
+// Establish SCTP association
++0.1 connect(3, ..., ...) = -1 EINPROGRESS (Operation now in progress)
+
++0.0 > sctp: INIT[flgs=0, tag=1, a_rwnd=..., os=..., is=..., tsn=1, ...]
++0.1 < sctp: INIT_ACK[flgs=0, tag=2, a_rwnd=1500, os=16, is=16, tsn=1, STATE_COOKIE[len=4, val=...]]
++0.0 > sctp: COOKIE_ECHO[flgs=0, len=4, val=...]
++0.1 < sctp: COOKIE_ACK[flgs=0]
+
++0.0 getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
+
+// Send two SCTP messages with one sendmmsg() call.
++1.0 sendmmsg(3, [
+	{
+		msg_name(...)=...,
+		msg_iov(1)=[{iov_base=..., iov_len=100}],
+		msg_control(32)=[{
+			cmsg_len=32,
+			cmsg_level=IPPROTO_SCTP,
+			cmsg_type=SCTP_SNDINFO,
+			cmsg_data={
+				snd_sid=1,
+				snd_flags=0,
+				snd_ppid=htonl(111),
+				snd_context=0,
+				snd_assoc_id=0
+			}
+		}],
+		msg_flags=0,
+		msg_len=100
+	},
+	{
+		msg_name(...)=...,
+		msg_iov(1)=[{iov_base=..., iov_len=100}],
+		msg_control(32)=[{
+			cmsg_len=32,
+			cmsg_level=IPPROTO_SCTP,
+			cmsg_type=SCTP_SNDINFO,
+			cmsg_data={
+				snd_sid=2,
+				snd_flags=0,
+				snd_ppid=htonl(222),
+				snd_context=0,
+				snd_assoc_id=0
+			}
+		}],
+		msg_flags=0,
+		msg_len=100
+	}
+], 2, 0) = 2
+
+* > sctp: DATA[flgs=BE, len=116, tsn=1, sid=1, ssn=0, ppid=111]
+
++0.01 < sctp: SACK[flgs=0, cum_tsn=1, a_rwnd=1500, gaps=[], dups=[]]
+
+* > sctp: DATA[flgs=BE, len=116, tsn=2, sid=2, ssn=0, ppid=222]
+
++0.01 < sctp: SACK[flgs=0, cum_tsn=2, a_rwnd=1500, gaps=[], dups=[]]
+
++0.0 close(3) = 0

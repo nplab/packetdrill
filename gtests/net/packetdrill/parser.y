@@ -732,7 +732,7 @@ static struct tcp_option *new_tcp_exp_generic_option(u16 exid,
  */
 %token ELLIPSIS
 %token <reserved> SA_FAMILY SIN_PORT SIN_ADDR _HTONS_ _HTONL_ INET_ADDR
-%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_CONTROL _CMSG_LEN_ CMSG_LEVEL CMSG_TYPE _CMSG_DATA_
+%token <reserved> MSG_NAME MSG_IOV MSG_FLAGS MSG_LEN MSG_CONTROL _CMSG_LEN_ CMSG_LEVEL CMSG_TYPE _CMSG_DATA_
 %token <reserved> SF_HDTR_HEADERS SF_HDTR_TRAILERS
 %token <reserved> FD EVENTS REVENTS ONOFF LINGER
 %token <reserved> ACK ECR EOL MSS NOP SACK NR_SACK SACKOK TIMESTAMP VAL WIN WSCALE PRO
@@ -4051,6 +4051,22 @@ msghdr
 	msg_expr->msg_controllen= $18;
 	msg_expr->msg_control   = $21;
 	msg_expr->msg_flags	= $25;
+}
+| '{' MSG_NAME '(' ELLIPSIS ')' '=' ELLIPSIS ','
+      MSG_IOV '(' decimal_integer ')' '=' array ','
+      MSG_CONTROL '('decimal_integer ')' '=' array ','
+	MSG_FLAGS '=' expression ',' MSG_LEN '=' expression '}' {
+	struct msghdr_expr *msg_expr = calloc(1, sizeof(struct msghdr_expr));
+	$$ = new_expression(EXPR_MSGHDR);
+	$$->value.msghdr = msg_expr;
+	msg_expr->msg_name	= new_expression(EXPR_ELLIPSIS);
+	msg_expr->msg_namelen	= new_expression(EXPR_ELLIPSIS);
+	msg_expr->msg_iov	= $14;
+	msg_expr->msg_iovlen	= $11;
+	msg_expr->msg_controllen= $18;
+	msg_expr->msg_control   = $21;
+	msg_expr->msg_flags	= $25;
+	msg_expr->msg_len	= $29;
 }
 ;
 

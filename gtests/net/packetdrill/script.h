@@ -216,6 +216,8 @@ struct msghdr_expr {
 	struct expression *msg_control;
 	struct expression *msg_controllen;
 	struct expression *msg_flags;
+	/* Optional mmsghdr output field, used by sendmmsg/recvmmsg. */
+	struct expression *msg_len;
 };
 
 /* Parse tree for a cmsghdr struct in a struct msghdr. */
