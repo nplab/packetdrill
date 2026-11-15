@@ -88,7 +88,7 @@
 #define USE_LIBPCAP             1
 #define TUN_DIR                 "/dev"
 
-#define HAVE_TCP_INFO           0
+#define HAVE_TCP_INFO           1
 
 #define HAVE_FMEMOPEN           1
 #include "open_memstream.h"
