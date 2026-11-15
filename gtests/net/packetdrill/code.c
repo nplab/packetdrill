@@ -152,6 +152,13 @@ static void write_symbols(struct code_state *code)
 	emit_var(code, "TCPI_OPT_WSCALE",	TCPI_OPT_WSCALE);
 	emit_var(code, "TCPI_OPT_ECN",		TCPI_OPT_ECN);
 #endif
+#ifdef __OpenBSD__
+	emit_var(code, "TCPI_OPT_TIMESTAMPS",	TCPI_OPT_TIMESTAMPS);
+	emit_var(code, "TCPI_OPT_SACK",		TCPI_OPT_SACK);
+	emit_var(code, "TCPI_OPT_WSCALE",	TCPI_OPT_WSCALE);
+	emit_var(code, "TCPI_OPT_ECN",		TCPI_OPT_ECN);
+	emit_var(code, "TCPI_OPT_TOE",		TCPI_OPT_TOE);
+#endif
 #ifdef __APPLE__
 	emit_var(code, "TCPI_OPT_TIMESTAMPS",	TCPCI_OPT_TIMESTAMPS);
 	emit_var(code, "TCPI_OPT_SACK",		TCPCI_OPT_SACK);
@@ -379,6 +386,52 @@ static void write_tcp_info(struct code_state *code,
 }
 
 #endif  /* __SunOS_5_11 */
+
+#if defined(__OpenBSD__)
+
+/* Write out a formatted representation of an OpenBSD tcp_info buffer. */
+static void write_tcp_info(struct code_state *code,
+			   const struct _tcp_info *info,
+			   int len)
+{
+	assert(len >= sizeof(struct _tcp_info));
+
+	write_symbols(code);
+
+	emit_var(code, "tcpi_state",		info->tcpi_state);
+	emit_var(code, "tcpi_options",		info->tcpi_options);
+	emit_var(code, "tcpi_snd_wscale",	info->tcpi_snd_wscale);
+	emit_var(code, "tcpi_rcv_wscale",	info->tcpi_rcv_wscale);
+	emit_var(code, "tcpi_rto",		info->tcpi_rto);
+	emit_var(code, "tcpi_snd_mss",		info->tcpi_snd_mss);
+	emit_var(code, "tcpi_rcv_mss",		info->tcpi_rcv_mss);
+	emit_var(code, "tcpi_last_data_sent",	info->tcpi_last_data_sent);
+	emit_var(code, "tcpi_last_ack_sent",	info->tcpi_last_ack_sent);
+	emit_var(code, "tcpi_last_data_recv",	info->tcpi_last_data_recv);
+	emit_var(code, "tcpi_last_ack_recv",	info->tcpi_last_ack_recv);
+	emit_var(code, "tcpi_rtt",		info->tcpi_rtt);
+	emit_var(code, "tcpi_rttvar",		info->tcpi_rttvar);
+	emit_var(code, "tcpi_snd_ssthresh",	info->tcpi_snd_ssthresh);
+	emit_var(code, "tcpi_snd_cwnd",		info->tcpi_snd_cwnd);
+	emit_var(code, "tcpi_rcv_space",	info->tcpi_rcv_space);
+	emit_var(code, "tcpi_snd_wnd",		info->tcpi_snd_wnd);
+	emit_var(code, "tcpi_snd_nxt",		info->tcpi_snd_nxt);
+	emit_var(code, "tcpi_rcv_nxt",		info->tcpi_rcv_nxt);
+	emit_var(code, "tcpi_snd_rexmitpack",	info->tcpi_snd_rexmitpack);
+	emit_var(code, "tcpi_rcv_ooopack",	info->tcpi_rcv_ooopack);
+	emit_var(code, "tcpi_snd_zerowin",	info->tcpi_snd_zerowin);
+	emit_var(code, "tcpi_rttmin",		info->tcpi_rttmin);
+	emit_var(code, "tcpi_max_sndwnd",	info->tcpi_max_sndwnd);
+	emit_var(code, "tcpi_rcv_adv",		info->tcpi_rcv_adv);
+	emit_var(code, "tcpi_snd_una",		info->tcpi_snd_una);
+	emit_var(code, "tcpi_snd_max",		info->tcpi_snd_max);
+	emit_var(code, "tcpi_ts_recent",	info->tcpi_ts_recent);
+	emit_var(code, "tcpi_ts_recent_age",	info->tcpi_ts_recent_age);
+
+	emit_var_end(code);
+}
+
+#endif  /* __OpenBSD__ */
 
 /* Allocate a new empty struct code_text struct. */
 static struct code_text *text_new(void)
