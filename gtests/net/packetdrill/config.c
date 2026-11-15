@@ -236,6 +236,8 @@ void set_default_config(struct config *config)
 	cleanup_config(config);
 #if defined(__FreeBSD__)
 	config->code_command_line	= "/usr/local/bin/python";
+#elif defined(__OpenBSD__)
+	config->code_command_line	= "python3";
 #else
 	config->code_command_line	= "/usr/bin/python";
 #endif

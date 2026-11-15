@@ -253,6 +253,82 @@ struct _tcp_info {
 
 #endif  /* __FreeBSD__ */
 
+#if defined(__OpenBSD__)
+
+/* Data returned by the TCP_INFO socket option on OpenBSD. */
+struct _tcp_info {
+	u_int8_t	tcpi_state;
+	u_int8_t	__tcpi_ca_state;
+	u_int8_t	__tcpi_retransmits;
+	u_int8_t	__tcpi_probes;
+	u_int8_t	__tcpi_backoff;
+	u_int8_t	tcpi_options;
+	u_int8_t	tcpi_snd_wscale;
+	u_int8_t	tcpi_rcv_wscale;
+
+	u_int32_t	tcpi_rto;
+	u_int32_t	__tcpi_ato;
+	u_int32_t	tcpi_snd_mss;
+	u_int32_t	tcpi_rcv_mss;
+
+	u_int32_t	__tcpi_unacked;
+	u_int32_t	__tcpi_sacked;
+	u_int32_t	__tcpi_lost;
+	u_int32_t	__tcpi_retrans;
+	u_int32_t	__tcpi_fackets;
+
+	u_int32_t	tcpi_last_data_sent;
+	u_int32_t	tcpi_last_ack_sent;
+	u_int32_t	tcpi_last_data_recv;
+	u_int32_t	tcpi_last_ack_recv;
+
+	u_int32_t	__tcpi_pmtu;
+	u_int32_t	__tcpi_rcv_ssthresh;
+	u_int32_t	tcpi_rtt;
+	u_int32_t	tcpi_rttvar;
+	u_int32_t	tcpi_snd_ssthresh;
+	u_int32_t	tcpi_snd_cwnd;
+	u_int32_t	__tcpi_advmss;
+	u_int32_t	__tcpi_reordering;
+
+	u_int32_t	__tcpi_rcv_rtt;
+	u_int32_t	tcpi_rcv_space;
+
+	/* Privileged fields. */
+	u_int32_t	tcpi_snd_wnd;
+	u_int32_t	tcpi_snd_nxt;
+	u_int32_t	tcpi_rcv_nxt;
+	u_int32_t	tcpi_toe_tid;
+	u_int32_t	tcpi_snd_rexmitpack;
+	u_int32_t	tcpi_rcv_ooopack;
+	u_int32_t	tcpi_snd_zerowin;
+
+	/* OpenBSD extensions. */
+	u_int32_t	tcpi_rttmin;
+	u_int32_t	tcpi_max_sndwnd;
+	u_int32_t	tcpi_rcv_adv;
+	u_int32_t	tcpi_rcv_up;
+	u_int32_t	tcpi_snd_una;
+	u_int32_t	tcpi_snd_up;
+	u_int32_t	tcpi_snd_wl1;
+	u_int32_t	tcpi_snd_wl2;
+	u_int32_t	tcpi_snd_max;
+	u_int32_t	tcpi_ts_recent;
+	u_int32_t	tcpi_ts_recent_age;
+	u_int32_t	tcpi_rfbuf_cnt;
+	u_int32_t	tcpi_rfbuf_ts;
+	u_int32_t	tcpi_so_rcv_sb_cc;
+	u_int32_t	tcpi_so_rcv_sb_hiwat;
+	u_int32_t	tcpi_so_rcv_sb_lowat;
+	u_int32_t	tcpi_so_rcv_sb_wat;
+	u_int32_t	tcpi_so_snd_sb_cc;
+	u_int32_t	tcpi_so_snd_sb_hiwat;
+	u_int32_t	tcpi_so_snd_sb_lowat;
+	u_int32_t	tcpi_so_snd_sb_wat;
+};
+
+#endif  /* __OpenBSD__ */
+
 #if defined(__APPLE__)
 
 /* Data returned by the TCP_INFO socket option on MacOS. */

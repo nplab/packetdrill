@@ -43,6 +43,10 @@
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #include <net/if_tun.h>
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#if defined(__OpenBSD__)
+#include <poll.h>
+#include <sys/time.h>
+#endif
 #if defined(__APPLE__)
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -52,6 +56,7 @@
 #include <sys/kern_event.h>
 #endif
 #include "assert.h"
+#include "ethernet.h"
 #include "ip.h"
 #include "ipv6.h"
 #include "logging.h"
@@ -227,9 +232,13 @@ static void create_device(struct config *config, struct local_netdev *netdev)
 #endif
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if !defined(__OpenBSD__)
+	/* OpenBSD initializes tun(4) in the only mode it supports, and
+	 * TUNSIFMODE fails unless the flags match the kernel defaults. */
 	const int mode = IFF_BROADCAST | IFF_MULTICAST;
 	if (ioctl(netdev->tun_fd, TUNSIFMODE, &mode, sizeof(mode)) < 0)
 		die_perror("TUNSIFMODE");
+#endif
 	if (fstat(netdev->tun_fd, &buf) < 0) {
 		die_perror("fstat tun device");
 	}
@@ -513,6 +522,7 @@ static int local_netdev_send(struct netdev *a_netdev,
  * need the packet contents, but on Linux we need to read at least 1
  * byte of packet data to consume the packet.
  */
+#if !defined(__OpenBSD__)
 static void local_netdev_read_queue(struct local_netdev *netdev,
 				    int num_packets)
 {
@@ -531,7 +541,71 @@ static void local_netdev_read_queue(struct local_netdev *netdev,
 		}
 	}
 }
+#endif /* !defined(__OpenBSD__) */
 
+#if defined(__OpenBSD__)
+/*
+ * On OpenBSD, packets sent by the kernel are first queued on the tun(4)
+ * device and are not visible to a BPF/pcap reader until a userland process
+ * reads the tun file descriptor.  Read the packet directly from tun(4) and
+ * strip the four-byte address-family header that OpenBSD prepends.
+ */
+static int local_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
+				struct packet **packet, char **error)
+{
+	struct local_netdev *netdev = to_local_netdev(a_netdev);
+	struct pollfd pfd;
+	struct timeval tv;
+	u32 af;
+	u16 ether_type;
+	int n;
+	enum packet_parse_result_t result;
+
+	DEBUGP("local_netdev_receive (OpenBSD tun)\n");
+
+	*packet = packet_new(PACKET_READ_BYTES);
+
+	pfd.fd = netdev->tun_fd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	while (poll(&pfd, 1, -1) < 0) {
+		if (errno == EINTR)
+			continue;
+		asprintf(error, "poll tun device: %s", strerror(errno));
+		packet_free(*packet);
+		*packet = NULL;
+		return STATUS_ERR;
+	}
+
+	n = read(netdev->tun_fd, (*packet)->buffer, (*packet)->buffer_bytes);
+	if (n < (int)sizeof(af)) {
+		asprintf(error, "short read from tun device: %d bytes", n);
+		packet_free(*packet);
+		*packet = NULL;
+		return STATUS_ERR;
+	}
+
+	memcpy(&af, (*packet)->buffer, sizeof(af));
+	af = ntohl(af);
+	memmove((*packet)->buffer, (*packet)->buffer + sizeof(af),
+		n - sizeof(af));
+
+	gettimeofday(&tv, NULL);
+	(*packet)->time_usecs = timeval_to_usecs(&tv);
+	(*packet)->direction = DIRECTION_OUTBOUND;
+
+	ether_type = (af == AF_INET) ? ETHERTYPE_IP : ETHERTYPE_IPV6;
+	result = parse_packet(*packet, n - sizeof(af), ether_type,
+			      udp_encaps, error);
+	if (result != PACKET_OK) {
+		packet_free(*packet);
+		*packet = NULL;
+		return STATUS_ERR;
+	}
+
+	return STATUS_OK;
+}
+#else
 static int local_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 				struct packet **packet, char **error)
 {
@@ -546,6 +620,7 @@ static int local_netdev_receive(struct netdev *a_netdev, u8 udp_encaps,
 	local_netdev_read_queue(netdev, num_packets);
 	return status;
 }
+#endif /* defined(__OpenBSD__) */
 
 int netdev_receive_loop(struct packet_socket *psock,
 			enum direction_t direction,
