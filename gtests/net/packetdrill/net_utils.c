@@ -58,14 +58,16 @@ static void net_add_ipv4_address(const char *dev_name,
 	asprintf(&command, "ip addr add %s/%d dev %s > /dev/null 2>&1",
 		 local_ip_string, prefix_len, dev_name);
 #endif
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__)
 	asprintf(&command, "/sbin/ifconfig %s %s/%d alias",
 		 dev_name, local_ip_string, prefix_len);
-#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) */
-#if defined(__APPLE__)
+#endif /* defined(__FreeBSD__) || defined(__NetBSD__) */
+#if defined(__OpenBSD__) || defined(__APPLE__)
+	/* tun(4) is point-to-point: the peer address is needed so that a
+	 * route through the gateway can be installed. */
 	asprintf(&command, "/sbin/ifconfig %s %s/%d %s alias",
 		 dev_name, local_ip_string, prefix_len, gateway_ip_string);
-#endif /* defined(__APPLE__) */
+#endif /* defined(__OpenBSD__) || defined(__APPLE__) */
 	verbose_system(command);
 	free(command);
 #if defined(__FreeBSD__)
